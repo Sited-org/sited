@@ -67,76 +67,80 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
         }}
       />
 
-      {/* Thin orbital rings - solar system style */}
-      {orbits.map((orbit, i) => (
-        <motion.div
-          key={`orbit-${i}`}
-          className="absolute inset-0 flex items-center justify-center"
-          style={{
-            transformStyle: "preserve-3d",
-          }}
-          animate={{
-            rotateX: orbit.tiltX,
-            rotateZ: [orbit.tiltZ, orbit.tiltZ + 360],
-          }}
-          transition={{
-            rotateZ: {
-              duration: isThinking ? orbit.duration / 2 : orbit.duration,
-              repeat: Infinity,
-              ease: "linear",
-            },
-            rotateX: {
-              duration: 0,
-            },
-          }}
-        >
+      {/* Rotating orbital system container */}
+      <motion.div
+        className="absolute inset-0"
+        style={{ transformStyle: "preserve-3d" }}
+        animate={{
+          rotateY: [0, 360],
+          rotateX: [0, 15, 0, -15, 0],
+        }}
+        transition={{
+          rotateY: {
+            duration: isThinking ? 8 : 20,
+            repeat: Infinity,
+            ease: "linear",
+          },
+          rotateX: {
+            duration: isThinking ? 4 : 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          },
+        }}
+      >
+        {/* Thin orbital rings - solar system style */}
+        {orbits.map((orbit, i) => (
           <div
-            className="rounded-full"
+            key={`orbit-${i}`}
+            className="absolute inset-0 flex items-center justify-center"
             style={{
-              width: `${orbit.scale * 100}%`,
-              height: `${orbit.scale * 100}%`,
-              border: "1px solid hsl(0 0% 15%)",
-              opacity: 0.7,
+              transform: `rotateX(${orbit.tiltX}deg) rotateZ(${orbit.tiltZ}deg)`,
+              transformStyle: "preserve-3d",
             }}
-          />
-        </motion.div>
-      ))}
+          >
+            <div
+              className="rounded-full"
+              style={{
+                width: `${orbit.scale * 100}%`,
+                height: `${orbit.scale * 100}%`,
+                border: "1px solid hsl(0 0% 15%)",
+                opacity: 0.7,
+              }}
+            />
+          </div>
+        ))}
 
-      {/* Small orbiting dots (planets) */}
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={`planet-${i}`}
-          className="absolute inset-0 flex items-center justify-center"
-          style={{
-            transformStyle: "preserve-3d",
-          }}
-          animate={{
-            rotateX: 65 + i * 8,
-            rotateZ: [i * 120, i * 120 + 360],
-          }}
-          transition={{
-            rotateZ: {
+        {/* Small orbiting dots (planets) */}
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={`planet-${i}`}
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              transform: `rotateX(${65 + i * 8}deg) rotateZ(${i * 120}deg)`,
+              transformStyle: "preserve-3d",
+            }}
+            animate={{
+              rotateZ: [i * 120, i * 120 + 360],
+            }}
+            transition={{
               duration: isThinking ? 4 + i * 2 : 8 + i * 4,
               repeat: Infinity,
               ease: "linear",
-            },
-            rotateX: {
-              duration: 0,
-            },
-          }}
-        >
-          <div
-            className="absolute bg-foreground rounded-full"
-            style={{
-              width: "4px",
-              height: "4px",
-              left: "50%",
-              top: "0%",
-              transform: "translateX(-50%)",
             }}
-          />
-        </motion.div>
-      ))}
+          >
+            <div
+              className="absolute bg-foreground rounded-full"
+              style={{
+                width: "4px",
+                height: "4px",
+                left: "50%",
+                top: "0%",
+                transform: "translateX(-50%)",
+              }}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
 
       {/* Subtle top highlight */}
       <div
