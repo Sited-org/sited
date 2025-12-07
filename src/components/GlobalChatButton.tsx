@@ -1,37 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, ArrowRight, Loader2 } from "lucide-react";
+import { X, Send, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-
-type Message = { role: "user" | "assistant"; content: string };
-
-interface CollectedInfo {
-  name?: string;
-  email?: string;
-  phone?: string;
-  businessName?: string;
-  industry?: string;
-  projectType?: "website" | "app" | "ai" | null;
-  budget?: string;
-  timeline?: string;
-  description?: string;
-}
+import { SiriOrb } from "./SiriOrb";
+import { useChatStore } from "@/hooks/useChatStore";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sales-chat`;
 
-export const SalesChatbot = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hi there! 👋 I'm here to help you find the perfect digital solution for your business. Are you looking for a website, a mobile app, or AI-powered features?",
-    },
-  ]);
+export const GlobalChatButton = () => {
+  const { messages, addMessage, updateLastAssistant, collectedInfo, updateCollectedInfo, isOpen, setIsOpen } = useChatStore();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [collectedInfo, setCollectedInfo] = useState<CollectedInfo>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -46,27 +27,21 @@ export const SalesChatbot = () => {
     }
   }, [isOpen]);
 
-  // Extract info from conversation
-  const extractInfo = (text: string, existingInfo: CollectedInfo): CollectedInfo => {
-    const updated = { ...existingInfo };
+  const extractInfo = (text: string) => {
+    const updated = { ...collectedInfo };
     
-    // Email pattern
     const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
     if (emailMatch) updated.email = emailMatch[0];
     
-    // Phone pattern
     const phoneMatch = text.match(/(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/);
     if (phoneMatch) updated.phone = phoneMatch[0];
     
-    // Name pattern (if they say "I'm [Name]" or "my name is [Name]")
     const nameMatch = text.match(/(?:i'm|i am|my name is|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
     if (nameMatch) updated.name = nameMatch[1];
     
-    // Business name pattern
     const businessMatch = text.match(/(?:company|business|we're|we are|our company is|at)\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[,.]|\s+and|\s+is|\s+we|$)/i);
     if (businessMatch) updated.businessName = businessMatch[1].trim();
     
-    // Project type detection
     const lowerText = text.toLowerCase();
     if (lowerText.includes("website") || lowerText.includes("web site") || lowerText.includes("landing page")) {
       updated.projectType = "website";
@@ -85,26 +60,13 @@ export const SalesChatbot = () => {
     const userMessage = input.trim();
     setInput("");
     
-    // Extract info from user message
-    const newInfo = extractInfo(userMessage, collectedInfo);
-    setCollectedInfo(newInfo);
+    const newInfo = extractInfo(userMessage);
+    updateCollectedInfo(newInfo);
     
-    const userMsg: Message = { role: "user", content: userMessage };
-    setMessages(prev => [...prev, userMsg]);
+    addMessage({ role: "user", content: userMessage });
     setIsLoading(true);
     
     let assistantContent = "";
-    
-    const updateAssistant = (chunk: string) => {
-      assistantContent += chunk;
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && prev.length > 1 && prev[prev.length - 2].role === "user") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
-        }
-        return [...prev, { role: "assistant", content: assistantContent }];
-      });
-    };
 
     try {
       const response = await fetch(CHAT_URL, {
@@ -114,7 +76,7 @@ export const SalesChatbot = () => {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ 
-          messages: [...messages, userMsg],
+          messages: [...messages, { role: "user", content: userMessage }],
           collectedInfo: newInfo,
         }),
       });
@@ -126,6 +88,7 @@ export const SalesChatbot = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let textBuffer = "";
+      let hasAddedAssistant = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -147,7 +110,15 @@ export const SalesChatbot = () => {
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) updateAssistant(content);
+            if (content) {
+              assistantContent += content;
+              if (!hasAddedAssistant) {
+                addMessage({ role: "assistant", content: assistantContent });
+                hasAddedAssistant = true;
+              } else {
+                updateLastAssistant(assistantContent);
+              }
+            }
           } catch {
             textBuffer = line + "\n" + textBuffer;
             break;
@@ -156,18 +127,18 @@ export const SalesChatbot = () => {
       }
     } catch (error) {
       console.error("Chat error:", error);
-      setMessages(prev => [...prev, { 
+      addMessage({ 
         role: "assistant", 
-        content: "I'm having trouble connecting right now. Please try again or reach out to us directly at hello@sited.com" 
-      }]);
+        content: "Connection issue. Try again or email hello@sited.com" 
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const goToForm = (type: "website" | "app") => {
-    // Store collected info in sessionStorage for pre-filling
     sessionStorage.setItem("chatbotInfo", JSON.stringify(collectedInfo));
+    setIsOpen(false);
     navigate(type === "website" ? "/website-onboarding" : "/app-onboarding");
   };
 
@@ -177,22 +148,64 @@ export const SalesChatbot = () => {
     ? "app" 
     : null;
 
+  const hasEnoughInfo = messages.length >= 4 && (collectedInfo.name || collectedInfo.email || collectedInfo.projectType);
+
+  const renderMessage = (content: string) => {
+    const websiteFormPattern = /\[Start Website Project\]|\/website-onboarding/gi;
+    const appFormPattern = /\[Start App Project\]|\/app-onboarding/gi;
+    
+    if (websiteFormPattern.test(content)) {
+      const parts = content.split(websiteFormPattern);
+      return (
+        <>
+          {parts[0]}
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            className="mx-1 inline-flex"
+            onClick={() => goToForm("website")}
+          >
+            Start Website Project <ArrowRight size={14} />
+          </Button>
+          {parts[1]}
+        </>
+      );
+    }
+    
+    if (appFormPattern.test(content)) {
+      const parts = content.split(appFormPattern);
+      return (
+        <>
+          {parts[0]}
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            className="mx-1 inline-flex"
+            onClick={() => goToForm("app")}
+          >
+            Start App Project <ArrowRight size={14} />
+          </Button>
+          {parts[1]}
+        </>
+      );
+    }
+    
+    return content;
+  };
+
   return (
     <>
-      {/* Chat Toggle Button */}
+      {/* Floating Orb Button */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
+          <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-foreground text-background rounded-full shadow-elevated flex items-center justify-center"
+            className="fixed bottom-6 right-6 z-50"
           >
-            <MessageCircle size={24} />
-          </motion.button>
+            <SiriOrb size="sm" onClick={() => setIsOpen(true)} />
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -203,17 +216,17 @@ export const SalesChatbot = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-6rem)] bg-card border border-border rounded-2xl shadow-elevated flex flex-col overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] h-[550px] max-h-[calc(100vh-6rem)] bg-card border border-border rounded-2xl shadow-elevated flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 border-b border-border bg-surface-elevated flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent rounded-full flex items-center justify-center">
-                  <MessageCircle size={20} className="text-accent-foreground" />
+                <div className="w-10 h-10">
+                  <SiriOrb size="sm" isThinking={isLoading} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Sited Assistant</h3>
-                  <p className="text-xs text-muted-foreground">Here to help you get started</p>
+                  <h3 className="font-semibold text-sm">Sited AI</h3>
+                  <p className="text-xs text-muted-foreground">Let's build something great</p>
                 </div>
               </div>
               <button
@@ -240,7 +253,7 @@ export const SalesChatbot = () => {
                         : "bg-muted text-foreground rounded-bl-md"
                     }`}
                   >
-                    {msg.content}
+                    {msg.role === "assistant" ? renderMessage(msg.content) : msg.content}
                   </div>
                 </motion.div>
               ))}
@@ -250,8 +263,15 @@ export const SalesChatbot = () => {
                   animate={{ opacity: 1 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-muted px-4 py-3 rounded-2xl rounded-bl-md">
-                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                  <div className="bg-muted px-4 py-3 rounded-2xl rounded-bl-md flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-2 h-2 rounded-full bg-muted-foreground"
+                        animate={{ y: [-2, 2, -2] }}
+                        transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                      />
+                    ))}
                   </div>
                 </motion.div>
               )}
@@ -259,7 +279,7 @@ export const SalesChatbot = () => {
             </div>
 
             {/* Quick Actions */}
-            {suggestedFormType && messages.length > 3 && (
+            {hasEnoughInfo && suggestedFormType && (
               <div className="px-4 py-2 border-t border-border bg-surface-elevated/50">
                 <Button
                   size="sm"
