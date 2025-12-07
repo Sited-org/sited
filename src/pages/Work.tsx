@@ -117,86 +117,73 @@ const ProjectBlock = ({
           </h2>
         </motion.div>
 
-        {/* Media grid */}
-        <div className={`grid lg:grid-cols-2 gap-8 mb-16 ${isEven ? '' : 'lg:flex-row-reverse'}`}>
-          {/* Images column */}
-          <motion.div 
-            style={{ y: imageY }}
-            className="space-y-6"
-          >
-            {project.images.map((image, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: i * 0.15 }}
-                className="relative overflow-hidden rounded-2xl group"
-              >
-                <img
-                  src={image}
-                  alt={`${project.company} project screenshot ${i + 1}`}
-                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-foreground/5 group-hover:bg-transparent transition-colors duration-500" />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Video column */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative"
-          >
-            <div className="relative overflow-hidden rounded-2xl group cursor-pointer h-full min-h-[400px]">
+        {/* Media grid - minimal layout */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+          {/* Images - small & stylish */}
+          {project.images.map((image, i) => (
+            <motion.div
+              key={i}
+              style={{ y: imageY }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: i * 0.1 }}
+              className="relative overflow-hidden rounded-xl group"
+            >
               <img
-                src={project.videoThumbnail}
-                alt={`${project.company} video testimonial`}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                src={image}
+                alt={`${project.company} project screenshot ${i + 1}`}
+                className="w-40 h-28 md:w-52 md:h-36 object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/30 transition-colors duration-500" />
-              
-              {/* Play button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-2xl"
-                >
-                  <Play size={32} className="text-foreground ml-1" fill="currentColor" />
-                </motion.div>
-              </div>
-
-              {/* Video label */}
-              <div className="absolute bottom-6 left-6">
-                <span className="text-background text-sm font-medium tracking-wide">
-                  Watch Video Testimonial
-                </span>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          ))}
         </div>
 
+        {/* Video - small & centered */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex justify-center mb-16"
+        >
+          <div className="relative overflow-hidden rounded-xl group cursor-pointer w-72 md:w-96">
+            <img
+              src={project.videoThumbnail}
+              alt={`${project.company} video testimonial`}
+              className="w-full h-44 md:h-56 object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors duration-300" />
+            
+            {/* Play button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-14 h-14 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-lg"
+              >
+                <Play size={20} className="text-foreground ml-0.5" fill="currentColor" />
+              </motion.div>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Testimonial & Info */}
-        <div className="grid lg:grid-cols-3 gap-12 items-start">
+        <div className="max-w-2xl mx-auto text-center">
           {/* Quote */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="lg:col-span-2"
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <Quote size={40} className="text-accent/50 mb-6" />
-            <blockquote className="text-xl md:text-2xl lg:text-3xl font-medium leading-relaxed tracking-tight mb-8">
+            <Quote size={28} className="text-accent/40 mx-auto mb-4" />
+            <blockquote className="text-lg md:text-xl font-medium leading-relaxed tracking-tight mb-6 text-muted-foreground">
               "{project.testimonial}"
             </blockquote>
             
             {/* Rating */}
-            <div className="flex items-center gap-1 mb-6">
+            <div className="flex items-center justify-center gap-1 mb-4">
               {Array.from({ length: project.rating }).map((_, i) => (
                 <Star
                   key={i}
@@ -207,36 +194,28 @@ const ProjectBlock = ({
             </div>
 
             {/* Author */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                <span className="text-lg font-semibold text-muted-foreground">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                <span className="text-sm font-semibold text-muted-foreground">
                   {project.author.charAt(0)}
                 </span>
               </div>
-              <div>
-                <p className="font-semibold text-lg">{project.author}</p>
-                <p className="text-muted-foreground">{project.role}, {project.company}</p>
+              <div className="text-left">
+                <p className="font-medium text-sm">{project.author}</p>
+                <p className="text-muted-foreground text-xs">{project.role}, {project.company}</p>
               </div>
             </div>
-          </motion.div>
 
-          {/* Visit site button */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="flex lg:justify-end"
-          >
+            {/* Visit site button */}
             <Button
-              variant="outline"
-              size="lg"
-              className="group"
+              variant="ghost"
+              size="sm"
+              className="group text-muted-foreground hover:text-foreground"
               asChild
             >
               <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer">
                 Visit Website
-                <ExternalLink size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
+                <ExternalLink size={14} className="ml-1.5 transition-transform group-hover:translate-x-0.5" />
               </a>
             </Button>
           </motion.div>
