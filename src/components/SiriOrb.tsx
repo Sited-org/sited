@@ -77,12 +77,12 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
         }}
         transition={{
           rotateY: {
-            duration: isThinking ? 8 : 20,
+            duration: isThinking ? 5 : 13,
             repeat: Infinity,
             ease: "linear",
           },
           rotateX: {
-            duration: isThinking ? 4 : 10,
+            duration: isThinking ? 2.5 : 6.5,
             repeat: Infinity,
             ease: "easeInOut",
           },
@@ -108,37 +108,6 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
               }}
             />
           </div>
-        ))}
-
-        {/* Small orbiting dots (planets) */}
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={`planet-${i}`}
-            className="absolute inset-0 flex items-center justify-center"
-            style={{
-              transform: `rotateX(${65 + i * 8}deg) rotateZ(${i * 120}deg)`,
-              transformStyle: "preserve-3d",
-            }}
-            animate={{
-              rotateZ: [i * 120, i * 120 + 360],
-            }}
-            transition={{
-              duration: isThinking ? 4 + i * 2 : 8 + i * 4,
-              repeat: Infinity,
-              ease: "linear",
-            }}
-          >
-            <div
-              className="absolute bg-foreground rounded-full"
-              style={{
-                width: "4px",
-                height: "4px",
-                left: "50%",
-                top: "0%",
-                transform: "translateX(-50%)",
-              }}
-            />
-          </motion.div>
         ))}
       </motion.div>
 
