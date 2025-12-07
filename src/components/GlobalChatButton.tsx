@@ -151,11 +151,9 @@ export const GlobalChatButton = () => {
   const hasEnoughInfo = messages.length >= 4 && (collectedInfo.name || collectedInfo.email || collectedInfo.projectType);
 
   const renderMessage = (content: string) => {
-    const websiteFormPattern = /\[Start Website Project\]|\/website-onboarding/gi;
-    const appFormPattern = /\[Start App Project\]|\/app-onboarding/gi;
-    
-    if (websiteFormPattern.test(content)) {
-      const parts = content.split(websiteFormPattern);
+    // Check for website form link
+    if (content.includes("[Start Website Project]") || content.includes("/website-onboarding")) {
+      const parts = content.split(/\[Start Website Project\]|\/website-onboarding/i);
       return (
         <>
           {parts[0]}
@@ -167,13 +165,14 @@ export const GlobalChatButton = () => {
           >
             Start Website Project <ArrowRight size={14} />
           </Button>
-          {parts[1]}
+          {parts[1] || ""}
         </>
       );
     }
     
-    if (appFormPattern.test(content)) {
-      const parts = content.split(appFormPattern);
+    // Check for app form link
+    if (content.includes("[Start App Project]") || content.includes("/app-onboarding")) {
+      const parts = content.split(/\[Start App Project\]|\/app-onboarding/i);
       return (
         <>
           {parts[0]}
@@ -185,7 +184,7 @@ export const GlobalChatButton = () => {
           >
             Start App Project <ArrowRight size={14} />
           </Button>
-          {parts[1]}
+          {parts[1] || ""}
         </>
       );
     }
