@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight, Sparkles, Zap, Smartphone, Globe } from "lucide-react";
-
+import { SalesChatbot } from "@/components/SalesChatbot";
 const Hero = () => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -232,6 +232,7 @@ const Index = () => {
   return (
     <Layout>
       <Hero />
+      <SalesChatbot />
       <Services />
       <Process />
       <CTA />
