@@ -38,7 +38,7 @@ const Hero = () => {
 
       <motion.div
         style={{ opacity, scale, y }}
-        className="relative z-10 container-tight pt-32 pb-20 text-center"
+        className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -54,7 +54,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
         >
           We build websites
           <br />
@@ -65,7 +65,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
+          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
           Sited combines AI precision with creative excellence to deliver stunning 
           digital experiences for small and medium businesses.
@@ -135,18 +135,18 @@ const Services = () => {
           description="From concept to launch, we handle every aspect of your digital presence with precision and care."
         />
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {services.map((service, index) => (
             <ScrollReveal key={service.title} delay={index * 0.1}>
               <motion.div
                 whileHover={{ y: -4 }}
-                className="group p-8 rounded-2xl border border-border bg-card hover:shadow-elevated transition-all duration-300"
+                className="group p-5 sm:p-8 rounded-2xl border border-border bg-card hover:shadow-elevated transition-all duration-300"
               >
-                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mb-6">
-                  <service.icon size={24} className="text-accent-foreground" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-accent flex items-center justify-center mb-4 sm:mb-6">
+                  <service.icon size={20} className="sm:w-6 sm:h-6 text-accent-foreground" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{service.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{service.description}</p>
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">{service.title}</h3>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{service.description}</p>
               </motion.div>
             </ScrollReveal>
           ))}
@@ -181,13 +181,13 @@ const Process = () => {
           description="Our streamlined process ensures quality delivery without unnecessary delays."
         />
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="mt-10 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {steps.map((step, index) => (
             <ScrollReveal key={step.number} delay={index * 0.1}>
               <div className="relative">
-                <span className="text-7xl font-bold text-muted/50">{step.number}</span>
-                <h3 className="text-xl font-semibold mt-4 mb-2">{step.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+                <span className="text-4xl sm:text-5xl lg:text-7xl font-bold text-muted/50">{step.number}</span>
+                <h3 className="text-base sm:text-lg lg:text-xl font-semibold mt-2 sm:mt-4 mb-1 sm:mb-2">{step.title}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{step.description}</p>
               </div>
             </ScrollReveal>
           ))}
@@ -231,7 +231,7 @@ const FeaturedWork = () => {
   return (
     <section ref={ref} className="section-padding bg-background overflow-hidden">
       <div className="container-tight">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-16">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 sm:gap-6 mb-10 sm:mb-16">
           <div>
             <ScrollReveal>
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -239,7 +239,7 @@ const FeaturedWork = () => {
               </span>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mt-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
                 Results that speak.
               </h2>
             </ScrollReveal>
@@ -253,7 +253,7 @@ const FeaturedWork = () => {
           </ScrollReveal>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {featuredProjects.map((project, index) => (
             <ScrollReveal key={project.company} delay={index * 0.1}>
               <motion.div
@@ -262,18 +262,18 @@ const FeaturedWork = () => {
                 className="group cursor-pointer"
               >
                 <Link to="/work">
-                  <div className="overflow-hidden rounded-2xl mb-4">
+                  <div className="overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
                     <motion.img
                       src={project.image}
                       alt={project.company}
-                      className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
                     {project.category}
                   </span>
-                  <h3 className="text-xl font-semibold mt-1 mb-1">{project.company}</h3>
-                  <p className="text-accent font-medium">{project.result}</p>
+                  <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
+                  <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
                 </Link>
               </motion.div>
             </ScrollReveal>
@@ -289,7 +289,7 @@ const About = () => {
   return (
     <section className="section-padding bg-surface-elevated">
       <div className="container-tight">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
           <div>
             <ScrollReveal>
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
@@ -297,59 +297,59 @@ const About = () => {
               </span>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
-              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mt-4 mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
                 Your digital partner for growth.
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
-              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
                 We're a boutique digital agency that combines AI precision with creative excellence. 
                 Our focused team delivers websites, apps, and AI integrations that actually drive results.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>
-              <p className="text-muted-foreground leading-relaxed mb-8">
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
                 No fluff. No endless meetings. Just beautiful, high-converting digital products 
                 delivered in weeks, not months.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.4}>
-              <div className="flex gap-12">
+              <div className="flex flex-wrap gap-6 sm:gap-8 lg:gap-12">
                 <div>
-                  <span className="text-4xl font-semibold">50+</span>
-                  <p className="text-sm text-muted-foreground mt-1">Projects Delivered</p>
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">50+</span>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Projects Delivered</p>
                 </div>
                 <div>
-                  <span className="text-4xl font-semibold">98%</span>
-                  <p className="text-sm text-muted-foreground mt-1">Client Satisfaction</p>
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">98%</span>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Client Satisfaction</p>
                 </div>
                 <div>
-                  <span className="text-4xl font-semibold">2 wks</span>
-                  <p className="text-sm text-muted-foreground mt-1">Avg. Delivery</p>
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">2 wks</span>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Avg. Delivery</p>
                 </div>
               </div>
             </ScrollReveal>
           </div>
           <ScrollReveal delay={0.2}>
             <div className="relative">
-              <div className="bg-card border border-border rounded-3xl p-8">
-                <Quote size={32} className="text-accent mb-6" />
-                <p className="text-lg leading-relaxed mb-6">
+              <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-5 sm:p-8">
+                <Quote size={24} className="sm:w-8 sm:h-8 text-accent mb-4 sm:mb-6" />
+                <p className="text-base sm:text-lg leading-relaxed mb-4 sm:mb-6">
                   "Sited transformed our entire digital presence. The website they built doesn't 
                   just look incredible—it's become our most effective sales tool."
                 </p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="font-semibold">SM</span>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center">
+                    <span className="font-semibold text-sm sm:text-base">SM</span>
                   </div>
                   <div>
-                    <p className="font-semibold">Sarah Mitchell</p>
-                    <p className="text-sm text-muted-foreground">Founder, Bloom Floristry</p>
+                    <p className="font-semibold text-sm sm:text-base">Sarah Mitchell</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Founder, Bloom Floristry</p>
                   </div>
                 </div>
-                <div className="flex gap-1 mt-4">
+                <div className="flex gap-1 mt-3 sm:mt-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} className="fill-accent text-accent" />
+                    <Star key={i} size={14} className="sm:w-4 sm:h-4 fill-accent text-accent" />
                   ))}
                 </div>
               </div>
@@ -364,19 +364,19 @@ const About = () => {
 // Mid-page CTA
 const MidCTA = () => {
   return (
-    <section className="py-20 bg-accent">
+    <section className="py-12 sm:py-16 md:py-20 bg-accent">
       <div className="container-tight">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 sm:gap-8">
           <div>
-            <h3 className="text-2xl md:text-3xl font-semibold text-accent-foreground">
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-accent-foreground">
               Ready to start your project?
             </h3>
-            <p className="text-accent-foreground/70 mt-2">
+            <p className="text-sm sm:text-base text-accent-foreground/70 mt-2">
               Chat with our AI or book a call. Your choice.
             </p>
           </div>
           <div className="flex gap-4">
-            <Button size="lg" variant="secondary" asChild>
+            <Button size="lg" variant="secondary" asChild className="w-full sm:w-auto">
               <Link to="/contact">
                 Get Started <ArrowRight size={18} />
               </Link>
@@ -393,12 +393,12 @@ const CTA = () => {
     <section className="section-padding bg-foreground text-background">
       <div className="container-tight text-center">
         <ScrollReveal>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-4 sm:mb-6">
             Let's build something extraordinary.
           </h2>
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
-          <p className="text-background/70 text-lg max-w-2xl mx-auto mb-10">
+          <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
             Your next website, app, or AI integration is just a conversation away.
           </p>
         </ScrollReveal>

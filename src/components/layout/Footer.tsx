@@ -112,20 +112,20 @@ export const Footer = () => {
 
       {/* Main Deal Closing Section */}
       <div className="relative">
-        <div className="container-tight py-20 md:py-24">
+        <div className="container-tight py-12 sm:py-16 md:py-20 lg:py-24">
           {/* The Big Question */}
-          <div className="text-center mb-14">
-            <p className="text-background/60 text-sm uppercase tracking-widest mb-4">
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-background/60 text-xs sm:text-sm uppercase tracking-widest mb-3 sm:mb-4">
               One question
             </p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-3 sm:mb-4">
               Ready to build your{" "}
               <TypedText phrases={["dream website?", "next big app?", "AI advantage?"]} />
             </h2>
           </div>
 
           {/* Interactive Service Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-14">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-10 sm:mb-14">
             {services.map((service) => (
               <Link
                 key={service.name}
@@ -137,7 +137,7 @@ export const Footer = () => {
                   whileHover={{ scale: 1.02, y: -4 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.2 }}
-                  className={`relative p-6 rounded-2xl border transition-colors duration-200 ${
+                  className={`relative p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border transition-colors duration-200 ${
                     hoveredService === service.name
                       ? "bg-background text-foreground border-transparent"
                       : "bg-background/5 border-background/10"
@@ -145,17 +145,17 @@ export const Footer = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-3xl mb-3 block">{service.icon}</span>
-                      <h3 className="text-xl font-semibold mb-1">
+                      <span className="text-2xl sm:text-3xl mb-2 sm:mb-3 block">{service.icon}</span>
+                      <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-0.5 sm:mb-1">
                         {service.name} Project
                       </h3>
-                      <p className={`text-sm ${hoveredService === service.name ? "text-muted-foreground" : "text-background/60"}`}>
+                      <p className={`text-xs sm:text-sm ${hoveredService === service.name ? "text-muted-foreground" : "text-background/60"}`}>
                         {service.stat}
                       </p>
                     </div>
                     <ArrowRight 
-                      size={24} 
-                      className={`transition-all duration-200 ${
+                      size={20} 
+                      className={`sm:w-6 sm:h-6 transition-all duration-200 ${
                         hoveredService === service.name ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
                       }`}
                     />
@@ -166,31 +166,31 @@ export const Footer = () => {
           </div>
 
           {/* Primary CTA */}
-          <div className="text-center mb-14">
-            <p className="text-background/60 mb-6">Or skip the forms entirely</p>
+          <div className="text-center mb-10 sm:mb-14">
+            <p className="text-background/60 text-sm sm:text-base mb-4 sm:mb-6">Or skip the forms entirely</p>
             <Button
               onClick={() => setIsOpen(true)}
               size="xl"
-              className="bg-accent text-accent-foreground hover:bg-accent/90 gap-3"
+              className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 sm:gap-3 w-full sm:w-auto"
             >
-              <MessageCircle size={20} />
+              <MessageCircle size={18} className="sm:w-5 sm:h-5" />
               Chat with us now
-              <Sparkles size={18} />
+              <Sparkles size={16} className="sm:w-[18px] sm:h-[18px]" />
             </Button>
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-background/50">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-green-400" />
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-background/50">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-400" />
               <span>No commitment required</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock size={16} className="text-accent-foreground" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Clock size={14} className="sm:w-4 sm:h-4 text-accent-foreground" />
               <span>Response within 2 hours</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Users size={16} className="text-accent-foreground" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Users size={14} className="sm:w-4 sm:h-4 text-accent-foreground" />
               <span>50+ projects delivered</span>
             </div>
           </div>
@@ -200,23 +200,23 @@ export const Footer = () => {
         <div className="h-px bg-background/10" />
 
         {/* Bottom Bar */}
-        <div className="container-tight py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <Link to="/" className="text-2xl font-semibold tracking-tight">
+        <div className="container-tight py-6 sm:py-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
+            <Link to="/" className="text-xl sm:text-2xl font-semibold tracking-tight">
               Sited.
             </Link>
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6 sm:gap-8">
               {["Services", "Work", "Contact"].map((item) => (
                 <Link
                   key={item}
                   to={`/${item.toLowerCase()}`}
-                  className="text-sm text-background/60 hover:text-background transition-colors"
+                  className="text-xs sm:text-sm text-background/60 hover:text-background transition-colors"
                 >
                   {item}
                 </Link>
               ))}
             </div>
-            <p className="text-sm text-background/40">
+            <p className="text-xs sm:text-sm text-background/40">
               © {currentYear} Sited
             </p>
           </div>

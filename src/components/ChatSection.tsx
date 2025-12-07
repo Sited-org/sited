@@ -213,7 +213,7 @@ export const ChatSection = () => {
   };
 
   return (
-    <section className="min-h-screen bg-gradient-to-b from-background to-surface-elevated py-20 md:py-32">
+    <section className="min-h-screen bg-gradient-to-b from-background to-surface-elevated py-12 sm:py-16 md:py-24 lg:py-32">
       <div className="container-tight">
         <div className="flex flex-col items-center">
           {/* Siri Orb */}
@@ -222,7 +222,7 @@ export const ChatSection = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="mb-8"
+            className="mb-6 sm:mb-8"
           >
             <SiriOrb isThinking={isLoading} size="lg" />
           </motion.div>
@@ -233,10 +233,10 @@ export const ChatSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-center mb-8"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h2 className="text-2xl md:text-3xl font-semibold mb-2">Chat with Sited AI</h2>
-            <p className="text-muted-foreground">Tell us what you're building. We'll guide you.</p>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold mb-1.5 sm:mb-2">Chat with Sited AI</h2>
+            <p className="text-sm sm:text-base text-muted-foreground">Tell us what you're building. We'll guide you.</p>
           </motion.div>
 
           {/* Chat Container */}
@@ -248,8 +248,8 @@ export const ChatSection = () => {
             className="w-full max-w-2xl"
           >
             {/* Messages */}
-            <div className="bg-card border border-border rounded-2xl overflow-hidden">
-              <div className="max-h-[400px] overflow-y-auto p-6 space-y-4">
+            <div className="bg-card border border-border rounded-xl sm:rounded-2xl overflow-hidden">
+              <div className="max-h-[320px] sm:max-h-[400px] overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <AnimatePresence mode="popLayout">
                   {messages.map((msg, i) => (
                     <motion.div
@@ -308,34 +308,34 @@ export const ChatSection = () => {
               )}
 
               {/* Input */}
-              <div className="p-4 border-t border-border bg-background">
+              <div className="p-3 sm:p-4 border-t border-border bg-background">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     sendMessage();
                   }}
-                  className="flex gap-3"
+                  className="flex gap-2 sm:gap-3"
                 >
                   <Button 
                     type="button" 
                     size="icon" 
                     variant="ghost" 
-                    className="h-12 w-12 text-muted-foreground hover:text-foreground" 
+                    className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground hover:text-foreground flex-shrink-0" 
                     onClick={clearChat}
                     disabled={isLoading || messages.length <= 1}
                   >
-                    <RotateCcw size={18} />
+                    <RotateCcw size={16} className="sm:w-[18px] sm:h-[18px]" />
                   </Button>
                   <Input
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Type your message..."
-                    className="flex-1 h-12 text-base"
+                    className="flex-1 h-10 sm:h-12 text-sm sm:text-base"
                     disabled={isLoading}
                   />
-                  <Button type="submit" size="icon" className="h-12 w-12" disabled={isLoading || !input.trim()}>
-                    <Send size={18} />
+                  <Button type="submit" size="icon" className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0" disabled={isLoading || !input.trim()}>
+                    <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
                   </Button>
                 </form>
               </div>

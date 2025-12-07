@@ -112,34 +112,34 @@ const ServiceSection = ({
   return (
     <section
       ref={ref}
-      className={`py-32 ${index % 2 === 0 ? 'bg-background' : 'bg-surface-elevated'}`}
+      className={`py-16 sm:py-24 md:py-32 ${index % 2 === 0 ? 'bg-background' : 'bg-surface-elevated'}`}
     >
       <motion.div
         style={{ opacity, y }}
         className="container-tight"
       >
         {/* Header */}
-        <div className="text-center mb-20">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent/10 mb-6">
-            <Icon size={28} className="text-accent" />
+        <div className="text-center mb-10 sm:mb-16 md:mb-20">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-accent/10 mb-4 sm:mb-6">
+            <Icon size={22} className="sm:w-6 sm:h-6 md:w-7 md:h-7 text-accent" />
           </div>
-          <span className="block text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">
+          <span className="block text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3 sm:mb-4">
             {service.category}
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight">
             {service.title}
           </h2>
-          <p className="text-xl md:text-2xl text-muted-foreground mt-4 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground mt-3 sm:mt-4 max-w-2xl mx-auto px-2">
             {service.tagline}
           </p>
         </div>
 
         {/* Main content grid */}
-        <div className={`grid lg:grid-cols-2 gap-16 lg:gap-20 items-center mb-20`}>
+        <div className={`grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center mb-12 sm:mb-16 md:mb-20`}>
           {/* Image */}
           <div className={!isEven ? "lg:order-2" : ""}>
             <motion.div
-              className="overflow-hidden rounded-3xl"
+              className="overflow-hidden rounded-2xl sm:rounded-3xl"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.4 }}
             >
@@ -147,31 +147,31 @@ const ServiceSection = ({
                 style={{ scale: imageScale }}
                 src={service.image}
                 alt={service.title}
-                className="w-full h-72 md:h-[28rem] object-cover"
+                className="w-full h-48 sm:h-64 md:h-72 lg:h-[28rem] object-cover"
               />
             </motion.div>
           </div>
 
           {/* Content */}
           <div className={!isEven ? "lg:order-1" : ""}>
-            <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+            <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed mb-6 sm:mb-8">
               {service.description}
             </p>
 
             {/* Features */}
-            <ul className="space-y-4 mb-10">
+            <ul className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
               {service.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check size={12} className="text-accent-foreground" />
+                <li key={feature} className="flex items-start gap-2 sm:gap-3">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Check size={10} className="sm:w-3 sm:h-3 text-accent-foreground" />
                   </div>
-                  <span className="text-foreground">{feature}</span>
+                  <span className="text-sm sm:text-base text-foreground">{feature}</span>
                 </li>
               ))}
             </ul>
 
             {/* CTA Button */}
-            <Button size="lg" className="group" asChild>
+            <Button size="lg" className="group w-full sm:w-auto" asChild>
               <Link to={service.cta.link}>
                 {service.cta.text}
                 <ArrowRight size={18} className="ml-2 transition-transform group-hover:translate-x-1" />
@@ -181,7 +181,7 @@ const ServiceSection = ({
         </div>
 
         {/* Process */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-10 sm:mb-12 md:mb-16">
           {service.process.map((item, i) => (
             <motion.div
               key={item.step}
@@ -189,23 +189,23 @@ const ServiceSection = ({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="text-center p-6 rounded-2xl bg-card border border-border/50"
+              className="text-center p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl bg-card border border-border/50"
             >
-              <span className="text-3xl font-semibold text-accent">{item.step}</span>
-              <h4 className="font-semibold mt-2">{item.title}</h4>
-              <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
+              <span className="text-xl sm:text-2xl md:text-3xl font-semibold text-accent">{item.step}</span>
+              <h4 className="font-semibold mt-1 sm:mt-2 text-sm sm:text-base">{item.title}</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{item.desc}</p>
             </motion.div>
           ))}
         </div>
 
         {/* Results */}
-        <div className="flex flex-wrap justify-center gap-12 md:gap-20">
+        <div className="flex flex-wrap justify-center gap-6 sm:gap-10 md:gap-12 lg:gap-20">
           {service.results.map((result) => (
             <div key={result.label} className="text-center">
-              <span className="text-4xl md:text-5xl font-semibold tracking-tight">
+              <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight">
                 {result.metric}
               </span>
-              <p className="text-sm text-muted-foreground mt-2 uppercase tracking-wider">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2 uppercase tracking-wider">
                 {result.label}
               </p>
             </div>
@@ -231,7 +231,7 @@ const Services = () => {
       {/* Hero */}
       <section
         ref={heroRef}
-        className="min-h-[85vh] flex items-center justify-center relative"
+        className="min-h-[60vh] sm:min-h-[70vh] md:min-h-[85vh] flex items-center justify-center relative"
       >
         <motion.div
           style={{ opacity: heroOpacity, y: heroY }}
@@ -250,7 +250,7 @@ const Services = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight mt-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-8xl font-semibold tracking-tight mt-4 sm:mt-6"
           >
             Everything you need.
             <br />
@@ -261,7 +261,7 @@ const Services = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mt-8 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mt-6 sm:mt-8 leading-relaxed px-2"
           >
             We focus on three things and do them exceptionally well. 
             Websites that convert. Apps that engage. AI that transforms.
@@ -271,14 +271,14 @@ const Services = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-4 mt-10"
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mt-8 sm:mt-10"
           >
-            <Button size="lg" asChild>
+            <Button size="lg" asChild className="w-full sm:w-auto">
               <Link to="/contact">
                 Get Started <ArrowRight size={18} className="ml-2" />
               </Link>
             </Button>
-            <Button size="lg" variant="ghost" asChild>
+            <Button size="lg" variant="ghost" asChild className="w-full sm:w-auto">
               <Link to="/work">
                 See Our Work
               </Link>

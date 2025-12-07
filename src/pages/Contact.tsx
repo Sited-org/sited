@@ -28,14 +28,14 @@ const Contact = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="pt-32 pb-20 bg-gradient-to-b from-surface-elevated to-background">
+      <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 bg-gradient-to-b from-surface-elevated to-background">
         <div className="container-tight text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-block text-sm font-medium text-muted-foreground uppercase tracking-widest mb-4">
+            <span className="inline-block text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3 sm:mb-4">
               Contact Us
             </span>
           </motion.div>
@@ -43,7 +43,7 @@ const Contact = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-6"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-4 sm:mb-6"
           >
             Let's build something
             <br />
@@ -53,7 +53,7 @@ const Contact = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="text-lg text-muted-foreground max-w-2xl mx-auto"
+            className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2"
           >
             Have a project in mind? We'd love to hear about it. Get in touch and
             let's create something extraordinary.
@@ -64,48 +64,48 @@ const Contact = () => {
       {/* Contact Section */}
       <section className="section-padding bg-background">
         <div className="container-tight">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-16">
             {/* Contact Form */}
             <ScrollReveal>
-              <div className="bg-card border border-border rounded-2xl p-8 md:p-10">
-                <h2 className="text-2xl font-semibold mb-6">Send us a message</h2>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-card border border-border rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Send us a message</h2>
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Name</Label>
+                      <Label htmlFor="name" className="text-sm">Name</Label>
                       <Input
                         id="name"
                         placeholder="Your name"
                         required
-                        className="h-12"
+                        className="h-11 sm:h-12 text-base"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email" className="text-sm">Email</Label>
                       <Input
                         id="email"
                         type="email"
                         placeholder="you@example.com"
                         required
-                        className="h-12"
+                        className="h-11 sm:h-12 text-base"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="company">Company (Optional)</Label>
+                    <Label htmlFor="company" className="text-sm">Company (Optional)</Label>
                     <Input
                       id="company"
                       placeholder="Your company name"
-                      className="h-12"
+                      className="h-11 sm:h-12 text-base"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
+                    <Label htmlFor="message" className="text-sm">Message</Label>
                     <Textarea
                       id="message"
                       placeholder="Tell us about your project..."
                       required
-                      className="min-h-[150px] resize-none"
+                      className="min-h-[120px] sm:min-h-[150px] resize-none text-base"
                     />
                   </div>
                   <Button
@@ -123,32 +123,32 @@ const Contact = () => {
             </ScrollReveal>
 
             {/* Contact Info & Start Project */}
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               <ScrollReveal delay={0.1}>
-                <div className="space-y-6">
-                  <h2 className="text-2xl font-semibold">Get in touch</h2>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                        <Mail size={20} className="text-accent-foreground" />
+                <div className="space-y-4 sm:space-y-6">
+                  <h2 className="text-xl sm:text-2xl font-semibold">Get in touch</h2>
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                        <Mail size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium">Email</p>
+                        <p className="font-medium text-sm sm:text-base">Email</p>
                         <a
                           href="mailto:hello@sited.com"
-                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors"
                         >
                           hello@sited.com
                         </a>
                       </div>
                     </div>
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                        <MapPin size={20} className="text-accent-foreground" />
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                        <MapPin size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium">Location</p>
-                        <p className="text-muted-foreground">
+                        <p className="font-medium text-sm sm:text-base">Location</p>
+                        <p className="text-sm sm:text-base text-muted-foreground">
                           Remote-first, serving clients worldwide
                         </p>
                       </div>
@@ -158,34 +158,34 @@ const Contact = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={0.2}>
-                <div className="border-t border-border pt-8">
-                  <h2 className="text-2xl font-semibold mb-4">
+                <div className="border-t border-border pt-6 sm:pt-8">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
                     Ready to start your project?
                   </h2>
-                  <p className="text-muted-foreground mb-6">
+                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                     Fill out our detailed onboarding form to help us understand
                     your project requirements in depth.
                   </p>
-                  <div className="space-y-3">
-                    <Button variant="outline" size="lg" className="w-full justify-start" asChild>
+                  <div className="space-y-2 sm:space-y-3">
+                    <Button variant="outline" size="lg" className="w-full justify-start text-sm sm:text-base" asChild>
                       <Link to="/onboarding/website">
-                        <Globe size={20} />
+                        <Globe size={18} className="sm:w-5 sm:h-5" />
                         Start Website Project
-                        <ArrowRight size={18} className="ml-auto" />
+                        <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px] ml-auto" />
                       </Link>
                     </Button>
-                    <Button variant="outline" size="lg" className="w-full justify-start" asChild>
+                    <Button variant="outline" size="lg" className="w-full justify-start text-sm sm:text-base" asChild>
                       <Link to="/onboarding/app">
-                        <Smartphone size={20} />
+                        <Smartphone size={18} className="sm:w-5 sm:h-5" />
                         Start App Project
-                        <ArrowRight size={18} className="ml-auto" />
+                        <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px] ml-auto" />
                       </Link>
                     </Button>
-                    <Button variant="outline" size="lg" className="w-full justify-start" asChild>
+                    <Button variant="outline" size="lg" className="w-full justify-start text-sm sm:text-base" asChild>
                       <Link to="/onboarding/ai">
-                        <Sparkles size={20} />
+                        <Sparkles size={18} className="sm:w-5 sm:h-5" />
                         Start AI Integration Project
-                        <ArrowRight size={18} className="ml-auto" />
+                        <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px] ml-auto" />
                       </Link>
                     </Button>
                   </div>
@@ -193,8 +193,8 @@ const Contact = () => {
               </ScrollReveal>
 
               <ScrollReveal delay={0.3}>
-                <div className="bg-accent/30 rounded-2xl p-6">
-                  <p className="text-sm text-muted-foreground">
+                <div className="bg-accent/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     <strong className="text-foreground">Response time:</strong> We
                     typically respond within 24 hours during business days.
                   </p>
