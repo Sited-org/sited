@@ -14,7 +14,7 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
     lg: "w-32 h-32",
   };
 
-  const ringCount = size === "lg" ? 6 : size === "md" ? 4 : 3;
+  const scale = size === "lg" ? 1 : size === "md" ? 0.625 : 0.375;
 
   return (
     <motion.div
@@ -23,166 +23,215 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      {/* Outer glow */}
+      {/* Soft outer glow */}
       <motion.div
-        className="absolute inset-0 rounded-full blur-xl"
+        className="absolute inset-0 rounded-full"
         style={{
-          background: "radial-gradient(circle, hsl(var(--foreground) / 0.2) 0%, transparent 70%)",
+          background: "radial-gradient(circle, hsl(var(--foreground) / 0.15) 0%, transparent 60%)",
+          filter: "blur(12px)",
         }}
         animate={{
-          scale: isListening || isThinking ? [1, 1.4, 1] : [1, 1.15, 1],
-          opacity: isListening || isThinking ? [0.4, 0.6, 0.4] : [0.2, 0.35, 0.2],
+          scale: [1, 1.3, 1.1, 1.25, 1],
+          opacity: isThinking ? [0.3, 0.5, 0.3] : [0.15, 0.25, 0.2, 0.15],
         }}
         transition={{
-          duration: isThinking ? 1.2 : 3,
+          duration: isThinking ? 2 : 6,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
 
-      {/* Core sphere */}
+      {/* Ethereal mist layers */}
+      {[...Array(4)].map((_, i) => (
+        <motion.div
+          key={`mist-${i}`}
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: `radial-gradient(ellipse ${60 + i * 15}% ${40 + i * 10}% at ${30 + i * 12}% ${25 + i * 15}%, hsl(var(--foreground) / ${0.08 - i * 0.015}) 0%, transparent 70%)`,
+            filter: `blur(${4 + i * 2}px)`,
+          }}
+          animate={{
+            rotate: i % 2 === 0 ? [0, 360] : [360, 0],
+            scale: [1, 1.05 + i * 0.02, 1],
+          }}
+          transition={{
+            rotate: {
+              duration: 20 + i * 8,
+              repeat: Infinity,
+              ease: "linear",
+            },
+            scale: {
+              duration: 4 + i * 1.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            },
+          }}
+        />
+      ))}
+
+      {/* Core sphere with soft edges */}
       <motion.div
-        className="absolute inset-2 rounded-full bg-gradient-to-br from-foreground/90 via-foreground/70 to-muted-foreground/50"
+        className="absolute rounded-full"
+        style={{
+          inset: `${12 * scale}px`,
+          background: "radial-gradient(circle at 35% 35%, hsl(var(--foreground) / 0.9), hsl(var(--foreground) / 0.6) 50%, hsl(var(--muted-foreground) / 0.4) 100%)",
+          boxShadow: "inset 0 0 20px hsl(var(--background) / 0.3)",
+        }}
         animate={{
-          scale: isThinking ? [1, 0.95, 1] : 1,
+          scale: isThinking ? [1, 0.97, 1.02, 0.98, 1] : [1, 1.01, 0.99, 1],
         }}
         transition={{
-          duration: 0.8,
-          repeat: isThinking ? Infinity : 0,
+          duration: isThinking ? 1.5 : 4,
+          repeat: Infinity,
+          ease: "easeInOut",
         }}
       />
 
-      {/* Inner highlight */}
-      <div 
-        className="absolute rounded-full bg-gradient-to-br from-background/40 to-transparent"
-        style={{
-          top: "15%",
-          left: "15%",
-          width: "35%",
-          height: "35%",
-        }}
-      />
-
-      {/* Orbiting rings */}
-      {[...Array(ringCount)].map((_, i) => {
-        const rotationOffset = (i * 360) / ringCount;
-        const tiltX = 60 + i * 8;
-        const duration = isThinking ? 2 + i * 0.3 : 6 + i * 1.5;
-        
+      {/* Flowing orbital wisps */}
+      {[...Array(5)].map((_, i) => {
+        const angle = (i * 72) + 15;
         return (
           <motion.div
-            key={i}
+            key={`wisp-${i}`}
             className="absolute inset-0"
             style={{
-              transform: `rotateX(${tiltX}deg) rotateY(${rotationOffset}deg)`,
-              transformStyle: "preserve-3d",
+              transform: `rotate(${angle}deg)`,
             }}
           >
             <motion.div
-              className="absolute inset-0 rounded-full border border-foreground/30"
+              className="absolute rounded-full"
               style={{
-                borderWidth: size === "lg" ? "1.5px" : "1px",
+                width: `${100 + i * 8}%`,
+                height: `${30 + i * 5}%`,
+                left: `${-i * 4}%`,
+                top: "35%",
+                background: `linear-gradient(90deg, transparent 0%, hsl(var(--foreground) / ${0.15 - i * 0.02}) 30%, hsl(var(--foreground) / ${0.2 - i * 0.03}) 50%, hsl(var(--foreground) / ${0.15 - i * 0.02}) 70%, transparent 100%)`,
+                filter: `blur(${2 + i}px)`,
+                borderRadius: "50%",
               }}
               animate={{
-                rotate: 360,
+                rotate: [0, 360],
+                scaleX: [1, 1.1, 0.95, 1.05, 1],
               }}
               transition={{
-                duration,
-                repeat: Infinity,
-                ease: "linear",
+                rotate: {
+                  duration: isThinking ? 8 + i * 2 : 15 + i * 4,
+                  repeat: Infinity,
+                  ease: "linear",
+                },
+                scaleX: {
+                  duration: 5 + i,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                },
               }}
             />
           </motion.div>
         );
       })}
 
-      {/* Horizontal equator ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full border-2 border-foreground/50"
-        style={{
-          transform: "rotateX(75deg)",
-        }}
-        animate={{
-          rotate: isThinking ? 360 : 0,
-        }}
-        transition={{
-          duration: isThinking ? 3 : 12,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
+      {/* Drifting particles */}
+      {[...Array(6)].map((_, i) => {
+        const startAngle = i * 60;
+        const radius = 35 + (i % 3) * 12;
+        return (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute rounded-full bg-foreground/60"
+            style={{
+              width: `${(3 - (i % 2)) * scale}px`,
+              height: `${(3 - (i % 2)) * scale}px`,
+              left: "50%",
+              top: "50%",
+              filter: "blur(0.5px)",
+            }}
+            animate={{
+              x: [
+                Math.cos((startAngle * Math.PI) / 180) * radius * scale,
+                Math.cos(((startAngle + 120) * Math.PI) / 180) * radius * scale,
+                Math.cos(((startAngle + 240) * Math.PI) / 180) * radius * scale,
+                Math.cos((startAngle * Math.PI) / 180) * radius * scale,
+              ],
+              y: [
+                Math.sin((startAngle * Math.PI) / 180) * radius * scale,
+                Math.sin(((startAngle + 120) * Math.PI) / 180) * radius * scale,
+                Math.sin(((startAngle + 240) * Math.PI) / 180) * radius * scale,
+                Math.sin((startAngle * Math.PI) / 180) * radius * scale,
+              ],
+              opacity: [0.3, 0.7, 0.4, 0.6, 0.3],
+            }}
+            transition={{
+              duration: isThinking ? 4 + i : 8 + i * 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        );
+      })}
 
-      {/* Diagonal accent ring */}
+      {/* Soft inner glow pulse */}
       <motion.div
-        className="absolute inset-1 rounded-full border border-muted-foreground/40"
+        className="absolute rounded-full"
         style={{
-          transform: "rotateX(45deg) rotateZ(25deg)",
+          inset: `${20 * scale}px`,
+          background: "radial-gradient(circle at 40% 40%, hsl(var(--background) / 0.4) 0%, transparent 60%)",
         }}
         animate={{
-          rotate: -360,
+          opacity: [0.4, 0.7, 0.5, 0.6, 0.4],
+          scale: [1, 1.05, 0.98, 1.02, 1],
         }}
         transition={{
-          duration: isThinking ? 4 : 10,
-          repeat: Infinity,
-          ease: "linear",
-        }}
-      />
-
-      {/* Small orbiting dot */}
-      <motion.div
-        className="absolute"
-        style={{
-          width: size === "lg" ? "8px" : size === "md" ? "6px" : "4px",
-          height: size === "lg" ? "8px" : size === "md" ? "6px" : "4px",
-          top: "50%",
-          left: "50%",
-          marginTop: size === "lg" ? "-4px" : size === "md" ? "-3px" : "-2px",
-          marginLeft: size === "lg" ? "-4px" : size === "md" ? "-3px" : "-2px",
-        }}
-        animate={{
-          x: [0, 40, 0, -40, 0].map(v => v * (size === "lg" ? 1 : size === "md" ? 0.6 : 0.4)),
-          y: [20, 0, -20, 0, 20].map(v => v * (size === "lg" ? 1 : size === "md" ? 0.6 : 0.4)),
-        }}
-        transition={{
-          duration: isThinking ? 2 : 5,
+          duration: 5,
           repeat: Infinity,
           ease: "easeInOut",
         }}
-      >
-        <div className="w-full h-full rounded-full bg-foreground shadow-lg" />
-      </motion.div>
+      />
 
-      {/* Thinking pulse effect */}
+      {/* Thinking ripples */}
       {isThinking && (
-        <motion.div
-          className="absolute inset-0 rounded-full border-2 border-foreground/40"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.5, 0, 0.5],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeOut",
-          }}
-        />
-      )}
-
-      {/* Listening wave rings */}
-      {isListening && (
         <>
           {[0, 1, 2].map((i) => (
             <motion.div
-              key={i}
-              className="absolute inset-0 rounded-full border border-foreground/30"
+              key={`ripple-${i}`}
+              className="absolute inset-0 rounded-full"
+              style={{
+                border: "1px solid hsl(var(--foreground) / 0.2)",
+                filter: "blur(1px)",
+              }}
               animate={{
-                scale: [1, 1.5],
-                opacity: [0.4, 0],
+                scale: [1, 1.6],
+                opacity: [0.3, 0],
               }}
               transition={{
-                duration: 1.5,
+                duration: 2,
                 repeat: Infinity,
-                delay: i * 0.4,
+                delay: i * 0.5,
+                ease: "easeOut",
+              }}
+            />
+          ))}
+        </>
+      )}
+
+      {/* Listening gentle waves */}
+      {isListening && (
+        <>
+          {[0, 1].map((i) => (
+            <motion.div
+              key={`wave-${i}`}
+              className="absolute inset-2 rounded-full"
+              style={{
+                border: "1px solid hsl(var(--foreground) / 0.15)",
+                filter: "blur(2px)",
+              }}
+              animate={{
+                scale: [1, 1.3],
+                opacity: [0.2, 0],
+              }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                delay: i * 0.6,
                 ease: "easeOut",
               }}
             />
