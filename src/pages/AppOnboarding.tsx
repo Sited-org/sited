@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -136,9 +137,46 @@ const AppOnboarding = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    toast.success("Your app project request has been submitted! We'll be in touch within 24 hours.");
-    setIsSubmitting(false);
+    
+    try {
+      // Insert lead into database
+      const { error: dbError } = await supabase.from("leads").insert({
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || null,
+        business_name: formData.businessName || null,
+        project_type: "app",
+        form_data: formData,
+      });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        throw new Error("Failed to save your submission");
+      }
+
+      // Send email notification
+      const { error: emailError } = await supabase.functions.invoke("send-lead-notification", {
+        body: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          businessName: formData.businessName,
+          projectType: "app",
+          formData,
+        },
+      });
+
+      if (emailError) {
+        console.error("Email error:", emailError);
+      }
+
+      toast.success("Your app project request has been submitted! We'll be in touch within 24 hours.");
+    } catch (error: any) {
+      console.error("Submit error:", error);
+      toast.error(error.message || "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
