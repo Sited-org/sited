@@ -13,7 +13,6 @@ const projects = [
     testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool.",
     author: "Sarah Mitchell",
     role: "Founder",
-    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=800&fit=crop",
     videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop",
     websiteUrl: "https://bloomfloristry.com",
     results: [
@@ -28,7 +27,6 @@ const projects = [
     testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately.",
     author: "Marcus Chen",
     role: "CEO",
-    image: "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=1200&h=800&fit=crop",
     videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop",
     websiteUrl: "https://fittrackpro.com",
     results: [
@@ -43,7 +41,6 @@ const projects = [
     testimonial: "The AI integration they implemented is not just a chatbot—it's an intelligent system that actually understands context.",
     author: "Elena Rodriguez",
     role: "Operations Director",
-    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1200&h=800&fit=crop",
     videoThumbnail: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1200&h=800&fit=crop",
     websiteUrl: "https://medicareconnect.com",
     results: [
@@ -129,41 +126,33 @@ const ProjectSection = ({
             </Button>
           </div>
 
-          {/* Media */}
-          <div className={`space-y-6 ${!isEven ? 'lg:order-1' : ''}`}>
-            {/* Main image */}
+          {/* Media - Video only */}
+          <div className={`${!isEven ? 'lg:order-1' : ''}`}>
+            {/* Video thumbnail */}
             <motion.div
-              className="overflow-hidden rounded-2xl"
+              className="overflow-hidden rounded-3xl relative cursor-pointer group"
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.4 }}
             >
               <motion.img
                 style={{ scale: imageScale }}
-                src={project.image}
-                alt={project.company}
-                className="w-full h-80 md:h-[28rem] object-cover"
-              />
-            </motion.div>
-
-            {/* Video thumbnail */}
-            <motion.div
-              className="overflow-hidden rounded-2xl relative cursor-pointer group"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.4 }}
-            >
-              <img
                 src={project.videoThumbnail}
-                alt={`${project.company} video`}
-                className="w-full h-48 md:h-64 object-cover"
+                alt={`${project.company} testimonial video`}
+                className="w-full h-80 md:h-[28rem] object-cover"
               />
               <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
-                  className="w-16 h-16 rounded-full bg-background/90 backdrop-blur flex items-center justify-center"
+                  className="w-20 h-20 rounded-full bg-background/90 backdrop-blur flex items-center justify-center"
                 >
-                  <Play size={24} className="ml-1" fill="currentColor" />
+                  <Play size={28} className="ml-1" fill="currentColor" />
                 </motion.div>
+              </div>
+              <div className="absolute bottom-6 left-6 right-6">
+                <span className="text-sm text-background/80 bg-foreground/60 backdrop-blur px-3 py-1.5 rounded-full">
+                  Watch Testimonial
+                </span>
               </div>
             </motion.div>
           </div>
