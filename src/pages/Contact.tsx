@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, MapPin, ArrowRight, Globe, Smartphone } from "lucide-react";
+import { Mail, MapPin, ArrowRight, Globe, Smartphone, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -178,6 +178,13 @@ const Contact = () => {
                       <Link to="/onboarding/app">
                         <Smartphone size={20} />
                         Start App Project
+                        <ArrowRight size={18} className="ml-auto" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="lg" className="w-full justify-start" asChild>
+                      <Link to="/onboarding/ai">
+                        <Sparkles size={20} />
+                        Start AI Integration Project
                         <ArrowRight size={18} className="ml-auto" />
                       </Link>
                     </Button>
