@@ -282,12 +282,12 @@ const ProjectSection = ({
             </div>
 
             {/* Testimonial */}
-            <blockquote className="border-l-2 border-accent pl-6">
-              <p className="text-muted-foreground italic">
+            <blockquote className="border-l-2 border-accent pl-6 py-2">
+              <p className="text-lg text-muted-foreground italic leading-relaxed">
                 "{project.testimonial}"
               </p>
-              <cite className="text-sm mt-3 block not-italic">
-                {project.author}, {project.role}
+              <cite className="text-sm text-muted-foreground/80 mt-4 block not-italic font-medium">
+                {project.author}, <span className="font-normal">{project.role}</span>
               </cite>
             </blockquote>
 

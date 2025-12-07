@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Smartphone, Globe } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Smartphone, Globe, Play, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 
 const Hero = () => {
@@ -197,18 +197,209 @@ const Process = () => {
   );
 };
 
+// Featured Work Preview
+const featuredProjects = [
+  {
+    company: "Bloom Floristry",
+    category: "Website Design",
+    result: "3x Conversion Rate",
+    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&h=600&fit=crop",
+  },
+  {
+    company: "FitTrack Pro",
+    category: "App Development", 
+    result: "50k+ Active Users",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop",
+  },
+  {
+    company: "MediCare Connect",
+    category: "AI Integration",
+    result: "60% Automation",
+    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=600&fit=crop",
+  },
+];
+
+const FeaturedWork = () => {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+
+  const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
+
+  return (
+    <section ref={ref} className="section-padding bg-background overflow-hidden">
+      <div className="container-tight">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-16">
+          <div>
+            <ScrollReveal>
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Selected Work
+              </span>
+            </ScrollReveal>
+            <ScrollReveal delay={0.1}>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mt-4">
+                Results that speak.
+              </h2>
+            </ScrollReveal>
+          </div>
+          <ScrollReveal delay={0.2}>
+            <Button variant="outline" size="lg" asChild>
+              <Link to="/work">
+                View All Projects <ArrowRight size={18} />
+              </Link>
+            </Button>
+          </ScrollReveal>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {featuredProjects.map((project, index) => (
+            <ScrollReveal key={project.company} delay={index * 0.1}>
+              <motion.div
+                whileHover={{ y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="group cursor-pointer"
+              >
+                <Link to="/work">
+                  <div className="overflow-hidden rounded-2xl mb-4">
+                    <motion.img
+                      src={project.image}
+                      alt={project.company}
+                      className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {project.category}
+                  </span>
+                  <h3 className="text-xl font-semibold mt-1 mb-1">{project.company}</h3>
+                  <p className="text-accent font-medium">{project.result}</p>
+                </Link>
+              </motion.div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// About/Trust Section
+const About = () => {
+  return (
+    <section className="section-padding bg-surface-elevated">
+      <div className="container-tight">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <ScrollReveal>
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                About Sited
+              </span>
+            </ScrollReveal>
+            <ScrollReveal delay={0.1}>
+              <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mt-4 mb-6">
+                Your digital partner for growth.
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2}>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                We're a boutique digital agency that combines AI precision with creative excellence. 
+                Our focused team delivers websites, apps, and AI integrations that actually drive results.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.3}>
+              <p className="text-muted-foreground leading-relaxed mb-8">
+                No fluff. No endless meetings. Just beautiful, high-converting digital products 
+                delivered in weeks, not months.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.4}>
+              <div className="flex gap-12">
+                <div>
+                  <span className="text-4xl font-semibold">50+</span>
+                  <p className="text-sm text-muted-foreground mt-1">Projects Delivered</p>
+                </div>
+                <div>
+                  <span className="text-4xl font-semibold">98%</span>
+                  <p className="text-sm text-muted-foreground mt-1">Client Satisfaction</p>
+                </div>
+                <div>
+                  <span className="text-4xl font-semibold">2 wks</span>
+                  <p className="text-sm text-muted-foreground mt-1">Avg. Delivery</p>
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+          <ScrollReveal delay={0.2}>
+            <div className="relative">
+              <div className="bg-card border border-border rounded-3xl p-8">
+                <Quote size={32} className="text-accent mb-6" />
+                <p className="text-lg leading-relaxed mb-6">
+                  "Sited transformed our entire digital presence. The website they built doesn't 
+                  just look incredible—it's become our most effective sales tool."
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <span className="font-semibold">SM</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Sarah Mitchell</p>
+                    <p className="text-sm text-muted-foreground">Founder, Bloom Floristry</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 mt-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={16} className="fill-accent text-accent" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Mid-page CTA
+const MidCTA = () => {
+  return (
+    <section className="py-20 bg-accent">
+      <div className="container-tight">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+          <div>
+            <h3 className="text-2xl md:text-3xl font-semibold text-accent-foreground">
+              Ready to start your project?
+            </h3>
+            <p className="text-accent-foreground/70 mt-2">
+              Chat with our AI or book a call. Your choice.
+            </p>
+          </div>
+          <div className="flex gap-4">
+            <Button size="lg" variant="secondary" asChild>
+              <Link to="/contact">
+                Get Started <ArrowRight size={18} />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const CTA = () => {
   return (
     <section className="section-padding bg-foreground text-background">
       <div className="container-tight text-center">
         <ScrollReveal>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-6">
-            Ready to transform your online presence?
+            Let's build something extraordinary.
           </h2>
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <p className="text-background/70 text-lg max-w-2xl mx-auto mb-10">
-            Let's discuss your project and create something extraordinary together.
+            Your next website, app, or AI integration is just a conversation away.
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>
@@ -219,7 +410,17 @@ const CTA = () => {
               asChild
             >
               <Link to="/contact">
-                Get Started <ArrowRight size={20} />
+                Start Your Project <ArrowRight size={20} />
+              </Link>
+            </Button>
+            <Button
+              size="xl"
+              variant="ghost"
+              className="text-background hover:bg-background/10"
+              asChild
+            >
+              <Link to="/work">
+                View Our Work
               </Link>
             </Button>
           </div>
@@ -234,7 +435,10 @@ const Index = () => {
     <Layout>
       <Hero />
       <ChatSection />
+      <FeaturedWork />
+      <About />
       <Services />
+      <MidCTA />
       <Process />
       <CTA />
     </Layout>
