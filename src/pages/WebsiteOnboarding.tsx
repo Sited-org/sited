@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Globe } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const steps = [
@@ -76,9 +76,30 @@ const WebsiteOnboarding = () => {
     howDidYouHear: "",
   });
 
+  // Pre-fill from chatbot data
+  useEffect(() => {
+    const chatbotData = sessionStorage.getItem("chatbotInfo");
+    if (chatbotData) {
+      try {
+        const info = JSON.parse(chatbotData);
+        setFormData(prev => ({
+          ...prev,
+          fullName: info.name || prev.fullName,
+          email: info.email || prev.email,
+          phone: info.phone || prev.phone,
+          businessName: info.businessName || prev.businessName,
+        }));
+        sessionStorage.removeItem("chatbotInfo");
+      } catch (e) {
+        console.error("Failed to parse chatbot info", e);
+      }
+    }
+  }, []);
+
   const updateFormData = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
 
   const toggleArrayItem = (field: string, item: string) => {
     setFormData((prev) => {
