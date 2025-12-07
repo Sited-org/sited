@@ -3,68 +3,57 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, ExternalLink, Play, Quote, Star } from "lucide-react";
+import { ArrowRight, ExternalLink, Play } from "lucide-react";
 
 const projects = [
   {
     company: "Bloom Floristry",
+    category: "Website Design",
+    description: "A complete digital transformation that tripled conversion rates within the first month.",
+    testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool.",
     author: "Sarah Mitchell",
     role: "Founder",
-    testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool. Conversion rates tripled within the first month.",
-    rating: 5,
-    images: [
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1487530811176-3780de880c2d?w=800&h=600&fit=crop",
-    ],
-    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop",
     websiteUrl: "https://bloomfloristry.com",
-    gradient: "from-rose-500/10 via-transparent to-pink-500/10",
+    results: [
+      { metric: "3x", label: "Conversion Rate" },
+      { metric: "2 weeks", label: "Delivery Time" },
+    ],
   },
   {
     company: "FitTrack Pro",
+    category: "App Development",
+    description: "A fitness app that users genuinely love, with attention to detail that sets it apart.",
+    testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately.",
     author: "Marcus Chen",
     role: "CEO",
-    testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and delivered an app that our users genuinely love. The attention to detail is unmatched.",
-    rating: 5,
-    images: [
-      "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop",
-    ],
-    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop",
     websiteUrl: "https://fittrackpro.com",
-    gradient: "from-blue-500/10 via-transparent to-cyan-500/10",
+    results: [
+      { metric: "50k+", label: "Active Users" },
+      { metric: "4.9", label: "App Store Rating" },
+    ],
   },
   {
     company: "MediCare Connect",
+    category: "AI Integration",
+    description: "An intelligent system that automated 60% of customer service while improving satisfaction.",
+    testimonial: "The AI integration they implemented is not just a chatbot—it's an intelligent system that actually understands context.",
     author: "Elena Rodriguez",
     role: "Operations Director",
-    testimonial: "The AI integration they implemented has automated 60% of our customer service. It's not just a chatbot—it's an intelligent system that actually understands context and delivers real value.",
-    rating: 5,
-    images: [
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=600&fit=crop",
-    ],
-    videoThumbnail: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1200&h=800&fit=crop",
     websiteUrl: "https://medicareconnect.com",
-    gradient: "from-emerald-500/10 via-transparent to-teal-500/10",
-  },
-  {
-    company: "Urban Estates",
-    author: "James Okonkwo",
-    role: "Managing Director",
-    testimonial: "From our first conversation to launch, the experience was seamless. Sited doesn't just build websites—they craft experiences. Our brand has never looked more professional.",
-    rating: 5,
-    images: [
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
-      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
+    results: [
+      { metric: "60%", label: "Automation Rate" },
+      { metric: "95%", label: "Satisfaction Score" },
     ],
-    videoThumbnail: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=500&fit=crop",
-    websiteUrl: "https://urbanestates.com",
-    gradient: "from-amber-500/10 via-transparent to-orange-500/10",
   },
 ];
 
-const ProjectBlock = ({
+const ProjectSection = ({
   project,
   index,
 }: {
@@ -77,228 +66,159 @@ const ProjectBlock = ({
     offset: ["start end", "end start"],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.95, 1, 1, 0.95]);
-  const y = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [100, 0, 0, -100]);
-  const imageY = useTransform(scrollYProgress, [0, 1], [20, -20]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
+  const y = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [80, 0, 0, -80]);
+  const imageScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.1, 1, 1.1]);
 
   const isEven = index % 2 === 0;
 
   return (
     <section
       ref={ref}
-      className={`min-h-screen flex items-center relative overflow-hidden py-32 ${
-        isEven ? 'bg-background' : 'bg-surface-elevated'
-      }`}
+      className="min-h-screen flex items-center py-32"
     >
       <motion.div
-        style={{ opacity, scale, y }}
-        className="container-tight relative z-10"
+        style={{ opacity, y }}
+        className="container-tight"
       >
-        {/* Company name header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mb-20 text-center"
-        >
-          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4 block">
-            Case Study {String(index + 1).padStart(2, '0')}
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
-            {project.company}
-          </h2>
-        </motion.div>
-
-        {/* Images - Apple style with generous spacing */}
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 mb-16 max-w-5xl mx-auto">
-          {project.images.map((image, i) => (
-            <motion.div
-              key={i}
-              style={{ y: imageY }}
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: i * 0.1 }}
-              className="group"
-            >
-              <div className="overflow-hidden rounded-3xl">
-                <img
-                  src={image}
-                  alt={`${project.company} project screenshot ${i + 1}`}
-                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Video - centered with generous spacing */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="flex justify-center mb-20"
-        >
-          <div className="group max-w-3xl w-full">
-            <div className="overflow-hidden rounded-3xl cursor-pointer relative">
-              <img
-                src={project.videoThumbnail}
-                alt={`${project.company} video testimonial`}
-                className="w-full h-72 md:h-96 object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-              />
-              
-              {/* Play button */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="w-20 h-20 rounded-full bg-background/90 backdrop-blur-md flex items-center justify-center shadow-2xl"
-                >
-                  <Play size={28} className="text-foreground ml-1" fill="currentColor" />
-                </motion.div>
-              </div>
+        <div className={`grid lg:grid-cols-2 gap-16 lg:gap-24 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+          {/* Content */}
+          <div className={`space-y-8 ${!isEven ? 'lg:order-2' : ''}`}>
+            <div>
+              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                {project.category}
+              </span>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mt-4">
+                {project.company}
+              </h2>
+              <p className="text-lg text-muted-foreground mt-6 leading-relaxed">
+                {project.description}
+              </p>
             </div>
-          </div>
-        </motion.div>
 
-        {/* Testimonial & Info */}
-        <div className="max-w-2xl mx-auto text-center">
-          {/* Quote */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <Quote size={28} className="text-accent/40 mx-auto mb-4" />
-            <blockquote className="text-lg md:text-xl font-medium leading-relaxed tracking-tight mb-6 text-muted-foreground">
-              "{project.testimonial}"
-            </blockquote>
-            
-            {/* Rating */}
-            <div className="flex items-center justify-center gap-1 mb-4">
-              {Array.from({ length: project.rating }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={18}
-                  className="fill-accent text-accent"
-                />
+            {/* Results */}
+            <div className="flex gap-12">
+              {project.results.map((result) => (
+                <div key={result.label}>
+                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">
+                    {result.metric}
+                  </span>
+                  <p className="text-sm text-muted-foreground mt-1 uppercase tracking-wider">
+                    {result.label}
+                  </p>
+                </div>
               ))}
             </div>
 
-            {/* Author */}
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                <span className="text-sm font-semibold text-muted-foreground">
-                  {project.author.charAt(0)}
-                </span>
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-sm">{project.author}</p>
-                <p className="text-muted-foreground text-xs">{project.role}, {project.company}</p>
-              </div>
-            </div>
+            {/* Testimonial */}
+            <blockquote className="border-l-2 border-accent pl-6">
+              <p className="text-muted-foreground italic">
+                "{project.testimonial}"
+              </p>
+              <cite className="text-sm mt-3 block not-italic">
+                {project.author}, {project.role}
+              </cite>
+            </blockquote>
 
-            {/* Visit site button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="group text-muted-foreground hover:text-foreground"
-              asChild
-            >
+            {/* CTA */}
+            <Button variant="outline" size="lg" className="group" asChild>
               <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer">
-                Visit Website
-                <ExternalLink size={14} className="ml-1.5 transition-transform group-hover:translate-x-0.5" />
+                View Project
+                <ExternalLink size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
-          </motion.div>
+          </div>
+
+          {/* Media */}
+          <div className={`space-y-6 ${!isEven ? 'lg:order-1' : ''}`}>
+            {/* Main image */}
+            <motion.div
+              className="overflow-hidden rounded-2xl"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.4 }}
+            >
+              <motion.img
+                style={{ scale: imageScale }}
+                src={project.image}
+                alt={project.company}
+                className="w-full h-80 md:h-[28rem] object-cover"
+              />
+            </motion.div>
+
+            {/* Video thumbnail */}
+            <motion.div
+              className="overflow-hidden rounded-2xl relative cursor-pointer group"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.4 }}
+            >
+              <img
+                src={project.videoThumbnail}
+                alt={`${project.company} video`}
+                className="w-full h-48 md:h-64 object-cover"
+              />
+              <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  className="w-16 h-16 rounded-full bg-background/90 backdrop-blur flex items-center justify-center"
+                >
+                  <Play size={24} className="ml-1" fill="currentColor" />
+                </motion.div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </motion.div>
-
-      {/* Progress indicator */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3">
-        {projects.map((_, i) => (
-          <div
-            key={i}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              i === index ? "bg-foreground scale-125" : "bg-muted-foreground/30"
-            }`}
-          />
-        ))}
-      </div>
     </section>
   );
 };
 
 const Work = () => {
   const heroRef = useRef(null);
-  const { scrollYProgress: heroProgress } = useScroll({
+  const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
   });
 
-  const heroOpacity = useTransform(heroProgress, [0, 0.5], [1, 0]);
-  const heroScale = useTransform(heroProgress, [0, 0.5], [1, 0.95]);
-  const heroY = useTransform(heroProgress, [0, 0.5], [0, 100]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const heroY = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
 
   return (
     <Layout>
       {/* Hero */}
       <section
         ref={heroRef}
-        className="min-h-screen flex items-center justify-center relative overflow-hidden"
+        className="min-h-[80vh] flex items-center justify-center relative"
       >
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-surface-elevated via-background to-background" />
-
-        {/* Floating elements */}
         <motion.div
-          className="absolute top-1/4 left-[15%] w-80 h-80 bg-accent/15 rounded-full blur-3xl"
-          animate={{ y: [-20, 20, -20] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-[15%] w-64 h-64 bg-accent/20 rounded-full blur-3xl"
-          animate={{ y: [20, -20, 20] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <motion.div
-          style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
-          className="relative z-10 container-tight text-center"
+          style={{ opacity: heroOpacity, y: heroY }}
+          className="container-tight text-center"
         >
-          <motion.div
+          <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 bg-secondary rounded-full px-5 py-2 mb-8"
+            className="text-xs uppercase tracking-[0.2em] text-muted-foreground"
           >
-            <span className="text-sm font-medium uppercase tracking-wider">Our Work</span>
-          </motion.div>
+            Selected Work
+          </motion.span>
 
           <motion.h1
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.05] mb-8"
+            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight mt-6"
           >
-            Projects that
-            <br />
-            <span className="text-muted-foreground">speak for themselves</span>
+            Results that matter.
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mt-8"
           >
-            Explore our portfolio of transformative digital experiences
-            <br />
-            and the stories behind them.
+            Every project is a partnership. Here's what we've built together.
           </motion.p>
         </motion.div>
 
@@ -306,75 +226,35 @@ const Work = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
+          transition={{ delay: 1 }}
           className="absolute bottom-12 left-1/2 -translate-x-1/2"
         >
           <motion.div
-            animate={{ y: [0, 12, 0] }}
+            animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="flex flex-col items-center gap-3"
-          >
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Explore</span>
-            <div className="w-px h-12 bg-gradient-to-b from-muted-foreground/50 to-transparent" />
-          </motion.div>
+            className="w-px h-16 bg-gradient-to-b from-foreground/30 to-transparent"
+          />
         </motion.div>
       </section>
 
-      {/* Project Sections */}
-      {projects.map((project, index) => (
-        <ProjectBlock
-          key={project.company}
-          project={project}
-          index={index}
-        />
-      ))}
+      {/* Projects */}
+      <div className="bg-surface-elevated">
+        {projects.map((project, index) => (
+          <ProjectSection key={project.company} project={project} index={index} />
+        ))}
+      </div>
 
-      {/* Stats */}
-      <section className="py-32 bg-surface-elevated relative overflow-hidden">
-        <div className="container-tight">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-12 text-center">
-            {[
-              { value: "50+", label: "Projects Delivered" },
-              { value: "98%", label: "Client Satisfaction" },
-              { value: "3x", label: "Average ROI" },
-              { value: "2 weeks", label: "Average Delivery" },
-            ].map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-              >
-                <span className="text-5xl md:text-6xl font-semibold tracking-tight">{stat.value}</span>
-                <p className="text-muted-foreground mt-3 text-sm uppercase tracking-wider">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="min-h-[80vh] flex items-center justify-center bg-foreground text-background relative overflow-hidden">
-        {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="w-full h-full" style={{
-            backgroundImage: 'linear-gradient(hsl(var(--background)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--background)) 1px, transparent 1px)',
-            backgroundSize: '80px 80px'
-          }} />
-        </div>
-
-        <div className="container-tight text-center relative z-10">
+      {/* CTA Section */}
+      <section className="py-40 bg-foreground text-background">
+        <div className="container-tight text-center">
           <motion.h2
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-8"
+            className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight"
           >
-            Ready to join
-            <br />
-            our success stories?
+            Your project could be next.
           </motion.h2>
           
           <motion.p
@@ -382,9 +262,9 @@ const Work = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-background/60 text-lg max-w-xl mx-auto mb-12"
+            className="text-background/60 text-lg max-w-md mx-auto mt-6"
           >
-            Let's create something extraordinary together.
+            Let's discuss how we can help you achieve similar results.
           </motion.p>
           
           <motion.div
@@ -392,6 +272,7 @@ const Work = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
+            className="mt-10"
           >
             <Button
               size="xl"
@@ -399,7 +280,7 @@ const Work = () => {
               asChild
             >
               <Link to="/contact">
-                Start Your Project <ArrowRight size={20} />
+                Start a Project <ArrowRight size={20} />
               </Link>
             </Button>
           </motion.div>
