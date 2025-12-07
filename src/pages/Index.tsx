@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Palette, Code2, Smartphone, Globe } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Smartphone, Globe } from "lucide-react";
 
 const Hero = () => {
   const ref = useRef(null);
@@ -109,22 +109,17 @@ const Hero = () => {
 const services = [
   {
     icon: Globe,
-    title: "Websites",
+    title: "Website Design & Development",
     description: "Custom-designed, responsive websites that capture your brand and convert visitors into customers.",
   },
   {
     icon: Smartphone,
-    title: "Mobile Apps",
+    title: "App Building",
     description: "Native and cross-platform applications designed for seamless user experiences across all devices.",
   },
   {
-    icon: Palette,
-    title: "Brand Identity",
-    description: "Complete visual identity systems that make your business memorable and professional.",
-  },
-  {
     icon: Zap,
-    title: "AI Integration",
+    title: "AI Integrations",
     description: "Smart automation and AI features that give your business a competitive edge.",
   },
 ];
