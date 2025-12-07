@@ -80,44 +80,17 @@ const ProjectBlock = ({
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.95, 1, 1, 0.95]);
   const y = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [100, 0, 0, -100]);
-  const imageY = useTransform(scrollYProgress, [0, 1], [30, -30]);
-  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
+  const imageY = useTransform(scrollYProgress, [0, 1], [20, -20]);
 
   const isEven = index % 2 === 0;
 
   return (
     <section
       ref={ref}
-      className="min-h-screen flex items-center relative overflow-hidden py-24"
+      className={`min-h-screen flex items-center relative overflow-hidden py-32 ${
+        isEven ? 'bg-background' : 'bg-surface-elevated'
+      }`}
     >
-      {/* Parallax textured background */}
-      <motion.div
-        style={{ y: bgY }}
-        className="absolute inset-0 -top-[20%] -bottom-[20%]"
-      >
-        <div 
-          className={`absolute inset-0 ${isEven ? 'bg-background' : 'bg-surface-elevated'}`}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-            opacity: 0.03,
-          }}
-        />
-        {/* Subtle grain overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-      </motion.div>
-
-      {/* Ambient gradient */}
-      <motion.div
-        style={{ opacity }}
-        className={`absolute inset-0 bg-gradient-to-br ${project.gradient}`}
-      />
-
       <motion.div
         style={{ opacity, scale, y }}
         className="container-tight relative z-10"
@@ -128,9 +101,9 @@ const ProjectBlock = ({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-16 text-center"
+          className="mb-20 text-center"
         >
-          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3 block">
+          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4 block">
             Case Study {String(index + 1).padStart(2, '0')}
           </span>
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
@@ -138,66 +111,54 @@ const ProjectBlock = ({
           </h2>
         </motion.div>
 
-        {/* Gallery - paintings on wall style */}
-        <div className="flex flex-wrap items-end justify-center gap-8 md:gap-12 mb-12">
-          {/* Images styled as framed paintings */}
+        {/* Images - Apple style with generous spacing */}
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 mb-16 max-w-5xl mx-auto">
           {project.images.map((image, i) => (
             <motion.div
               key={i}
-              style={{ y: imageY, rotate: i === 0 ? -2 : 2 }}
-              initial={{ opacity: 0, y: 40 }}
+              style={{ y: imageY }}
+              initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.7, delay: i * 0.15 }}
-              className="relative group"
+              transition={{ duration: 0.8, delay: i * 0.1 }}
+              className="group"
             >
-              {/* Frame shadow */}
-              <div className="absolute -inset-3 bg-foreground/5 rounded-sm blur-xl group-hover:bg-foreground/10 transition-all duration-500" />
-              {/* Frame border */}
-              <div className="relative bg-background p-2 md:p-3 shadow-2xl rounded-sm">
-                <div className="relative overflow-hidden">
-                  <img
-                    src={image}
-                    alt={`${project.company} project screenshot ${i + 1}`}
-                    className="w-48 h-36 md:w-64 md:h-48 object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
+              <div className="overflow-hidden rounded-3xl">
+                <img
+                  src={image}
+                  alt={`${project.company} project screenshot ${i + 1}`}
+                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                />
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Video - centered, framed style */}
+        {/* Video - centered with generous spacing */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.3 }}
-          className="flex justify-center mb-16"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="flex justify-center mb-20"
         >
-          <div className="relative group">
-            {/* Frame shadow */}
-            <div className="absolute -inset-4 bg-foreground/5 rounded-sm blur-2xl group-hover:bg-foreground/10 transition-all duration-500" />
-            {/* Frame border */}
-            <div className="relative bg-background p-2 md:p-3 shadow-2xl rounded-sm">
-              <div className="relative overflow-hidden cursor-pointer w-80 md:w-[28rem]">
-                <img
-                  src={project.videoThumbnail}
-                  alt={`${project.company} video testimonial`}
-                  className="w-full h-52 md:h-64 object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-foreground/5 group-hover:bg-foreground/10 transition-colors duration-300" />
-                
-                {/* Play button */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-16 h-16 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center shadow-xl"
-                  >
-                    <Play size={24} className="text-foreground ml-0.5" fill="currentColor" />
-                  </motion.div>
-                </div>
+          <div className="group max-w-3xl w-full">
+            <div className="overflow-hidden rounded-3xl cursor-pointer relative">
+              <img
+                src={project.videoThumbnail}
+                alt={`${project.company} video testimonial`}
+                className="w-full h-72 md:h-96 object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              />
+              
+              {/* Play button */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-20 h-20 rounded-full bg-background/90 backdrop-blur-md flex items-center justify-center shadow-2xl"
+                >
+                  <Play size={28} className="text-foreground ml-1" fill="currentColor" />
+                </motion.div>
               </div>
             </div>
           </div>
