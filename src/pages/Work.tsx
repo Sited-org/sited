@@ -3,48 +3,72 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Quote, Star } from "lucide-react";
+import { ArrowRight, ExternalLink, Play, Quote, Star } from "lucide-react";
 
-const testimonials = [
+const projects = [
   {
-    quote: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool. Conversion rates tripled within the first month.",
+    company: "Bloom Floristry",
     author: "Sarah Mitchell",
     role: "Founder",
-    company: "Bloom Floristry",
+    testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool. Conversion rates tripled within the first month.",
     rating: 5,
-    gradient: "from-rose-500/5 via-transparent to-pink-500/5",
+    images: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1487530811176-3780de880c2d?w=800&h=600&fit=crop",
+    ],
+    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&h=500&fit=crop",
+    websiteUrl: "https://bloomfloristry.com",
+    gradient: "from-rose-500/10 via-transparent to-pink-500/10",
   },
   {
-    quote: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and delivered an app that our users genuinely love. The attention to detail is unmatched.",
+    company: "FitTrack Pro",
     author: "Marcus Chen",
     role: "CEO",
-    company: "FitTrack Pro",
+    testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and delivered an app that our users genuinely love. The attention to detail is unmatched.",
     rating: 5,
-    gradient: "from-blue-500/5 via-transparent to-cyan-500/5",
+    images: [
+      "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop",
+    ],
+    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=500&fit=crop",
+    websiteUrl: "https://fittrackpro.com",
+    gradient: "from-blue-500/10 via-transparent to-cyan-500/10",
   },
   {
-    quote: "The AI integration they implemented has automated 60% of our customer service. It's not just a chatbot—it's an intelligent system that actually understands context and delivers real value.",
+    company: "MediCare Connect",
     author: "Elena Rodriguez",
     role: "Operations Director",
-    company: "MediCare Connect",
+    testimonial: "The AI integration they implemented has automated 60% of our customer service. It's not just a chatbot—it's an intelligent system that actually understands context and delivers real value.",
     rating: 5,
-    gradient: "from-emerald-500/5 via-transparent to-teal-500/5",
+    images: [
+      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=600&fit=crop",
+    ],
+    videoThumbnail: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=500&fit=crop",
+    websiteUrl: "https://medicareconnect.com",
+    gradient: "from-emerald-500/10 via-transparent to-teal-500/10",
   },
   {
-    quote: "From our first conversation to launch, the experience was seamless. Sited doesn't just build websites—they craft experiences. Our brand has never looked more professional.",
+    company: "Urban Estates",
     author: "James Okonkwo",
     role: "Managing Director",
-    company: "Urban Estates",
+    testimonial: "From our first conversation to launch, the experience was seamless. Sited doesn't just build websites—they craft experiences. Our brand has never looked more professional.",
     rating: 5,
-    gradient: "from-amber-500/5 via-transparent to-orange-500/5",
+    images: [
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop",
+    ],
+    videoThumbnail: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=500&fit=crop",
+    websiteUrl: "https://urbanestates.com",
+    gradient: "from-amber-500/10 via-transparent to-orange-500/10",
   },
 ];
 
-const TestimonialBlock = ({
-  testimonial,
+const ProjectBlock = ({
+  project,
   index,
 }: {
-  testimonial: typeof testimonials[0];
+  project: typeof projects[0];
   index: number;
 }) => {
   const ref = useRef(null);
@@ -53,88 +77,175 @@ const TestimonialBlock = ({
     offset: ["start end", "end start"],
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.95, 1, 1, 0.95]);
-  const y = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [80, 0, 0, -80]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0.95, 1, 1, 0.95]);
+  const y = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [100, 0, 0, -100]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [50, -50]);
+
+  const isEven = index % 2 === 0;
 
   return (
     <section
       ref={ref}
-      className={`min-h-screen flex items-center justify-center relative overflow-hidden ${
-        index % 2 === 0 ? "bg-background" : "bg-surface-elevated"
+      className={`min-h-screen flex items-center relative overflow-hidden py-24 ${
+        isEven ? "bg-background" : "bg-surface-elevated"
       }`}
     >
       {/* Ambient gradient */}
       <motion.div
         style={{ opacity }}
-        className={`absolute inset-0 bg-gradient-to-br ${testimonial.gradient}`}
+        className={`absolute inset-0 bg-gradient-to-br ${project.gradient}`}
       />
-
-      {/* Large quote mark background */}
-      <motion.div
-        style={{ opacity: useTransform(opacity, [0, 1], [0, 0.03]) }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      >
-        <Quote size={600} strokeWidth={0.5} />
-      </motion.div>
 
       <motion.div
         style={{ opacity, scale, y }}
-        className="container-tight relative z-10 py-20"
+        className="container-tight relative z-10"
       >
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Rating */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center justify-center gap-1 mb-8"
+        {/* Company name header */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mb-12"
+        >
+          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-3 block">
+            Case Study {String(index + 1).padStart(2, '0')}
+          </span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight">
+            {project.company}
+          </h2>
+        </motion.div>
+
+        {/* Media grid */}
+        <div className={`grid lg:grid-cols-2 gap-8 mb-16 ${isEven ? '' : 'lg:flex-row-reverse'}`}>
+          {/* Images column */}
+          <motion.div 
+            style={{ y: imageY }}
+            className="space-y-6"
           >
-            {Array.from({ length: testimonial.rating }).map((_, i) => (
-              <Star
+            {project.images.map((image, i) => (
+              <motion.div
                 key={i}
-                size={20}
-                className="fill-accent text-accent"
-              />
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.7, delay: i * 0.15 }}
+                className="relative overflow-hidden rounded-2xl group"
+              >
+                <img
+                  src={image}
+                  alt={`${project.company} project screenshot ${i + 1}`}
+                  className="w-full h-64 md:h-80 object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-foreground/5 group-hover:bg-transparent transition-colors duration-500" />
+              </motion.div>
             ))}
           </motion.div>
 
+          {/* Video column */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="relative"
+          >
+            <div className="relative overflow-hidden rounded-2xl group cursor-pointer h-full min-h-[400px]">
+              <img
+                src={project.videoThumbnail}
+                alt={`${project.company} video testimonial`}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-foreground/20 group-hover:bg-foreground/30 transition-colors duration-500" />
+              
+              {/* Play button */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-2xl"
+                >
+                  <Play size={32} className="text-foreground ml-1" fill="currentColor" />
+                </motion.div>
+              </div>
+
+              {/* Video label */}
+              <div className="absolute bottom-6 left-6">
+                <span className="text-background text-sm font-medium tracking-wide">
+                  Watch Video Testimonial
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Testimonial & Info */}
+        <div className="grid lg:grid-cols-3 gap-12 items-start">
           {/* Quote */}
-          <motion.blockquote
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-2xl md:text-3xl lg:text-4xl font-medium leading-relaxed mb-12 tracking-tight"
+            transition={{ duration: 0.7, delay: 0.3 }}
+            className="lg:col-span-2"
           >
-            "{testimonial.quote}"
-          </motion.blockquote>
+            <Quote size={40} className="text-accent/50 mb-6" />
+            <blockquote className="text-xl md:text-2xl lg:text-3xl font-medium leading-relaxed tracking-tight mb-8">
+              "{project.testimonial}"
+            </blockquote>
+            
+            {/* Rating */}
+            <div className="flex items-center gap-1 mb-6">
+              {Array.from({ length: project.rating }).map((_, i) => (
+                <Star
+                  key={i}
+                  size={18}
+                  className="fill-accent text-accent"
+                />
+              ))}
+            </div>
 
-          {/* Author info */}
+            {/* Author */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                <span className="text-lg font-semibold text-muted-foreground">
+                  {project.author.charAt(0)}
+                </span>
+              </div>
+              <div>
+                <p className="font-semibold text-lg">{project.author}</p>
+                <p className="text-muted-foreground">{project.role}, {project.company}</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Visit site button */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex flex-col items-center gap-2"
+            transition={{ duration: 0.7, delay: 0.4 }}
+            className="flex lg:justify-end"
           >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center mb-4">
-              <span className="text-xl font-semibold text-muted-foreground">
-                {testimonial.author.charAt(0)}
-              </span>
-            </div>
-            <span className="text-lg font-semibold">{testimonial.author}</span>
-            <span className="text-muted-foreground">
-              {testimonial.role}, {testimonial.company}
-            </span>
+            <Button
+              variant="outline"
+              size="lg"
+              className="group"
+              asChild
+            >
+              <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer">
+                Visit Website
+                <ExternalLink size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
+              </a>
+            </Button>
           </motion.div>
         </div>
       </motion.div>
 
       {/* Progress indicator */}
       <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-3">
-        {testimonials.map((_, i) => (
+        {projects.map((_, i) => (
           <div
             key={i}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
@@ -190,7 +301,7 @@ const Work = () => {
             transition={{ duration: 0.6 }}
             className="inline-flex items-center gap-2 bg-secondary rounded-full px-5 py-2 mb-8"
           >
-            <span className="text-sm font-medium uppercase tracking-wider">Client Stories</span>
+            <span className="text-sm font-medium uppercase tracking-wider">Our Work</span>
           </motion.div>
 
           <motion.h1
@@ -199,9 +310,9 @@ const Work = () => {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.05] mb-8"
           >
-            Results that
+            Projects that
             <br />
-            <span className="text-muted-foreground">speak volumes</span>
+            <span className="text-muted-foreground">speak for themselves</span>
           </motion.h1>
 
           <motion.p
@@ -210,9 +321,9 @@ const Work = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
           >
-            Don't just take our word for it. Hear from the businesses
+            Explore our portfolio of transformative digital experiences
             <br />
-            we've helped transform.
+            and the stories behind them.
           </motion.p>
         </motion.div>
 
@@ -234,11 +345,11 @@ const Work = () => {
         </motion.div>
       </section>
 
-      {/* Testimonial Sections */}
-      {testimonials.map((testimonial, index) => (
-        <TestimonialBlock
-          key={testimonial.author}
-          testimonial={testimonial}
+      {/* Project Sections */}
+      {projects.map((project, index) => (
+        <ProjectBlock
+          key={project.company}
+          project={project}
           index={index}
         />
       ))}
