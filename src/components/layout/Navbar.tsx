@@ -12,6 +12,45 @@ const navLinks = [
   { name: "Contact", href: "/contact" },
 ];
 
+const domains = ["co", "au", "net"];
+
+const AnimatedLogo = () => {
+  const [domainIndex, setDomainIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setDomainIndex((prev) => (prev + 1) % domains.length);
+        setIsAnimating(false);
+      }, 200);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <motion.span
+      className="text-2xl font-semibold tracking-tight inline-flex"
+      whileHover={{ scale: 1.02 }}
+    >
+      Sited.
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={domains[domainIndex]}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+          className="text-muted-foreground"
+        >
+          {domains[domainIndex]}
+        </motion.span>
+      </AnimatePresence>
+    </motion.span>
+  );
+};
+
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -44,12 +83,7 @@ export const Navbar = () => {
       >
         <nav className="container-tight flex items-center justify-between">
           <Link to="/" className="relative z-10">
-            <motion.span
-              className="text-2xl font-semibold tracking-tight"
-              whileHover={{ scale: 1.02 }}
-            >
-              Sited.
-            </motion.span>
+            <AnimatedLogo />
           </Link>
 
           {/* Desktop Navigation */}
