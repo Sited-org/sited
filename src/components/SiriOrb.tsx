@@ -14,12 +14,7 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
     lg: "w-32 h-32",
   };
 
-  const gradientColors = [
-    "hsl(var(--accent))",
-    "hsl(280, 70%, 60%)",
-    "hsl(200, 80%, 50%)",
-    "hsl(340, 80%, 60%)",
-  ];
+  const ringCount = size === "lg" ? 6 : size === "md" ? 4 : 3;
 
   return (
     <motion.div
@@ -30,117 +25,170 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
     >
       {/* Outer glow */}
       <motion.div
-        className="absolute inset-0 rounded-full blur-xl opacity-60"
+        className="absolute inset-0 rounded-full blur-xl"
         style={{
-          background: `radial-gradient(circle, ${gradientColors[0]} 0%, ${gradientColors[1]} 50%, transparent 70%)`,
+          background: "radial-gradient(circle, hsl(var(--foreground) / 0.2) 0%, transparent 70%)",
         }}
         animate={{
-          scale: isListening || isThinking ? [1, 1.3, 1] : [1, 1.1, 1],
-          opacity: isListening || isThinking ? [0.6, 0.8, 0.6] : [0.4, 0.6, 0.4],
+          scale: isListening || isThinking ? [1, 1.4, 1] : [1, 1.15, 1],
+          opacity: isListening || isThinking ? [0.4, 0.6, 0.4] : [0.2, 0.35, 0.2],
         }}
         transition={{
-          duration: isThinking ? 1 : 2,
+          duration: isThinking ? 1.2 : 3,
           repeat: Infinity,
           ease: "easeInOut",
         }}
       />
 
-      {/* Main orb container */}
-      <div className="absolute inset-0 rounded-full overflow-hidden">
-        {/* Animated gradient background */}
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            background: `conic-gradient(from 0deg, ${gradientColors.join(", ")}, ${gradientColors[0]})`,
-          }}
-          animate={{
-            rotate: 360,
-          }}
-          transition={{
-            duration: isThinking ? 2 : 8,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
+      {/* Core sphere */}
+      <motion.div
+        className="absolute inset-2 rounded-full bg-gradient-to-br from-foreground/90 via-foreground/70 to-muted-foreground/50"
+        animate={{
+          scale: isThinking ? [1, 0.95, 1] : 1,
+        }}
+        transition={{
+          duration: 0.8,
+          repeat: isThinking ? Infinity : 0,
+        }}
+      />
 
-        {/* Inner blur overlay */}
-        <div className="absolute inset-1 rounded-full bg-background/30 backdrop-blur-sm" />
+      {/* Inner highlight */}
+      <div 
+        className="absolute rounded-full bg-gradient-to-br from-background/40 to-transparent"
+        style={{
+          top: "15%",
+          left: "15%",
+          width: "35%",
+          height: "35%",
+        }}
+      />
 
-        {/* Shimmering waves */}
-        {[0, 1, 2].map((i) => (
+      {/* Orbiting rings */}
+      {[...Array(ringCount)].map((_, i) => {
+        const rotationOffset = (i * 360) / ringCount;
+        const tiltX = 60 + i * 8;
+        const duration = isThinking ? 2 + i * 0.3 : 6 + i * 1.5;
+        
+        return (
           <motion.div
             key={i}
-            className="absolute inset-0 rounded-full"
+            className="absolute inset-0"
             style={{
-              background: `radial-gradient(circle at ${30 + i * 20}% ${30 + i * 15}%, ${gradientColors[i % gradientColors.length]}40 0%, transparent 50%)`,
+              transform: `rotateX(${tiltX}deg) rotateY(${rotationOffset}deg)`,
+              transformStyle: "preserve-3d",
             }}
-            animate={{
-              scale: [1, 1.2, 1],
-              x: [0, 10, 0],
-              y: [0, -10, 0],
-            }}
-            transition={{
-              duration: 3 + i,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
-          />
-        ))}
+          >
+            <motion.div
+              className="absolute inset-0 rounded-full border border-foreground/30"
+              style={{
+                borderWidth: size === "lg" ? "1.5px" : "1px",
+              }}
+              animate={{
+                rotate: 360,
+              }}
+              transition={{
+                duration,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </motion.div>
+        );
+      })}
 
-        {/* Center glow */}
+      {/* Horizontal equator ring */}
+      <motion.div
+        className="absolute inset-0 rounded-full border-2 border-foreground/50"
+        style={{
+          transform: "rotateX(75deg)",
+        }}
+        animate={{
+          rotate: isThinking ? 360 : 0,
+        }}
+        transition={{
+          duration: isThinking ? 3 : 12,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+
+      {/* Diagonal accent ring */}
+      <motion.div
+        className="absolute inset-1 rounded-full border border-muted-foreground/40"
+        style={{
+          transform: "rotateX(45deg) rotateZ(25deg)",
+        }}
+        animate={{
+          rotate: -360,
+        }}
+        transition={{
+          duration: isThinking ? 4 : 10,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+
+      {/* Small orbiting dot */}
+      <motion.div
+        className="absolute"
+        style={{
+          width: size === "lg" ? "8px" : size === "md" ? "6px" : "4px",
+          height: size === "lg" ? "8px" : size === "md" ? "6px" : "4px",
+          top: "50%",
+          left: "50%",
+          marginTop: size === "lg" ? "-4px" : size === "md" ? "-3px" : "-2px",
+          marginLeft: size === "lg" ? "-4px" : size === "md" ? "-3px" : "-2px",
+        }}
+        animate={{
+          x: [0, 40, 0, -40, 0].map(v => v * (size === "lg" ? 1 : size === "md" ? 0.6 : 0.4)),
+          y: [20, 0, -20, 0, 20].map(v => v * (size === "lg" ? 1 : size === "md" ? 0.6 : 0.4)),
+        }}
+        transition={{
+          duration: isThinking ? 2 : 5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      >
+        <div className="w-full h-full rounded-full bg-foreground shadow-lg" />
+      </motion.div>
+
+      {/* Thinking pulse effect */}
+      {isThinking && (
         <motion.div
-          className="absolute inset-4 rounded-full bg-background/50 backdrop-blur-md"
+          className="absolute inset-0 rounded-full border-2 border-foreground/40"
           animate={{
-            scale: isListening ? [1, 0.95, 1] : 1,
+            scale: [1, 1.3, 1],
+            opacity: [0.5, 0, 0.5],
           }}
           transition={{
-            duration: 0.5,
-            repeat: isListening ? Infinity : 0,
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeOut",
           }}
         />
+      )}
 
-        {/* Sound wave visualization when listening */}
-        {isListening && (
-          <div className="absolute inset-0 flex items-center justify-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-1 rounded-full bg-foreground/60"
-                animate={{
-                  height: [8, 20 + Math.random() * 20, 8],
-                }}
-                transition={{
-                  duration: 0.4,
-                  repeat: Infinity,
-                  delay: i * 0.1,
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Thinking dots */}
-        {isThinking && (
-          <div className="absolute inset-0 flex items-center justify-center gap-1.5">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full bg-foreground/80"
-                animate={{
-                  y: [-4, 4, -4],
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 0.6,
-                  repeat: Infinity,
-                  delay: i * 0.15,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Listening wave rings */}
+      {isListening && (
+        <>
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute inset-0 rounded-full border border-foreground/30"
+              animate={{
+                scale: [1, 1.5],
+                opacity: [0.4, 0],
+              }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                delay: i * 0.4,
+                ease: "easeOut",
+              }}
+            />
+          ))}
+        </>
+      )}
     </motion.div>
   );
 };
