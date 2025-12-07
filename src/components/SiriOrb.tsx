@@ -7,13 +7,13 @@ interface SiriOrbProps {
   onClick?: () => void;
 }
 
-// Solar system-like orbital paths
+// Solar system-like orbital paths - spread evenly
 const orbits = [
-  { scale: 0.6, tiltX: 70, tiltZ: 20, duration: 8 },
-  { scale: 0.75, tiltX: 65, tiltZ: 80, duration: 12 },
-  { scale: 0.85, tiltX: 75, tiltZ: 140, duration: 15 },
-  { scale: 0.95, tiltX: 60, tiltZ: 200, duration: 10 },
-  { scale: 1.05, tiltX: 72, tiltZ: 260, duration: 18 },
+  { scale: 0.65, tiltX: 75, tiltZ: 0 },
+  { scale: 0.8, tiltX: 60, tiltZ: 72 },
+  { scale: 0.9, tiltX: 80, tiltZ: 144 },
+  { scale: 1.0, tiltX: 55, tiltZ: 216 },
+  { scale: 1.1, tiltX: 70, tiltZ: 288 },
 ];
 
 export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", onClick }: SiriOrbProps) => {
