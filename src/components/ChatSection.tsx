@@ -18,7 +18,7 @@ export const ChatSection = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages]);
 
   const extractInfo = (text: string) => {
