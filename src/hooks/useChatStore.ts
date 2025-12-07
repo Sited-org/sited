@@ -15,6 +15,8 @@ export interface CollectedInfo {
   description?: string;
 }
 
+export type ProjectType = "website" | "app" | "ai";
+
 interface ChatStore {
   messages: Message[];
   collectedInfo: CollectedInfo;

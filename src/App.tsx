@@ -9,6 +9,7 @@ import Work from "./pages/Work";
 import Contact from "./pages/Contact";
 import WebsiteOnboarding from "./pages/WebsiteOnboarding";
 import AppOnboarding from "./pages/AppOnboarding";
+import AIOnboarding from "./pages/AIOnboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/contact" element={<Contact />} />
           <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
           <Route path="/onboarding/app" element={<AppOnboarding />} />
+          <Route path="/onboarding/ai" element={<AIOnboarding />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
