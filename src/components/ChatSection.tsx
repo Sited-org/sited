@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, ArrowRight } from "lucide-react";
+import { Send, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ import { useChatStore, ProjectType } from "@/hooks/useChatStore";
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sales-chat`;
 
 export const ChatSection = () => {
-  const { messages, addMessage, updateLastAssistant, collectedInfo, updateCollectedInfo } = useChatStore();
+  const { messages, addMessage, updateLastAssistant, collectedInfo, updateCollectedInfo, clearChat } = useChatStore();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -316,6 +316,16 @@ export const ChatSection = () => {
                   }}
                   className="flex gap-3"
                 >
+                  <Button 
+                    type="button" 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-12 w-12 text-muted-foreground hover:text-foreground" 
+                    onClick={clearChat}
+                    disabled={isLoading || messages.length <= 1}
+                  >
+                    <RotateCcw size={18} />
+                  </Button>
                   <Input
                     ref={inputRef}
                     value={input}
