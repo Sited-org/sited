@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { SiriOrb } from "./SiriOrb";
-import { useChatStore } from "@/hooks/useChatStore";
+import { useChatStore, ProjectType } from "@/hooks/useChatStore";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sales-chat`;
 
@@ -136,21 +136,47 @@ export const GlobalChatButton = () => {
     }
   };
 
-  const goToForm = (type: "website" | "app") => {
+  const goToForm = (type: ProjectType) => {
     sessionStorage.setItem("chatbotInfo", JSON.stringify(collectedInfo));
     setIsOpen(false);
-    navigate(type === "website" ? "/website-onboarding" : "/app-onboarding");
+    const routes: Record<ProjectType, string> = {
+      website: "/onboarding/website",
+      app: "/onboarding/app",
+      ai: "/onboarding/ai",
+    };
+    navigate(routes[type]);
   };
 
-  const suggestedFormType = collectedInfo.projectType === "website" || collectedInfo.projectType === "ai" 
-    ? "website" 
-    : collectedInfo.projectType === "app" 
-    ? "app" 
-    : null;
+  const suggestedFormType: ProjectType | null = collectedInfo.projectType || null;
+  
+  const formLabels: Record<ProjectType, string> = {
+    website: "Website",
+    app: "App", 
+    ai: "AI Integration",
+  };
 
   const hasEnoughInfo = messages.length >= 4 && (collectedInfo.name || collectedInfo.email || collectedInfo.projectType);
 
   const renderMessage = (content: string) => {
+    // Check for AI form link
+    if (content.includes("[Start AI Project]") || content.includes("/ai-onboarding")) {
+      const parts = content.split(/\[Start AI Project\]|\/ai-onboarding/i);
+      return (
+        <>
+          {parts[0]}
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            className="mx-1 inline-flex"
+            onClick={() => goToForm("ai")}
+          >
+            Start AI Project <ArrowRight size={14} />
+          </Button>
+          {parts[1] || ""}
+        </>
+      );
+    }
+    
     // Check for website form link
     if (content.includes("[Start Website Project]") || content.includes("/website-onboarding")) {
       const parts = content.split(/\[Start Website Project\]|\/website-onboarding/i);
@@ -285,7 +311,7 @@ export const GlobalChatButton = () => {
                   className="w-full"
                   onClick={() => goToForm(suggestedFormType)}
                 >
-                  Start {suggestedFormType === "website" ? "Website" : "App"} Project <ArrowRight size={16} />
+                  Start {formLabels[suggestedFormType]} Project <ArrowRight size={16} />
                 </Button>
               </div>
             )}
