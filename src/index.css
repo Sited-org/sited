@@ -126,11 +126,11 @@
   }
   
   .section-padding {
-    @apply py-24 md:py-32 lg:py-40;
+    @apply py-16 md:py-24 lg:py-32;
   }
   
   .container-tight {
-    @apply max-w-5xl mx-auto px-6;
+    @apply max-w-5xl mx-auto px-4 sm:px-6;
   }
 }
 

@@ -246,35 +246,35 @@ const ProjectSection = ({
   return (
     <section
       ref={ref}
-      className="min-h-screen flex items-center py-32"
+      className="min-h-screen flex items-center py-16 sm:py-24 md:py-32"
     >
       <motion.div
         style={{ opacity, y }}
         className="container-tight"
       >
-        <div className={`grid lg:grid-cols-2 gap-16 lg:gap-24 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+        <div className={`grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-24 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
           {/* Content */}
-          <div className={`space-y-8 ${!isEven ? 'lg:order-2' : ''}`}>
+          <div className={`space-y-5 sm:space-y-8 ${!isEven ? 'lg:order-2' : ''}`}>
             <div>
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 {project.category}
               </span>
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mt-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
                 {project.company}
               </h2>
-              <p className="text-lg text-muted-foreground mt-6 leading-relaxed">
+              <p className="text-base sm:text-lg text-muted-foreground mt-4 sm:mt-6 leading-relaxed">
                 {project.description}
               </p>
             </div>
 
             {/* Results */}
-            <div className="flex gap-12">
+            <div className="flex gap-8 sm:gap-12">
               {project.results.map((result) => (
                 <div key={result.label}>
-                  <span className="text-4xl md:text-5xl font-semibold tracking-tight">
+                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight">
                     {result.metric}
                   </span>
-                  <p className="text-sm text-muted-foreground mt-1 uppercase tracking-wider">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
                     {result.label}
                   </p>
                 </div>
@@ -282,11 +282,11 @@ const ProjectSection = ({
             </div>
 
             {/* Testimonial */}
-            <blockquote className="border-l-2 border-accent pl-6 py-2">
-              <p className="text-lg text-muted-foreground italic leading-relaxed">
+            <blockquote className="border-l-2 border-accent pl-4 sm:pl-6 py-2">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground italic leading-relaxed">
                 "{project.testimonial}"
               </p>
-              <cite className="text-sm text-muted-foreground/80 mt-4 block not-italic font-medium">
+              <cite className="text-xs sm:text-sm text-muted-foreground/80 mt-3 sm:mt-4 block not-italic font-medium">
                 {project.author}, <span className="font-normal">{project.role}</span>
               </cite>
             </blockquote>
@@ -312,15 +312,15 @@ const ProjectSection = ({
                 style={{ scale: imageScale }}
                 src={project.videoThumbnail}
                 alt={`${project.company} testimonial video`}
-                className="w-full h-80 md:h-[28rem] object-cover"
+                className="w-full h-56 sm:h-72 md:h-80 lg:h-[28rem] object-cover"
               />
               <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                   whileHover={{ scale: 1.1 }}
-                  className="w-20 h-20 rounded-full bg-background/90 backdrop-blur flex items-center justify-center"
+                  className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-background/90 backdrop-blur flex items-center justify-center"
                 >
-                  <Play size={28} className="ml-1" fill="currentColor" />
+                  <Play size={20} className="sm:w-6 sm:h-6 md:w-7 md:h-7 ml-0.5 sm:ml-1" fill="currentColor" />
                 </motion.div>
               </div>
               <div className="absolute bottom-6 left-6 right-6">
@@ -360,7 +360,7 @@ const Work = () => {
       {/* Hero */}
       <section
         ref={heroRef}
-        className="min-h-[80vh] flex items-center justify-center relative"
+        className="min-h-[60vh] sm:min-h-[70vh] md:min-h-[80vh] flex items-center justify-center relative"
       >
         <motion.div
           style={{ opacity: heroOpacity, y: heroY }}
@@ -379,7 +379,7 @@ const Work = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight mt-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-8xl font-semibold tracking-tight mt-4 sm:mt-6"
           >
             Results that matter.
           </motion.h1>
@@ -388,7 +388,7 @@ const Work = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mt-8"
+            className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mt-6 sm:mt-8 px-2"
           >
             Every project is a partnership. Here's what we've built together.
           </motion.p>
@@ -437,14 +437,14 @@ const Work = () => {
       </div>
 
       {/* CTA Section */}
-      <section className="py-40 bg-foreground text-background">
+      <section className="py-20 sm:py-28 md:py-40 bg-foreground text-background">
         <div className="container-tight text-center">
           <motion.h2
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight"
           >
             Your project could be next.
           </motion.h2>
@@ -454,7 +454,7 @@ const Work = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-background/60 text-lg max-w-md mx-auto mt-6"
+            className="text-background/60 text-sm sm:text-base md:text-lg max-w-md mx-auto mt-4 sm:mt-6 px-2"
           >
             Let's discuss how we can help you achieve similar results.
           </motion.p>
@@ -464,11 +464,11 @@ const Work = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="mt-10"
+            className="mt-8 sm:mt-10"
           >
             <Button
               size="xl"
-              className="bg-background text-foreground hover:bg-background/90"
+              className="bg-background text-foreground hover:bg-background/90 w-full sm:w-auto"
               asChild
             >
               <Link to="/contact">
