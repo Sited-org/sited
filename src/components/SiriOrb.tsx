@@ -22,17 +22,25 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
       className={`${sizeClasses[size]} relative cursor-pointer`}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
+      animate={{
+        scale: isThinking ? [1, 0.95, 1.05, 0.97, 1.03, 1] : [1, 1.08, 1, 0.94, 1],
+      }}
+      transition={{
+        duration: isThinking ? 2 : 5,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
     >
       {/* Soft outer glow */}
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: "radial-gradient(circle, hsl(var(--foreground) / 0.15) 0%, transparent 60%)",
+          background: "radial-gradient(circle, hsl(var(--muted-foreground) / 0.2) 0%, transparent 60%)",
           filter: "blur(12px)",
         }}
         animate={{
           scale: [1, 1.3, 1.1, 1.25, 1],
-          opacity: isThinking ? [0.3, 0.5, 0.3] : [0.15, 0.25, 0.2, 0.15],
+          opacity: isThinking ? [0.4, 0.6, 0.4] : [0.2, 0.35, 0.25, 0.2],
         }}
         transition={{
           duration: isThinking ? 2 : 6,
@@ -47,7 +55,7 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
           key={`mist-${i}`}
           className="absolute inset-0 rounded-full"
           style={{
-            background: `radial-gradient(ellipse ${60 + i * 15}% ${40 + i * 10}% at ${30 + i * 12}% ${25 + i * 15}%, hsl(var(--foreground) / ${0.08 - i * 0.015}) 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse ${60 + i * 15}% ${40 + i * 10}% at ${30 + i * 12}% ${25 + i * 15}%, hsl(var(--muted-foreground) / ${0.12 - i * 0.02}) 0%, transparent 70%)`,
             filter: `blur(${4 + i * 2}px)`,
           }}
           animate={{
@@ -69,13 +77,13 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
         />
       ))}
 
-      {/* Core sphere with soft edges */}
+      {/* Core sphere with soft edges - LIGHTER */}
       <motion.div
         className="absolute rounded-full"
         style={{
           inset: `${12 * scale}px`,
-          background: "radial-gradient(circle at 35% 35%, hsl(var(--foreground) / 0.9), hsl(var(--foreground) / 0.6) 50%, hsl(var(--muted-foreground) / 0.4) 100%)",
-          boxShadow: "inset 0 0 20px hsl(var(--background) / 0.3)",
+          background: "radial-gradient(circle at 35% 35%, hsl(var(--muted-foreground) / 0.6), hsl(var(--muted-foreground) / 0.35) 50%, hsl(var(--muted-foreground) / 0.2) 100%)",
+          boxShadow: "inset 0 0 20px hsl(var(--background) / 0.4)",
         }}
         animate={{
           scale: isThinking ? [1, 0.97, 1.02, 0.98, 1] : [1, 1.01, 0.99, 1],
@@ -105,7 +113,7 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
                 height: `${30 + i * 5}%`,
                 left: `${-i * 4}%`,
                 top: "35%",
-                background: `linear-gradient(90deg, transparent 0%, hsl(var(--foreground) / ${0.15 - i * 0.02}) 30%, hsl(var(--foreground) / ${0.2 - i * 0.03}) 50%, hsl(var(--foreground) / ${0.15 - i * 0.02}) 70%, transparent 100%)`,
+                background: `linear-gradient(90deg, transparent 0%, hsl(var(--muted-foreground) / ${0.2 - i * 0.025}) 30%, hsl(var(--muted-foreground) / ${0.25 - i * 0.035}) 50%, hsl(var(--muted-foreground) / ${0.2 - i * 0.025}) 70%, transparent 100%)`,
                 filter: `blur(${2 + i}px)`,
                 borderRadius: "50%",
               }}
@@ -137,7 +145,7 @@ export const SiriOrb = ({ isListening = false, isThinking = false, size = "lg", 
         return (
           <motion.div
             key={`particle-${i}`}
-            className="absolute rounded-full bg-foreground/60"
+            className="absolute rounded-full bg-muted-foreground/50"
             style={{
               width: `${(3 - (i % 2)) * scale}px`,
               height: `${(3 - (i % 2)) * scale}px`,
