@@ -12,7 +12,7 @@ const navLinks = [
   { name: "Contact", href: "/contact" },
 ];
 
-const domains = ["au", "co", "net.au", "com.au"];
+const domains = ["au", "co"];
 
 const AnimatedLogo = () => {
   const [domainIndex, setDomainIndex] = useState(0);
