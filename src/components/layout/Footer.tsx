@@ -55,9 +55,9 @@ const TypedText = ({ phrases }: { phrases: string[] }) => {
   }, [text, isDeleting, phraseIndex, phrases]);
 
   return (
-    <span className="text-accent-foreground">
+    <span className="text-foreground">
       {text}
-      <span className="inline-block w-[3px] h-[1em] bg-accent-foreground ml-1 align-middle animate-pulse" />
+      <span className="inline-block w-[3px] h-[1em] bg-foreground ml-1 align-middle animate-pulse" />
     </span>
   );
 };
@@ -75,15 +75,15 @@ export const Footer = () => {
   ], []);
 
   return (
-    <footer className="relative overflow-hidden bg-foreground text-background">
+    <footer className="relative overflow-hidden bg-background text-foreground border-t border-border">
       {/* Static gradient background - no animation */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-accent rounded-full blur-[100px]" />
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-muted-foreground rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-muted-foreground rounded-full blur-[100px]" />
       </div>
 
       {/* Live Activity Bar */}
-      <div className="relative border-b border-background/10 bg-background/5">
+      <div className="relative border-b border-border bg-muted/30">
         <div className="container-tight py-3">
           <AnimatePresence mode="wait">
             <motion.div
@@ -99,12 +99,12 @@ export const Footer = () => {
                   <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="text-background/70">Live</span>
+                <span className="text-muted-foreground">Live</span>
               </span>
-              <span className="text-background/90">
+              <span className="text-foreground/90">
                 <span className="font-medium">{activity.name}</span> {activity.action}
               </span>
-              <span className="text-background/50">• {activity.location}</span>
+              <span className="text-muted-foreground">• {activity.location}</span>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -115,7 +115,7 @@ export const Footer = () => {
         <div className="container-tight py-12 sm:py-16 md:py-20 lg:py-24">
           {/* The Big Question */}
           <div className="text-center mb-10 sm:mb-14">
-            <p className="text-background/60 text-xs sm:text-sm uppercase tracking-widest mb-3 sm:mb-4">
+            <p className="text-muted-foreground text-xs sm:text-sm uppercase tracking-widest mb-3 sm:mb-4">
               One question
             </p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-3 sm:mb-4">
@@ -139,8 +139,8 @@ export const Footer = () => {
                   transition={{ duration: 0.2 }}
                   className={`relative p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border transition-colors duration-200 ${
                     hoveredService === service.name
-                      ? "bg-background text-foreground border-transparent"
-                      : "bg-background/5 border-background/10"
+                      ? "bg-foreground text-background border-transparent"
+                      : "bg-muted/50 border-border"
                   }`}
                 >
                   <div className="flex items-start justify-between">
@@ -149,14 +149,14 @@ export const Footer = () => {
                       <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-0.5 sm:mb-1">
                         {service.name} Project
                       </h3>
-                      <p className={`text-xs sm:text-sm ${hoveredService === service.name ? "text-muted-foreground" : "text-background/60"}`}>
+                      <p className={`text-xs sm:text-sm ${hoveredService === service.name ? "text-background/70" : "text-muted-foreground"}`}>
                         {service.stat}
                       </p>
                     </div>
                     <ArrowRight 
                       size={20} 
                       className={`sm:w-6 sm:h-6 transition-all duration-200 ${
-                        hoveredService === service.name ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2"
+                        hoveredService === service.name ? "opacity-100 translate-x-0 text-background" : "opacity-0 -translate-x-2"
                       }`}
                     />
                   </div>
@@ -167,11 +167,11 @@ export const Footer = () => {
 
           {/* Primary CTA */}
           <div className="text-center mb-10 sm:mb-14">
-            <p className="text-background/60 text-sm sm:text-base mb-4 sm:mb-6">Or skip the forms entirely</p>
+            <p className="text-muted-foreground text-sm sm:text-base mb-4 sm:mb-6">Or skip the forms entirely</p>
             <Button
               onClick={() => setIsOpen(true)}
               size="xl"
-              className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 sm:gap-3 w-full sm:w-auto"
+              className="bg-foreground text-background hover:bg-foreground/90 gap-2 sm:gap-3 w-full sm:w-auto"
             >
               <MessageCircle size={18} className="sm:w-5 sm:h-5" />
               Chat with us now
@@ -180,24 +180,24 @@ export const Footer = () => {
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-background/50">
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-400" />
+              <CheckCircle2 size={14} className="sm:w-4 sm:h-4 text-green-500" />
               <span>No commitment required</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Clock size={14} className="sm:w-4 sm:h-4 text-accent-foreground" />
+              <Clock size={14} className="sm:w-4 sm:h-4 text-foreground" />
               <span>Response within 2 hours</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Users size={14} className="sm:w-4 sm:h-4 text-accent-foreground" />
+              <Users size={14} className="sm:w-4 sm:h-4 text-foreground" />
               <span>50+ projects delivered</span>
             </div>
           </div>
         </div>
 
         {/* Divider */}
-        <div className="h-px bg-background/10" />
+        <div className="h-px bg-border" />
 
         {/* Bottom Bar */}
         <div className="container-tight py-6 sm:py-8">
@@ -210,13 +210,13 @@ export const Footer = () => {
                 <Link
                   key={item}
                   to={`/${item.toLowerCase()}`}
-                  className="text-xs sm:text-sm text-background/60 hover:text-background transition-colors"
+                  className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {item}
                 </Link>
               ))}
             </div>
-            <p className="text-xs sm:text-sm text-background/40">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               © {currentYear} Sited
             </p>
           </div>
