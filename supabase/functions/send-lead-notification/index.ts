@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -8,14 +9,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface LeadNotificationRequest {
-  name: string;
-  email: string;
-  phone?: string;
-  businessName?: string;
-  projectType: string;
-  formData: Record<string, any>;
-}
+// Input validation schema
+const leadSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(255),
+  phone: z.string().max(30).optional(),
+  businessName: z.string().max(200).optional(),
+  projectType: z.enum(["website", "app", "ai"]),
+  formData: z.record(z.unknown()),
+});
+
+type LeadNotificationRequest = z.infer<typeof leadSchema>;
 
 function generateMockupPrompt(leadData: LeadNotificationRequest): string {
   const formDataText = Object.entries(leadData.formData)
@@ -49,7 +53,19 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const leadData: LeadNotificationRequest = await req.json();
+    const rawData = await req.json();
+    
+    // Validate input
+    const parseResult = leadSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      console.error("Validation error:", parseResult.error);
+      return new Response(
+        JSON.stringify({ error: "Invalid input data", details: parseResult.error.errors }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    
+    const leadData = parseResult.data;
     const { name, email, phone, businessName, projectType, formData } = leadData;
 
     console.log("Sending lead notification for:", { name, email, projectType });
