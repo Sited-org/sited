@@ -14,36 +14,188 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          email: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      form_sessions: {
+        Row: {
+          completed: boolean
+          current_step: number
+          form_type: string
+          id: string
+          ip_address: string | null
+          last_activity_at: string
+          partial_data: Json | null
+          session_id: string
+          started_at: string
+          total_steps: number
+          user_agent: string | null
+        }
+        Insert: {
+          completed?: boolean
+          current_step?: number
+          form_type: string
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          partial_data?: Json | null
+          session_id: string
+          started_at?: string
+          total_steps: number
+          user_agent?: string | null
+        }
+        Update: {
+          completed?: boolean
+          current_step?: number
+          form_type?: string
+          id?: string
+          ip_address?: string | null
+          last_activity_at?: string
+          partial_data?: Json | null
+          session_id?: string
+          started_at?: string
+          total_steps?: number
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      lead_activities: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          lead_id: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          lead_id: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          lead_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          assigned_to: string | null
           business_name: string | null
           created_at: string
           email: string
           form_data: Json
           id: string
+          last_contacted_at: string | null
           name: string | null
+          notes: string | null
           phone: string | null
           project_type: string
+          status: Database["public"]["Enums"]["lead_status"]
         }
         Insert: {
+          assigned_to?: string | null
           business_name?: string | null
           created_at?: string
           email: string
           form_data: Json
           id?: string
+          last_contacted_at?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           project_type: string
+          status?: Database["public"]["Enums"]["lead_status"]
         }
         Update: {
+          assigned_to?: string | null
           business_name?: string | null
           created_at?: string
           email?: string
           form_data?: Json
           id?: string
+          last_contacted_at?: string | null
           name?: string | null
+          notes?: string | null
           phone?: string | null
           project_type?: string
+          status?: Database["public"]["Enums"]["lead_status"]
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          can_edit_leads: boolean
+          can_manage_users: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit_leads?: boolean
+          can_manage_users?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit_leads?: boolean
+          can_manage_users?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -52,10 +204,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_edit_leads: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_users: { Args: { _user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "editor" | "viewer"
+      lead_status:
+        | "new"
+        | "cold"
+        | "warm"
+        | "hot"
+        | "contacted"
+        | "proposal_sent"
+        | "paid"
+        | "lost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -182,6 +352,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "editor", "viewer"],
+      lead_status: [
+        "new",
+        "cold",
+        "warm",
+        "hot",
+        "contacted",
+        "proposal_sent",
+        "paid",
+        "lost",
+      ],
+    },
   },
 } as const
