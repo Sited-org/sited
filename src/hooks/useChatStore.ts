@@ -17,15 +17,20 @@ export interface CollectedInfo {
 
 export type ProjectType = "website" | "app" | "ai";
 
+const MAX_USER_MESSAGES = 60;
+
 interface ChatStore {
   messages: Message[];
   collectedInfo: CollectedInfo;
   isOpen: boolean;
+  userMessageCount: number;
   addMessage: (message: Message) => void;
   updateLastAssistant: (content: string) => void;
   updateCollectedInfo: (info: CollectedInfo) => void;
   setIsOpen: (open: boolean) => void;
   clearChat: () => void;
+  canSendMessage: () => boolean;
+  getRemainingMessages: () => number;
 }
 
 const INITIAL_MESSAGE: Message = {
@@ -35,12 +40,21 @@ const INITIAL_MESSAGE: Message = {
 
 export const useChatStore = create<ChatStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       messages: [INITIAL_MESSAGE],
       collectedInfo: {},
       isOpen: false,
+      userMessageCount: 0,
       addMessage: (message) =>
-        set((state) => ({ messages: [...state.messages, message] })),
+        set((state) => {
+          const newCount = message.role === "user" 
+            ? state.userMessageCount + 1 
+            : state.userMessageCount;
+          return { 
+            messages: [...state.messages, message],
+            userMessageCount: newCount,
+          };
+        }),
       updateLastAssistant: (content) =>
         set((state) => {
           const messages = [...state.messages];
@@ -53,7 +67,13 @@ export const useChatStore = create<ChatStore>()(
       updateCollectedInfo: (info) =>
         set((state) => ({ collectedInfo: { ...state.collectedInfo, ...info } })),
       setIsOpen: (isOpen) => set({ isOpen }),
-      clearChat: () => set({ messages: [INITIAL_MESSAGE], collectedInfo: {} }),
+      clearChat: () => set({ 
+        messages: [INITIAL_MESSAGE], 
+        collectedInfo: {},
+        userMessageCount: 0,
+      }),
+      canSendMessage: () => get().userMessageCount < MAX_USER_MESSAGES,
+      getRemainingMessages: () => MAX_USER_MESSAGES - get().userMessageCount,
     }),
     {
       name: "sited-chat-storage",

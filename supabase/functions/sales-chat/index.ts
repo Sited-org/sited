@@ -1,9 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation schema
+const messageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().max(10000),
+});
+
+const requestSchema = z.object({
+  messages: z.array(messageSchema).max(100),
+  collectedInfo: z.record(z.unknown()).optional(),
+});
 
 const SYSTEM_PROMPT = `You are Sited AI — a sharp, friendly sales assistant. Be punchy. Be personable. No fluff.
 
@@ -64,7 +76,19 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, collectedInfo } = await req.json();
+    const rawData = await req.json();
+    
+    // Validate input
+    const parseResult = requestSchema.safeParse(rawData);
+    if (!parseResult.success) {
+      console.error("Validation error:", parseResult.error);
+      return new Response(
+        JSON.stringify({ error: "Invalid request data" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { messages, collectedInfo } = parseResult.data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {

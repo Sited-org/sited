@@ -12,6 +12,7 @@ import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Captcha } from "@/components/Captcha";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -24,6 +25,7 @@ const steps = [
 const AIOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -712,6 +714,13 @@ const AIOnboarding = () => {
               </div>
             )}
 
+            {/* Captcha on last step */}
+            {currentStep === steps.length && (
+              <div className="mt-6">
+                <Captcha onVerify={setCaptchaVerified} />
+              </div>
+            )}
+
             {/* Navigation */}
             <div className="flex justify-between mt-10 pt-6 border-t border-border">
               <Button
@@ -729,7 +738,7 @@ const AIOnboarding = () => {
                   <ArrowRight size={16} />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
+                <Button onClick={handleSubmit} disabled={isSubmitting || !captchaVerified} className="gap-2">
                   {isSubmitting ? "Submitting..." : "Submit Request"}
                   {!isSubmitting && <Check size={16} />}
                 </Button>

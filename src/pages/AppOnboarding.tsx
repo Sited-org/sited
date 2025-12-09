@@ -12,6 +12,7 @@ import { ArrowLeft, ArrowRight, Check, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Captcha } from "@/components/Captcha";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -25,6 +26,7 @@ const steps = [
 const AppOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -1078,17 +1080,27 @@ const AppOnboarding = () => {
                   <ArrowRight size={18} />
                 </Button>
               ) : (
-                <Button
-                  variant="hero"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="gap-2"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Project Request"}
-                  <Check size={18} />
-                </Button>
+                <>
+                  <Captcha onVerify={setCaptchaVerified} className="hidden" />
+                  <Button
+                    variant="hero"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !captchaVerified}
+                    className="gap-2"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Project Request"}
+                    <Check size={18} />
+                  </Button>
+                </>
               )}
             </div>
+            
+            {/* Captcha on last step */}
+            {currentStep === steps.length && (
+              <div className="mt-6">
+                <Captcha onVerify={setCaptchaVerified} />
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

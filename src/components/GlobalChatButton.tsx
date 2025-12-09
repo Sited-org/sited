@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, ArrowRight } from "lucide-react";
+import { X, Send, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -10,7 +10,18 @@ import { useChatStore, ProjectType } from "@/hooks/useChatStore";
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sales-chat`;
 
 export const GlobalChatButton = () => {
-  const { messages, addMessage, updateLastAssistant, collectedInfo, updateCollectedInfo, isOpen, setIsOpen } = useChatStore();
+  const { 
+    messages, 
+    addMessage, 
+    updateLastAssistant, 
+    collectedInfo, 
+    updateCollectedInfo, 
+    isOpen, 
+    setIsOpen,
+    clearChat,
+    canSendMessage,
+    getRemainingMessages,
+  } = useChatStore();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,7 +66,7 @@ export const GlobalChatButton = () => {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !canSendMessage()) return;
     
     const userMessage = input.trim();
     setInput("");
@@ -218,6 +229,9 @@ export const GlobalChatButton = () => {
     return content;
   };
 
+  const remainingMessages = getRemainingMessages();
+  const isLimitReached = !canSendMessage();
+
   return (
     <>
       {/* Floating Orb Button */}
@@ -251,15 +265,26 @@ export const GlobalChatButton = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Sited AI</h3>
-                  <p className="text-xs text-muted-foreground">Let's build something great</p>
+                  <p className="text-xs text-muted-foreground">
+                    {remainingMessages} messages left
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={clearChat}
+                  className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+                  title="Reset chat"
+                >
+                  <RotateCcw size={16} />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="w-8 h-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
@@ -316,28 +341,48 @@ export const GlobalChatButton = () => {
               </div>
             )}
 
-            {/* Input */}
-            <div className="p-4 border-t border-border bg-background">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendMessage();
-                }}
-                className="flex gap-2"
-              >
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 h-11"
-                  disabled={isLoading}
-                />
-                <Button type="submit" size="icon" className="h-11 w-11" disabled={isLoading || !input.trim()}>
-                  <Send size={18} />
+            {/* Limit Reached Message */}
+            {isLimitReached && (
+              <div className="px-4 py-3 border-t border-border bg-muted/50">
+                <p className="text-sm text-muted-foreground text-center mb-2">
+                  Message limit reached. Reset to continue.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={clearChat}
+                >
+                  <RotateCcw size={14} className="mr-2" />
+                  Reset Chat
                 </Button>
-              </form>
-            </div>
+              </div>
+            )}
+
+            {/* Input */}
+            {!isLimitReached && (
+              <div className="p-4 border-t border-border bg-background">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage();
+                  }}
+                  className="flex gap-2"
+                >
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="flex-1 h-11"
+                    disabled={isLoading}
+                  />
+                  <Button type="submit" size="icon" className="h-11 w-11" disabled={isLoading || !input.trim()}>
+                    <Send size={18} />
+                  </Button>
+                </form>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

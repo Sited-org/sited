@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Globe } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Captcha } from "@/components/Captcha";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -25,6 +26,7 @@ const steps = [
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -975,6 +977,9 @@ const WebsiteOnboarding = () => {
                     className="min-h-[150px]"
                   />
                 </div>
+                
+                {/* Captcha */}
+                <Captcha onVerify={setCaptchaVerified} />
               </div>
             )}
 
@@ -998,7 +1003,7 @@ const WebsiteOnboarding = () => {
                 <Button
                   variant="hero"
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !captchaVerified}
                   className="gap-2"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Project Request"}
