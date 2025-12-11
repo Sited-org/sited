@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,8 +25,11 @@ export function useAuth() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(true);
+  const initialized = useRef(false);
 
   const fetchUserRole = useCallback(async (userId: string) => {
+    setRoleLoading(true);
     const { data, error } = await supabase
       .from('user_roles')
       .select('*')
@@ -38,6 +41,7 @@ export function useAuth() {
     } else {
       setUserRole(null);
     }
+    setRoleLoading(false);
   }, []);
 
   const fetchAdminProfile = useCallback(async (userId: string) => {
@@ -55,34 +59,40 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         
-        // Defer Supabase calls with setTimeout
-        if (session?.user) {
+        if (newSession?.user) {
+          // Defer Supabase calls with setTimeout to prevent deadlocks
           setTimeout(() => {
-            fetchUserRole(session.user.id);
-            fetchAdminProfile(session.user.id);
+            fetchUserRole(newSession.user.id);
+            fetchAdminProfile(newSession.user.id);
           }, 0);
         } else {
           setUserRole(null);
           setAdminProfile(null);
+          setRoleLoading(false);
         }
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-        fetchAdminProfile(session.user.id);
+      if (existingSession?.user) {
+        fetchUserRole(existingSession.user.id);
+        fetchAdminProfile(existingSession.user.id);
+      } else {
+        setRoleLoading(false);
       }
       setLoading(false);
     });
@@ -122,12 +132,15 @@ export function useAuth() {
     return { error };
   };
 
+  // Only consider fully loaded when both auth and role are done loading
+  const isFullyLoaded = !loading && !roleLoading;
+
   return {
     user,
     session,
     userRole,
     adminProfile,
-    loading,
+    loading: !isFullyLoaded,
     signIn,
     signUp,
     signOut,

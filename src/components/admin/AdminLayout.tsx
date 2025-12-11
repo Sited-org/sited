@@ -33,10 +33,10 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate('/admin/login');
-    } else if (!loading && isAuthenticated && !isAdmin) {
-      navigate('/admin/login');
+    if (loading) return; // Wait until fully loaded
+    
+    if (!isAuthenticated || !isAdmin) {
+      navigate('/admin/login', { replace: true });
     }
   }, [loading, isAuthenticated, isAdmin, navigate]);
 
