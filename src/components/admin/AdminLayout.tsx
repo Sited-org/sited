@@ -10,7 +10,8 @@ import {
   Activity,
   UserCircle,
   Menu,
-  X
+  X,
+  Star
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
+  { name: 'Testimonials', href: '/admin/testimonials', icon: Star, requiresAdmin: true },
   { name: 'Live Activity', href: '/admin/activity', icon: Activity },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -91,6 +93,11 @@ export default function AdminLayout() {
               
               // Hide Team if user can't manage users
               if (item.href === '/admin/team' && !userRole?.can_manage_users) {
+                return null;
+              }
+              
+              // Hide Testimonials if not owner or admin
+              if (item.requiresAdmin && userRole && !['owner', 'admin'].includes(userRole.role)) {
                 return null;
               }
               

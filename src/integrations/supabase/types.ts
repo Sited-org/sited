@@ -267,6 +267,75 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          business_name: string
+          created_at: string
+          created_by: string | null
+          delivery_time: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          metric_1_label: string | null
+          metric_1_value: string | null
+          metric_2_label: string | null
+          metric_2_value: string | null
+          project_type: string
+          short_description: string
+          testimonial_author: string
+          testimonial_role: string
+          testimonial_text: string
+          updated_at: string
+          video_thumbnail: string | null
+          video_url: string | null
+          website_url: string | null
+        }
+        Insert: {
+          business_name: string
+          created_at?: string
+          created_by?: string | null
+          delivery_time?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          metric_1_label?: string | null
+          metric_1_value?: string | null
+          metric_2_label?: string | null
+          metric_2_value?: string | null
+          project_type: string
+          short_description: string
+          testimonial_author: string
+          testimonial_role: string
+          testimonial_text: string
+          updated_at?: string
+          video_thumbnail?: string | null
+          video_url?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          business_name?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_time?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          metric_1_label?: string | null
+          metric_1_value?: string | null
+          metric_2_label?: string | null
+          metric_2_value?: string | null
+          project_type?: string
+          short_description?: string
+          testimonial_author?: string
+          testimonial_role?: string
+          testimonial_text?: string
+          updated_at?: string
+          video_thumbnail?: string | null
+          video_url?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string

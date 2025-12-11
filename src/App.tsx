@@ -18,6 +18,7 @@ import LeadProfile from "./pages/LeadProfile";
 import AdminActivity from "./pages/AdminActivity";
 import AdminTeam from "./pages/AdminTeam";
 import AdminSettings from "./pages/AdminSettings";
+import AdminTestimonials from "./pages/AdminTestimonials";
 import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="leads/:id" element={<LeadProfile />} />
+            <Route path="testimonials" element={<AdminTestimonials />} />
             <Route path="activity" element={<AdminActivity />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="settings" element={<AdminSettings />} />
