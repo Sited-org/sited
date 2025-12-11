@@ -20,62 +20,45 @@ const Hero = () => {
   const y = useTransform(scrollYProgress, [0, 0.5], [0, 50]);
 
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section ref={ref} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-surface-elevated to-background" />
-      
-      {/* Floating elements */}
-      <motion.div
-        className="absolute top-1/4 left-[15%] w-64 h-64 bg-accent/20 rounded-full blur-3xl"
-        animate={{ y: [-20, 20, -20] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-[15%] w-48 h-48 bg-accent/30 rounded-full blur-3xl"
-        animate={{ y: [20, -20, 20] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
 
       <motion.div
         style={{ opacity, scale, y }}
-        className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center"
+        className="relative z-10 w-full max-w-6xl pt-24 sm:pt-28 lg:pt-32"
       >
+        {/* Hero Video */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 bg-secondary rounded-full px-4 py-2 mb-8"
+          transition={{ duration: 0.8 }}
+          className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-elevated"
         >
-          <Sparkles size={16} className="text-accent-foreground" />
-          <span className="text-sm font-medium">AI-Powered Design</span>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+            poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1920&h=1080&fit=crop"
+          >
+            <source
+              src="https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_25fps.mp4"
+              type="video/mp4"
+            />
+            Your browser does not support the video tag.
+          </video>
+          {/* Optional overlay for better visual integration */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent pointer-events-none" />
         </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
-        >
-          We build websites
-          <br />
-          <span className="text-muted-foreground">& apps that convert.</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
-          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
-        >
-          Sited combines AI precision with creative excellence to deliver stunning 
-          digital experiences for small and medium businesses.
-        </motion.p>
-
+        {/* CTAs */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 sm:mt-10 lg:mt-12"
         >
           <Button variant="hero" size="xl" asChild>
             <Link to="/contact">
