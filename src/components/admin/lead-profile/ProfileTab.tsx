@@ -4,8 +4,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
@@ -51,6 +52,9 @@ export function ProfileTab({
   setNotes,
   canEdit,
 }: ProfileTabProps) {
+  const { updates } = useProjectUpdates(lead.id);
+  const recentUpdates = updates.slice(0, 3);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
@@ -110,6 +114,32 @@ export function ProfileTab({
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Project Updates */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Recent Project Updates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentUpdates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No project updates yet. Add updates in the Project tab.</p>
+            ) : (
+              <div className="space-y-3">
+                {recentUpdates.map((update) => (
+                  <div key={update.id} className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-sm">{update.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(update.created_at), 'PPp')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

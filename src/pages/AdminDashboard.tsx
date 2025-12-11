@@ -6,8 +6,10 @@ import { LeadsChart } from '@/components/admin/LeadsChart';
 import { ConversionFunnel } from '@/components/admin/ConversionFunnel';
 import { SourceBreakdown } from '@/components/admin/SourceBreakdown';
 import { LiveSessionCard } from '@/components/admin/LiveSessionCard';
+import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { Users, TrendingUp, Activity, DollarSign } from 'lucide-react';
-import { subDays } from 'date-fns';
+import { subDays, format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 export default function AdminDashboard() {
   const { leads, loading } = useLeads();
@@ -33,6 +35,12 @@ export default function AdminDashboard() {
     };
   }, [leads]);
 
+  const recentProjects = useMemo(() => {
+    return [...leads]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 6);
+  }, [leads]);
+
   if (loading) {
     return <div className="animate-pulse text-muted-foreground">Loading dashboard...</div>;
   }
@@ -42,6 +50,35 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your leads and activity</p>
+      </div>
+
+      {/* Recent Projects Hero */}
+      <div className="bg-card border border-border rounded-xl p-8">
+        <h3 className="text-lg font-semibold mb-6">Recent Projects</h3>
+        {recentProjects.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No projects yet</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentProjects.map((lead) => (
+              <Link
+                key={lead.id}
+                to={`/admin/leads/${lead.id}`}
+                className="block p-4 bg-background border border-border rounded-lg hover:border-primary/50 transition-colors"
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">#{lead.lead_number}</span>
+                  <LeadStatusBadge status={lead.status} />
+                </div>
+                <h4 className="font-medium truncate">{lead.name || lead.email}</h4>
+                <p className="text-sm text-muted-foreground truncate">{lead.business_name || 'No business name'}</p>
+                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                  <span className="capitalize">{lead.project_type}</span>
+                  <span>{format(new Date(lead.created_at), 'MMM d')}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
