@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type LeadStatus = 'new' | 'cold' | 'warm' | 'hot' | 'contacted' | 'proposal_sent' | 'paid' | 'lost';
+export type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
 export interface Lead {
   id: string;

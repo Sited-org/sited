@@ -20,7 +20,15 @@ import { LeadStatusBadge } from './LeadStatusBadge';
 import type { Lead, LeadStatus } from '@/hooks/useLeads';
 import { Mail, Phone, Building, Calendar, FileText } from 'lucide-react';
 
-const allStatuses: LeadStatus[] = ['new', 'cold', 'warm', 'hot', 'contacted', 'proposal_sent', 'paid', 'lost'];
+const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
+
+const statusLabels: Record<LeadStatus, string> = {
+  new: 'New Lead',
+  contacted: 'Contacted',
+  booked_call: 'Booked Call',
+  sold: 'Sold',
+  lost: 'Lost',
+};
 
 interface LeadDetailSheetProps {
   lead: Lead | null;
@@ -129,7 +137,7 @@ export function LeadDetailSheet({
                 <SelectContent>
                   {allStatuses.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status.replace('_', ' ').replace(/^\w/, c => c.toUpperCase())}
+                      {statusLabels[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>

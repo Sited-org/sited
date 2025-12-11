@@ -15,9 +15,12 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
+import { Kanban } from 'lucide-react';
+
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
+  { name: 'Funnel', href: '/admin/funnel', icon: Kanban },
   { name: 'Live Activity', href: '/admin/activity', icon: Activity },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
