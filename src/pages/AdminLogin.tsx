@@ -6,21 +6,33 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, Phone, Calendar } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const signupSchema = z.object({
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits').optional().or(z.literal('')),
+  dateOfBirth: z.string().min(1, 'Date of birth is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { signIn, signUp, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
@@ -36,21 +48,33 @@ export default function AdminLogin() {
     e.preventDefault();
     setErrors({});
     
-    const result = loginSchema.safeParse({ email, password });
-    if (!result.success) {
-      const fieldErrors: { email?: string; password?: string } = {};
-      result.error.errors.forEach(err => {
-        if (err.path[0] === 'email') fieldErrors.email = err.message;
-        if (err.path[0] === 'password') fieldErrors.password = err.message;
-      });
-      setErrors(fieldErrors);
-      return;
-    }
-
-    setIsLoading(true);
-    
     if (isSignUp) {
-      const { error } = await signUp(email, password);
+      const result = signupSchema.safeParse({ fullName, email, phone, dateOfBirth, password });
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach(err => {
+          const field = err.path[0] as string;
+          fieldErrors[field] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+
+      setIsLoading(true);
+      
+      const { error, data } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin`,
+          data: {
+            full_name: fullName,
+            phone: phone,
+            date_of_birth: dateOfBirth,
+          }
+        }
+      });
+
       if (error) {
         toast({
           title: "Sign up failed",
@@ -59,14 +83,39 @@ export default function AdminLogin() {
             : error.message,
           variant: "destructive"
         });
-      } else {
+      } else if (data.user) {
+        // Create admin profile
+        await supabase.from('admin_profiles').insert({
+          user_id: data.user.id,
+          email: email,
+          display_name: fullName,
+          phone: phone || null,
+          date_of_birth: dateOfBirth || null,
+        });
+
         toast({
           title: "Account created",
           description: "Your account has been created. Please contact the owner to assign your role.",
         });
         setIsSignUp(false);
+        setFullName('');
+        setPhone('');
+        setDateOfBirth('');
       }
     } else {
+      const result = loginSchema.safeParse({ email, password });
+      if (!result.success) {
+        const fieldErrors: Record<string, string> = {};
+        result.error.errors.forEach(err => {
+          const field = err.path[0] as string;
+          fieldErrors[field] = err.message;
+        });
+        setErrors(fieldErrors);
+        return;
+      }
+
+      setIsLoading(true);
+      
       const { error } = await signIn(email, password);
       if (error) {
         toast({
@@ -109,7 +158,73 @@ export default function AdminLogin() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-sm font-medium">
+                    Full Name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="John Doe"
+                      className="pl-10"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.fullName && (
+                    <p className="text-destructive text-xs">{errors.fullName}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth" className="text-sm font-medium">
+                    Date of Birth
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      className="pl-10"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.dateOfBirth && (
+                    <p className="text-destructive text-xs">{errors.dateOfBirth}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    Phone (Optional)
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 234 567 890"
+                      className="pl-10"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  {errors.phone && (
+                    <p className="text-destructive text-xs">{errors.phone}</p>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email
@@ -161,7 +276,7 @@ export default function AdminLogin() {
 
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full mt-6"
               disabled={isLoading}
             >
               {isLoading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
@@ -171,7 +286,10 @@ export default function AdminLogin() {
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setErrors({});
+              }}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
