@@ -181,40 +181,75 @@ export type Database = {
         }
         Relationships: []
       }
-      payments: {
+      project_updates: {
         Row: {
-          amount: number
+          content: string
           created_at: string
           created_by: string | null
           id: string
           lead_id: string
-          notes: string | null
-          payment_date: string
-          payment_method: string | null
         }
         Insert: {
-          amount: number
+          content: string
           created_at?: string
           created_by?: string | null
           id?: string
           lead_id: string
-          notes?: string | null
-          payment_date?: string
-          payment_method?: string | null
         }
         Update: {
-          amount?: number
+          content?: string
           created_at?: string
           created_by?: string | null
           id?: string
           lead_id?: string
-          notes?: string | null
-          payment_date?: string
-          payment_method?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "payments_lead_id_fkey"
+            foreignKeyName: "project_updates_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          credit: number | null
+          debit: number | null
+          id: string
+          item: string
+          lead_id: string
+          notes: string | null
+          transaction_date: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          credit?: number | null
+          debit?: number | null
+          id?: string
+          item: string
+          lead_id: string
+          notes?: string | null
+          transaction_date?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          credit?: number | null
+          debit?: number | null
+          id?: string
+          item?: string
+          lead_id?: string
+          notes?: string | null
+          transaction_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
