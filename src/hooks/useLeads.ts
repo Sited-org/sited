@@ -6,6 +6,7 @@ export type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
 export interface Lead {
   id: string;
+  lead_number: number | null;
   name: string | null;
   email: string;
   phone: string | null;
@@ -17,6 +18,8 @@ export interface Lead {
   last_contacted_at: string | null;
   assigned_to: string | null;
   created_at: string;
+  deal_amount: number | null;
+  deal_closed_at: string | null;
 }
 
 export interface LeadActivity {
