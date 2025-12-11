@@ -1,5 +1,5 @@
 import { motion, useInView } from "framer-motion";
-import { useRef, ReactNode } from "react";
+import { useRef, ReactNode, memo } from "react";
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -8,21 +8,21 @@ interface ScrollRevealProps {
   direction?: "up" | "down" | "left" | "right" | "scale";
 }
 
-export const ScrollReveal = ({
+export const ScrollReveal = memo(({
   children,
   className,
   delay = 0,
   direction = "up",
 }: ScrollRevealProps) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
 
   const variants = {
-    up: { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 } },
-    down: { initial: { opacity: 0, y: -40 }, animate: { opacity: 1, y: 0 } },
-    left: { initial: { opacity: 0, x: -40 }, animate: { opacity: 1, x: 0 } },
-    right: { initial: { opacity: 0, x: 40 }, animate: { opacity: 1, x: 0 } },
-    scale: { initial: { opacity: 0, scale: 0.95 }, animate: { opacity: 1, scale: 1 } },
+    up: { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } },
+    down: { initial: { opacity: 0, y: -20 }, animate: { opacity: 1, y: 0 } },
+    left: { initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 } },
+    right: { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 } },
+    scale: { initial: { opacity: 0, scale: 0.98 }, animate: { opacity: 1, scale: 1 } },
   };
 
   return (
@@ -31,13 +31,16 @@ export const ScrollReveal = ({
       initial={variants[direction].initial}
       animate={isInView ? variants[direction].animate : variants[direction].initial}
       transition={{
-        duration: 0.7,
+        duration: 0.4,
         delay,
-        ease: [0.25, 0.4, 0.25, 1],
+        ease: "easeOut",
       }}
       className={className}
+      style={{ willChange: 'opacity, transform' }}
     >
       {children}
     </motion.div>
   );
-};
+});
+
+ScrollReveal.displayName = 'ScrollReveal';

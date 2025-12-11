@@ -3,12 +3,12 @@ import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Smartphone, Globe, Play, Star, Quote } from "lucide-react";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { useRef, useState, useEffect, memo } from "react";
+import { ArrowRight, Sparkles, Zap, Smartphone, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 
-const Hero = () => {
+const Hero = memo(() => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -21,29 +21,20 @@ const Hero = () => {
 
   return (
     <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-surface-elevated to-background" />
       
-      {/* Floating elements */}
-      <motion.div
-        className="absolute top-1/4 left-[15%] w-64 h-64 bg-accent/20 rounded-full blur-3xl"
-        animate={{ y: [-20, 20, -20] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-[15%] w-48 h-48 bg-accent/30 rounded-full blur-3xl"
-        animate={{ y: [20, -20, 20] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
+      {/* Simplified floating elements - CSS only */}
+      <div className="absolute top-1/4 left-[15%] w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]" />
+      <div className="absolute bottom-1/4 right-[15%] w-48 h-48 bg-accent/30 rounded-full blur-3xl animate-[pulse_6s_ease-in-out_infinite_1s]" />
 
       <motion.div
         style={{ opacity, scale, y }}
-        className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center"
+        className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center will-change-transform"
       >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.4 }}
           className="inline-flex items-center gap-2 bg-secondary rounded-full px-4 py-2 mb-8"
         >
           <Sparkles size={16} className="text-accent-foreground" />
@@ -51,9 +42,9 @@ const Hero = () => {
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
           className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
         >
           We build websites
@@ -62,9 +53,9 @@ const Hero = () => {
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
           Sited combines AI precision with creative excellence to deliver stunning 
@@ -72,9 +63,9 @@ const Hero = () => {
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Button variant="hero" size="xl" asChild>
@@ -88,55 +79,64 @@ const Hero = () => {
         </motion.div>
       </motion.div>
 
-      {/* Scroll indicator */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
+        transition={{ delay: 0.5, duration: 0.3 }}
         className="absolute bottom-10 left-1/2 -translate-x-1/2"
       >
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center"
-        >
-          <motion.div className="w-1.5 h-3 bg-muted-foreground/50 rounded-full mt-2" />
-        </motion.div>
+        <div className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center animate-bounce">
+          <div className="w-1.5 h-3 bg-muted-foreground/50 rounded-full mt-2" />
+        </div>
       </motion.div>
     </section>
   );
-};
+});
 
-const HeroVideo = () => {
+Hero.displayName = 'Hero';
+
+const HeroVideo = memo(() => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "100px" });
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-background">
+    <section ref={ref} className="py-12 sm:py-16 lg:py-20 bg-background">
       <div className="container-tight px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-elevated"
+          transition={{ duration: 0.5 }}
+          className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-elevated bg-muted"
         >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="w-full h-full object-cover"
-            poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1920&h=1080&fit=crop"
-          >
-            <source
-              src="https://videos.pexels.com/video-files/3129671/3129671-uhd_2560_1440_25fps.mp4"
-              type="video/mp4"
-            />
-            Your browser does not support the video tag.
-          </video>
+          {isInView && (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              onLoadedData={() => setVideoLoaded(true)}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+              poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=60&fit=crop"
+            >
+              <source
+                src="https://videos.pexels.com/video-files/3129671/3129671-hd_1920_1080_25fps.mp4"
+                type="video/mp4"
+              />
+            </video>
+          )}
+          {!videoLoaded && (
+            <div className="absolute inset-0 bg-muted animate-pulse" />
+          )}
         </motion.div>
       </div>
     </section>
   );
-};
+});
+
+HeroVideo.displayName = 'HeroVideo';
 
 const services = [
   {
@@ -228,25 +228,25 @@ const Process = () => {
   );
 };
 
-// Featured Work Preview
+// Featured Work Preview - optimized image sizes
 const featuredProjects = [
   {
     company: "Bloom Floristry",
     category: "Website Design",
     result: "3x Conversion Rate",
-    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&q=75&fit=crop",
   },
   {
     company: "FitTrack Pro",
     category: "App Development", 
     result: "50k+ Active Users",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=75&fit=crop",
   },
   {
     company: "MediCare Connect",
     category: "AI Integration",
     result: "60% Automation",
-    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=75&fit=crop",
   },
 ];
 
@@ -286,18 +286,20 @@ const FeaturedWork = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {featuredProjects.map((project, index) => (
-            <ScrollReveal key={project.company} delay={index * 0.1}>
+            <ScrollReveal key={project.company} delay={index * 0.05}>
               <motion.div
                 whileHover={{ y: -8 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
                 className="group cursor-pointer"
               >
                 <Link to="/work">
                   <div className="overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
-                    <motion.img
+                    <img
                       src={project.image}
                       alt={project.company}
-                      className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
                   <span className="text-xs uppercase tracking-wider text-muted-foreground">
