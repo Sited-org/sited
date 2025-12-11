@@ -11,8 +11,8 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Captcha } from "@/components/Captcha";
+import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -25,8 +25,7 @@ const steps = [
 
 const AppOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const { isSubmitting, captchaVerified, handleCaptchaVerify, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -138,46 +137,17 @@ const AppOnboarding = () => {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    
-    try {
-      // Insert lead into database
-      const { error: dbError } = await supabase.from("leads").insert({
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone || null,
-        business_name: formData.businessName || null,
-        project_type: "app",
-        form_data: formData,
-      });
+    const success = await submitLead({
+      name: formData.fullName,
+      email: formData.email,
+      phone: formData.phone || null,
+      business_name: formData.businessName || null,
+      project_type: "app",
+      form_data: formData,
+    });
 
-      if (dbError) {
-        console.error("Database error:", dbError);
-        throw new Error("Failed to save your submission");
-      }
-
-      // Send email notification
-      const { error: emailError } = await supabase.functions.invoke("send-lead-notification", {
-        body: {
-          name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          businessName: formData.businessName,
-          projectType: "app",
-          formData,
-        },
-      });
-
-      if (emailError) {
-        console.error("Email error:", emailError);
-      }
-
+    if (success) {
       toast.success("Your app project request has been submitted! We'll be in touch within 24 hours.");
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error(error.message || "Something went wrong. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -1081,7 +1051,7 @@ const AppOnboarding = () => {
                 </Button>
               ) : (
                 <>
-                  <Captcha onVerify={setCaptchaVerified} className="hidden" />
+                  <Captcha onVerify={handleCaptchaVerify} className="hidden" />
                   <Button
                     variant="hero"
                     onClick={handleSubmit}
@@ -1098,7 +1068,7 @@ const AppOnboarding = () => {
             {/* Captcha on last step */}
             {currentStep === steps.length && (
               <div className="mt-6">
-                <Captcha onVerify={setCaptchaVerified} />
+                <Captcha onVerify={handleCaptchaVerify} />
               </div>
             )}
           </motion.div>

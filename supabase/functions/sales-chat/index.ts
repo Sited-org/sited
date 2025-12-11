@@ -1,10 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Rate limit configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_REQUESTS_PER_WINDOW = 100; // Max 100 chat requests per hour per IP
 
 // Input validation schema
 const messageSchema = z.object({
@@ -16,6 +21,48 @@ const requestSchema = z.object({
   messages: z.array(messageSchema).max(100),
   collectedInfo: z.record(z.unknown()).optional(),
 });
+
+async function checkRateLimit(
+  supabase: any,
+  ipAddress: string,
+  endpoint: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+  
+  const { data: existing } = await supabase
+    .from('rate_limits')
+    .select('request_count')
+    .eq('ip_address', ipAddress)
+    .eq('endpoint', endpoint)
+    .gte('window_start', windowStart.toISOString())
+    .single();
+
+  if (existing) {
+    if (existing.request_count >= MAX_REQUESTS_PER_WINDOW) {
+      return { allowed: false, remaining: 0 };
+    }
+    
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('ip_address', ipAddress)
+      .eq('endpoint', endpoint)
+      .gte('window_start', windowStart.toISOString());
+    
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - existing.request_count - 1 };
+  }
+
+  await supabase
+    .from('rate_limits')
+    .insert({
+      ip_address: ipAddress,
+      endpoint: endpoint,
+      request_count: 1,
+      window_start: new Date().toISOString(),
+    });
+
+  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
+}
 
 const SYSTEM_PROMPT = `You are Sited AI — a sharp, friendly sales assistant. Be punchy. Be personable. No fluff.
 
@@ -76,6 +123,32 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get client IP
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      req.headers.get('cf-connecting-ip') || 
+                      'unknown';
+
+    // Check rate limit
+    const rateLimit = await checkRateLimit(supabase, ipAddress, 'sales-chat');
+    if (!rateLimit.allowed) {
+      console.log(`Rate limit exceeded for IP: ${ipAddress}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0'
+          } 
+        }
+      );
+    }
+
     const rawData = await req.json();
     
     // Validate input
@@ -100,7 +173,7 @@ serve(async (req) => {
       contextualSystemPrompt += `\n\n**Info collected so far:**\n${JSON.stringify(collectedInfo, null, 2)}`;
     }
 
-    console.log("Sending request to AI gateway with messages:", messages.length);
+    console.log(`Processing chat request from ${ipAddress}, remaining: ${rateLimit.remaining}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -142,7 +215,11 @@ serve(async (req) => {
     }
 
     return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "text/event-stream",
+        "X-RateLimit-Remaining": String(rateLimit.remaining)
+      },
     });
   } catch (error) {
     console.error("Sales chat error:", error);

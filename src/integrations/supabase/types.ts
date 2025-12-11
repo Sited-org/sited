@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      captcha_challenges: {
+        Row: {
+          answer: number
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          answer: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          answer?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       form_sessions: {
         Row: {
           completed: boolean
@@ -213,6 +240,33 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           created_at: string
@@ -297,6 +351,7 @@ export type Database = {
     Functions: {
       can_edit_leads: { Args: { _user_id: string }; Returns: boolean }
       can_manage_users: { Args: { _user_id: string }; Returns: boolean }
+      cleanup_expired_captchas: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

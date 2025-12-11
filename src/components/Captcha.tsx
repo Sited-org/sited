@@ -1,48 +1,69 @@
 import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Check, X } from "lucide-react";
+import { RefreshCw, Check, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CaptchaProps {
-  onVerify: (verified: boolean) => void;
+  onVerify: (verified: boolean, token?: string, answer?: number) => void;
   className?: string;
 }
 
-const generateCaptcha = () => {
-  const num1 = Math.floor(Math.random() * 10) + 1;
-  const num2 = Math.floor(Math.random() * 10) + 1;
-  const operators = ["+", "-"] as const;
-  const operator = operators[Math.floor(Math.random() * operators.length)];
-  
-  let answer: number;
-  if (operator === "+") {
-    answer = num1 + num2;
-  } else {
-    // Ensure we don't get negative answers
-    const larger = Math.max(num1, num2);
-    const smaller = Math.min(num1, num2);
-    answer = larger - smaller;
-    return { question: `${larger} ${operator} ${smaller}`, answer };
-  }
-  
-  return { question: `${num1} ${operator} ${num2}`, answer };
-};
+interface CaptchaChallenge {
+  token: string;
+  question: string;
+}
 
 export const Captcha = ({ onVerify, className = "" }: CaptchaProps) => {
-  const [captcha, setCaptcha] = useState(generateCaptcha());
+  const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [userAnswer, setUserAnswer] = useState("");
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const refreshCaptcha = useCallback(() => {
-    setCaptcha(generateCaptcha());
+  const fetchCaptcha = useCallback(async () => {
+    setLoading(true);
     setUserAnswer("");
     setVerified(null);
     onVerify(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-captcha');
+      
+      if (error) {
+        console.error('Failed to fetch captcha:', error);
+        // Fallback to client-side captcha if server fails
+        const num1 = Math.floor(Math.random() * 10) + 1;
+        const num2 = Math.floor(Math.random() * 10) + 1;
+        const larger = Math.max(num1, num2);
+        const smaller = Math.min(num1, num2);
+        setChallenge({
+          token: 'fallback',
+          question: `${larger} - ${smaller}`,
+        });
+      } else {
+        setChallenge(data);
+      }
+    } catch (err) {
+      console.error('Error fetching captcha:', err);
+      // Fallback
+      const num1 = Math.floor(Math.random() * 10) + 1;
+      const num2 = Math.floor(Math.random() * 10) + 1;
+      setChallenge({
+        token: 'fallback',
+        question: `${num1} + ${num2}`,
+      });
+    }
+    
+    setLoading(false);
   }, [onVerify]);
 
   useEffect(() => {
-    if (userAnswer === "") {
+    fetchCaptcha();
+  }, []);
+
+  useEffect(() => {
+    if (userAnswer === "" || !challenge) {
       setVerified(null);
       onVerify(false);
       return;
@@ -50,14 +71,19 @@ export const Captcha = ({ onVerify, className = "" }: CaptchaProps) => {
 
     const numAnswer = parseInt(userAnswer, 10);
     if (!isNaN(numAnswer)) {
-      const isCorrect = numAnswer === captcha.answer;
-      setVerified(isCorrect);
-      onVerify(isCorrect);
+      // For server-side validation, we just mark as "entered" 
+      // The actual validation happens on form submit
+      setVerified(true);
+      onVerify(true, challenge.token, numAnswer);
     } else {
       setVerified(false);
       onVerify(false);
     }
-  }, [userAnswer, captcha.answer, onVerify]);
+  }, [userAnswer, challenge, onVerify]);
+
+  const refreshCaptcha = useCallback(() => {
+    fetchCaptcha();
+  }, [fetchCaptcha]);
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -67,14 +93,19 @@ export const Captcha = ({ onVerify, className = "" }: CaptchaProps) => {
         {verified === false && userAnswer && <X size={16} className="text-destructive" />}
       </Label>
       <div className="flex items-center gap-3">
-        <div className="bg-muted px-4 py-2.5 rounded-lg font-mono text-lg font-semibold select-none">
-          {captcha.question} = ?
+        <div className="bg-muted px-4 py-2.5 rounded-lg font-mono text-lg font-semibold select-none min-w-[120px] text-center">
+          {loading ? (
+            <Loader2 size={20} className="animate-spin mx-auto" />
+          ) : (
+            `${challenge?.question || ''} = ?`
+          )}
         </div>
         <Input
           type="number"
           value={userAnswer}
           onChange={(e) => setUserAnswer(e.target.value)}
           placeholder="Answer"
+          disabled={loading}
           className={`w-24 h-11 text-center ${
             verified === true 
               ? "border-green-500 focus-visible:ring-green-500" 
@@ -88,9 +119,10 @@ export const Captcha = ({ onVerify, className = "" }: CaptchaProps) => {
           variant="ghost"
           size="icon"
           onClick={refreshCaptcha}
+          disabled={loading}
           className="h-11 w-11"
         >
-          <RefreshCw size={18} />
+          <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">

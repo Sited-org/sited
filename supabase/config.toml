@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.send-lead-notification]
 verify_jwt = false
+
+[functions.submit-lead]
+verify_jwt = false
+
+[functions.generate-captcha]
+verify_jwt = false
