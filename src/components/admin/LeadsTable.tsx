@@ -22,7 +22,15 @@ import type { Lead, LeadStatus } from '@/hooks/useLeads';
 import { MoreHorizontal, Eye, Phone, Trash2, Mail, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-const allStatuses: LeadStatus[] = ['new', 'cold', 'warm', 'hot', 'contacted', 'proposal_sent', 'paid', 'lost'];
+const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
+
+const statusLabels: Record<LeadStatus, string> = {
+  new: 'New Lead',
+  contacted: 'Contacted',
+  booked_call: 'Booked Call',
+  sold: 'Sold',
+  lost: 'Lost',
+};
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -134,7 +142,7 @@ export function LeadsTable({
                                 key={status}
                                 onClick={() => onUpdateStatus(lead.id, status)}
                               >
-                                Set as {status.replace('_', ' ')}
+                                Set as {statusLabels[status]}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />

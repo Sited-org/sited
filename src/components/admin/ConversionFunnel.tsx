@@ -8,10 +8,10 @@ interface ConversionFunnelProps {
 
 const funnelStages: { status: LeadStatus[]; label: string; color: string }[] = [
   { status: ['new'], label: 'New Leads', color: 'bg-blue-500' },
-  { status: ['cold', 'warm', 'hot'], label: 'Qualified', color: 'bg-amber-500' },
   { status: ['contacted'], label: 'Contacted', color: 'bg-purple-500' },
-  { status: ['proposal_sent'], label: 'Proposal Sent', color: 'bg-indigo-500' },
-  { status: ['paid'], label: 'Converted', color: 'bg-green-500' },
+  { status: ['booked_call'], label: 'Booked Call', color: 'bg-amber-500' },
+  { status: ['sold'], label: 'Sold', color: 'bg-green-500' },
+  { status: ['lost'], label: 'Lost', color: 'bg-red-500' },
 ];
 
 export function ConversionFunnel({ leads }: ConversionFunnelProps) {
