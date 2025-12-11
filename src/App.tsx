@@ -14,7 +14,7 @@ import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminLeads from "./pages/AdminLeads";
-import AdminFunnel from "./pages/AdminFunnel";
+import LeadProfile from "./pages/LeadProfile";
 import AdminActivity from "./pages/AdminActivity";
 import AdminTeam from "./pages/AdminTeam";
 import AdminSettings from "./pages/AdminSettings";
@@ -41,7 +41,7 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="leads" element={<AdminLeads />} />
-            <Route path="funnel" element={<AdminFunnel />} />
+            <Route path="leads/:id" element={<LeadProfile />} />
             <Route path="activity" element={<AdminActivity />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="settings" element={<AdminSettings />} />

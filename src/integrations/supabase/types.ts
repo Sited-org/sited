@@ -132,10 +132,13 @@ export type Database = {
           assigned_to: string | null
           business_name: string | null
           created_at: string
+          deal_amount: number | null
+          deal_closed_at: string | null
           email: string
           form_data: Json
           id: string
           last_contacted_at: string | null
+          lead_number: number | null
           name: string | null
           notes: string | null
           phone: string | null
@@ -146,10 +149,13 @@ export type Database = {
           assigned_to?: string | null
           business_name?: string | null
           created_at?: string
+          deal_amount?: number | null
+          deal_closed_at?: string | null
           email: string
           form_data: Json
           id?: string
           last_contacted_at?: string | null
+          lead_number?: number | null
           name?: string | null
           notes?: string | null
           phone?: string | null
@@ -160,10 +166,13 @@ export type Database = {
           assigned_to?: string | null
           business_name?: string | null
           created_at?: string
+          deal_amount?: number | null
+          deal_closed_at?: string | null
           email?: string
           form_data?: Json
           id?: string
           last_contacted_at?: string | null
+          lead_number?: number | null
           name?: string | null
           notes?: string | null
           phone?: string | null
@@ -171,6 +180,47 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
