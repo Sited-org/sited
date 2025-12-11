@@ -11,6 +11,12 @@ import WebsiteOnboarding from "./pages/WebsiteOnboarding";
 import AppOnboarding from "./pages/AppOnboarding";
 import AIOnboarding from "./pages/AIOnboarding";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminLeads from "./pages/AdminLeads";
+import AdminActivity from "./pages/AdminActivity";
+import AdminTeam from "./pages/AdminTeam";
+import AdminSettings from "./pages/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +34,13 @@ const App = () => (
           <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
           <Route path="/onboarding/app" element={<AppOnboarding />} />
           <Route path="/onboarding/ai" element={<AIOnboarding />} />
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/leads" element={<AdminLeads />} />
+          <Route path="/admin/activity" element={<AdminActivity />} />
+          <Route path="/admin/team" element={<AdminTeam />} />
+          <Route path="/admin/settings" element={<AdminSettings />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
