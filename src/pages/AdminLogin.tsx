@@ -19,9 +19,10 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { signIn, isAuthenticated, isAdmin, loading } = useAuth();
+  const { signIn, signUp, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -48,16 +49,34 @@ export default function AdminLogin() {
 
     setIsLoading(true);
     
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password'
-          : error.message,
-        variant: "destructive"
-      });
+    if (isSignUp) {
+      const { error } = await signUp(email, password);
+      if (error) {
+        toast({
+          title: "Sign up failed",
+          description: error.message === 'User already registered' 
+            ? 'An account with this email already exists'
+            : error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Account created",
+          description: "Your account has been created. Please contact the owner to assign your role.",
+        });
+        setIsSignUp(false);
+      }
+    } else {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message === 'Invalid login credentials' 
+            ? 'Invalid email or password'
+            : error.message,
+          variant: "destructive"
+        });
+      }
     }
     
     setIsLoading(false);
@@ -86,7 +105,7 @@ export default function AdminLogin() {
               Sited<span className="text-muted-foreground">.admin</span>
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              Admin Dashboard Login
+              {isSignUp ? 'Create Admin Account' : 'Admin Dashboard Login'}
             </p>
           </div>
 
@@ -145,9 +164,19 @@ export default function AdminLogin() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+            </button>
+          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             Access restricted to authorized personnel only
