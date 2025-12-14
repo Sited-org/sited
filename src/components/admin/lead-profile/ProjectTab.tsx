@@ -3,10 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock } from 'lucide-react';
+import { Plus, Trash2, Clock, Pencil, Save } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -17,16 +20,46 @@ const projectTypeLabels: Record<string, string> = {
 interface ProjectTabProps {
   lead: any;
   canEdit: boolean;
+  onLeadUpdate?: (updatedLead: any) => void;
 }
 
-export function ProjectTab({ lead, canEdit }: ProjectTabProps) {
+export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const { updates, loading, addUpdate, deleteUpdate } = useProjectUpdates(lead.id);
   const [newUpdate, setNewUpdate] = useState('');
+  const [isEditingForm, setIsEditingForm] = useState(false);
+  const [editedFormData, setEditedFormData] = useState<Record<string, any>>({ ...lead.form_data });
+  const [isSavingForm, setIsSavingForm] = useState(false);
+  const { toast } = useToast();
 
   const handleAddUpdate = async () => {
     if (!newUpdate.trim()) return;
     await addUpdate(newUpdate.trim());
     setNewUpdate('');
+  };
+
+  const handleSaveFormData = async () => {
+    setIsSavingForm(true);
+    const { error } = await supabase
+      .from('leads')
+      .update({ form_data: editedFormData })
+      .eq('id', lead.id);
+
+    if (error) {
+      toast({ title: 'Error saving form data', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Form responses updated' });
+      onLeadUpdate?.({ ...lead, form_data: editedFormData });
+      setIsEditingForm(false);
+    }
+    setIsSavingForm(false);
+  };
+
+  const handleFieldChange = (key: string, value: string) => {
+    setEditedFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const formatKey = (key: string) => {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   return (
@@ -58,14 +91,64 @@ export function ProjectTab({ lead, canEdit }: ProjectTabProps) {
               <>
                 <Separator />
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Form Responses</label>
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                    {Object.entries(lead.form_data).map(([key, value]) => (
-                      <div key={key} className="flex gap-2">
-                        <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                        <span className="text-muted-foreground">{String(value)}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-muted-foreground">Form Responses</label>
+                    {canEdit && (
+                      <div className="flex items-center gap-2">
+                        {isEditingForm && (
+                          <Button 
+                            size="sm" 
+                            onClick={handleSaveFormData} 
+                            disabled={isSavingForm}
+                          >
+                            <Save className="h-4 w-4 mr-1" />
+                            {isSavingForm ? 'Saving...' : 'Save'}
+                          </Button>
+                        )}
+                        <Button 
+                          variant={isEditingForm ? "secondary" : "outline"} 
+                          size="sm" 
+                          onClick={() => {
+                            if (isEditingForm) {
+                              setEditedFormData({ ...lead.form_data });
+                            }
+                            setIsEditingForm(!isEditingForm);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-1" />
+                          {isEditingForm ? 'Cancel' : 'Edit'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    {Object.entries(isEditingForm ? editedFormData : lead.form_data).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        {isEditingForm ? (
+                          <>
+                            <label className="text-sm font-medium text-muted-foreground">{formatKey(key)}</label>
+                            <Input
+                              value={typeof value === 'object' ? JSON.stringify(value) : String(value || '')}
+                              onChange={(e) => handleFieldChange(key, e.target.value)}
+                            />
+                          </>
+                        ) : (
+                          <div className="flex gap-2 text-sm">
+                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                            <span className="text-muted-foreground">{String(value)}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
+                    
+                    {isEditingForm && canEdit && (
+                      <div className="pt-2 flex justify-end">
+                        <Button onClick={handleSaveFormData} disabled={isSavingForm}>
+                          <Save className="h-4 w-4 mr-1" />
+                          {isSavingForm ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
