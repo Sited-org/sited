@@ -12,7 +12,7 @@ const services = [
     tagline: "Built to convert.",
     stat: "3x",
     statLabel: "More Conversions",
-    features: ["Custom Design", "Lightning Fast", "SEO Ready"],
+    features: ["Custom Design", "Lightning Fast", "SEO Ready", "Monthly Updates"],
     cta: { text: "Build My Website", link: "/onboarding/website" },
     gradient: "from-blue-500/20 to-cyan-500/20",
     accentColor: "text-blue-400",
@@ -23,18 +23,18 @@ const services = [
     tagline: "People actually use.",
     stat: "4.8★",
     statLabel: "Avg. Rating",
-    features: ["iOS & Android", "Offline Ready", "Push Notifications"],
+    features: ["iOS & Android", "Your Idea", "Make Money"],
     cta: { text: "Build My App", link: "/onboarding/app" },
     gradient: "from-purple-500/20 to-pink-500/20",
     accentColor: "text-purple-400",
   },
   {
     icon: Zap,
-    title: "AI",
+    title: "AI Automation",
     tagline: "That works for you.",
     stat: "60%",
     statLabel: "Time Saved",
-    features: ["Smart Automation", "24/7 Active", "Self-Learning"],
+    features: ["Smart Automation", "Remove Human Error", "24/7 Active", "Custom to Your Business"],
     cta: { text: "Add AI Power", link: "/onboarding/ai" },
     gradient: "from-amber-500/20 to-orange-500/20",
     accentColor: "text-amber-400",
@@ -89,7 +89,7 @@ const ServiceCard = ({
             <div className="my-8 sm:my-10">
               <motion.span
                 animate={{ scale: isHovered ? 1.05 : 1 }}
-                className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter"
+                className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter"
               >
                 {service.stat}
               </motion.span>
