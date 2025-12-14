@@ -98,6 +98,22 @@ export default function LeadProfile() {
     setSaving(false);
   };
 
+  const handleSaveFormData = async (formData: Record<string, any>) => {
+    if (!id || !canEdit) return;
+
+    const { error } = await supabase
+      .from('leads')
+      .update({ form_data: formData })
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error saving form data', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Form responses updated' });
+      setLead({ ...lead, form_data: formData });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse text-muted-foreground p-8">Loading lead...</div>
@@ -167,6 +183,7 @@ export default function LeadProfile() {
             notes={notes}
             setNotes={setNotes}
             canEdit={canEdit}
+            onSaveFormData={handleSaveFormData}
           />
         </TabsContent>
 
