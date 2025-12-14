@@ -23,7 +23,7 @@ const services = [
     tagline: "People actually use.",
     stat: "4.8★",
     statLabel: "Avg. Rating",
-    features: ["iOS & Android", "Your Idea", "Make Money"],
+    features: ["iOS & Android", "Your Idea", "Make Money", "User Friendly"],
     cta: { text: "Build My App", link: "/onboarding/app" },
     gradient: "from-purple-500/20 to-pink-500/20",
     accentColor: "text-purple-400",
