@@ -107,36 +107,36 @@ const ProjectSection = ({
   return (
     <section
       ref={ref}
-      className="min-h-screen flex items-center py-16 sm:py-24 md:py-32"
+      className="flex items-center py-12 sm:py-16 lg:py-20"
     >
       <motion.div
         style={{ opacity, y }}
         className="container-tight"
       >
-        <div className={`grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-24 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+        <div className={`grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-16 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
           {/* Content */}
-          <div className={`space-y-5 sm:space-y-8 ${!isEven ? 'lg:order-2' : ''}`}>
+          <div className={`space-y-4 sm:space-y-5 lg:space-y-6 ${!isEven ? 'lg:order-2' : ''}`}>
             <div>
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                 {project.category}
               </span>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
+              <h2 className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl font-semibold tracking-tight mt-2 sm:mt-3">
                 {project.company}
               </h2>
-              <p className="text-base sm:text-lg text-muted-foreground mt-4 sm:mt-6 leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4 leading-relaxed">
                 {project.description}
               </p>
             </div>
 
             {/* Results */}
             {project.results.length > 0 && (
-              <div className="flex gap-8 sm:gap-12">
+              <div className="flex gap-6 sm:gap-8 lg:gap-10">
                 {project.results.map((result) => (
                   <div key={result.label}>
-                    <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight">
+                    <span className="text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight">
                       {result.metric}
                     </span>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1 uppercase tracking-wider">
+                    <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
                       {result.label}
                     </p>
                   </div>
@@ -145,20 +145,20 @@ const ProjectSection = ({
             )}
 
             {/* Testimonial */}
-            <blockquote className="border-l-2 border-accent pl-4 sm:pl-6 py-2">
-              <p className="text-sm sm:text-base md:text-lg text-muted-foreground italic leading-relaxed">
+            <blockquote className="border-l-2 border-accent pl-4 py-1">
+              <p className="text-sm sm:text-base text-muted-foreground italic leading-relaxed">
                 "{project.testimonial}"
               </p>
-              <cite className="text-xs sm:text-sm text-muted-foreground/80 mt-3 sm:mt-4 block not-italic font-medium">
+              <cite className="text-xs text-muted-foreground/80 mt-2 block not-italic font-medium">
                 {project.author}, <span className="font-normal">{project.role}</span>
               </cite>
             </blockquote>
 
             {/* CTA */}
-            <Button variant="outline" size="lg" className="group" asChild>
+            <Button variant="outline" size="default" className="group" asChild>
               <a href={project.websiteUrl} target="_blank" rel="noopener noreferrer">
                 View Project
-                <ExternalLink size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
+                <ExternalLink size={14} className="ml-2 transition-transform group-hover:translate-x-1" />
               </a>
             </Button>
           </div>
@@ -175,7 +175,7 @@ const ProjectSection = ({
                 style={{ scale: imageScale }}
                 src={project.videoThumbnail}
                 alt={`${project.company} testimonial video`}
-                className="w-full h-56 sm:h-72 md:h-80 lg:h-[28rem] object-cover"
+                className="w-full h-48 sm:h-56 md:h-64 lg:h-72 object-cover"
               />
               <div className="absolute inset-0 bg-foreground/10 group-hover:bg-foreground/20 transition-colors" />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -230,7 +230,7 @@ const Work = () => {
       {/* Hero */}
       <section
         ref={heroRef}
-        className="min-h-[60vh] sm:min-h-[70vh] md:min-h-[80vh] flex items-center justify-center relative"
+        className="min-h-[50vh] sm:min-h-[55vh] lg:min-h-[60vh] flex items-center justify-center relative pt-16"
       >
         <motion.div
           style={{ opacity: heroOpacity, y: heroY }}
@@ -249,7 +249,7 @@ const Work = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-8xl font-semibold tracking-tight mt-4 sm:mt-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mt-4 sm:mt-5"
           >
             Results that matter.
           </motion.h1>
@@ -258,7 +258,7 @@ const Work = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mt-6 sm:mt-8 px-2"
+            className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto mt-4 sm:mt-5 px-2"
           >
             Every project is a partnership. Here's what we've built together.
           </motion.p>
@@ -307,7 +307,7 @@ const Work = () => {
       </div>
 
       {/* CTA Section */}
-      <section className="py-20 sm:py-28 md:py-40 bg-foreground text-background">
+      <section className="py-16 sm:py-20 lg:py-28 bg-foreground text-background">
         <div className="container-tight text-center">
           <motion.h2
             initial={{ opacity: 0, y: 40 }}
