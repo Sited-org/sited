@@ -7,6 +7,7 @@ import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { Mail, Phone, Building2, Calendar, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
+import { FormResponsesCard } from './FormResponsesCard';
 
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
@@ -34,6 +35,7 @@ interface ProfileTabProps {
   notes: string;
   setNotes: (v: string) => void;
   canEdit: boolean;
+  onSaveFormData: (formData: Record<string, any>) => Promise<void>;
 }
 
 export function ProfileTab({
@@ -51,6 +53,7 @@ export function ProfileTab({
   notes,
   setNotes,
   canEdit,
+  onSaveFormData,
 }: ProfileTabProps) {
   const { updates } = useProjectUpdates(lead.id);
   const recentUpdates = updates.slice(0, 3);
@@ -158,6 +161,13 @@ export function ProfileTab({
             />
           </CardContent>
         </Card>
+
+        {/* Form Responses */}
+        <FormResponsesCard 
+          formData={lead.form_data || {}}
+          onSave={onSaveFormData}
+          canEdit={canEdit}
+        />
       </div>
 
       {/* Sidebar */}
