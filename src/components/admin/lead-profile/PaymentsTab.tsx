@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
-import { useTransactions } from '@/hooks/useTransactions';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText } from 'lucide-react';
+import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PaymentsTabProps {
   lead: any;
@@ -24,6 +29,13 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [newAmount, setNewAmount] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
+  // Invoice state
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [selectedTransactions, setSelectedTransactions] = useState<string[]>([]);
+  const [invoiceNotes, setInvoiceNotes] = useState('');
+  const [invoiceDueDate, setInvoiceDueDate] = useState('');
+  const [sendingInvoice, setSendingInvoice] = useState(false);
+
   const handleAddTransaction = async () => {
     if (!newItem.trim() || !newAmount) return;
     
@@ -39,6 +51,78 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     setNewItem('');
     setNewAmount('');
     setNewNotes('');
+  };
+
+  const toggleTransactionSelection = (id: string) => {
+    setSelectedTransactions(prev => 
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllTransactions = () => {
+    if (selectedTransactions.length === transactions.length) {
+      setSelectedTransactions([]);
+    } else {
+      setSelectedTransactions(transactions.map(t => t.id));
+    }
+  };
+
+  const getSelectedItems = () => {
+    return transactions
+      .filter(t => selectedTransactions.includes(t.id))
+      .filter(t => Number(t.debit) > 0)
+      .map(t => ({
+        item: t.item,
+        amount: Number(t.debit),
+        date: format(new Date(t.transaction_date), 'PP'),
+        notes: t.notes || undefined,
+      }));
+  };
+
+  const handleSendInvoice = async () => {
+    if (!lead.email) {
+      toast.error('Client email address is required');
+      return;
+    }
+
+    const items = getSelectedItems();
+    if (items.length === 0) {
+      toast.error('Please select at least one charge to include in the invoice');
+      return;
+    }
+
+    setSendingInvoice(true);
+    try {
+      const invoiceNumber = `INV-${lead.lead_number || lead.id.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+      const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+      const { data, error } = await supabase.functions.invoke('send-invoice', {
+        body: {
+          clientEmail: lead.email,
+          clientName: lead.name || 'Valued Client',
+          businessName: lead.business_name,
+          items,
+          totalAmount,
+          balanceDue: currentBalance,
+          invoiceNumber,
+          dueDate: invoiceDueDate || undefined,
+          notes: invoiceNotes || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Invoice sent to ${lead.email}`);
+      setInvoiceOpen(false);
+      setSelectedTransactions([]);
+      setInvoiceNotes('');
+      setInvoiceDueDate('');
+    } catch (error: any) {
+      console.error('Error sending invoice:', error);
+      toast.error(error.message || 'Failed to send invoice');
+    } finally {
+      setSendingInvoice(false);
+    }
   };
 
   return (
@@ -96,6 +180,149 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           </CardContent>
         </Card>
       </div>
+
+      {/* Send Invoice Button */}
+      {canEdit && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Send Invoice
+            </CardTitle>
+            <Dialog open={invoiceOpen} onOpenChange={setInvoiceOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default" size="sm">
+                  <Send className="h-4 w-4 mr-2" />
+                  Create Invoice
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Send Invoice to Client</DialogTitle>
+                  <DialogDescription>
+                    Select transactions to include and send an invoice to {lead.email || 'the client'}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  {/* Client Info */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Client</Label>
+                      <p className="font-medium">{lead.name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Email</Label>
+                      <p className="font-medium">{lead.email || 'No email'}</p>
+                    </div>
+                    {lead.business_name && (
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Business</Label>
+                        <p className="font-medium">{lead.business_name}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Due Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="dueDate">Due Date (optional)</Label>
+                    <Input 
+                      id="dueDate"
+                      type="date"
+                      value={invoiceDueDate}
+                      onChange={(e) => setInvoiceDueDate(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Select Transactions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Select Charges to Include</Label>
+                      <Button variant="ghost" size="sm" onClick={selectAllTransactions}>
+                        {selectedTransactions.length === transactions.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    </div>
+                    
+                    {transactions.filter(t => Number(t.debit) > 0).length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4 text-center">No charges to invoice</p>
+                    ) : (
+                      <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                        {transactions.filter(t => Number(t.debit) > 0).map((t) => (
+                          <div 
+                            key={t.id} 
+                            className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
+                            onClick={() => toggleTransactionSelection(t.id)}
+                          >
+                            <Checkbox 
+                              checked={selectedTransactions.includes(t.id)}
+                              onCheckedChange={() => toggleTransactionSelection(t.id)}
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{t.item}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(t.transaction_date), 'PP')}
+                              </p>
+                            </div>
+                            <p className="font-semibold">${Number(t.debit).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Invoice Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="invoiceNotes">Notes (optional)</Label>
+                    <Textarea 
+                      id="invoiceNotes"
+                      placeholder="Add any additional notes for the invoice..."
+                      value={invoiceNotes}
+                      onChange={(e) => setInvoiceNotes(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Summary */}
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Selected Items:</span>
+                      <span>{getSelectedItems().length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Invoice Total:</span>
+                      <span className="font-semibold">
+                        ${getSelectedItems().reduce((sum, i) => sum + i.amount, 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-semibold border-t pt-2">
+                      <span>Current Balance Due:</span>
+                      <span className="text-amber-600">${currentBalance.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setInvoiceOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSendInvoice} 
+                    disabled={sendingInvoice || getSelectedItems().length === 0 || !lead.email}
+                  >
+                    {sendingInvoice ? 'Sending...' : 'Send Invoice'}
+                    <Send className="h-4 w-4 ml-2" />
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-sm text-muted-foreground">
+              Create and send professional invoices directly to your client's email address.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Transaction Form */}
       {canEdit && (
