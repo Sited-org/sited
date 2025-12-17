@@ -343,9 +343,14 @@ export type Database = {
           credit: number | null
           debit: number | null
           id: string
+          is_recurring: boolean
           item: string
           lead_id: string
           notes: string | null
+          parent_transaction_id: string | null
+          recurring_end_date: string | null
+          recurring_interval: string | null
+          status: string
           transaction_date: string
         }
         Insert: {
@@ -354,9 +359,14 @@ export type Database = {
           credit?: number | null
           debit?: number | null
           id?: string
+          is_recurring?: boolean
           item: string
           lead_id: string
           notes?: string | null
+          parent_transaction_id?: string | null
+          recurring_end_date?: string | null
+          recurring_interval?: string | null
+          status?: string
           transaction_date?: string
         }
         Update: {
@@ -365,9 +375,14 @@ export type Database = {
           credit?: number | null
           debit?: number | null
           id?: string
+          is_recurring?: boolean
           item?: string
           lead_id?: string
           notes?: string | null
+          parent_transaction_id?: string | null
+          recurring_end_date?: string | null
+          recurring_interval?: string | null
+          status?: string
           transaction_date?: string
         }
         Relationships: [
@@ -376,6 +391,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_parent_transaction_id_fkey"
+            columns: ["parent_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]

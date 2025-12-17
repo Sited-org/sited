@@ -8,7 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,12 +24,25 @@ interface PaymentsTabProps {
 }
 
 export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: PaymentsTabProps) {
-  const { transactions, loading, totalCredit, totalDebit, currentBalance, addTransaction, deleteTransaction } = useTransactions(lead.id);
+  const { 
+    transactions, 
+    rawTransactions,
+    loading, 
+    totalCredit, 
+    totalDebit, 
+    currentBalance, 
+    addTransaction, 
+    deleteTransaction,
+    cancelRecurring 
+  } = useTransactions(lead.id);
   
   const [transactionType, setTransactionType] = useState<'credit' | 'debit'>('debit');
   const [newItem, setNewItem] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringInterval, setRecurringInterval] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
+  const [recurringEndDate, setRecurringEndDate] = useState('');
 
   // Invoice state
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -46,11 +61,18 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       debit: transactionType === 'debit' ? parseFloat(newAmount) : 0,
       notes: newNotes || null,
       transaction_date: new Date().toISOString(),
+      is_recurring: isRecurring,
+      recurring_interval: isRecurring ? recurringInterval : null,
+      recurring_end_date: isRecurring && recurringEndDate ? new Date(recurringEndDate).toISOString() : null,
+      parent_transaction_id: null,
+      status: 'completed',
     });
 
     setNewItem('');
     setNewAmount('');
     setNewNotes('');
+    setIsRecurring(false);
+    setRecurringEndDate('');
   };
 
   const toggleTransactionSelection = (id: string) => {
@@ -60,17 +82,18 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   };
 
   const selectAllTransactions = () => {
-    if (selectedTransactions.length === transactions.length) {
+    const completedDebits = transactions.filter(t => Number(t.debit) > 0 && !t.isFuture);
+    if (selectedTransactions.length === completedDebits.length) {
       setSelectedTransactions([]);
     } else {
-      setSelectedTransactions(transactions.map(t => t.id));
+      setSelectedTransactions(completedDebits.map(t => t.id));
     }
   };
 
   const getSelectedItems = () => {
     return transactions
       .filter(t => selectedTransactions.includes(t.id))
-      .filter(t => Number(t.debit) > 0)
+      .filter(t => Number(t.debit) > 0 && !t.isFuture)
       .map(t => ({
         item: t.item,
         amount: Number(t.debit),
@@ -123,6 +146,28 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     } finally {
       setSendingInvoice(false);
     }
+  };
+
+  const getStatusBadge = (transaction: TransactionWithBalance) => {
+    if (transaction.isFuture) {
+      return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Scheduled</Badge>;
+    }
+    if (transaction.status === 'pending') {
+      return <Badge variant="outline" className="text-amber-600 border-amber-600/30">Pending</Badge>;
+    }
+    return null;
+  };
+
+  const getRecurringBadge = (transaction: TransactionWithBalance) => {
+    if (transaction.is_recurring && !transaction.isFuture) {
+      return (
+        <Badge variant="secondary" className="text-xs gap-1">
+          <RefreshCw className="h-3 w-3" />
+          {transaction.recurring_interval}
+        </Badge>
+      );
+    }
+    return null;
   };
 
   return (
@@ -239,15 +284,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     <div className="flex items-center justify-between">
                       <Label>Select Charges to Include</Label>
                       <Button variant="ghost" size="sm" onClick={selectAllTransactions}>
-                        {selectedTransactions.length === transactions.length ? 'Deselect All' : 'Select All'}
+                        {selectedTransactions.length === transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).length ? 'Deselect All' : 'Select All'}
                       </Button>
                     </div>
                     
-                    {transactions.filter(t => Number(t.debit) > 0).length === 0 ? (
+                    {transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4 text-center">No charges to invoice</p>
                     ) : (
                       <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-                        {transactions.filter(t => Number(t.debit) > 0).map((t) => (
+                        {transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).map((t) => (
                           <div 
                             key={t.id} 
                             className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
@@ -330,7 +375,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           <CardHeader>
             <CardTitle className="text-lg">Add Transaction</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <Select value={transactionType} onValueChange={(v) => setTransactionType(v as 'credit' | 'debit')}>
                 <SelectTrigger>
@@ -369,6 +414,50 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 Add
               </Button>
             </div>
+
+            {/* Recurring Payment Options */}
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="recurring" className="font-medium">Recurring Payment</Label>
+                </div>
+                <Switch
+                  id="recurring"
+                  checked={isRecurring}
+                  onCheckedChange={setIsRecurring}
+                />
+              </div>
+              
+              {isRecurring && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Billing Cycle</Label>
+                    <Select value={recurringInterval} onValueChange={(v) => setRecurringInterval(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="yearly">Yearly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>End Date (optional)</Label>
+                    <Input
+                      type="date"
+                      value={recurringEndDate}
+                      onChange={(e) => setRecurringEndDate(e.target.value)}
+                      placeholder="Leave empty for indefinite"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -389,43 +478,82 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Item</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
-                  {canEdit && <TableHead className="w-[50px]"></TableHead>}
+                  {canEdit && <TableHead className="w-[80px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(t.transaction_date), 'PP')}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{t.item}</p>
-                        {t.notes && <p className="text-xs text-muted-foreground">{t.notes}</p>}
+                  <TableRow 
+                    key={t.id} 
+                    className={t.isFuture ? 'opacity-50' : ''}
+                  >
+                    <TableCell className={t.isFuture ? 'text-muted-foreground' : 'text-foreground'}>
+                      <div className="flex items-center gap-2">
+                        {t.isFuture && <Calendar className="h-3 w-3" />}
+                        {format(new Date(t.transaction_date), 'PP')}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-green-600">
+                    <TableCell>
+                      <div className="space-y-1">
+                        <p className={`${t.isFuture ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
+                          {t.item}
+                        </p>
+                        {t.notes && <p className="text-xs text-muted-foreground">{t.notes}</p>}
+                        <div className="flex gap-1">
+                          {getRecurringBadge(t)}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(t)}
+                      {!t.isFuture && t.status === 'completed' && (
+                        <Badge variant="default" className="bg-green-600">Completed</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className={`text-right ${t.isFuture ? 'text-muted-foreground' : 'text-green-600 font-medium'}`}>
                       {Number(t.credit) > 0 ? `$${Number(t.credit).toLocaleString()}` : '-'}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className={`text-right ${t.isFuture ? 'text-muted-foreground' : 'font-medium'}`}>
                       {Number(t.debit) > 0 ? `$${Number(t.debit).toLocaleString()}` : '-'}
                     </TableCell>
-                    <TableCell className={`text-right font-medium ${t.balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                    <TableCell className={`text-right ${
+                      t.isFuture 
+                        ? 'text-muted-foreground' 
+                        : t.balance > 0 
+                          ? 'text-amber-600 font-bold' 
+                          : 'text-green-600 font-bold'
+                    }`}>
                       ${t.balance.toLocaleString()}
                     </TableCell>
                     {canEdit && (
                       <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive"
-                          onClick={() => deleteTransaction(t.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          {t.is_recurring && !t.isFuture && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-amber-600"
+                              onClick={() => cancelRecurring(t.id)}
+                              title="Cancel recurring"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!t.isFuture && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => deleteTransaction(t.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
