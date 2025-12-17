@@ -32,6 +32,7 @@ const emptyForm: TestimonialInsert = {
   website_url: '',
   display_order: 0,
   is_active: true,
+  show_on_homepage: false,
   created_by: null,
 };
 
@@ -76,10 +77,15 @@ export default function AdminTestimonials() {
       website_url: testimonial.website_url || '',
       display_order: testimonial.display_order,
       is_active: testimonial.is_active,
+      show_on_homepage: testimonial.show_on_homepage,
       created_by: testimonial.created_by,
     });
     setIsDialogOpen(true);
   };
+
+  // Count how many are currently shown on homepage (excluding current editing one)
+  const homepageCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
+  const canEnableHomepage = homepageCount < 3;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,6 +302,21 @@ export default function AdminTestimonials() {
                 </div>
               </div>
 
+              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                <Switch
+                  id="show_on_homepage"
+                  checked={form.show_on_homepage}
+                  onCheckedChange={(checked) => updateField('show_on_homepage', checked)}
+                  disabled={!canEnableHomepage && !form.show_on_homepage}
+                />
+                <div>
+                  <Label htmlFor="show_on_homepage" className="cursor-pointer">Show on Homepage</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {homepageCount}/3 slots used. {!canEnableHomepage && !form.show_on_homepage && 'Disable another to enable this.'}
+                  </p>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
@@ -319,10 +340,13 @@ export default function AdminTestimonials() {
                   <div className="flex items-center gap-3">
                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                     <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
                         {testimonial.business_name}
                         {!testimonial.is_active && (
                           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>
+                        )}
+                        {testimonial.show_on_homepage && (
+                          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage</span>
                         )}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>
