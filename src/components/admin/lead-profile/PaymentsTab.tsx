@@ -206,30 +206,44 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       return;
     }
 
+    // Check if lead has a saved card
+    if (!lead.stripe_payment_method_id) {
+      toast.error('No payment card on file. Please add a card in the Card tab first.');
+      return;
+    }
+
     setProcessingPayment(true);
     try {
-      // TODO: Implement actual Stripe charge using saved card
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Add credit transaction for the payment
       const paymentTotal = getSelectedPaymentTotal();
-      await addTransaction({
-        lead_id: lead.id,
-        item: `Payment for ${selectedPaymentItems.length} item(s)`,
-        credit: paymentTotal,
-        debit: 0,
-        notes: `Paid via saved card`,
-        transaction_date: new Date().toISOString(),
-        is_recurring: false,
-        recurring_interval: null,
-        recurring_end_date: null,
-        parent_transaction_id: null,
-        status: 'completed',
+      const selectedItems = transactions.filter(t => selectedPaymentItems.includes(t.id));
+      const description = selectedItems.map(t => t.item).join(', ');
+      
+      // Get real transaction IDs (not future previews)
+      const realTransactionIds = selectedPaymentItems.filter(id => !id.startsWith('future-'));
+
+      const { data, error } = await supabase.functions.invoke('charge-saved-card', {
+        body: {
+          lead_id: lead.id,
+          amount: paymentTotal,
+          description: description,
+          transaction_ids: realTransactionIds,
+        },
       });
+
+      if (error) {
+        throw new Error(error.message || 'Payment failed');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Payment was not successful');
+      }
       
       toast.success(`Payment of $${paymentTotal.toLocaleString()} processed successfully`);
       setPaymentOpen(false);
       setSelectedPaymentItems([]);
+      
+      // Refresh transactions to show the new credit entry
+      window.location.reload();
     } catch (error: any) {
       console.error('Error processing payment:', error);
       toast.error(error.message || 'Failed to process payment');

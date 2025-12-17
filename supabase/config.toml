@@ -14,3 +14,15 @@ verify_jwt = false
 
 [functions.send-invoice]
 verify_jwt = true
+
+[functions.create-setup-intent]
+verify_jwt = true
+
+[functions.save-payment-method]
+verify_jwt = true
+
+[functions.charge-saved-card]
+verify_jwt = true
+
+[functions.get-saved-card]
+verify_jwt = true
