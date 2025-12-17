@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
 
@@ -84,8 +85,8 @@ export default function AdminTestimonials() {
   };
 
   // Count how many are currently shown on homepage (excluding current editing one)
-  const homepageCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
-  const canEnableHomepage = homepageCount < 3;
+  const homepageEditCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
+  const canEnableHomepage = homepageEditCount < 3;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +106,21 @@ export default function AdminTestimonials() {
     await deleteMutation.mutateAsync(id);
   };
 
+  const handleToggleHomepage = async (testimonial: Testimonial) => {
+    const newValue = !testimonial.show_on_homepage;
+    if (newValue && homepageCount >= 3) {
+      toast.error('Maximum 3 testimonials can be shown on homepage. Disable another first.');
+      return;
+    }
+    await updateMutation.mutateAsync({ id: testimonial.id, show_on_homepage: newValue });
+  };
+
   const updateField = (field: keyof TestimonialInsert, value: string | number | boolean | null) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
+
+  // Calculate homepage count for all testimonials (not filtered by editing)
+  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
 
   if (isLoading) {
     return (
@@ -124,6 +137,12 @@ export default function AdminTestimonials() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Testimonials</h1>
           <p className="text-muted-foreground">Manage testimonials displayed on the Work page</p>
+          <p className="text-sm mt-1">
+            <span className="inline-flex items-center gap-1.5 text-accent">
+              <Home className="h-3.5 w-3.5" />
+              Homepage: {homepageCount}/3 slots used
+            </span>
+          </p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -312,7 +331,7 @@ export default function AdminTestimonials() {
                 <div>
                   <Label htmlFor="show_on_homepage" className="cursor-pointer">Show on Homepage</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {homepageCount}/3 slots used. {!canEnableHomepage && !form.show_on_homepage && 'Disable another to enable this.'}
+                    {homepageEditCount}/3 slots used. {!canEnableHomepage && !form.show_on_homepage && 'Disable another to enable this.'}
                   </p>
                 </div>
               </div>
@@ -367,6 +386,14 @@ export default function AdminTestimonials() {
                         </a>
                       </Button>
                     )}
+                    <Button 
+                      variant={testimonial.show_on_homepage ? "default" : "ghost"} 
+                      size="icon" 
+                      onClick={() => handleToggleHomepage(testimonial)}
+                      title={testimonial.show_on_homepage ? "Remove from Homepage" : "Add to Homepage"}
+                    >
+                      <Home className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(testimonial)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
