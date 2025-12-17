@@ -5,11 +5,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save, User, FolderOpen, CreditCard, Settings } from 'lucide-react';
+import { ArrowLeft, Save, User, FolderOpen, CreditCard, Settings, Wallet } from 'lucide-react';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { ProfileTab } from '@/components/admin/lead-profile/ProfileTab';
 import { ProjectTab } from '@/components/admin/lead-profile/ProjectTab';
 import { PaymentsTab } from '@/components/admin/lead-profile/PaymentsTab';
+import { CardTab } from '@/components/admin/lead-profile/CardTab';
 import { SettingsTab } from '@/components/admin/lead-profile/SettingsTab';
 import { format } from 'date-fns';
 
@@ -132,7 +133,7 @@ export default function LeadProfile() {
 
       {/* Tabs */}
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-md">
+        <TabsList className="grid w-full grid-cols-5 max-w-xl">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
@@ -144,6 +145,10 @@ export default function LeadProfile() {
           <TabsTrigger value="payments" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Payments</span>
+          </TabsTrigger>
+          <TabsTrigger value="card" className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            <span className="hidden sm:inline">Card</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -181,6 +186,10 @@ export default function LeadProfile() {
             setDealAmount={setDealAmount}
             canEdit={canEdit} 
           />
+        </TabsContent>
+
+        <TabsContent value="card" className="mt-6">
+          <CardTab lead={lead} canEdit={canEdit} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
