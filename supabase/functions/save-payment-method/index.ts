@@ -49,7 +49,7 @@ serve(async (req) => {
     logStep("Payment method retrieved", { 
       type: paymentMethod.type, 
       brand: paymentMethod.card?.brand,
-      last4: paymentMethod.card?.last4 
+      last4: paymentMethod.card?.last4 || paymentMethod.au_becs_debit?.last4
     });
 
     // Save payment method ID to lead
@@ -61,16 +61,25 @@ serve(async (req) => {
     if (updateError) throw new Error(`Failed to save payment method: ${updateError.message}`);
     logStep("Payment method saved to lead");
 
+    // Build response based on payment method type
+    const response: any = { success: true };
+
+    if (paymentMethod.type === 'card' && paymentMethod.card) {
+      response.card = {
+        brand: paymentMethod.card.brand,
+        last4: paymentMethod.card.last4,
+        exp_month: paymentMethod.card.exp_month,
+        exp_year: paymentMethod.card.exp_year,
+      };
+    } else if (paymentMethod.type === 'au_becs_debit' && paymentMethod.au_becs_debit) {
+      response.au_becs_debit = {
+        bsb_number: paymentMethod.au_becs_debit.bsb_number,
+        last4: paymentMethod.au_becs_debit.last4,
+      };
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        card: {
-          brand: paymentMethod.card?.brand,
-          last4: paymentMethod.card?.last4,
-          exp_month: paymentMethod.card?.exp_month,
-          exp_year: paymentMethod.card?.exp_year,
-        },
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

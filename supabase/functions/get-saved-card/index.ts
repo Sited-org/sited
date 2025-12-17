@@ -52,7 +52,7 @@ serve(async (req) => {
     
     if (!lead.stripe_payment_method_id) {
       return new Response(
-        JSON.stringify({ hasCard: false, card: null }),
+        JSON.stringify({ hasCard: false, card: null, au_becs_debit: null }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
@@ -65,20 +65,30 @@ serve(async (req) => {
     // Fetch payment method details from Stripe
     const paymentMethod = await stripe.paymentMethods.retrieve(lead.stripe_payment_method_id);
     logStep("Payment method retrieved", { 
+      type: paymentMethod.type,
       brand: paymentMethod.card?.brand,
-      last4: paymentMethod.card?.last4 
+      last4: paymentMethod.card?.last4 || paymentMethod.au_becs_debit?.last4
     });
 
+    // Build response based on payment method type
+    const response: any = { hasCard: true };
+
+    if (paymentMethod.type === 'card' && paymentMethod.card) {
+      response.card = {
+        brand: paymentMethod.card.brand,
+        last4: paymentMethod.card.last4,
+        exp_month: paymentMethod.card.exp_month,
+        exp_year: paymentMethod.card.exp_year,
+      };
+    } else if (paymentMethod.type === 'au_becs_debit' && paymentMethod.au_becs_debit) {
+      response.au_becs_debit = {
+        bsb_number: paymentMethod.au_becs_debit.bsb_number,
+        last4: paymentMethod.au_becs_debit.last4,
+      };
+    }
+
     return new Response(
-      JSON.stringify({
-        hasCard: true,
-        card: {
-          brand: paymentMethod.card?.brand,
-          last4: paymentMethod.card?.last4,
-          exp_month: paymentMethod.card?.exp_month,
-          exp_year: paymentMethod.card?.exp_year,
-        },
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -87,7 +97,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage, hasCard: false, card: null }), {
+    return new Response(JSON.stringify({ error: errorMessage, hasCard: false, card: null, au_becs_debit: null }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
