@@ -171,6 +171,8 @@ export type Database = {
           phone: string | null
           project_type: string
           status: Database["public"]["Enums"]["lead_status"]
+          stripe_customer_id: string | null
+          stripe_payment_method_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -188,6 +190,8 @@ export type Database = {
           phone?: string | null
           project_type: string
           status?: Database["public"]["Enums"]["lead_status"]
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -205,6 +209,8 @@ export type Database = {
           phone?: string | null
           project_type?: string
           status?: Database["public"]["Enums"]["lead_status"]
+          stripe_customer_id?: string | null
+          stripe_payment_method_id?: string | null
         }
         Relationships: []
       }
