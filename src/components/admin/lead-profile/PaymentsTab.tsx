@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -43,8 +43,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [newAmount, setNewAmount] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
-  // Membership dialog state
-  const [membershipDialogOpen, setMembershipDialogOpen] = useState(false);
+  // Membership selection state
   const [selectedMembership, setSelectedMembership] = useState<string>('');
 
   // Invoice state
@@ -94,7 +93,6 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       status: 'completed',
     });
 
-    setMembershipDialogOpen(false);
     setSelectedMembership('');
   };
 
@@ -438,74 +436,39 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
               </Button>
             </div>
 
-            {/* Add Membership Button */}
-            <Dialog open={membershipDialogOpen} onOpenChange={setMembershipDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Add Membership
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add Membership</DialogTitle>
-                  <DialogDescription>
-                    Select a membership plan to add as a recurring charge
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
+            {/* Membership Selection */}
+            <div className="space-y-3 pt-4 border-t border-border/40">
+              <Select value={selectedMembership} onValueChange={setSelectedMembership}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a membership to add..." />
+                </SelectTrigger>
+                <SelectContent>
                   {activeMemberships.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No memberships available. Create memberships in Settings → Memberships.
-                    </p>
+                    <SelectItem value="none" disabled>No active memberships available</SelectItem>
                   ) : (
-                    <div className="space-y-2">
-                      <Label>Select Membership</Label>
-                      <Select value={selectedMembership} onValueChange={setSelectedMembership}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a membership..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {activeMemberships.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              <div className="flex items-center justify-between gap-4">
-                                <span>{m.name}</span>
-                                <span className="text-muted-foreground">
-                                  ${m.price}/{m.billing_interval}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedMembership && (
-                        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                          {(() => {
-                            const m = activeMemberships.find(m => m.id === selectedMembership);
-                            if (!m) return null;
-                            return (
-                              <>
-                                <h4 className="font-semibold">{m.name}</h4>
-                                {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
-                                <p className="text-lg font-bold mt-2">${m.price}/{m.billing_interval}</p>
-                              </>
-                            );
-                          })()}
+                    activeMemberships.map((membership) => (
+                      <SelectItem key={membership.id} value={membership.id}>
+                        <div className="flex items-center gap-4">
+                          <span>{membership.name}</span>
+                          <span className="text-muted-foreground text-sm">
+                            ${membership.price}/{membership.billing_interval}
+                          </span>
                         </div>
-                      )}
-                    </div>
+                      </SelectItem>
+                    ))
                   )}
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setMembershipDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddMembership} disabled={!selectedMembership}>
-                    Add Membership
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                onClick={handleAddMembership}
+                disabled={!selectedMembership || selectedMembership === 'none'}
+                className="w-full bg-foreground text-background hover:bg-foreground/90"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Add Membership
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
