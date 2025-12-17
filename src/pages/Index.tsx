@@ -7,6 +7,7 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect, memo } from "react";
 import { ArrowRight, Sparkles, Zap, Smartphone, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 
 const Hero = memo(() => {
   const ref = useRef(null);
@@ -228,8 +229,8 @@ const Process = () => {
   );
 };
 
-// Featured Work Preview - optimized image sizes
-const featuredProjects = [
+// Fallback projects for when no testimonials are marked for homepage
+const fallbackProjects = [
   {
     company: "Bloom Floristry",
     category: "Website Design",
@@ -256,8 +257,21 @@ const FeaturedWork = () => {
     target: ref,
     offset: ["start end", "end start"],
   });
+  const { data: testimonials } = useHomepageTestimonials();
 
   const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
+
+  // Transform testimonials to display format or use fallback
+  const projects = testimonials && testimonials.length > 0 
+    ? testimonials.map(t => ({
+        company: t.business_name,
+        category: t.project_type,
+        result: t.metric_1_value && t.metric_1_label 
+          ? `${t.metric_1_value} ${t.metric_1_label}` 
+          : t.short_description,
+        image: t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop",
+      }))
+    : fallbackProjects;
 
   return (
     <section ref={ref} className="section-padding bg-background overflow-hidden">
@@ -285,7 +299,7 @@ const FeaturedWork = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-          {featuredProjects.map((project, index) => (
+          {projects.map((project, index) => (
             <ScrollReveal key={project.company} delay={index * 0.05}>
               <motion.div
                 whileHover={{ y: -8 }}

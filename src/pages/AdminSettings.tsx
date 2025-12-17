@@ -35,6 +35,7 @@ const emptyTestimonialForm: TestimonialInsert = {
   website_url: '',
   display_order: 0,
   is_active: true,
+  show_on_homepage: false,
   created_by: null,
 };
 
@@ -158,10 +159,15 @@ export default function AdminSettings() {
       website_url: testimonial.website_url || '',
       display_order: testimonial.display_order,
       is_active: testimonial.is_active,
+      show_on_homepage: testimonial.show_on_homepage,
       created_by: testimonial.created_by,
     });
     setTestimonialDialogOpen(true);
   };
+
+  // Count how many are currently shown on homepage (excluding current editing one)
+  const homepageTestimonialCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingTestimonialId).length || 0;
+  const canEnableHomepage = homepageTestimonialCount < 3;
 
   const handleTestimonialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -569,6 +575,21 @@ export default function AdminSettings() {
                     </div>
                   </div>
 
+                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                    <Switch
+                      id="show_on_homepage"
+                      checked={testimonialForm.show_on_homepage}
+                      onCheckedChange={(checked) => updateTestimonialField('show_on_homepage', checked)}
+                      disabled={!canEnableHomepage && !testimonialForm.show_on_homepage}
+                    />
+                    <div>
+                      <Label htmlFor="show_on_homepage" className="cursor-pointer">Show on Homepage</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {homepageTestimonialCount}/3 slots used. {!canEnableHomepage && !testimonialForm.show_on_homepage && 'Disable another to enable this.'}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end gap-3 pt-4">
                     <Button type="button" variant="outline" onClick={() => setTestimonialDialogOpen(false)}>
                       Cancel
@@ -599,6 +620,9 @@ export default function AdminSettings() {
                             {testimonial.business_name}
                             {!testimonial.is_active && (
                               <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>
+                            )}
+                            {testimonial.show_on_homepage && (
+                              <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage</span>
                             )}
                           </CardTitle>
                           <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>

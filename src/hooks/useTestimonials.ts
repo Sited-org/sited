@@ -20,6 +20,7 @@ export interface Testimonial {
   website_url: string | null;
   display_order: number;
   is_active: boolean;
+  show_on_homepage: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -52,6 +53,24 @@ export function usePublicTestimonials() {
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      return data as Testimonial[];
+    },
+  });
+}
+
+export function useHomepageTestimonials() {
+  return useQuery({
+    queryKey: ['homepage-testimonials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('is_active', true)
+        .eq('show_on_homepage', true)
+        .order('display_order', { ascending: true })
+        .limit(3);
 
       if (error) throw error;
       return data as Testimonial[];
