@@ -115,11 +115,11 @@ export default function LeadProfile() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Lead #{lead.lead_number}</h1>
+            <h1 className="text-2xl font-bold">{lead.name || lead.email}</h1>
             <LeadStatusBadge status={status} />
           </div>
           <p className="text-muted-foreground">
-            {lead.name || lead.email} • Created {format(new Date(lead.created_at), 'PPP')}
+            Lead #{lead.lead_number} • Created {format(new Date(lead.created_at), 'PPP')}
           </p>
         </div>
         {canEdit && (

@@ -4,10 +4,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar, FileText } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
-
+import { useTransactions } from '@/hooks/useTransactions';
+import { useMemberships } from '@/hooks/useMemberships';
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
 const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
@@ -53,7 +54,15 @@ export function ProfileTab({
   canEdit,
 }: ProfileTabProps) {
   const { updates } = useProjectUpdates(lead.id);
+  const { rawTransactions } = useTransactions(lead.id);
+  const { memberships } = useMemberships();
   const recentUpdates = updates.slice(0, 3);
+
+  // Find active membership from recurring transactions
+  const activeMembershipTransaction = rawTransactions.find(t => t.is_recurring);
+  const activeMembership = activeMembershipTransaction 
+    ? memberships.find(m => m.name === activeMembershipTransaction.item)
+    : null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -112,6 +121,25 @@ export function ProfileTab({
                   />
                   <Building2 className="h-9 w-9 p-2 text-muted-foreground" />
                 </div>
+              </div>
+            </div>
+            
+            {/* Membership Info */}
+            <div className="pt-4 border-t border-border/40">
+              <label className="text-sm font-medium text-muted-foreground">Membership</label>
+              <div className="flex items-center gap-2 mt-1">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                {activeMembership ? (
+                  <span className="font-medium">
+                    {activeMembership.name} - ${activeMembership.price}/{activeMembership.billing_interval}
+                  </span>
+                ) : activeMembershipTransaction ? (
+                  <span className="font-medium">
+                    {activeMembershipTransaction.item} (Custom)
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">No active membership</span>
+                )}
               </div>
             </div>
           </CardContent>
