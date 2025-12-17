@@ -437,33 +437,35 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
             </div>
 
             {/* Membership Selection */}
-            <div className="space-y-3 pt-4 border-t border-border/40">
-              <Select value={selectedMembership} onValueChange={setSelectedMembership}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a membership to add..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {activeMemberships.length === 0 ? (
-                    <SelectItem value="none" disabled>No active memberships available</SelectItem>
-                  ) : (
-                    activeMemberships.map((membership) => (
-                      <SelectItem key={membership.id} value={membership.id}>
-                        <div className="flex items-center gap-4">
-                          <span>{membership.name}</span>
-                          <span className="text-muted-foreground text-sm">
-                            ${membership.price}/{membership.billing_interval}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t border-border/40">
+              <div className="md:col-span-4">
+                <Select value={selectedMembership} onValueChange={setSelectedMembership}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a membership to add..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeMemberships.length === 0 ? (
+                      <SelectItem value="none" disabled>No active memberships available</SelectItem>
+                    ) : (
+                      activeMemberships.map((membership) => (
+                        <SelectItem key={membership.id} value={membership.id}>
+                          <div className="flex items-center gap-4">
+                            <span>{membership.name}</span>
+                            <span className="text-muted-foreground text-sm">
+                              ${membership.price}/{membership.billing_interval}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
               
               <Button 
                 onClick={handleAddMembership}
                 disabled={!selectedMembership || selectedMembership === 'none'}
-                className="w-full bg-foreground text-background hover:bg-foreground/90"
+                className="bg-foreground text-background hover:bg-foreground/90"
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 Add Membership
