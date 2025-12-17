@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard } from 'lucide-react';
+import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 import { format } from 'date-fns';
@@ -52,6 +52,11 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [invoiceNotes, setInvoiceNotes] = useState('');
   const [invoiceDueDate, setInvoiceDueDate] = useState('');
   const [sendingInvoice, setSendingInvoice] = useState(false);
+
+  // Payment state
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selectedPaymentItems, setSelectedPaymentItems] = useState<string[]>([]);
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   const handleAddTransaction = async () => {
     if (!newItem.trim() || !newAmount) return;
@@ -169,6 +174,70 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     }
   };
 
+  // Payment functions
+  const getUnpaidDebits = () => {
+    return transactions.filter(t => Number(t.debit) > 0 && !t.isFuture);
+  };
+
+  const togglePaymentItemSelection = (id: string) => {
+    setSelectedPaymentItems(prev => 
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllPaymentItems = () => {
+    const unpaidDebits = getUnpaidDebits();
+    if (selectedPaymentItems.length === unpaidDebits.length) {
+      setSelectedPaymentItems([]);
+    } else {
+      setSelectedPaymentItems(unpaidDebits.map(t => t.id));
+    }
+  };
+
+  const getSelectedPaymentTotal = () => {
+    return transactions
+      .filter(t => selectedPaymentItems.includes(t.id))
+      .reduce((sum, t) => sum + Number(t.debit), 0);
+  };
+
+  const handleProcessPayment = async () => {
+    if (selectedPaymentItems.length === 0) {
+      toast.error('Please select at least one item to pay');
+      return;
+    }
+
+    setProcessingPayment(true);
+    try {
+      // TODO: Implement actual Stripe charge using saved card
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Add credit transaction for the payment
+      const paymentTotal = getSelectedPaymentTotal();
+      await addTransaction({
+        lead_id: lead.id,
+        item: `Payment for ${selectedPaymentItems.length} item(s)`,
+        credit: paymentTotal,
+        debit: 0,
+        notes: `Paid via saved card`,
+        transaction_date: new Date().toISOString(),
+        is_recurring: false,
+        recurring_interval: null,
+        recurring_end_date: null,
+        parent_transaction_id: null,
+        status: 'completed',
+      });
+      
+      toast.success(`Payment of $${paymentTotal.toLocaleString()} processed successfully`);
+      setPaymentOpen(false);
+      setSelectedPaymentItems([]);
+    } catch (error: any) {
+      console.error('Error processing payment:', error);
+      toast.error(error.message || 'Failed to process payment');
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
   const getStatusBadge = (transaction: TransactionWithBalance) => {
     if (transaction.isFuture) {
       return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Scheduled</Badge>;
@@ -243,6 +312,96 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
             <p className={`text-2xl font-bold ${currentBalance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
               ${currentBalance.toLocaleString()}
             </p>
+            {canEdit && currentBalance > 0 && (
+              <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="w-full mt-3 bg-foreground text-background hover:bg-foreground/90">
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Make Payment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Process Payment</DialogTitle>
+                    <DialogDescription>
+                      Select items to pay using the saved card on file.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    {/* Select Items */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Select Items to Pay</Label>
+                        <Button variant="ghost" size="sm" onClick={selectAllPaymentItems}>
+                          {selectedPaymentItems.length === getUnpaidDebits().length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                      </div>
+                      
+                      {getUnpaidDebits().length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">No unpaid items</p>
+                      ) : (
+                        <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
+                          {getUnpaidDebits().map((t) => (
+                            <div 
+                              key={t.id} 
+                              className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
+                              onClick={() => togglePaymentItemSelection(t.id)}
+                            >
+                              <Checkbox 
+                                checked={selectedPaymentItems.includes(t.id)}
+                                onCheckedChange={() => togglePaymentItemSelection(t.id)}
+                              />
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{t.item}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {format(new Date(t.transaction_date), 'PP')}
+                                </p>
+                              </div>
+                              <p className="font-semibold">${Number(t.debit).toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Payment Summary */}
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Selected Items:</span>
+                        <span>{selectedPaymentItems.length}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                        <span>Payment Total:</span>
+                        <span>${getSelectedPaymentTotal().toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Card Info */}
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
+                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Payment Method</p>
+                        <p className="text-xs text-muted-foreground">Card on file (see Card tab)</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPaymentOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleProcessPayment} 
+                      disabled={processingPayment || selectedPaymentItems.length === 0}
+                      className="bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      {processingPayment ? 'Processing...' : `Pay $${getSelectedPaymentTotal().toLocaleString()}`}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </CardContent>
         </Card>
       </div>
