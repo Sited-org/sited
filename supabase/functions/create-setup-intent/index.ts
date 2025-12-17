@@ -37,9 +37,9 @@ serve(async (req) => {
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     logStep("User authenticated", { userId: userData.user?.id });
 
-    const { lead_id } = await req.json();
+    const { lead_id, payment_method_type } = await req.json();
     if (!lead_id) throw new Error("lead_id is required");
-    logStep("Request parsed", { lead_id });
+    logStep("Request parsed", { lead_id, payment_method_type });
 
     // Fetch lead details
     const { data: lead, error: leadError } = await supabaseClient
@@ -77,14 +77,19 @@ serve(async (req) => {
       logStep("Using existing Stripe customer", { customerId });
     }
 
-    // Create SetupIntent for saving card
+    // Determine payment method types
+    const paymentMethodTypes = payment_method_type === 'au_becs_debit' 
+      ? ["au_becs_debit"] 
+      : ["card"];
+
+    // Create SetupIntent for saving payment method
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ["card"],
+      payment_method_types: paymentMethodTypes,
       usage: "off_session", // Allow charging later without customer present
     });
 
-    logStep("SetupIntent created", { setupIntentId: setupIntent.id });
+    logStep("SetupIntent created", { setupIntentId: setupIntent.id, paymentMethodTypes });
 
     return new Response(
       JSON.stringify({
