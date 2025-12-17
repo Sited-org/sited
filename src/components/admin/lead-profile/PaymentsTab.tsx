@@ -9,9 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle } from 'lucide-react';
+import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
+import { useMemberships } from '@/hooks/useMemberships';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,14 +35,17 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     deleteTransaction,
     cancelRecurring 
   } = useTransactions(lead.id);
+
+  const { activeMemberships } = useMemberships();
   
   const [transactionType, setTransactionType] = useState<'credit' | 'debit'>('debit');
   const [newItem, setNewItem] = useState('');
   const [newAmount, setNewAmount] = useState('');
   const [newNotes, setNewNotes] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringInterval, setRecurringInterval] = useState<'weekly' | 'monthly' | 'quarterly' | 'yearly'>('monthly');
-  const [recurringEndDate, setRecurringEndDate] = useState('');
+
+  // Membership dialog state
+  const [membershipDialogOpen, setMembershipDialogOpen] = useState(false);
+  const [selectedMembership, setSelectedMembership] = useState<string>('');
 
   // Invoice state
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -61,9 +64,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       debit: transactionType === 'debit' ? parseFloat(newAmount) : 0,
       notes: newNotes || null,
       transaction_date: new Date().toISOString(),
-      is_recurring: isRecurring,
-      recurring_interval: isRecurring ? recurringInterval : null,
-      recurring_end_date: isRecurring && recurringEndDate ? new Date(recurringEndDate).toISOString() : null,
+      is_recurring: false,
+      recurring_interval: null,
+      recurring_end_date: null,
       parent_transaction_id: null,
       status: 'completed',
     });
@@ -71,8 +74,28 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     setNewItem('');
     setNewAmount('');
     setNewNotes('');
-    setIsRecurring(false);
-    setRecurringEndDate('');
+  };
+
+  const handleAddMembership = async () => {
+    const membership = activeMemberships.find(m => m.id === selectedMembership);
+    if (!membership) return;
+
+    await addTransaction({
+      lead_id: lead.id,
+      item: membership.name,
+      credit: 0,
+      debit: membership.price,
+      notes: membership.description || null,
+      transaction_date: new Date().toISOString(),
+      is_recurring: true,
+      recurring_interval: membership.billing_interval,
+      recurring_end_date: null,
+      parent_transaction_id: null,
+      status: 'completed',
+    });
+
+    setMembershipDialogOpen(false);
+    setSelectedMembership('');
   };
 
   const toggleTransactionSelection = (id: string) => {
@@ -415,49 +438,74 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
               </Button>
             </div>
 
-            {/* Recurring Payment Options */}
-            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="recurring" className="font-medium">Recurring Payment</Label>
+            {/* Add Membership Button */}
+            <Dialog open={membershipDialogOpen} onOpenChange={setMembershipDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Add Membership
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Membership</DialogTitle>
+                  <DialogDescription>
+                    Select a membership plan to add as a recurring charge
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  {activeMemberships.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No memberships available. Create memberships in Settings → Memberships.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Select Membership</Label>
+                      <Select value={selectedMembership} onValueChange={setSelectedMembership}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose a membership..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activeMemberships.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              <div className="flex items-center justify-between gap-4">
+                                <span>{m.name}</span>
+                                <span className="text-muted-foreground">
+                                  ${m.price}/{m.billing_interval}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedMembership && (
+                        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                          {(() => {
+                            const m = activeMemberships.find(m => m.id === selectedMembership);
+                            if (!m) return null;
+                            return (
+                              <>
+                                <h4 className="font-semibold">{m.name}</h4>
+                                {m.description && <p className="text-sm text-muted-foreground mt-1">{m.description}</p>}
+                                <p className="text-lg font-bold mt-2">${m.price}/{m.billing_interval}</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <Switch
-                  id="recurring"
-                  checked={isRecurring}
-                  onCheckedChange={setIsRecurring}
-                />
-              </div>
-              
-              {isRecurring && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label>Billing Cycle</Label>
-                    <Select value={recurringInterval} onValueChange={(v) => setRecurringInterval(v as any)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>End Date (optional)</Label>
-                    <Input
-                      type="date"
-                      value={recurringEndDate}
-                      onChange={(e) => setRecurringEndDate(e.target.value)}
-                      placeholder="Leave empty for indefinite"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setMembershipDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddMembership} disabled={!selectedMembership}>
+                    Add Membership
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       )}

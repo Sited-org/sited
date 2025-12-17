@@ -37,23 +37,23 @@ function getNextDate(date: Date, interval: RecurringInterval): Date {
 }
 
 function generateFutureTransactions(
-  transaction: Transaction,
-  maxFutureCount: number = 6
+  transaction: Transaction
 ): TransactionWithBalance[] {
   if (!transaction.is_recurring || !transaction.recurring_interval) return [];
   
   const futures: TransactionWithBalance[] = [];
   const today = startOfDay(new Date());
+  const oneMonthFromNow = addMonths(today, 1);
   let nextDate = getNextDate(new Date(transaction.transaction_date), transaction.recurring_interval);
   const endDate = transaction.recurring_end_date ? new Date(transaction.recurring_end_date) : null;
   
-  let count = 0;
-  while (count < maxFutureCount) {
+  // Only show future transactions up to 1 month ahead
+  while (isBefore(nextDate, oneMonthFromNow) || nextDate.getTime() === oneMonthFromNow.getTime()) {
     if (endDate && isAfter(nextDate, endDate)) break;
     
     futures.push({
       ...transaction,
-      id: `future-${transaction.id}-${count}`,
+      id: `future-${transaction.id}-${futures.length}`,
       transaction_date: nextDate.toISOString(),
       status: isBefore(nextDate, today) ? 'pending' : 'scheduled',
       parent_transaction_id: transaction.id,
@@ -62,7 +62,6 @@ function generateFutureTransactions(
     });
     
     nextDate = getNextDate(nextDate, transaction.recurring_interval);
-    count++;
   }
   
   return futures;
