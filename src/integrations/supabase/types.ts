@@ -77,6 +77,38 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          lead_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          lead_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       form_sessions: {
         Row: {
           completed: boolean
@@ -156,6 +188,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          assigned_sales_rep: string | null
           assigned_to: string | null
           business_name: string | null
           created_at: string
@@ -175,6 +208,7 @@ export type Database = {
           stripe_payment_method_id: string | null
         }
         Insert: {
+          assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
           created_at?: string
@@ -194,6 +228,7 @@ export type Database = {
           stripe_payment_method_id?: string | null
         }
         Update: {
+          assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
           created_at?: string
@@ -308,6 +343,44 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      sales_metrics: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          metric_type: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metric_type: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metric_type?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_metrics_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       testimonials: {
         Row: {
@@ -449,9 +522,13 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          can_charge_cards: boolean
+          can_delete_leads: boolean
           can_edit_leads: boolean
+          can_edit_project: boolean
           can_manage_users: boolean
           can_view: boolean
+          can_view_payments: boolean
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
@@ -459,9 +536,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_charge_cards?: boolean
+          can_delete_leads?: boolean
           can_edit_leads?: boolean
+          can_edit_project?: boolean
           can_manage_users?: boolean
           can_view?: boolean
+          can_view_payments?: boolean
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
@@ -469,9 +550,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_charge_cards?: boolean
+          can_delete_leads?: boolean
           can_edit_leads?: boolean
+          can_edit_project?: boolean
           can_manage_users?: boolean
           can_view?: boolean
+          can_view_payments?: boolean
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
@@ -485,8 +570,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_charge_cards: { Args: { _user_id: string }; Returns: boolean }
+      can_delete_leads: { Args: { _user_id: string }; Returns: boolean }
       can_edit_leads: { Args: { _user_id: string }; Returns: boolean }
       can_manage_users: { Args: { _user_id: string }; Returns: boolean }
+      can_view_payments: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_captchas: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -498,7 +586,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "owner" | "admin" | "editor" | "viewer"
+      app_role: "owner" | "admin" | "editor" | "viewer" | "developer" | "sales"
       lead_status: "new" | "contacted" | "booked_call" | "sold" | "lost"
     }
     CompositeTypes: {
@@ -627,7 +715,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "admin", "editor", "viewer"],
+      app_role: ["owner", "admin", "editor", "viewer", "developer", "sales"],
       lead_status: ["new", "contacted", "booked_call", "sold", "lost"],
     },
   },

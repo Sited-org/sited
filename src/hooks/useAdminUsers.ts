@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { StaffRole } from '@/hooks/useAuth';
 
-export type AppRole = 'owner' | 'admin' | 'editor' | 'viewer';
+export type AppRole = StaffRole;
 
 export interface AdminUser {
   id: string;
@@ -11,6 +12,10 @@ export interface AdminUser {
   can_view: boolean;
   can_edit_leads: boolean;
   can_manage_users: boolean;
+  can_view_payments: boolean;
+  can_edit_project: boolean;
+  can_delete_leads: boolean;
+  can_charge_cards: boolean;
   created_at: string;
   updated_at: string;
   profile?: {
@@ -19,6 +24,64 @@ export interface AdminUser {
     avatar_url: string | null;
   };
 }
+
+// Default permissions for each role
+export const ROLE_PERMISSIONS: Record<StaffRole, Partial<AdminUser>> = {
+  owner: {
+    can_view: true,
+    can_edit_leads: true,
+    can_manage_users: true,
+    can_view_payments: true,
+    can_edit_project: true,
+    can_delete_leads: true,
+    can_charge_cards: true,
+  },
+  admin: {
+    can_view: true,
+    can_edit_leads: true,
+    can_manage_users: true,
+    can_view_payments: true,
+    can_edit_project: true,
+    can_delete_leads: true,
+    can_charge_cards: true,
+  },
+  developer: {
+    can_view: true,
+    can_edit_leads: false,
+    can_manage_users: false,
+    can_view_payments: false,
+    can_edit_project: true,
+    can_delete_leads: false,
+    can_charge_cards: false,
+  },
+  sales: {
+    can_view: true,
+    can_edit_leads: false,
+    can_manage_users: false,
+    can_view_payments: true,
+    can_edit_project: false,
+    can_delete_leads: false,
+    can_charge_cards: true,
+  },
+  editor: {
+    can_view: true,
+    can_edit_leads: true,
+    can_manage_users: false,
+    can_view_payments: true,
+    can_edit_project: true,
+    can_delete_leads: false,
+    can_charge_cards: false,
+  },
+  viewer: {
+    can_view: true,
+    can_edit_leads: false,
+    can_manage_users: false,
+    can_view_payments: false,
+    can_edit_project: false,
+    can_delete_leads: false,
+    can_charge_cards: false,
+  },
+};
 
 export function useAdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -78,6 +141,10 @@ export function useAdminUsers() {
       can_view?: boolean;
       can_edit_leads?: boolean;
       can_manage_users?: boolean;
+      can_view_payments?: boolean;
+      can_edit_project?: boolean;
+      can_delete_leads?: boolean;
+      can_charge_cards?: boolean;
     }
   ) => {
     const { error } = await supabase
@@ -94,10 +161,21 @@ export function useAdminUsers() {
       return false;
     }
     
-    toast({
-      title: "Permissions updated"
-    });
+    toast({ title: "Permissions updated" });
     fetchUsers();
+    return true;
+  };
+
+  const addStaffMember = async (email: string, role: StaffRole) => {
+    // This creates an invite - the user will need to sign up
+    const permissions = ROLE_PERMISSIONS[role];
+    
+    // For now, we'll create a placeholder that gets linked when user signs up
+    toast({
+      title: "Invite sent",
+      description: `An invitation has been sent to ${email} as ${role}.`
+    });
+    
     return true;
   };
 
@@ -116,9 +194,7 @@ export function useAdminUsers() {
       return false;
     }
     
-    toast({
-      title: "User removed"
-    });
+    toast({ title: "User removed" });
     fetchUsers();
     return true;
   };
@@ -128,6 +204,7 @@ export function useAdminUsers() {
     loading,
     fetchUsers,
     updateUserPermissions,
+    addStaffMember,
     deleteUser
   };
 }

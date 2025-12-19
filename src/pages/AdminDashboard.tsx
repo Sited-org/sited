@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useLeads } from '@/hooks/useLeads';
 import { useFormSessions } from '@/hooks/useFormSessions';
+import { useAuth } from '@/hooks/useAuth';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { LeadsChart } from '@/components/admin/LeadsChart';
 import { ConversionFunnel } from '@/components/admin/ConversionFunnel';
@@ -10,10 +11,22 @@ import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { Users, TrendingUp, Activity, DollarSign } from 'lucide-react';
 import { subDays, format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import DeveloperDashboard from '@/components/admin/dashboards/DeveloperDashboard';
+import SalesDashboard from '@/components/admin/dashboards/SalesDashboard';
 
 export default function AdminDashboard() {
   const { leads, loading } = useLeads();
   const { activeSessions } = useFormSessions();
+  const { userRole, isDeveloper, isSales } = useAuth();
+
+  // Show role-specific dashboard
+  if (isDeveloper) {
+    return <DeveloperDashboard />;
+  }
+
+  if (isSales) {
+    return <SalesDashboard />;
+  }
 
   const stats = useMemo(() => {
     const now = new Date();

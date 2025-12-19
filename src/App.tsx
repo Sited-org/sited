@@ -19,6 +19,7 @@ import AdminActivity from "./pages/AdminActivity";
 import AdminTeam from "./pages/AdminTeam";
 import AdminSettings from "./pages/AdminSettings";
 import AdminTestimonials from "./pages/AdminTestimonials";
+import NewSale from "./pages/NewSale";
 import AdminLayout from "./components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="activity" element={<AdminActivity />} />
             <Route path="team" element={<AdminTeam />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="new-sale" element={<NewSale />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
