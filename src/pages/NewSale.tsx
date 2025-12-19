@@ -4,44 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, Building, MapPin, Globe, Sparkles, Copy, Check, ArrowLeft, Briefcase, Loader2, Search } from 'lucide-react';
+import { ArrowRight, Building, MapPin, Globe, Sparkles, Copy, Check, ArrowLeft, Briefcase, Loader2, Search, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 type Step = 'details' | 'generating' | 'prompt';
-
-const INDUSTRIES = [
-  'Plumbing',
-  'Electrical',
-  'HVAC / Air Conditioning',
-  'Landscaping & Gardening',
-  'Cleaning Services',
-  'Construction & Building',
-  'Roofing',
-  'Painting & Decorating',
-  'Pest Control',
-  'Automotive / Mechanic',
-  'Beauty & Salon',
-  'Fitness & Gym',
-  'Restaurant / Cafe',
-  'Retail Shop',
-  'Real Estate',
-  'Legal Services',
-  'Accounting / Financial',
-  'Healthcare / Medical',
-  'Dental',
-  'Veterinary',
-  'Photography',
-  'Wedding Services',
-  'Pet Services',
-  'Education / Tutoring',
-  'IT / Tech Services',
-  'Marketing Agency',
-  'Consulting',
-  'Other',
-];
 
 export default function NewSale() {
   const [step, setStep] = useState<Step>('details');
@@ -49,14 +17,25 @@ export default function NewSale() {
   const [location, setLocation] = useState('');
   const [industry, setIndustry] = useState('');
   const [website, setWebsite] = useState('');
+  const [details, setDetails] = useState('');
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [researchInsights, setResearchInsights] = useState('');
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const wordCount = details.trim().split(/\s+/).filter(Boolean).length;
+  const maxWords = 200;
+
+  const handleDetailsChange = (value: string) => {
+    const words = value.trim().split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) {
+      setDetails(value);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim() || !location.trim() || !industry) {
+    if (!businessName.trim() || !location.trim() || !industry.trim()) {
       toast.error('Please fill in business name, location, and industry');
       return;
     }
@@ -66,7 +45,7 @@ export default function NewSale() {
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-sales-prompt', {
-        body: { businessName, location, industry, website },
+        body: { businessName, location, industry, website, details },
       });
 
       if (error) throw error;
@@ -101,6 +80,7 @@ export default function NewSale() {
     setLocation('');
     setIndustry('');
     setWebsite('');
+    setDetails('');
     setGeneratedPrompt('');
     setResearchInsights('');
   };
@@ -163,18 +143,12 @@ export default function NewSale() {
                   <Briefcase className="h-4 w-4 text-muted-foreground" />
                   Industry *
                 </Label>
-                <Select value={industry} onValueChange={setIndustry}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDUSTRIES.map((ind) => (
-                      <SelectItem key={ind} value={ind}>
-                        {ind}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="industry"
+                  placeholder="e.g., Plumbing, Real Estate, Cafe"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
@@ -191,6 +165,23 @@ export default function NewSale() {
                 />
                 <p className="text-xs text-muted-foreground">
                   If they have an existing website, AI will analyze it for improvements
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="details" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  Additional Details (optional)
+                </Label>
+                <Textarea
+                  id="details"
+                  placeholder="Add any specific notes to personalise the website... e.g., 'They specialise in emergency callouts', 'Family-owned for 30 years', 'Want a modern dark theme'"
+                  value={details}
+                  onChange={(e) => handleDetailsChange(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                />
+                <p className={`text-xs ${wordCount >= maxWords ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {wordCount}/{maxWords} words
                 </p>
               </div>
 
@@ -339,6 +330,12 @@ export default function NewSale() {
                   <div>
                     <dt className="text-muted-foreground">Reference Website</dt>
                     <dd className="font-medium text-primary">{website}</dd>
+                  </div>
+                )}
+                {details && (
+                  <div className="sm:col-span-2">
+                    <dt className="text-muted-foreground">Additional Details</dt>
+                    <dd className="font-medium">{details}</dd>
                   </div>
                 )}
               </dl>

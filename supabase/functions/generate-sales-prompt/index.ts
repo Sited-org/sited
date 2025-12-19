@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { businessName, location, industry, website } = await req.json();
+    const { businessName, location, industry, website, details } = await req.json();
 
     if (!businessName || !location || !industry) {
       return new Response(
@@ -77,6 +77,7 @@ BUSINESS DETAILS:
 - Location: ${location}
 - Industry: ${industry}
 ${website ? `- Current Website: ${website}` : '- No existing website'}
+${details ? `\nSALESPERSON NOTES:\n${details}` : ''}
 
 RESEARCH INSIGHTS:
 ${researchInsights}
@@ -89,6 +90,7 @@ Create a comprehensive Lovable.dev prompt that:
 5. Has strong calls-to-action relevant to the ${industry} industry
 6. Is mobile-responsive and modern
 7. Includes specific content suggestions based on the research
+${details ? `8. Incorporates the salesperson's notes: ${details}` : ''}
 
 Format the prompt ready to be copied and pasted into Lovable.dev. Make it detailed and specific, not generic.`;
 
