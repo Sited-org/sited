@@ -21,6 +21,8 @@ import AdminSettings from "./pages/AdminSettings";
 import AdminTestimonials from "./pages/AdminTestimonials";
 import NewSale from "./pages/NewSale";
 import AdminLayout from "./components/admin/AdminLayout";
+import ClientPortalLogin from "./pages/ClientPortalLogin";
+import ClientPortalDashboard from "./pages/ClientPortalDashboard";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,9 @@ const App = () => (
           <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
           <Route path="/onboarding/app" element={<AppOnboarding />} />
           <Route path="/onboarding/ai" element={<AIOnboarding />} />
+          {/* Client Portal Routes */}
+          <Route path="/client-portal" element={<ClientPortalLogin />} />
+          <Route path="/client-portal/dashboard" element={<ClientPortalDashboard />} />
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
