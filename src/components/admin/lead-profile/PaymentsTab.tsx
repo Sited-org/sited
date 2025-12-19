@@ -703,9 +703,6 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                           {!t.isFuture && t.status === 'completed' && (
                             <Badge variant="default" className="bg-green-600">Completed</Badge>
                           )}
-                          {!t.isFuture && t.status === 'pending' && (
-                            <Badge variant="outline" className="text-amber-600 border-amber-600/30">Pending</Badge>
-                          )}
                         </>
                       )}
                     </TableCell>
