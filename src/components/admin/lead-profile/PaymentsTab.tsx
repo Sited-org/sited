@@ -206,9 +206,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       return;
     }
 
-    // Check if lead has a saved card
+    // Check if lead has a saved payment method (card or bank account)
     if (!lead.stripe_payment_method_id) {
-      toast.error('No payment card on file. Please add a card in the Card tab first.');
+      toast.error('No payment method on file. Please add a card or bank account in the Card tab first.');
       return;
     }
 
@@ -338,7 +338,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                   <DialogHeader>
                     <DialogTitle>Process Payment</DialogTitle>
                     <DialogDescription>
-                      Select items to pay using the saved card on file.
+                      Select items to pay using the saved payment method on file.
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -391,12 +391,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                       </div>
                     </div>
 
-                    {/* Card Info */}
+                    {/* Payment Method Info */}
                     <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
-                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                      <Wallet className="h-5 w-5 text-muted-foreground" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">Payment Method</p>
-                        <p className="text-xs text-muted-foreground">Card on file (see Card tab)</p>
+                        <p className="text-xs text-muted-foreground">Card or bank account on file (see Card tab)</p>
                       </div>
                     </div>
                   </div>
