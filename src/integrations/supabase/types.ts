@@ -109,6 +109,119 @@ export type Database = {
           },
         ]
       }
+      email_automations: {
+        Row: {
+          automation_type: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          last_run_at: string | null
+          schedule_cron: string | null
+          settings: Json | null
+          updated_at: string
+        }
+        Insert: {
+          automation_type: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          schedule_cron?: string | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          automation_type?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          last_run_at?: string | null
+          schedule_cron?: string | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          recipient_email: string
+          recipient_name: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          template_type: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_type: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          body_html: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_enabled: boolean
+          subject: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          subject: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          subject?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       form_sessions: {
         Row: {
           completed: boolean

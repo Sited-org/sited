@@ -29,3 +29,12 @@ verify_jwt = true
 
 [functions.get-saved-card]
 verify_jwt = true
+
+[functions.send-onboarding-email]
+verify_jwt = false
+
+[functions.send-payment-email]
+verify_jwt = true
+
+[functions.send-monthly-report]
+verify_jwt = true
