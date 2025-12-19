@@ -61,12 +61,28 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    // Retrieve the payment method to determine its type
+    const paymentMethod = await stripe.paymentMethods.retrieve(lead.stripe_payment_method_id);
+    logStep("Payment method retrieved", { 
+      type: paymentMethod.type,
+      id: paymentMethod.id 
+    });
+
+    // Determine payment method types based on saved method
+    let paymentMethodTypes: string[];
+    if (paymentMethod.type === "au_becs_debit") {
+      paymentMethodTypes = ["au_becs_debit"];
+    } else {
+      paymentMethodTypes = ["card"];
+    }
+
     // Create PaymentIntent and charge immediately
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: "aud",
       customer: lead.stripe_customer_id,
       payment_method: lead.stripe_payment_method_id,
+      payment_method_types: paymentMethodTypes,
       off_session: true,
       confirm: true,
       description: description || `Payment for Lead: ${lead.name || lead.email}`,
@@ -74,6 +90,14 @@ serve(async (req) => {
         lead_id: lead.id,
         transaction_ids: transaction_ids ? JSON.stringify(transaction_ids) : undefined,
       },
+      // For AU BECS debit, we need a mandate
+      ...(paymentMethod.type === "au_becs_debit" && {
+        mandate_data: {
+          customer_acceptance: {
+            type: "offline",
+          },
+        },
+      }),
     });
 
     logStep("PaymentIntent created", { 
@@ -81,7 +105,8 @@ serve(async (req) => {
       status: paymentIntent.status 
     });
 
-    if (paymentIntent.status === "succeeded") {
+    // AU BECS debit payments may have "processing" status initially
+    if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
       // Create credit transaction for the payment
       const { error: txError } = await supabaseClient
         .from("transactions")
@@ -90,9 +115,9 @@ serve(async (req) => {
           item: `Payment received (${paymentIntent.id})`,
           credit: amount,
           debit: 0,
-          status: "completed",
+          status: paymentIntent.status === "processing" ? "pending" : "completed",
           transaction_date: new Date().toISOString(),
-          notes: `Stripe PaymentIntent: ${paymentIntent.id}`,
+          notes: `Stripe PaymentIntent: ${paymentIntent.id}${paymentIntent.status === "processing" ? " (processing - bank transfer may take a few days)" : ""}`,
           created_by: adminUserId,
         });
 
@@ -104,9 +129,9 @@ serve(async (req) => {
       if (transaction_ids && transaction_ids.length > 0) {
         await supabaseClient
           .from("transactions")
-          .update({ status: "completed" })
+          .update({ status: paymentIntent.status === "processing" ? "pending" : "completed" })
           .in("id", transaction_ids);
-        logStep("Marked transactions as completed", { transaction_ids });
+        logStep("Marked transactions as completed/pending", { transaction_ids });
       }
 
       return new Response(
@@ -115,6 +140,9 @@ serve(async (req) => {
           paymentIntentId: paymentIntent.id,
           status: paymentIntent.status,
           amount: amount,
+          message: paymentIntent.status === "processing" 
+            ? "Bank transfer initiated - payment will be completed in 1-3 business days" 
+            : "Payment completed successfully",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
