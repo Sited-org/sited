@@ -226,6 +226,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           lead_id: lead.id,
           amount: paymentTotal,
           description: description,
+          item_description: description,
           transaction_ids: realTransactionIds,
         },
       });
@@ -695,9 +696,17 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(t)}
-                      {!t.isFuture && t.status === 'completed' && (
-                        <Badge variant="default" className="bg-green-600">Completed</Badge>
+                      {/* Only show status for credit transactions */}
+                      {Number(t.credit) > 0 && (
+                        <>
+                          {getStatusBadge(t)}
+                          {!t.isFuture && t.status === 'completed' && (
+                            <Badge variant="default" className="bg-green-600">Completed</Badge>
+                          )}
+                          {!t.isFuture && t.status === 'pending' && (
+                            <Badge variant="outline" className="text-amber-600 border-amber-600/30">Pending</Badge>
+                          )}
+                        </>
                       )}
                     </TableCell>
                     <TableCell className={`text-right ${t.isFuture ? 'text-muted-foreground' : 'text-green-600 font-medium'}`}>
