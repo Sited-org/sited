@@ -4,57 +4,84 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowRight, Building, MapPin, Globe, Sparkles, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowRight, Building, MapPin, Globe, Sparkles, Copy, Check, ArrowLeft, Briefcase, Loader2, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-type Step = 'details' | 'prompt';
+type Step = 'details' | 'generating' | 'prompt';
+
+const INDUSTRIES = [
+  'Plumbing',
+  'Electrical',
+  'HVAC / Air Conditioning',
+  'Landscaping & Gardening',
+  'Cleaning Services',
+  'Construction & Building',
+  'Roofing',
+  'Painting & Decorating',
+  'Pest Control',
+  'Automotive / Mechanic',
+  'Beauty & Salon',
+  'Fitness & Gym',
+  'Restaurant / Cafe',
+  'Retail Shop',
+  'Real Estate',
+  'Legal Services',
+  'Accounting / Financial',
+  'Healthcare / Medical',
+  'Dental',
+  'Veterinary',
+  'Photography',
+  'Wedding Services',
+  'Pet Services',
+  'Education / Tutoring',
+  'IT / Tech Services',
+  'Marketing Agency',
+  'Consulting',
+  'Other',
+];
 
 export default function NewSale() {
   const [step, setStep] = useState<Step>('details');
   const [businessName, setBusinessName] = useState('');
   const [location, setLocation] = useState('');
+  const [industry, setIndustry] = useState('');
   const [website, setWebsite] = useState('');
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [researchInsights, setResearchInsights] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const generatedPrompt = `Create a professional, modern website for "${businessName}", a business located in ${location}.
-
-BUSINESS DETAILS:
-- Business Name: ${businessName}
-- Location: ${location}
-${website ? `- Current Website (for reference): ${website}` : '- No existing website'}
-
-WEBSITE REQUIREMENTS:
-1. Create a single-page landing website with the following sections:
-   - Hero section with business name, tagline, and call-to-action
-   - About/Services section highlighting what the business offers
-   - Contact section with location (${location}) and contact form
-   - Footer with business information
-
-2. Design Style:
-   - Modern, clean, and professional aesthetic
-   - Mobile-responsive design
-   - Fast loading and optimized
-   - Use appropriate color scheme for the industry
-
-3. Content:
-   - Generate professional placeholder content based on the business name
-   - Include compelling headlines and descriptions
-   - Add appropriate imagery placeholders
-
-4. Call-to-Actions:
-   - Primary CTA: "Get in Touch" or "Contact Us"
-   - Secondary CTA: "Learn More"
-
-Please create this website now. Make it look professional and ready to present to the client.`;
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim() || !location.trim()) {
-      toast.error('Please fill in business name and location');
+    if (!businessName.trim() || !location.trim() || !industry) {
+      toast.error('Please fill in business name, location, and industry');
       return;
     }
-    setStep('prompt');
+
+    setStep('generating');
+    setIsGenerating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-sales-prompt', {
+        body: { businessName, location, industry, website },
+      });
+
+      if (error) throw error;
+
+      setGeneratedPrompt(data.prompt);
+      setResearchInsights(data.research || '');
+      setStep('prompt');
+      toast.success('Prompt generated with AI research!');
+    } catch (error) {
+      console.error('Error generating prompt:', error);
+      toast.error('Failed to generate prompt. Please try again.');
+      setStep('details');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = async () => {
@@ -72,7 +99,10 @@ Please create this website now. Make it look professional and ready to present t
     setStep('details');
     setBusinessName('');
     setLocation('');
+    setIndustry('');
     setWebsite('');
+    setGeneratedPrompt('');
+    setResearchInsights('');
   };
 
   return (
@@ -95,7 +125,7 @@ Please create this website now. Make it look professional and ready to present t
               Business Details
             </CardTitle>
             <CardDescription>
-              Enter the prospect's business information to generate a Lovable prompt
+              Enter the prospect's business information - AI will research and create a tailored prompt
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -129,6 +159,25 @@ Please create this website now. Make it look professional and ready to present t
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="industry" className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                  Industry *
+                </Label>
+                <Select value={industry} onValueChange={setIndustry}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRIES.map((ind) => (
+                      <SelectItem key={ind} value={ind}>
+                        {ind}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="website" className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-muted-foreground" />
                   Current Website (optional)
@@ -141,15 +190,41 @@ Please create this website now. Make it look professional and ready to present t
                   onChange={(e) => setWebsite(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  If they have an existing website, we'll use it for reference
+                  If they have an existing website, AI will analyze it for improvements
                 </p>
               </div>
 
               <Button type="submit" className="w-full" size="lg">
-                Generate Lovable Prompt
+                <Search className="h-4 w-4 mr-2" />
+                Research & Generate Prompt
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === 'generating' && (
+        <Card>
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center space-y-6 text-center">
+              <div className="relative">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                </div>
+                <Search className="h-5 w-5 text-primary absolute -top-1 -right-1 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold">Researching {businessName}...</h3>
+                <p className="text-muted-foreground max-w-md">
+                  AI is gathering insights about the {industry} industry in {location} to create a highly targeted website prompt
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Sparkles className="h-4 w-4" />
+                <span>This usually takes 10-20 seconds</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -160,10 +235,10 @@ Please create this website now. Make it look professional and ready to present t
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
-                Lovable Prompt Ready
+                AI-Generated Lovable Prompt
               </CardTitle>
               <CardDescription>
-                Copy this prompt and paste it into Lovable.dev to create the website
+                Created using research on {industry} businesses in {location}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -171,7 +246,7 @@ Please create this website now. Make it look professional and ready to present t
                 <Textarea
                   value={generatedPrompt}
                   readOnly
-                  className="min-h-[300px] font-mono text-sm resize-none bg-muted/50"
+                  className="min-h-[400px] font-mono text-sm resize-none bg-muted/50"
                 />
                 <Button
                   onClick={handleCopy}
@@ -219,10 +294,32 @@ Please create this website now. Make it look professional and ready to present t
             </CardContent>
           </Card>
 
+          {/* Research Insights Card */}
+          {researchInsights && (
+            <Card className="bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Research Insights
+                </CardTitle>
+                <CardDescription>
+                  AI-gathered information used to create the prompt
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground bg-background/50 p-4 rounded-lg">
+                    {researchInsights}
+                  </pre>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Preview Card */}
           <Card className="bg-muted/30">
             <CardHeader>
-              <CardTitle className="text-lg">Website Preview Details</CardTitle>
+              <CardTitle className="text-lg">Business Details</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -231,11 +328,15 @@ Please create this website now. Make it look professional and ready to present t
                   <dd className="font-medium">{businessName}</dd>
                 </div>
                 <div>
+                  <dt className="text-muted-foreground">Industry</dt>
+                  <dd className="font-medium">{industry}</dd>
+                </div>
+                <div>
                   <dt className="text-muted-foreground">Location</dt>
                   <dd className="font-medium">{location}</dd>
                 </div>
                 {website && (
-                  <div className="sm:col-span-2">
+                  <div>
                     <dt className="text-muted-foreground">Reference Website</dt>
                     <dd className="font-medium text-primary">{website}</dd>
                   </div>
