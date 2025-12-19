@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail } from 'lucide-react';
+import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 
 const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
 
@@ -207,7 +208,7 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="memberships" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="memberships" className="gap-2">
             <CreditCard className="h-4 w-4" />
             Memberships
@@ -215,6 +216,10 @@ export default function AdminSettings() {
           <TabsTrigger value="testimonials" className="gap-2" disabled={!canManageTestimonials}>
             <Star className="h-4 w-4" />
             Testimonials
+          </TabsTrigger>
+          <TabsTrigger value="mail" className="gap-2">
+            <Mail className="h-4 w-4" />
+            Mail
           </TabsTrigger>
           <TabsTrigger value="profile" className="gap-2">
             <User className="h-4 w-4" />
@@ -717,6 +722,11 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Mail Tab */}
+        <TabsContent value="mail" className="mt-6">
+          <MailSettingsTab />
         </TabsContent>
 
         {/* Profile Tab */}
