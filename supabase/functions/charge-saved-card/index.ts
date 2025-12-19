@@ -38,10 +38,10 @@ serve(async (req) => {
     const adminUserId = userData.user?.id;
     logStep("User authenticated", { userId: adminUserId });
 
-    const { lead_id, amount, description, transaction_ids } = await req.json();
+    const { lead_id, amount, description, transaction_ids, item_description } = await req.json();
     if (!lead_id) throw new Error("lead_id is required");
     if (!amount || amount <= 0) throw new Error("Valid amount is required");
-    logStep("Request parsed", { lead_id, amount, description, transaction_ids });
+    logStep("Request parsed", { lead_id, amount, description, transaction_ids, item_description });
 
     // Fetch lead with Stripe details
     const { data: lead, error: leadError } = await supabaseClient
@@ -108,11 +108,14 @@ serve(async (req) => {
     // AU BECS debit payments may have "processing" status initially
     if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
       // Create credit transaction for the payment
+      // Use item_description if provided, otherwise fallback to generic description
+      const transactionItem = item_description || `Payment received`;
+      
       const { error: txError } = await supabaseClient
         .from("transactions")
         .insert({
           lead_id: lead_id,
-          item: `Payment received (${paymentIntent.id})`,
+          item: transactionItem,
           credit: amount,
           debit: 0,
           status: paymentIntent.status === "processing" ? "pending" : "completed",
