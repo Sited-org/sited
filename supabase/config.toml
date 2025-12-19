@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.generate-captcha]
 verify_jwt = false
 
+[functions.generate-sales-prompt]
+verify_jwt = true
+
 [functions.send-invoice]
 verify_jwt = true
 
