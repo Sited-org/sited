@@ -304,6 +304,8 @@ export type Database = {
           assigned_sales_rep: string | null
           assigned_to: string | null
           business_name: string | null
+          client_first_login_at: string | null
+          client_password_hash: string | null
           created_at: string
           deal_amount: number | null
           deal_closed_at: string | null
@@ -324,6 +326,8 @@ export type Database = {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
+          client_first_login_at?: string | null
+          client_password_hash?: string | null
           created_at?: string
           deal_amount?: number | null
           deal_closed_at?: string | null
@@ -344,6 +348,8 @@ export type Database = {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
+          client_first_login_at?: string | null
+          client_password_hash?: string | null
           created_at?: string
           deal_amount?: number | null
           deal_closed_at?: string | null
