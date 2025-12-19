@@ -10,8 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements, AuBankAccountElement } from '@stripe/react-stripe-js';
 
-// Initialize Stripe with publishable key
-const stripePromise = loadStripe('pk_live_51RO94BRjPvkTqNf8k3rZvWQf99n3VLKVXRoHdS4aMchEbvJPCQBrMI3KYGGLkWJW5hDeMJgQuwBCwDJMIbfwsGPi00M44WsKlm');
+// Initialize Stripe with publishable key from environment variable
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface SavedPaymentMethod {
   type: 'card' | 'au_becs_debit';
