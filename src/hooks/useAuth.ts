@@ -2,13 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+export type StaffRole = 'owner' | 'admin' | 'developer' | 'sales' | 'editor' | 'viewer';
+
 export interface UserRole {
   id: string;
   user_id: string;
-  role: 'owner' | 'admin' | 'editor' | 'viewer';
+  role: StaffRole;
   can_view: boolean;
   can_edit_leads: boolean;
   can_manage_users: boolean;
+  can_view_payments: boolean;
+  can_edit_project: boolean;
+  can_delete_leads: boolean;
+  can_charge_cards: boolean;
 }
 
 export interface AdminProfile {
@@ -62,14 +68,12 @@ export function useAuth() {
     if (initialized.current) return;
     initialized.current = true;
 
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
-          // Defer Supabase calls with setTimeout to prevent deadlocks
           setTimeout(() => {
             fetchUserRole(newSession.user.id);
             fetchAdminProfile(newSession.user.id);
@@ -83,7 +87,6 @@ export function useAuth() {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
@@ -132,8 +135,8 @@ export function useAuth() {
     return { error };
   };
 
-  // Only consider fully loaded when both auth and role are done loading
   const isFullyLoaded = !loading && !roleLoading;
+  const role = userRole?.role;
 
   return {
     user,
@@ -146,8 +149,18 @@ export function useAuth() {
     signOut,
     isAuthenticated: !!session,
     isAdmin: !!userRole,
+    // Role checks
+    isOwner: role === 'owner',
+    isAdminRole: role === 'admin',
+    isDeveloper: role === 'developer',
+    isSales: role === 'sales',
+    // Permission checks
     canEditLeads: userRole?.can_edit_leads ?? false,
     canManageUsers: userRole?.can_manage_users ?? false,
+    canViewPayments: userRole?.can_view_payments ?? false,
+    canEditProject: userRole?.can_edit_project ?? false,
+    canDeleteLeads: userRole?.can_delete_leads ?? false,
+    canChargeCards: userRole?.can_charge_cards ?? false,
     refreshUserRole: () => user && fetchUserRole(user.id),
     refreshAdminProfile: () => user && fetchAdminProfile(user.id),
   };

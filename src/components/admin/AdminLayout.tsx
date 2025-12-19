@@ -15,9 +15,12 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
+import { Target } from 'lucide-react';
+
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
+  { name: 'New Sale', href: '/admin/new-sale', icon: Target, salesOnly: true },
   { name: 'Live Activity', href: '/admin/activity', icon: Activity },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -91,6 +94,11 @@ export default function AdminLayout() {
               
               // Hide Team if user can't manage users
               if (item.href === '/admin/team' && !userRole?.can_manage_users) {
+                return null;
+              }
+              
+              // New Sale visible to sales and admins/owners
+              if ((item as any).salesOnly && userRole?.role !== 'sales' && userRole?.role !== 'owner' && userRole?.role !== 'admin') {
                 return null;
               }
               
