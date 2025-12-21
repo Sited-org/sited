@@ -3,54 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
-import { ArrowRight, Globe, Smartphone, Zap, Play } from "lucide-react";
+import { ArrowRight, Globe, Smartphone, Zap, Play, Sparkles, Code, Database, Shield, Palette, Camera, MessageSquare, BarChart, LucideIcon } from "lucide-react";
+import { usePublicServices, Service } from "@/hooks/useServices";
 
-const services = [
-  {
-    icon: Globe,
-    title: "Websites",
-    tagline: "Built to convert.",
-    stat: "3x",
-    statLabel: "More Conversions",
-    features: ["Custom Design", "Lightning Fast", "SEO Ready", "Monthly Updates"],
-    cta: { text: "Build My Website", link: "/onboarding/website" },
-    gradient: "from-blue-500/20 to-cyan-500/20",
-    accentColor: "text-blue-400",
-  },
-  {
-    icon: Smartphone,
-    title: "Apps",
-    tagline: "People actually use.",
-    stat: "4.8★",
-    statLabel: "Avg. Rating",
-    features: ["iOS & Android", "Your Idea", "Make Money", "User Friendly"],
-    cta: { text: "Build My App", link: "/onboarding/app" },
-    gradient: "from-purple-500/20 to-pink-500/20",
-    accentColor: "text-purple-400",
-  },
-  {
-    icon: Zap,
-    title: "AI Automation",
-    tagline: "That works for you.",
-    stat: "60%",
-    statLabel: "Time Saved",
-    features: ["Smart Automation", "Remove Human Error", "24/7 Active", "Custom to Your Business"],
-    cta: { text: "Add AI Power", link: "/onboarding/ai" },
-    gradient: "from-amber-500/20 to-orange-500/20",
-    accentColor: "text-amber-400",
-  },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Globe,
+  Smartphone,
+  Zap,
+  Sparkles,
+  Code,
+  Database,
+  Shield,
+  Palette,
+  Camera,
+  MessageSquare,
+  BarChart,
+};
 
 const ServiceCard = ({
   service,
   index,
 }: {
-  service: typeof services[0];
+  service: Service;
   index: number;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const Icon = service.icon;
+  const Icon = ICON_MAP[service.icon_name] || Globe;
 
+  const gradient = `from-${service.gradient_from} to-${service.gradient_to}`;
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -61,12 +42,12 @@ const ServiceCard = ({
       onMouseLeave={() => setIsHovered(false)}
       className="group relative"
     >
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${service.gradient} p-px`}>
+      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${gradient} p-px`}>
         <div className="relative bg-card rounded-[23px] p-8 sm:p-10 md:p-12 h-full">
           {/* Background glow on hover */}
           <motion.div
             animate={{ opacity: isHovered ? 0.5 : 0 }}
-            className={`absolute inset-0 bg-gradient-to-br ${service.gradient} blur-3xl`}
+            className={`absolute inset-0 bg-gradient-to-br ${gradient} blur-3xl`}
           />
 
           <div className="relative z-10">
@@ -75,9 +56,9 @@ const ServiceCard = ({
               <motion.div
                 animate={{ scale: isHovered ? 1.1 : 1, rotate: isHovered ? 5 : 0 }}
                 transition={{ type: "spring", stiffness: 300 }}
-                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${service.gradient} flex items-center justify-center`}
+                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center`}
               >
-                <Icon size={26} className={service.accentColor} />
+                <Icon size={26} className={service.accent_color} />
               </motion.div>
               <div>
                 <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight">{service.title}</h3>
@@ -91,10 +72,10 @@ const ServiceCard = ({
                 animate={{ scale: isHovered ? 1.05 : 1 }}
                 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tighter"
               >
-                {service.stat}
+                {service.stat_value}
               </motion.span>
               <p className="text-sm sm:text-base text-muted-foreground mt-2 uppercase tracking-wider">
-                {service.statLabel}
+                {service.stat_label}
               </p>
             </div>
 
@@ -116,9 +97,9 @@ const ServiceCard = ({
               className="w-full group/btn relative overflow-hidden" 
               asChild
             >
-              <Link to={service.cta.link}>
+              <Link to={service.cta_link}>
                 <span className="relative z-10 flex items-center justify-center gap-2">
-                  {service.cta.text}
+                  {service.cta_text}
                   <motion.span
                     animate={{ x: isHovered ? 4 : 0 }}
                     transition={{ type: "spring", stiffness: 300 }}
@@ -136,6 +117,7 @@ const ServiceCard = ({
 };
 
 const Services = () => {
+  const { data: services, isLoading } = usePublicServices();
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -172,11 +154,21 @@ const Services = () => {
       {/* Services Grid */}
       <section className="section-padding bg-background">
         <div className="container-tight">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {services.map((service, index) => (
-              <ServiceCard key={service.title} service={service} index={index} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-pulse text-muted-foreground">Loading services...</div>
+            </div>
+          ) : services && services.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {services.map((service, index) => (
+                <ServiceCard key={service.id} service={service} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-muted-foreground">No services available at this time.</p>
+            </div>
+          )}
         </div>
       </section>
 
