@@ -501,6 +501,66 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          accent_color: string
+          created_at: string
+          created_by: string | null
+          cta_link: string
+          cta_text: string
+          display_order: number
+          features: string[]
+          gradient_from: string
+          gradient_to: string
+          icon_name: string
+          id: string
+          is_active: boolean
+          stat_label: string
+          stat_value: string
+          tagline: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string
+          created_at?: string
+          created_by?: string | null
+          cta_link: string
+          cta_text: string
+          display_order?: number
+          features?: string[]
+          gradient_from?: string
+          gradient_to?: string
+          icon_name?: string
+          id?: string
+          is_active?: boolean
+          stat_label: string
+          stat_value: string
+          tagline: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string
+          created_at?: string
+          created_by?: string | null
+          cta_link?: string
+          cta_text?: string
+          display_order?: number
+          features?: string[]
+          gradient_from?: string
+          gradient_to?: string
+          icon_name?: string
+          id?: string
+          is_active?: boolean
+          stat_label?: string
+          stat_value?: string
+          tagline?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           business_name: string

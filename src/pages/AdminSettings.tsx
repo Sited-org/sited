@@ -14,8 +14,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe } from 'lucide-react';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
+import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
 
 const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
 
@@ -208,10 +209,14 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="memberships" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
           <TabsTrigger value="memberships" className="gap-2">
             <CreditCard className="h-4 w-4" />
             Memberships
+          </TabsTrigger>
+          <TabsTrigger value="services" className="gap-2">
+            <Globe className="h-4 w-4" />
+            Services
           </TabsTrigger>
           <TabsTrigger value="testimonials" className="gap-2" disabled={!canManageTestimonials}>
             <Star className="h-4 w-4" />
@@ -394,6 +399,11 @@ export default function AdminSettings() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="mt-6">
+          <ServicesSettingsTab />
         </TabsContent>
 
         {/* Testimonials Tab */}
