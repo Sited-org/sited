@@ -102,6 +102,34 @@ serve(async (req) => {
             .eq('stripe_invoice_id', invoice.id);
         }
 
+        // Capture and save the payment method from the invoice payment
+        if (leadId && invoice.payment_intent) {
+          try {
+            const paymentIntentId = typeof invoice.payment_intent === 'string' 
+              ? invoice.payment_intent 
+              : invoice.payment_intent.id;
+            
+            const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+            
+            if (paymentIntent.payment_method) {
+              const paymentMethodId = typeof paymentIntent.payment_method === 'string'
+                ? paymentIntent.payment_method
+                : paymentIntent.payment_method.id;
+              
+              // Save the payment method to the lead for future charges
+              await supabaseAdmin
+                .from('leads')
+                .update({ stripe_payment_method_id: paymentMethodId })
+                .eq('id', leadId);
+              
+              console.log("[STRIPE-WEBHOOK] Saved payment method to lead:", paymentMethodId);
+            }
+          } catch (pmError: any) {
+            console.error("[STRIPE-WEBHOOK] Error saving payment method:", pmError.message);
+            // Don't fail the webhook if payment method capture fails
+          }
+        }
+
         // Create a credit transaction for the payment
         if (leadId && invoice.amount_paid) {
           const amountPaid = invoice.amount_paid / 100; // Convert from cents
