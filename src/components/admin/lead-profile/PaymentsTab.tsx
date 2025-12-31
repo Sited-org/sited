@@ -9,9 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet } from 'lucide-react';
+import { Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet, Package } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
+import { useProducts } from '@/hooks/useProducts';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -37,14 +38,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   } = useTransactions(lead.id);
 
   const { activeMemberships } = useMemberships();
+  const { activeProducts } = useProducts();
   
-  const [transactionType, setTransactionType] = useState<'credit' | 'debit'>('debit');
-  const [newItem, setNewItem] = useState('');
-  const [newAmount, setNewAmount] = useState('');
-  const [newNotes, setNewNotes] = useState('');
-
-  // Membership selection state
+  // Product/Membership selection state
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [selectedMembership, setSelectedMembership] = useState<string>('');
+  const [transactionNotes, setTransactionNotes] = useState('');
 
   // Invoice state
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -58,15 +57,16 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [selectedPaymentItems, setSelectedPaymentItems] = useState<string[]>([]);
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  const handleAddTransaction = async () => {
-    if (!newItem.trim() || !newAmount) return;
-    
+  const handleAddProduct = async () => {
+    const product = activeProducts.find(p => p.id === selectedProduct);
+    if (!product) return;
+
     await addTransaction({
       lead_id: lead.id,
-      item: newItem.trim(),
-      credit: transactionType === 'credit' ? parseFloat(newAmount) : 0,
-      debit: transactionType === 'debit' ? parseFloat(newAmount) : 0,
-      notes: newNotes || null,
+      item: product.name,
+      credit: 0,
+      debit: product.price,
+      notes: transactionNotes || product.description || null,
       transaction_date: new Date().toISOString(),
       is_recurring: false,
       recurring_interval: null,
@@ -75,9 +75,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       status: 'completed',
     });
 
-    setNewItem('');
-    setNewAmount('');
-    setNewNotes('');
+    setSelectedProduct('');
+    setTransactionNotes('');
   };
 
   const handleAddMembership = async () => {
@@ -89,7 +88,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       item: membership.name,
       credit: 0,
       debit: membership.price,
-      notes: membership.description || null,
+      notes: transactionNotes || membership.description || null,
       transaction_date: new Date().toISOString(),
       is_recurring: true,
       recurring_interval: membership.billing_interval,
@@ -99,6 +98,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     });
 
     setSelectedMembership('');
+    setTransactionNotes('');
   };
 
   const toggleTransactionSelection = (id: string) => {
@@ -564,87 +564,108 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         </Card>
       )}
 
-      {/* Add Transaction Form */}
+      {/* Add Charge Form */}
       {canEdit && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Add Transaction</CardTitle>
+            <CardTitle className="text-lg">Add Charge</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <Select value={transactionType} onValueChange={(v) => setTransactionType(v as 'credit' | 'debit')}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="debit">Charge (Debit)</SelectItem>
-                  <SelectItem value="credit">Payment (Credit)</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Input
-                placeholder="Item description"
-                value={newItem}
-                onChange={(e) => setNewItem(e.target.value)}
-              />
-              
-              <Input
-                type="number"
-                placeholder="Amount"
-                value={newAmount}
-                onChange={(e) => setNewAmount(e.target.value)}
-              />
-              
-              <Input
-                placeholder="Notes (optional)"
-                value={newNotes}
-                onChange={(e) => setNewNotes(e.target.value)}
-              />
-              
-              <Button 
-                onClick={handleAddTransaction}
-                disabled={!newItem.trim() || !newAmount}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Charge
-              </Button>
+            {/* Product Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Add One-Time Product
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-3">
+                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a product..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeProducts.length === 0 ? (
+                        <SelectItem value="none" disabled>No active products available</SelectItem>
+                      ) : (
+                        activeProducts.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            <div className="flex items-center gap-4">
+                              <span>{product.name}</span>
+                              <span className="text-muted-foreground text-sm">
+                                ${product.price.toLocaleString()}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={handleAddProduct}
+                  disabled={!selectedProduct || selectedProduct === 'none'}
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Add Product
+                </Button>
+              </div>
             </div>
 
             {/* Membership Selection */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 pt-4 border-t border-border/40">
-              <div className="md:col-span-4">
-                <Select value={selectedMembership} onValueChange={setSelectedMembership}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a membership to add..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeMemberships.length === 0 ? (
-                      <SelectItem value="none" disabled>No active memberships available</SelectItem>
-                    ) : (
-                      activeMemberships.map((membership) => (
-                        <SelectItem key={membership.id} value={membership.id}>
-                          <div className="flex items-center gap-4">
-                            <span>{membership.name}</span>
-                            <span className="text-muted-foreground text-sm">
-                              ${membership.price}/{membership.billing_interval}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-2 pt-4 border-t border-border/40">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Add Recurring Membership
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-3">
+                  <Select value={selectedMembership} onValueChange={setSelectedMembership}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a membership..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeMemberships.length === 0 ? (
+                        <SelectItem value="none" disabled>No active memberships available</SelectItem>
+                      ) : (
+                        activeMemberships.map((membership) => (
+                          <SelectItem key={membership.id} value={membership.id}>
+                            <div className="flex items-center gap-4">
+                              <span>{membership.name}</span>
+                              <span className="text-muted-foreground text-sm">
+                                ${membership.price.toLocaleString()}/{membership.billing_interval}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={handleAddMembership}
+                  disabled={!selectedMembership || selectedMembership === 'none'}
+                  className="bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Add Membership
+                </Button>
               </div>
-              
-              <Button 
-                onClick={handleAddMembership}
-                disabled={!selectedMembership || selectedMembership === 'none'}
-                className="bg-foreground text-background hover:bg-foreground/90"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Add Membership
-              </Button>
             </div>
+
+            {/* Optional Notes */}
+            {(selectedProduct || selectedMembership) && (
+              <div className="space-y-2 pt-4 border-t border-border/40">
+                <Label htmlFor="transaction-notes">Notes (optional)</Label>
+                <Input
+                  id="transaction-notes"
+                  placeholder="Add notes for this transaction..."
+                  value={transactionNotes}
+                  onChange={(e) => setTransactionNotes(e.target.value)}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
