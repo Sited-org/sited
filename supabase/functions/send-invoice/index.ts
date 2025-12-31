@@ -126,12 +126,16 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('id', leadId);
     }
 
-    // Create Stripe invoice with explicit currency
+    // Create Stripe invoice with explicit currency and payment method saving
     const invoiceParams: Stripe.InvoiceCreateParams = {
       customer: customerId,
       currency: customerCurrency,
       collection_method: 'send_invoice',
       days_until_due: dueDate ? Math.ceil((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 30,
+      payment_settings: {
+        payment_method_types: ['card', 'au_becs_debit'],
+        save_default_payment_method: 'on_subscription',
+      },
       metadata: {
         lead_id: leadId,
         transaction_ids: transactionIds.join(','),
