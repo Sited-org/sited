@@ -78,6 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get or create Stripe customer
     let customerId: string;
+    let customerCurrency: string = 'usd'; // Default currency
     
     // Check if lead already has a Stripe customer ID
     const { data: lead } = await supabaseAdmin
@@ -88,14 +89,22 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (lead?.stripe_customer_id) {
       customerId = lead.stripe_customer_id;
-      console.log("[SEND-INVOICE] Using existing customer:", customerId);
+      // Fetch the customer to get their currency
+      const existingCustomer = await stripe.customers.retrieve(customerId);
+      if (!existingCustomer.deleted && existingCustomer.currency) {
+        customerCurrency = existingCustomer.currency;
+      }
+      console.log("[SEND-INVOICE] Using existing customer:", customerId, "currency:", customerCurrency);
     } else {
       // Check if customer exists by email
       const customers = await stripe.customers.list({ email: clientEmail, limit: 1 });
       
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
-        console.log("[SEND-INVOICE] Found customer by email:", customerId);
+        if (customers.data[0].currency) {
+          customerCurrency = customers.data[0].currency;
+        }
+        console.log("[SEND-INVOICE] Found customer by email:", customerId, "currency:", customerCurrency);
       } else {
         // Create new customer
         const customer = await stripe.customers.create({
@@ -117,9 +126,10 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('id', leadId);
     }
 
-    // Create Stripe invoice
+    // Create Stripe invoice with explicit currency
     const invoiceParams: Stripe.InvoiceCreateParams = {
       customer: customerId,
+      currency: customerCurrency,
       collection_method: 'send_invoice',
       days_until_due: dueDate ? Math.ceil((new Date(dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 30,
       metadata: {
@@ -133,15 +143,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const invoice = await stripe.invoices.create(invoiceParams);
-    console.log("[SEND-INVOICE] Created invoice:", invoice.id);
+    console.log("[SEND-INVOICE] Created invoice:", invoice.id, "currency:", customerCurrency);
 
-    // Add invoice items
+    // Add invoice items with matching currency
     for (const item of items) {
       await stripe.invoiceItems.create({
         customer: customerId,
         invoice: invoice.id,
         amount: Math.round(item.amount * 100), // Convert to cents
-        currency: 'usd',
+        currency: customerCurrency,
         description: `${item.item}${item.notes ? ` - ${item.notes}` : ''}`,
         metadata: {
           transaction_id: item.id,
