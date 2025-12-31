@@ -38,3 +38,18 @@ verify_jwt = true
 
 [functions.send-monthly-report]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.verify-client-access]
+verify_jwt = false
+
+[functions.get-client-data]
+verify_jwt = false
+
+[functions.client-create-setup-intent]
+verify_jwt = false
+
+[functions.client-save-payment-method]
+verify_jwt = false
