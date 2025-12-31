@@ -18,6 +18,8 @@ export interface Transaction {
   recurring_end_date: string | null;
   parent_transaction_id: string | null;
   status: 'completed' | 'pending' | 'scheduled';
+  invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | null;
+  stripe_invoice_id: string | null;
 }
 
 export interface TransactionWithBalance extends Transaction {
@@ -140,7 +142,7 @@ export function useTransactions(leadId: string | undefined) {
     return withBalance.reverse();
   }, [transactions]);
 
-  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'created_by' | 'balance'>) => {
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'created_at' | 'created_by'>) => {
     const { data: userData } = await supabase.auth.getUser();
     
     const { error } = await supabase
@@ -156,6 +158,8 @@ export function useTransactions(leadId: string | undefined) {
         recurring_interval: transaction.recurring_interval,
         recurring_end_date: transaction.recurring_end_date,
         status: transaction.status,
+        invoice_status: transaction.invoice_status || 'not_sent',
+        stripe_invoice_id: transaction.stripe_invoice_id || null,
         created_by: userData.user?.id 
       });
 

@@ -73,6 +73,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       recurring_end_date: null,
       parent_transaction_id: null,
       status: 'completed',
+      invoice_status: 'not_sent',
+      stripe_invoice_id: null,
     });
 
     setSelectedProduct('');
@@ -95,6 +97,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       recurring_end_date: null,
       parent_transaction_id: null,
       status: 'completed',
+      invoice_status: 'not_sent',
+      stripe_invoice_id: null,
     });
 
     setSelectedMembership('');
@@ -119,8 +123,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const getSelectedItems = () => {
     return transactions
       .filter(t => selectedTransactions.includes(t.id))
-      .filter(t => Number(t.debit) > 0 && !t.isFuture)
+      .filter(t => Number(t.debit) > 0 && !t.isFuture && t.invoice_status !== 'paid')
       .map(t => ({
+        id: t.id,
         item: t.item,
         amount: Number(t.debit),
         date: format(new Date(t.transaction_date), 'PP'),
@@ -136,36 +141,41 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
 
     const items = getSelectedItems();
     if (items.length === 0) {
-      toast.error('Please select at least one charge to include in the invoice');
+      toast.error('Please select at least one unpaid charge to include in the invoice');
       return;
     }
 
+    // Filter out items that are not real transaction IDs
+    const transactionIds = selectedTransactions.filter(id => !id.startsWith('future-'));
+
     setSendingInvoice(true);
     try {
-      const invoiceNumber = `INV-${lead.lead_number || lead.id.slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-4)}`;
       const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
 
       const { data, error } = await supabase.functions.invoke('send-invoice', {
         body: {
+          leadId: lead.id,
           clientEmail: lead.email,
           clientName: lead.name || 'Valued Client',
           businessName: lead.business_name,
           items,
           totalAmount,
-          balanceDue: currentBalance,
-          invoiceNumber,
           dueDate: invoiceDueDate || undefined,
           notes: invoiceNotes || undefined,
+          transactionIds,
         },
       });
 
       if (error) throw error;
 
-      toast.success(`Invoice sent to ${lead.email}`);
+      toast.success(`Stripe Invoice sent to ${lead.email}`);
       setInvoiceOpen(false);
       setSelectedTransactions([]);
       setInvoiceNotes('');
       setInvoiceDueDate('');
+      
+      // Refresh transactions to show updated status
+      window.location.reload();
     } catch (error: any) {
       console.error('Error sending invoice:', error);
       toast.error(error.message || 'Failed to send invoice');
@@ -253,13 +263,32 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     }
   };
 
-  const getStatusBadge = (transaction: TransactionWithBalance) => {
+  const getInvoiceStatusBadge = (transaction: TransactionWithBalance) => {
     if (transaction.isFuture) {
       return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Scheduled</Badge>;
     }
-    if (transaction.status === 'pending') {
-      return <Badge variant="outline" className="text-amber-600 border-amber-600/30">Pending</Badge>;
+    
+    // For debit transactions (charges), show invoice status
+    if (Number(transaction.debit) > 0) {
+      switch (transaction.invoice_status) {
+        case 'not_sent':
+          return <Badge variant="outline" className="text-slate-500 border-slate-500/30">Not Sent</Badge>;
+        case 'sent':
+          return <Badge variant="outline" className="text-blue-600 border-blue-600/30">Sent</Badge>;
+        case 'processing':
+          return <Badge variant="outline" className="text-amber-600 border-amber-600/30">Processing</Badge>;
+        case 'paid':
+          return <Badge variant="default" className="bg-green-600">Paid</Badge>;
+        default:
+          return <Badge variant="outline" className="text-slate-500 border-slate-500/30">Not Sent</Badge>;
+      }
     }
+    
+    // For credit transactions (payments), show completed
+    if (Number(transaction.credit) > 0) {
+      return <Badge variant="default" className="bg-green-600">Completed</Badge>;
+    }
+    
     return null;
   };
 
@@ -717,15 +746,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                       </div>
                     </TableCell>
                     <TableCell>
-                      {/* Only show status for credit transactions */}
-                      {Number(t.credit) > 0 && (
-                        <>
-                          {getStatusBadge(t)}
-                          {!t.isFuture && t.status === 'completed' && (
-                            <Badge variant="default" className="bg-green-600">Completed</Badge>
-                          )}
-                        </>
-                      )}
+                      {getInvoiceStatusBadge(t)}
                     </TableCell>
                     <TableCell className={`text-right ${t.isFuture ? 'text-muted-foreground' : 'text-green-600 font-medium'}`}>
                       {Number(t.credit) > 0 ? `$${Number(t.credit).toLocaleString()}` : '-'}

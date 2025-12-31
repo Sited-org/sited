@@ -673,6 +673,7 @@ export type Database = {
           credit: number | null
           debit: number | null
           id: string
+          invoice_status: string | null
           is_recurring: boolean
           item: string
           lead_id: string
@@ -681,6 +682,7 @@ export type Database = {
           recurring_end_date: string | null
           recurring_interval: string | null
           status: string
+          stripe_invoice_id: string | null
           transaction_date: string
         }
         Insert: {
@@ -689,6 +691,7 @@ export type Database = {
           credit?: number | null
           debit?: number | null
           id?: string
+          invoice_status?: string | null
           is_recurring?: boolean
           item: string
           lead_id: string
@@ -697,6 +700,7 @@ export type Database = {
           recurring_end_date?: string | null
           recurring_interval?: string | null
           status?: string
+          stripe_invoice_id?: string | null
           transaction_date?: string
         }
         Update: {
@@ -705,6 +709,7 @@ export type Database = {
           credit?: number | null
           debit?: number | null
           id?: string
+          invoice_status?: string | null
           is_recurring?: boolean
           item?: string
           lead_id?: string
@@ -713,6 +718,7 @@ export type Database = {
           recurring_end_date?: string | null
           recurring_interval?: string | null
           status?: string
+          stripe_invoice_id?: string | null
           transaction_date?: string
         }
         Relationships: [
