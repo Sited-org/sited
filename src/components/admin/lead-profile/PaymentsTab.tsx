@@ -46,6 +46,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   // Product/Membership selection state
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [selectedMembership, setSelectedMembership] = useState<string>('');
+  const [membershipStartDate, setMembershipStartDate] = useState<string>('');
   const [transactionNotes, setTransactionNotes] = useState('');
 
   // Invoice state
@@ -94,13 +95,18 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     const membership = activeMemberships.find(m => m.id === selectedMembership);
     if (!membership) return;
 
+    // Use start date if provided, otherwise use today
+    const startDate = membershipStartDate 
+      ? new Date(membershipStartDate).toISOString() 
+      : new Date().toISOString();
+
     await addTransaction({
       lead_id: lead.id,
       item: membership.name,
       credit: 0,
       debit: membership.price,
       notes: transactionNotes || membership.description || null,
-      transaction_date: new Date().toISOString(),
+      transaction_date: startDate,
       is_recurring: true,
       recurring_interval: membership.billing_interval,
       recurring_end_date: null,
@@ -111,6 +117,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     });
 
     setSelectedMembership('');
+    setMembershipStartDate('');
     setTransactionNotes('');
   };
 
@@ -693,8 +700,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 <CreditCard className="h-4 w-4" />
                 Add Recurring Membership
               </Label>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-3">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="md:col-span-2">
                   <Select value={selectedMembership} onValueChange={setSelectedMembership}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a membership..." />
@@ -718,13 +725,30 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                   </Select>
                 </div>
                 
+                <div className="md:col-span-2">
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      value={membershipStartDate}
+                      onChange={(e) => setMembershipStartDate(e.target.value)}
+                      placeholder="Start date"
+                      className="w-full"
+                    />
+                    {!membershipStartDate && (
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                        Start date (default: today)
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
                 <Button 
                   onClick={handleAddMembership}
                   disabled={!selectedMembership || selectedMembership === 'none'}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Add Membership
+                  Add
                 </Button>
               </div>
             </div>
