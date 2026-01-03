@@ -183,13 +183,14 @@ export function useTransactions(leadId: string | undefined) {
     // Check if transaction can be deleted
     const transaction = transactions.find(t => t.id === transactionId);
     if (transaction) {
-      // Prevent deletion if invoice was sent or paid
-      if (transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing') {
+      // Prevent deletion if invoice was sent or paid (unless it's a void entry)
+      const isVoidEntry = transaction.item.startsWith('VOID:');
+      if (!isVoidEntry && (transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing')) {
         toast({ title: 'Cannot delete', description: 'Transactions with sent or paid invoices cannot be deleted. Use Void instead.', variant: 'destructive' });
         return { error: new Error('Cannot delete invoiced transaction') };
       }
-      // Prevent deletion of credit/payment transactions
-      if (Number(transaction.credit) > 0) {
+      // Prevent deletion of credit/payment transactions (but allow void entries)
+      if (Number(transaction.credit) > 0 && !isVoidEntry) {
         toast({ title: 'Cannot delete payment', description: 'Payment records cannot be deleted. Use Void instead.', variant: 'destructive' });
         return { error: new Error('Cannot delete payment transaction') };
       }
@@ -270,6 +271,11 @@ export function useTransactions(leadId: string | undefined) {
   };
 
   const canDeleteTransaction = (transaction: Transaction | TransactionWithBalance): boolean => {
+    // Void entries can always be deleted
+    const isVoidEntry = transaction.item.startsWith('VOID:');
+    if (isVoidEntry) {
+      return true;
+    }
     // Cannot delete if invoice was sent or paid
     if (transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing') {
       return false;
