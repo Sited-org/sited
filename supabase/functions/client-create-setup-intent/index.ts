@@ -58,6 +58,7 @@ serve(async (req) => {
         email: lead.email,
         name: lead.name || undefined,
         metadata: { lead_id: lead.id },
+        currency: 'aud',
       });
       customerId = customer.id;
 
