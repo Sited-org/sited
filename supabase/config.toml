@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.client-save-payment-method]
 verify_jwt = false
+
+[functions.create-membership-subscription]
+verify_jwt = true

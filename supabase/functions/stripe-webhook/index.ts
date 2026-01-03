@@ -87,6 +87,10 @@ serve(async (req) => {
         const transactionIds = invoice.metadata?.transaction_ids?.split(',') || [];
         const leadId = invoice.metadata?.lead_id;
 
+        // Check if this is a subscription invoice
+        const isSubscriptionInvoice = !!invoice.subscription;
+        console.log("[STRIPE-WEBHOOK] Is subscription invoice:", isSubscriptionInvoice);
+
         // Update transaction statuses to 'paid'
         if (transactionIds.length > 0) {
           await supabaseAdmin
@@ -130,18 +134,39 @@ serve(async (req) => {
           }
         }
 
+        // For subscription invoices, get lead_id from subscription metadata if not in invoice
+        let actualLeadId = leadId;
+        if (!actualLeadId && isSubscriptionInvoice && invoice.subscription) {
+          try {
+            const subscriptionId = typeof invoice.subscription === 'string' 
+              ? invoice.subscription 
+              : invoice.subscription.id;
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            actualLeadId = subscription.metadata?.lead_id;
+            console.log("[STRIPE-WEBHOOK] Got lead_id from subscription:", actualLeadId);
+          } catch (subError: any) {
+            console.error("[STRIPE-WEBHOOK] Error getting subscription:", subError.message);
+          }
+        }
+
         // Create a credit transaction for the payment
-        if (leadId && invoice.amount_paid) {
+        if (actualLeadId && invoice.amount_paid) {
           const amountPaid = invoice.amount_paid / 100; // Convert from cents
+          
+          // For subscription invoices, include the membership name
+          let itemDescription = `Payment for Invoice #${invoice.number || invoice.id}`;
+          if (isSubscriptionInvoice && invoice.lines?.data?.[0]?.description) {
+            itemDescription = `Payment: ${invoice.lines.data[0].description}`;
+          }
           
           await supabaseAdmin
             .from('transactions')
             .insert({
-              lead_id: leadId,
-              item: `Payment for Invoice #${invoice.number || invoice.id}`,
+              lead_id: actualLeadId,
+              item: itemDescription,
               credit: amountPaid,
               debit: 0,
-              notes: `Stripe Invoice ${invoice.id}`,
+              notes: `Stripe Invoice ${invoice.id}${isSubscriptionInvoice ? ' (Recurring Subscription)' : ''}`,
               transaction_date: new Date().toISOString(),
               is_recurring: false,
               status: 'completed',
@@ -149,6 +174,83 @@ serve(async (req) => {
               stripe_invoice_id: invoice.id,
             });
           console.log("[STRIPE-WEBHOOK] Created credit transaction for payment:", amountPaid);
+        }
+        break;
+      }
+
+      case "invoice.created": {
+        // Handle subscription invoice creation - create debit transaction for future billing
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log("[STRIPE-WEBHOOK] Invoice created:", invoice.id);
+        
+        if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
+          console.log("[STRIPE-WEBHOOK] Subscription cycle invoice detected");
+          
+          try {
+            const subscriptionId = typeof invoice.subscription === 'string' 
+              ? invoice.subscription 
+              : invoice.subscription.id;
+            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const leadId = subscription.metadata?.lead_id;
+            const membershipName = subscription.metadata?.membership_name;
+            
+            if (leadId && invoice.amount_due) {
+              const amount = invoice.amount_due / 100;
+              
+              // Create a debit transaction for this billing cycle
+              await supabaseAdmin
+                .from('transactions')
+                .insert({
+                  lead_id: leadId,
+                  item: membershipName || 'Subscription Renewal',
+                  credit: 0,
+                  debit: amount,
+                  notes: `Auto-generated for subscription billing cycle`,
+                  transaction_date: new Date().toISOString(),
+                  is_recurring: true,
+                  recurring_interval: 'monthly', // Will be overwritten based on subscription
+                  status: 'completed',
+                  invoice_status: 'processing',
+                  stripe_invoice_id: invoice.id,
+                });
+              console.log("[STRIPE-WEBHOOK] Created debit transaction for subscription cycle:", amount);
+            }
+          } catch (subError: any) {
+            console.error("[STRIPE-WEBHOOK] Error handling subscription invoice:", subError.message);
+          }
+        }
+        break;
+      }
+
+      case "customer.subscription.created": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("[STRIPE-WEBHOOK] Subscription created:", subscription.id);
+        console.log("[STRIPE-WEBHOOK] Subscription metadata:", subscription.metadata);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("[STRIPE-WEBHOOK] Subscription updated:", subscription.id, "Status:", subscription.status);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        console.log("[STRIPE-WEBHOOK] Subscription cancelled:", subscription.id);
+        
+        const leadId = subscription.metadata?.lead_id;
+        if (leadId) {
+          // Mark recurring transactions as ended
+          await supabaseAdmin
+            .from('transactions')
+            .update({ 
+              recurring_end_date: new Date().toISOString()
+            })
+            .eq('lead_id', leadId)
+            .eq('is_recurring', true)
+            .is('recurring_end_date', null);
+          console.log("[STRIPE-WEBHOOK] Marked recurring transactions as ended for lead:", leadId);
         }
         break;
       }
