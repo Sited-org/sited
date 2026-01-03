@@ -726,20 +726,13 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 </div>
                 
                 <div className="md:col-span-2">
-                  <div className="relative">
-                    <Input
-                      type="date"
-                      value={membershipStartDate}
-                      onChange={(e) => setMembershipStartDate(e.target.value)}
-                      placeholder="Start date"
-                      className="w-full"
-                    />
-                    {!membershipStartDate && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
-                        Start date (default: today)
-                      </span>
-                    )}
-                  </div>
+                  <Input
+                    type="date"
+                    value={membershipStartDate}
+                    onChange={(e) => setMembershipStartDate(e.target.value)}
+                    className="w-full"
+                    title="Start date (leave empty for today)"
+                  />
                 </div>
                 
                 <Button 
