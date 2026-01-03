@@ -736,9 +736,21 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 <CreditCard className="h-4 w-4" />
                 Add Recurring Membership
               </Label>
+              
+              {!lead.stripe_payment_method_id && (
+                <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  A saved payment method is required for recurring memberships. Please add a card in the Card tab first.
+                </p>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="md:col-span-2">
-                  <Select value={selectedMembership} onValueChange={setSelectedMembership}>
+                  <Select 
+                    value={selectedMembership} 
+                    onValueChange={setSelectedMembership}
+                    disabled={!lead.stripe_payment_method_id}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a membership..." />
                     </SelectTrigger>
@@ -768,12 +780,13 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     onChange={(e) => setMembershipStartDate(e.target.value)}
                     className="w-full"
                     title="Start date (leave empty for today)"
+                    disabled={!lead.stripe_payment_method_id}
                   />
                 </div>
                 
                 <Button 
                   onClick={handleAddMembership}
-                  disabled={!selectedMembership || selectedMembership === 'none' || creatingSubscription}
+                  disabled={!selectedMembership || selectedMembership === 'none' || creatingSubscription || !lead.stripe_payment_method_id}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   {creatingSubscription ? (
