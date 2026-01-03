@@ -98,49 +98,77 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     const membership = activeMemberships.find(m => m.id === selectedMembership);
     if (!membership) return;
 
-    // Check if lead has a saved payment method
-    if (!lead.stripe_payment_method_id) {
-      toast.error('No payment method on file. Please add a card in the Card tab first before creating a subscription.');
-      return;
-    }
+    // Use start date if provided, otherwise use today
+    const startDate = membershipStartDate 
+      ? new Date(membershipStartDate).toISOString() 
+      : new Date().toISOString();
 
-    setCreatingSubscription(true);
-    try {
-      // Use start date if provided, otherwise use today
-      const startDate = membershipStartDate 
-        ? new Date(membershipStartDate).toISOString() 
-        : new Date().toISOString();
+    // If card is on file, create a Stripe subscription for automatic billing
+    if (lead.stripe_payment_method_id) {
+      setCreatingSubscription(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('create-membership-subscription', {
+          body: {
+            lead_id: lead.id,
+            membership_name: membership.name,
+            membership_price: membership.price,
+            billing_interval: membership.billing_interval,
+            start_date: startDate,
+            notes: transactionNotes || membership.description || null,
+          },
+        });
 
-      const { data, error } = await supabase.functions.invoke('create-membership-subscription', {
-        body: {
-          lead_id: lead.id,
-          membership_name: membership.name,
-          membership_price: membership.price,
-          billing_interval: membership.billing_interval,
-          start_date: startDate,
-          notes: transactionNotes || membership.description || null,
-        },
-      });
+        if (error) throw error;
 
-      if (error) throw error;
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to create subscription');
+        }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to create subscription');
+        toast.success(`Stripe subscription created for ${membership.name}. Customer will be billed automatically each ${membership.billing_interval}.`);
+        
+        setSelectedMembership('');
+        setMembershipStartDate('');
+        setTransactionNotes('');
+        
+        // Refresh to show the new transaction
+        window.location.reload();
+      } catch (error: any) {
+        console.error('Error creating subscription:', error);
+        toast.error(error.message || 'Failed to create subscription');
+      } finally {
+        setCreatingSubscription(false);
       }
+    } else {
+      // No card on file - create a local recurring transaction that will accumulate
+      setCreatingSubscription(true);
+      try {
+        await addTransaction({
+          lead_id: lead.id,
+          item: membership.name,
+          credit: 0,
+          debit: membership.price,
+          notes: transactionNotes || membership.description || null,
+          transaction_date: startDate,
+          is_recurring: true,
+          recurring_interval: membership.billing_interval,
+          recurring_end_date: null,
+          parent_transaction_id: null,
+          status: 'completed',
+          invoice_status: 'not_sent',
+          stripe_invoice_id: null,
+        });
 
-      toast.success(`Stripe subscription created for ${membership.name}. Customer will be billed automatically each ${membership.billing_interval}.`);
-      
-      setSelectedMembership('');
-      setMembershipStartDate('');
-      setTransactionNotes('');
-      
-      // Refresh to show the new transaction
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error creating subscription:', error);
-      toast.error(error.message || 'Failed to create subscription');
-    } finally {
-      setCreatingSubscription(false);
+        toast.success(`Recurring membership "${membership.name}" added. Charges will accumulate ${membership.billing_interval} until paid.`);
+        
+        setSelectedMembership('');
+        setMembershipStartDate('');
+        setTransactionNotes('');
+      } catch (error: any) {
+        console.error('Error adding membership:', error);
+        toast.error(error.message || 'Failed to add membership');
+      } finally {
+        setCreatingSubscription(false);
+      }
     }
   };
 
@@ -738,9 +766,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
               </Label>
               
               {!lead.stripe_payment_method_id && (
-                <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md flex items-center gap-2">
+                <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  A saved payment method is required for recurring memberships. Please add a card in the Card tab first.
+                  No card on file. Membership charges will accumulate until a payment method is added.
                 </p>
               )}
               
@@ -749,7 +777,6 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                   <Select 
                     value={selectedMembership} 
                     onValueChange={setSelectedMembership}
-                    disabled={!lead.stripe_payment_method_id}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a membership..." />
@@ -780,13 +807,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     onChange={(e) => setMembershipStartDate(e.target.value)}
                     className="w-full"
                     title="Start date (leave empty for today)"
-                    disabled={!lead.stripe_payment_method_id}
                   />
                 </div>
                 
                 <Button 
                   onClick={handleAddMembership}
-                  disabled={!selectedMembership || selectedMembership === 'none' || creatingSubscription || !lead.stripe_payment_method_id}
+                  disabled={!selectedMembership || selectedMembership === 'none' || creatingSubscription}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
                   {creatingSubscription ? (
