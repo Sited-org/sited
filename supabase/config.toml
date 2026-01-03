@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.create-membership-subscription]
 verify_jwt = true
+
+[functions.sync-product-stripe]
+verify_jwt = true
