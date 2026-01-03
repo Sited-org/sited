@@ -82,6 +82,7 @@ serve(async (req) => {
           metadata: {
             lead_id: lead.id,
           },
+          currency: 'aud',
         });
         customerId = customer.id;
         logStep("Created new Stripe customer", { customerId });

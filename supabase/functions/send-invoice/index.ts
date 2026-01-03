@@ -76,9 +76,9 @@ const handler = async (req: Request): Promise<Response> => {
       apiVersion: "2023-10-16",
     });
 
-    // Get or create Stripe customer
+    // Get or create Stripe customer - ALWAYS use AUD currency
     let customerId: string;
-    let customerCurrency: string = 'aud'; // Default currency - always AUD
+    const customerCurrency: string = 'aud'; // ALWAYS AUD - never use customer's stored currency
     
     // Check if lead already has a Stripe customer ID
     const { data: lead } = await supabaseAdmin
@@ -89,11 +89,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (lead?.stripe_customer_id) {
       customerId = lead.stripe_customer_id;
-      // Fetch the customer to get their currency
-      const existingCustomer = await stripe.customers.retrieve(customerId);
-      if (!existingCustomer.deleted && existingCustomer.currency) {
-        customerCurrency = existingCustomer.currency;
-      }
       console.log("[SEND-INVOICE] Using existing customer:", customerId, "currency:", customerCurrency);
     } else {
       // Check if customer exists by email
@@ -101,12 +96,9 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
-        if (customers.data[0].currency) {
-          customerCurrency = customers.data[0].currency;
-        }
         console.log("[SEND-INVOICE] Found customer by email:", customerId, "currency:", customerCurrency);
       } else {
-        // Create new customer
+        // Create new customer with AUD currency
         const customer = await stripe.customers.create({
           email: clientEmail,
           name: clientName,
@@ -114,6 +106,7 @@ const handler = async (req: Request): Promise<Response> => {
             lead_id: leadId,
             business_name: businessName || '',
           },
+          currency: 'aud',
         });
         customerId = customer.id;
         console.log("[SEND-INVOICE] Created new customer:", customerId);
