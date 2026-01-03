@@ -180,6 +180,21 @@ export function useTransactions(leadId: string | undefined) {
       return { error: new Error('Cannot delete future preview') };
     }
     
+    // Check if transaction can be deleted
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (transaction) {
+      // Prevent deletion if invoice was sent or paid
+      if (transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing') {
+        toast({ title: 'Cannot delete', description: 'Transactions with sent or paid invoices cannot be deleted. Use Void instead.', variant: 'destructive' });
+        return { error: new Error('Cannot delete invoiced transaction') };
+      }
+      // Prevent deletion of credit/payment transactions
+      if (Number(transaction.credit) > 0) {
+        toast({ title: 'Cannot delete payment', description: 'Payment records cannot be deleted. Use Void instead.', variant: 'destructive' });
+        return { error: new Error('Cannot delete payment transaction') };
+      }
+    }
+    
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -193,6 +208,95 @@ export function useTransactions(leadId: string | undefined) {
     toast({ title: 'Transaction deleted' });
     fetchTransactions();
     return { error: null };
+  };
+
+  const voidTransaction = async (transactionId: string, reason: string) => {
+    if (transactionId.startsWith('future-')) {
+      toast({ title: 'Cannot void future preview', variant: 'destructive' });
+      return { error: new Error('Cannot void future preview') };
+    }
+    
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) {
+      toast({ title: 'Transaction not found', variant: 'destructive' });
+      return { error: new Error('Transaction not found') };
+    }
+    
+    const { data: userData } = await supabase.auth.getUser();
+    const voidAmount = Number(transaction.debit) > 0 ? Number(transaction.debit) : Number(transaction.credit);
+    const isDebit = Number(transaction.debit) > 0;
+    
+    // Create a void transaction (reverses the original)
+    const { error: insertError } = await supabase
+      .from('transactions')
+      .insert({
+        lead_id: transaction.lead_id,
+        item: `VOID: ${transaction.item}`,
+        credit: isDebit ? voidAmount : 0, // If original was debit, void as credit
+        debit: isDebit ? 0 : voidAmount, // If original was credit, void as debit
+        notes: `Reason: ${reason}`,
+        transaction_date: new Date().toISOString(),
+        is_recurring: false,
+        recurring_interval: null,
+        recurring_end_date: null,
+        status: 'completed',
+        invoice_status: 'paid', // Mark as paid so it can't be invoiced
+        parent_transaction_id: transactionId,
+        created_by: userData.user?.id,
+      });
+    
+    if (insertError) {
+      toast({ title: 'Error voiding transaction', description: insertError.message, variant: 'destructive' });
+      return { error: insertError };
+    }
+    
+    // Update original transaction to mark it as voided
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({ 
+        notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
+        invoice_status: 'paid' // Prevent further invoicing
+      })
+      .eq('id', transactionId);
+    
+    if (updateError) {
+      toast({ title: 'Error updating voided transaction', description: updateError.message, variant: 'destructive' });
+      return { error: updateError };
+    }
+    
+    toast({ title: 'Transaction voided successfully' });
+    fetchTransactions();
+    return { error: null };
+  };
+
+  const canDeleteTransaction = (transaction: Transaction | TransactionWithBalance): boolean => {
+    // Cannot delete if invoice was sent or paid
+    if (transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing') {
+      return false;
+    }
+    // Cannot delete credit/payment transactions
+    if (Number(transaction.credit) > 0) {
+      return false;
+    }
+    // Cannot delete future previews
+    if ('isFuture' in transaction && transaction.isFuture) {
+      return false;
+    }
+    return true;
+  };
+
+  const canVoidTransaction = (transaction: Transaction | TransactionWithBalance): boolean => {
+    // Cannot void future previews
+    if ('isFuture' in transaction && transaction.isFuture) {
+      return false;
+    }
+    // Can only void if invoice was sent/paid OR if it's a payment (credit)
+    const isInvoiced = transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing';
+    const isPayment = Number(transaction.credit) > 0;
+    // Check if already voided
+    const isVoided = transaction.item.startsWith('VOID:') || (transaction.notes?.includes('[VOIDED:') ?? false);
+    
+    return (isInvoiced || isPayment) && !isVoided;
   };
 
   const updateTransactionStatus = async (transactionId: string, status: 'completed' | 'pending' | 'scheduled') => {
@@ -236,6 +340,9 @@ export function useTransactions(leadId: string | undefined) {
     currentBalance: totalDebit - totalCredit,
     addTransaction,
     deleteTransaction,
+    voidTransaction,
+    canDeleteTransaction,
+    canVoidTransaction,
     updateTransactionStatus,
     cancelRecurring,
     refetch: fetchTransactions,
