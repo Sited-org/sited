@@ -106,7 +106,7 @@ serve(async (req) => {
             .eq('stripe_invoice_id', invoice.id);
         }
 
-        // Capture and save the payment method from the invoice payment
+        // Capture, attach, and save the payment method from the invoice payment
         if (leadId && invoice.payment_intent) {
           try {
             const paymentIntentId = typeof invoice.payment_intent === 'string' 
@@ -115,18 +115,46 @@ serve(async (req) => {
             
             const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
             
-            if (paymentIntent.payment_method) {
+            if (paymentIntent.payment_method && invoice.customer) {
               const paymentMethodId = typeof paymentIntent.payment_method === 'string'
                 ? paymentIntent.payment_method
                 : paymentIntent.payment_method.id;
               
-              // Save the payment method to the lead for future charges
+              const customerId = typeof invoice.customer === 'string'
+                ? invoice.customer
+                : invoice.customer.id;
+              
+              // Attach the payment method to the customer (if not already attached)
+              try {
+                await stripe.paymentMethods.attach(paymentMethodId, {
+                  customer: customerId,
+                });
+                console.log("[STRIPE-WEBHOOK] Attached payment method to customer:", paymentMethodId);
+              } catch (attachError: any) {
+                // Payment method might already be attached, that's okay
+                if (!attachError.message?.includes('already been attached')) {
+                  console.log("[STRIPE-WEBHOOK] Payment method attach note:", attachError.message);
+                }
+              }
+              
+              // Set as the default payment method for future invoices and subscriptions
+              await stripe.customers.update(customerId, {
+                invoice_settings: {
+                  default_payment_method: paymentMethodId,
+                },
+              });
+              console.log("[STRIPE-WEBHOOK] Set as default payment method for customer:", customerId);
+              
+              // Save the payment method and customer ID to the lead for future charges
               await supabaseAdmin
                 .from('leads')
-                .update({ stripe_payment_method_id: paymentMethodId })
+                .update({ 
+                  stripe_payment_method_id: paymentMethodId,
+                  stripe_customer_id: customerId,
+                })
                 .eq('id', leadId);
               
-              console.log("[STRIPE-WEBHOOK] Saved payment method to lead:", paymentMethodId);
+              console.log("[STRIPE-WEBHOOK] Saved payment method and customer to lead:", paymentMethodId);
             }
           } catch (pmError: any) {
             console.error("[STRIPE-WEBHOOK] Error saving payment method:", pmError.message);
