@@ -93,8 +93,12 @@ export function useTransactions(leadId: string | undefined) {
       toast({ title: 'Error fetching transactions', description: error.message, variant: 'destructive' });
     } else {
       setTransactions((data || []) as Transaction[]);
-      setTotalCredit((data || []).reduce((sum, t) => sum + Number(t.credit), 0));
-      setTotalDebit((data || []).reduce((sum, t) => sum + Number(t.debit), 0));
+      // Exclude voided transactions from totals (both VOID entries and transactions marked as voided)
+      const nonVoidedTransactions = (data || []).filter(t => 
+        !t.item.startsWith('VOID:') && !t.notes?.includes('[VOIDED:')
+      );
+      setTotalCredit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.credit), 0));
+      setTotalDebit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.debit), 0));
     }
     setLoading(false);
   }, [leadId, toast]);
