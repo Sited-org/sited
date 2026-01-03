@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet, Package } from 'lucide-react';
+import { Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet, Package, Ban } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 import { useProducts } from '@/hooks/useProducts';
@@ -34,6 +34,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     currentBalance, 
     addTransaction, 
     deleteTransaction,
+    voidTransaction,
+    canDeleteTransaction,
+    canVoidTransaction,
     cancelRecurring 
   } = useTransactions(lead.id);
 
@@ -56,6 +59,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedPaymentItems, setSelectedPaymentItems] = useState<string[]>([]);
   const [processingPayment, setProcessingPayment] = useState(false);
+
+  // Void state
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidTransactionId, setVoidTransactionId] = useState<string>('');
+  const [voidReason, setVoidReason] = useState('');
+  const [processingVoid, setProcessingVoid] = useState(false);
 
   const handleAddProduct = async () => {
     const product = activeProducts.find(p => p.id === selectedProduct);
@@ -261,6 +270,43 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     } finally {
       setProcessingPayment(false);
     }
+  };
+
+  const handleOpenVoid = (transactionId: string) => {
+    setVoidTransactionId(transactionId);
+    setVoidReason('');
+    setVoidOpen(true);
+  };
+
+  const handleVoid = async () => {
+    if (!voidReason.trim()) {
+      toast.error('Please provide a reason for voiding this transaction');
+      return;
+    }
+    
+    setProcessingVoid(true);
+    try {
+      const { error } = await voidTransaction(voidTransactionId, voidReason.trim());
+      if (error) throw error;
+      
+      setVoidOpen(false);
+      setVoidTransactionId('');
+      setVoidReason('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to void transaction');
+    } finally {
+      setProcessingVoid(false);
+    }
+  };
+
+  const getVoidedBadge = (transaction: TransactionWithBalance) => {
+    if (transaction.item.startsWith('VOID:')) {
+      return <Badge variant="destructive" className="text-xs">Void Entry</Badge>;
+    }
+    if (transaction.notes?.includes('[VOIDED:')) {
+      return <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">Voided</Badge>;
+    }
+    return null;
   };
 
   const getInvoiceStatusBadge = (transaction: TransactionWithBalance) => {
@@ -699,6 +745,47 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         </Card>
       )}
 
+      {/* Void Transaction Dialog */}
+      <Dialog open={voidOpen} onOpenChange={setVoidOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-destructive" />
+              Void Transaction
+            </DialogTitle>
+            <DialogDescription>
+              This will create a reversing entry to nullify this transaction. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="void-reason">Reason for voiding *</Label>
+              <Textarea
+                id="void-reason"
+                placeholder="e.g., Duplicate charge, Customer refund requested, Incorrect amount..."
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVoidOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleVoid} 
+              disabled={processingVoid || !voidReason.trim()}
+            >
+              {processingVoid ? 'Voiding...' : 'Void Transaction'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Transactions Table */}
       <Card>
         <CardHeader>
@@ -719,14 +806,14 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
-                  {canEdit && <TableHead className="w-[80px]"></TableHead>}
+                  {canEdit && <TableHead className="w-[100px]"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {transactions.map((t) => (
                   <TableRow 
                     key={t.id} 
-                    className={t.isFuture ? 'opacity-50' : ''}
+                    className={`${t.isFuture ? 'opacity-50' : ''} ${t.item.startsWith('VOID:') ? 'bg-destructive/5' : ''}`}
                   >
                     <TableCell className={t.isFuture ? 'text-muted-foreground' : 'text-foreground'}>
                       <div className="flex items-center gap-2">
@@ -736,12 +823,13 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <p className={`${t.isFuture ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
+                        <p className={`${t.isFuture ? 'text-muted-foreground' : t.item.startsWith('VOID:') ? 'font-medium text-destructive' : 'font-medium text-foreground'}`}>
                           {t.item}
                         </p>
                         {t.notes && <p className="text-xs text-muted-foreground">{t.notes}</p>}
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           {getRecurringBadge(t)}
+                          {getVoidedBadge(t)}
                         </div>
                       </div>
                     </TableCell>
@@ -777,12 +865,24 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                               <XCircle className="h-4 w-4" />
                             </Button>
                           )}
-                          {!t.isFuture && (
+                          {!t.isFuture && canVoidTransaction(t) && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                              onClick={() => handleOpenVoid(t.id)}
+                              title="Void transaction"
+                            >
+                              <Ban className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {!t.isFuture && canDeleteTransaction(t) && (
                             <Button 
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-destructive"
                               onClick={() => deleteTransaction(t.id)}
+                              title="Delete transaction"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
