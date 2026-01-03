@@ -67,6 +67,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [voidReason, setVoidReason] = useState('');
   const [processingVoid, setProcessingVoid] = useState(false);
 
+  // Membership subscription state
+  const [creatingSubscription, setCreatingSubscription] = useState(false);
+
   const handleAddProduct = async () => {
     const product = activeProducts.find(p => p.id === selectedProduct);
     if (!product) return;
@@ -95,30 +98,50 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     const membership = activeMemberships.find(m => m.id === selectedMembership);
     if (!membership) return;
 
-    // Use start date if provided, otherwise use today
-    const startDate = membershipStartDate 
-      ? new Date(membershipStartDate).toISOString() 
-      : new Date().toISOString();
+    // Check if lead has a saved payment method
+    if (!lead.stripe_payment_method_id) {
+      toast.error('No payment method on file. Please add a card in the Card tab first before creating a subscription.');
+      return;
+    }
 
-    await addTransaction({
-      lead_id: lead.id,
-      item: membership.name,
-      credit: 0,
-      debit: membership.price,
-      notes: transactionNotes || membership.description || null,
-      transaction_date: startDate,
-      is_recurring: true,
-      recurring_interval: membership.billing_interval,
-      recurring_end_date: null,
-      parent_transaction_id: null,
-      status: 'completed',
-      invoice_status: 'not_sent',
-      stripe_invoice_id: null,
-    });
+    setCreatingSubscription(true);
+    try {
+      // Use start date if provided, otherwise use today
+      const startDate = membershipStartDate 
+        ? new Date(membershipStartDate).toISOString() 
+        : new Date().toISOString();
 
-    setSelectedMembership('');
-    setMembershipStartDate('');
-    setTransactionNotes('');
+      const { data, error } = await supabase.functions.invoke('create-membership-subscription', {
+        body: {
+          lead_id: lead.id,
+          membership_name: membership.name,
+          membership_price: membership.price,
+          billing_interval: membership.billing_interval,
+          start_date: startDate,
+          notes: transactionNotes || membership.description || null,
+        },
+      });
+
+      if (error) throw error;
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to create subscription');
+      }
+
+      toast.success(`Stripe subscription created for ${membership.name}. Customer will be billed automatically each ${membership.billing_interval}.`);
+      
+      setSelectedMembership('');
+      setMembershipStartDate('');
+      setTransactionNotes('');
+      
+      // Refresh to show the new transaction
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error creating subscription:', error);
+      toast.error(error.message || 'Failed to create subscription');
+    } finally {
+      setCreatingSubscription(false);
+    }
   };
 
   const toggleTransactionSelection = (id: string) => {
@@ -737,11 +760,20 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 
                 <Button 
                   onClick={handleAddMembership}
-                  disabled={!selectedMembership || selectedMembership === 'none'}
+                  disabled={!selectedMembership || selectedMembership === 'none' || creatingSubscription}
                   className="bg-foreground text-background hover:bg-foreground/90"
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Add
+                  {creatingSubscription ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Add
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
