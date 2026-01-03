@@ -78,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get or create Stripe customer
     let customerId: string;
-    let customerCurrency: string = 'usd'; // Default currency
+    let customerCurrency: string = 'aud'; // Default currency - always AUD
     
     // Check if lead already has a Stripe customer ID
     const { data: lead } = await supabaseAdmin

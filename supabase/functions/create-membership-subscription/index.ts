@@ -153,7 +153,7 @@ serve(async (req) => {
     const price = await stripe.prices.create({
       product: product.id,
       unit_amount: priceInCents,
-      currency: 'usd',
+      currency: 'aud',
       recurring: {
         interval: stripeInterval,
       },
