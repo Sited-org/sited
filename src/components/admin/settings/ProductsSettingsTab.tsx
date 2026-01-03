@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Pencil, Trash2, Package, RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useProducts, Product, ProductInsert } from '@/hooks/useProducts';
 
 export function ProductsSettingsTab() {
-  const { products, loading, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { products, loading, syncing, addProduct, updateProduct, deleteProduct, resyncProduct } = useProducts();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
@@ -168,7 +169,8 @@ export function ProductsSettingsTab() {
                 <TableHead>Description</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead>Stripe</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -185,7 +187,39 @@ export function ProductsSettingsTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {syncing === product.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : product.stripe_product_id ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-500" />
+                          )}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {syncing === product.id 
+                            ? 'Syncing...' 
+                            : product.stripe_product_id 
+                              ? `Linked: ${product.stripe_product_id}` 
+                              : 'Not synced with Stripe'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => resyncProduct(product)}
+                        disabled={syncing === product.id}
+                        title="Sync with Stripe"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${syncing === product.id ? 'animate-spin' : ''}`} />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
