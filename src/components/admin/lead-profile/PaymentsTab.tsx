@@ -151,12 +151,25 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   };
 
   const selectAllTransactions = () => {
-    const completedDebits = transactions.filter(t => Number(t.debit) > 0 && !t.isFuture);
-    if (selectedTransactions.length === completedDebits.length) {
+    const invoiceableDebits = getInvoiceableTransactions();
+    if (selectedTransactions.length === invoiceableDebits.length) {
       setSelectedTransactions([]);
     } else {
-      setSelectedTransactions(completedDebits.map(t => t.id));
+      setSelectedTransactions(invoiceableDebits.map(t => t.id));
     }
+  };
+
+  // Get transactions that can be invoiced: unpaid charges that are not voided/void entries
+  const getInvoiceableTransactions = () => {
+    return transactions.filter(t => 
+      Number(t.debit) > 0 && 
+      !t.isFuture && 
+      t.invoice_status !== 'paid' && 
+      t.invoice_status !== 'sent' &&
+      t.invoice_status !== 'processing' &&
+      !t.item.startsWith('VOID:') && 
+      !t.notes?.includes('[VOIDED:')
+    );
   };
 
   const getSelectedItems = () => {
@@ -584,15 +597,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     <div className="flex items-center justify-between">
                       <Label>Select Charges to Include</Label>
                       <Button variant="ghost" size="sm" onClick={selectAllTransactions}>
-                        {selectedTransactions.length === transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).length ? 'Deselect All' : 'Select All'}
+                        {selectedTransactions.length === getInvoiceableTransactions().length ? 'Deselect All' : 'Select All'}
                       </Button>
                     </div>
                     
-                    {transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4 text-center">No charges to invoice</p>
+                    {getInvoiceableTransactions().length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-4 text-center">No unpaid charges to invoice</p>
                     ) : (
                       <div className="border rounded-lg divide-y max-h-[200px] overflow-y-auto">
-                        {transactions.filter(t => Number(t.debit) > 0 && !t.isFuture).map((t) => (
+                        {getInvoiceableTransactions().map((t) => (
                           <div 
                             key={t.id} 
                             className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"

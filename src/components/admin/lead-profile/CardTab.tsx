@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, Lock, AlertCircle, CheckCircle2, Loader2, Building2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { CreditCard, Lock, AlertCircle, CheckCircle2, Loader2, Building2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { loadStripe } from '@stripe/stripe-js';
@@ -289,6 +290,7 @@ function BankAccountForm({ lead, canEdit, onBankSaved }: { lead: any; canEdit: b
 export function CardTab({ lead, canEdit }: CardTabProps) {
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [loadingPaymentMethod, setLoadingPaymentMethod] = useState(true);
+  const [removingPaymentMethod, setRemovingPaymentMethod] = useState(false);
 
   useEffect(() => {
     fetchSavedPaymentMethod();
@@ -317,6 +319,25 @@ export function CardTab({ lead, canEdit }: CardTabProps) {
       setSavedPaymentMethod(null);
     } finally {
       setLoadingPaymentMethod(false);
+    }
+  };
+
+  const handleRemovePaymentMethod = async () => {
+    setRemovingPaymentMethod(true);
+    try {
+      const { error } = await supabase.functions.invoke('remove-payment-method', {
+        body: { lead_id: lead.id },
+      });
+
+      if (error) throw error;
+      
+      setSavedPaymentMethod(null);
+      toast.success('Payment method removed');
+    } catch (error: any) {
+      console.error('Error removing payment method:', error);
+      toast.error(error.message || 'Failed to remove payment method');
+    } finally {
+      setRemovingPaymentMethod(false);
     }
   };
 
@@ -375,6 +396,41 @@ export function CardTab({ lead, canEdit }: CardTabProps) {
                   </p>
                 )}
               </div>
+              {canEdit && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-destructive hover:text-destructive"
+                      disabled={removingPaymentMethod}
+                    >
+                      {removingPaymentMethod ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove Payment Method</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to remove this payment method? This will prevent automatic charges and subscriptions from being processed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleRemovePaymentMethod}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Remove
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </CardContent>
         </Card>
