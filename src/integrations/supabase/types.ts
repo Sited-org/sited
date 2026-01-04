@@ -222,6 +222,66 @@ export type Database = {
         }
         Relationships: []
       }
+      form_fields: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_order: number
+          field_label: string
+          field_name: string
+          field_type: string
+          form_type: string
+          grid_cols: number | null
+          help_text: string | null
+          id: string
+          is_active: boolean
+          is_required: boolean
+          options: Json | null
+          placeholder: string | null
+          step_number: number
+          step_title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          field_label: string
+          field_name: string
+          field_type: string
+          form_type: string
+          grid_cols?: number | null
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options?: Json | null
+          placeholder?: string | null
+          step_number: number
+          step_title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          field_label?: string
+          field_name?: string
+          field_type?: string
+          form_type?: string
+          grid_cols?: number | null
+          help_text?: string | null
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          options?: Json | null
+          placeholder?: string | null
+          step_number?: number
+          step_title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       form_sessions: {
         Row: {
           completed: boolean
