@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
         customerId = customers.data[0].id;
         console.log("[SEND-INVOICE] Found customer by email:", customerId, "currency:", customerCurrency);
       } else {
-        // Create new customer with AUD currency
+        // Create new customer
         const customer = await stripe.customers.create({
           email: clientEmail,
           name: clientName,
@@ -106,7 +106,6 @@ const handler = async (req: Request): Promise<Response> => {
             lead_id: leadId,
             business_name: businessName || '',
           },
-          currency: 'aud',
         });
         customerId = customer.id;
         console.log("[SEND-INVOICE] Created new customer:", customerId);
