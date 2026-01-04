@@ -14,10 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, FileText } from 'lucide-react';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
 import { ProductsSettingsTab } from '@/components/admin/settings/ProductsSettingsTab';
+import FormFieldsSettingsTab from '@/components/admin/settings/FormFieldsSettingsTab';
 
 const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
 
@@ -210,34 +211,38 @@ export default function AdminSettings() {
       </div>
 
       <Tabs defaultValue="memberships" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
-          <TabsTrigger value="memberships" className="gap-2">
+        <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1">
+          <TabsTrigger value="memberships" className="gap-2 flex-1 min-w-[100px]">
             <CreditCard className="h-4 w-4" />
-            Memberships
+            <span className="hidden sm:inline">Memberships</span>
           </TabsTrigger>
-          <TabsTrigger value="products" className="gap-2">
+          <TabsTrigger value="products" className="gap-2 flex-1 min-w-[100px]">
             <Package className="h-4 w-4" />
-            Products
+            <span className="hidden sm:inline">Products</span>
           </TabsTrigger>
-          <TabsTrigger value="services" className="gap-2">
+          <TabsTrigger value="services" className="gap-2 flex-1 min-w-[100px]">
             <Globe className="h-4 w-4" />
-            Services
+            <span className="hidden sm:inline">Services</span>
           </TabsTrigger>
-          <TabsTrigger value="testimonials" className="gap-2" disabled={!canManageTestimonials}>
+          <TabsTrigger value="forms" className="gap-2 flex-1 min-w-[100px]">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Forms</span>
+          </TabsTrigger>
+          <TabsTrigger value="testimonials" className="gap-2 flex-1 min-w-[100px]" disabled={!canManageTestimonials}>
             <Star className="h-4 w-4" />
-            Testimonials
+            <span className="hidden sm:inline">Testimonials</span>
           </TabsTrigger>
-          <TabsTrigger value="mail" className="gap-2">
+          <TabsTrigger value="mail" className="gap-2 flex-1 min-w-[100px]">
             <Mail className="h-4 w-4" />
-            Mail
+            <span className="hidden sm:inline">Mail</span>
           </TabsTrigger>
-          <TabsTrigger value="profile" className="gap-2">
+          <TabsTrigger value="profile" className="gap-2 flex-1 min-w-[100px]">
             <User className="h-4 w-4" />
-            Profile
+            <span className="hidden sm:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
+          <TabsTrigger value="settings" className="gap-2 flex-1 min-w-[100px]">
             <Settings className="h-4 w-4" />
-            Settings
+            <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
@@ -414,6 +419,11 @@ export default function AdminSettings() {
         {/* Services Tab */}
         <TabsContent value="services" className="mt-6">
           <ServicesSettingsTab />
+        </TabsContent>
+
+        {/* Forms Tab */}
+        <TabsContent value="forms" className="mt-6">
+          <FormFieldsSettingsTab />
         </TabsContent>
 
         {/* Testimonials Tab */}
