@@ -25,7 +25,7 @@ const steps = [
 
 const AppOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { isSubmitting, captchaVerified, handleCaptchaVerify, savePartialLead, submitLead } = useSecureLeadSubmission();
+  const { isSubmitting, captchaVerified, handleCaptchaVerify, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -130,6 +130,15 @@ const AppOnboarding = () => {
         email: formData.email,
         phone: formData.phone || null,
         project_type: 'app',
+      });
+    } else if (currentStep > 1 && currentStep < steps.length) {
+      // Update partial lead with accumulated form data at each subsequent step
+      await updatePartialLead({
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || null,
+        business_name: formData.businessName || null,
+        form_data: formData,
       });
     }
     
