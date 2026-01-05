@@ -24,7 +24,7 @@ const steps = [
 
 const AIOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { isSubmitting, captchaVerified, handleCaptchaVerify, submitLead } = useSecureLeadSubmission();
+  const { isSubmitting, captchaVerified, handleCaptchaVerify, savePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -100,7 +100,17 @@ const AIOnboarding = () => {
     });
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
+    // Save partial lead after contact info step
+    if (currentStep === 1 && formData.fullName && formData.email) {
+      await savePartialLead({
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone || null,
+        project_type: 'ai',
+      });
+    }
+    
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
