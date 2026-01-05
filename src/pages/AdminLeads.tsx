@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { useLeads, LeadStatus, Lead } from '@/hooks/useLeads';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
+import { LeadStatusBadge, isPartialLead, getLeadRowBackground } from '@/components/admin/LeadStatusBadge';
 import { Search, Download, Eye, Calendar } from 'lucide-react';
 import { format, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
 
 const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
 
-const statusLabels: Record<LeadStatus, string> = {
+const statusLabels: Record<string, string> = {
+  partial: 'Partial',
   new: 'New Lead',
-  contacted: 'Contacted',
-  booked_call: 'Booked Call',
+  contacted: 'New Lead',
+  booked_call: 'Call Booked',
   sold: 'Sold',
   lost: 'Lost',
 };
@@ -69,7 +71,15 @@ export default function AdminLeads() {
       lead.business_name?.toLowerCase().includes(search.toLowerCase()) ||
       lead.phone?.includes(search) ||
       String(lead.lead_number).includes(search);
-    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+    
+    // Status filter with partial support
+    let matchesStatus = true;
+    if (statusFilter === 'partial') {
+      matchesStatus = isPartialLead(lead.form_data);
+    } else if (statusFilter !== 'all') {
+      matchesStatus = lead.status === statusFilter && !isPartialLead(lead.form_data);
+    }
+    
     const matchesProject = projectFilter === 'all' || lead.project_type === projectFilter;
     
     // Date filtering
@@ -116,7 +126,8 @@ export default function AdminLeads() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {allStatuses.map(s => (
+            <SelectItem value="partial">{statusLabels.partial}</SelectItem>
+            {allStatuses.filter(s => s !== 'contacted').map(s => (
               <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
             ))}
           </SelectContent>
@@ -181,7 +192,7 @@ export default function AdminLeads() {
               filteredLeads.map((lead) => (
                 <TableRow 
                   key={lead.id} 
-                  className="cursor-pointer hover:bg-muted/50"
+                  className={cn("cursor-pointer", getLeadRowBackground(lead.status, lead.form_data))}
                   onClick={() => navigate(`/admin/leads/${lead.id}`)}
                 >
                   <TableCell className="font-mono font-medium">#{lead.lead_number}</TableCell>
@@ -196,7 +207,7 @@ export default function AdminLeads() {
                     <span className="text-sm">{projectTypeLabels[lead.project_type] || lead.project_type}</span>
                   </TableCell>
                   <TableCell>
-                    <LeadStatusBadge status={lead.status} />
+                    <LeadStatusBadge status={lead.status} formData={lead.form_data} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(lead.created_at), 'MMM d, yyyy')}
