@@ -19,6 +19,14 @@ interface PartialLeadData {
   project_type: string;
 }
 
+interface PartialLeadUpdateData {
+  name?: string;
+  email?: string;
+  phone?: string | null;
+  business_name?: string | null;
+  form_data: Record<string, unknown>;
+}
+
 interface CaptchaData {
   token: string;
   answer: number;
@@ -67,6 +75,37 @@ export function useSecureLeadSubmission() {
       return true;
     } catch (err) {
       console.error('Unexpected error saving partial lead:', err);
+      return false;
+    }
+  }, []);
+
+  // Update partial lead with new form data at each step
+  const updatePartialLead = useCallback(async (data: PartialLeadUpdateData): Promise<boolean> => {
+    // Only update if we have a partial lead
+    if (!partialLeadIdRef.current) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          business_name: data.business_name || null,
+          form_data: { ...data.form_data, partial: true } as Json,
+        })
+        .eq('id', partialLeadIdRef.current);
+
+      if (error) {
+        console.error('Error updating partial lead:', error);
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Unexpected error updating partial lead:', err);
       return false;
     }
   }, []);
@@ -151,6 +190,7 @@ export function useSecureLeadSubmission() {
     captchaVerified: !!captchaData,
     handleCaptchaVerify,
     savePartialLead,
+    updatePartialLead,
     submitLead,
   };
 }
