@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
+import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
 import { Mail, Phone, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
@@ -11,11 +11,12 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
-const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
-const statusLabels: Record<LeadStatus, string> = {
+const allStatuses: LeadStatus[] = ['new', 'booked_call', 'sold', 'lost'];
+const statusLabels: Record<LeadStatus | 'partial', string> = {
+  partial: 'Partial',
   new: 'New Lead',
-  contacted: 'Contacted',
-  booked_call: 'Booked Call',
+  contacted: 'New Lead',
+  booked_call: 'Call Booked',
   sold: 'Sold',
   lost: 'Lost',
 };
@@ -199,7 +200,7 @@ export function ProfileTab({
             <div>
               <label className="text-sm font-medium text-muted-foreground">Current Status</label>
               <div className="mt-2">
-                <LeadStatusBadge status={status} />
+                <LeadStatusBadge status={status} formData={lead.form_data} />
               </div>
             </div>
             <div>
@@ -218,19 +219,27 @@ export function ProfileTab({
 
             {/* Status Progress */}
             <div className="space-y-2 pt-2">
-              {allStatuses.map((s, idx) => {
-                const currentIdx = allStatuses.indexOf(status);
-                const isComplete = idx <= currentIdx;
-                const isCurrent = idx === currentIdx;
-                return (
-                  <div key={s} className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${isComplete ? 'bg-primary' : 'bg-muted'} ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`} />
-                    <span className={`text-sm ${isComplete ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {statusLabels[s]}
-                    </span>
-                  </div>
-                );
-              })}
+              {(() => {
+                const isPartial = isPartialLead(lead.form_data);
+                const displayStatuses: (LeadStatus | 'partial')[] = isPartial 
+                  ? ['partial', 'new', 'booked_call', 'sold', 'lost']
+                  : ['new', 'booked_call', 'sold', 'lost'];
+                const currentStatus = isPartial ? 'partial' : (status === 'contacted' ? 'new' : status);
+                const currentIdx = displayStatuses.indexOf(currentStatus);
+                
+                return displayStatuses.map((s, idx) => {
+                  const isComplete = idx <= currentIdx;
+                  const isCurrent = idx === currentIdx;
+                  return (
+                    <div key={s} className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${isComplete ? 'bg-primary' : 'bg-muted'} ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`} />
+                      <span className={`text-sm ${isComplete ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {statusLabels[s]}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </CardContent>
         </Card>
