@@ -117,7 +117,7 @@ export default function LeadProfile() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{lead.name || lead.email}</h1>
-            <LeadStatusBadge status={status} />
+            <LeadStatusBadge status={status} formData={lead.form_data} />
           </div>
           <p className="text-muted-foreground">
             Lead #{lead.lead_number} • Created {format(new Date(lead.created_at), 'PPP')}
