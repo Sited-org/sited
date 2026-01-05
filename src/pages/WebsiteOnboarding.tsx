@@ -39,8 +39,6 @@ const WebsiteOnboarding = () => {
     industry: "",
     businessDescription: "",
     targetAudience: "",
-    competitors: "",
-    uniqueSellingPoints: "",
 
     // Project Goals
     primaryGoal: "",
@@ -63,7 +61,8 @@ const WebsiteOnboarding = () => {
     currentWebsite: "",
     domainOwned: "no",
     domainName: "",
-    hostingPreference: "",
+    domainRegistrar: "",
+    domainRegistrarOther: "",
     cmsPreference: "",
     integrations: [] as string[],
     otherIntegrations: "",
@@ -362,26 +361,6 @@ const WebsiteOnboarding = () => {
                     onChange={(e) => updateFormData("targetAudience", e.target.value)}
                     placeholder="Describe your ideal customers: demographics, interests, pain points..."
                     className="min-h-[100px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="competitors">Main Competitors</Label>
-                  <Textarea
-                    id="competitors"
-                    value={formData.competitors}
-                    onChange={(e) => updateFormData("competitors", e.target.value)}
-                    placeholder="List your main competitors and their websites (if known)..."
-                    className="min-h-[80px]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="uniqueSellingPoints">Unique Selling Points *</Label>
-                  <Textarea
-                    id="uniqueSellingPoints"
-                    value={formData.uniqueSellingPoints}
-                    onChange={(e) => updateFormData("uniqueSellingPoints", e.target.value)}
-                    placeholder="What makes your business stand out from competitors?"
-                    className="min-h-[80px]"
                   />
                 </div>
               </div>
@@ -712,44 +691,44 @@ const WebsiteOnboarding = () => {
                   </RadioGroup>
                 </div>
                 {formData.domainOwned === "yes" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="domainName">Domain Name</Label>
-                    <Input
-                      id="domainName"
-                      value={formData.domainName}
-                      onChange={(e) => updateFormData("domainName", e.target.value)}
-                      placeholder="example.com"
-                      className="h-12"
-                    />
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="domainName">Domain Name</Label>
+                      <Input
+                        id="domainName"
+                        value={formData.domainName}
+                        onChange={(e) => updateFormData("domainName", e.target.value)}
+                        placeholder="example.com"
+                        className="h-12"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="domainRegistrar">Who is the domain registered through?</Label>
+                      <Select value={formData.domainRegistrar} onValueChange={(v) => updateFormData("domainRegistrar", v)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Select registrar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="godaddy">GoDaddy</SelectItem>
+                          <SelectItem value="namecheap">Namecheap</SelectItem>
+                          <SelectItem value="other">Other (Specify)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {formData.domainRegistrar === "other" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="domainRegistrarOther">Please specify</Label>
+                        <Input
+                          id="domainRegistrarOther"
+                          value={formData.domainRegistrarOther}
+                          onChange={(e) => updateFormData("domainRegistrarOther", e.target.value)}
+                          placeholder="E.g., Google Domains, Cloudflare..."
+                          className="h-12"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
-                <div className="space-y-3">
-                  <Label>Hosting Preference</Label>
-                  <RadioGroup
-                    value={formData.hostingPreference}
-                    onValueChange={(v) => updateFormData("hostingPreference", v)}
-                    className="flex flex-wrap gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="you-manage" id="hosting-you" />
-                      <Label htmlFor="hosting-you" className="font-normal cursor-pointer">
-                        You manage hosting
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="existing" id="hosting-existing" />
-                      <Label htmlFor="hosting-existing" className="font-normal cursor-pointer">
-                        Have existing hosting
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no-preference" id="hosting-none" />
-                      <Label htmlFor="hosting-none" className="font-normal cursor-pointer">
-                        No preference
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="cmsPreference">CMS Preference (if any)</Label>
                   <Select value={formData.cmsPreference} onValueChange={(v) => updateFormData("cmsPreference", v)}>
