@@ -96,7 +96,7 @@ export function LeadsTable({
                     <p className="text-sm">{getProjectTypeLabel(lead.project_type)}</p>
                   </TableCell>
                   <TableCell>
-                    <LeadStatusBadge status={lead.status} />
+                    <LeadStatusBadge status={lead.status} formData={lead.form_data} />
                   </TableCell>
                   <TableCell>
                     <p className="text-sm text-muted-foreground">
