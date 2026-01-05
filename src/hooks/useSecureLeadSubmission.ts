@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 interface LeadSubmissionData {
   name: string;
@@ -11,6 +12,13 @@ interface LeadSubmissionData {
   form_data: Record<string, unknown>;
 }
 
+interface PartialLeadData {
+  name: string;
+  email: string;
+  phone?: string | null;
+  project_type: string;
+}
+
 interface CaptchaData {
   token: string;
   answer: number;
@@ -19,12 +27,47 @@ interface CaptchaData {
 export function useSecureLeadSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [captchaData, setCaptchaData] = useState<CaptchaData | null>(null);
+  const partialLeadIdRef = useRef<string | null>(null);
 
   const handleCaptchaVerify = useCallback((verified: boolean, token?: string, answer?: number) => {
     if (verified && token && answer !== undefined) {
       setCaptchaData({ token, answer });
     } else {
       setCaptchaData(null);
+    }
+  }, []);
+
+  // Save partial lead after contact info step
+  const savePartialLead = useCallback(async (data: PartialLeadData): Promise<boolean> => {
+    // Don't create duplicate partial leads
+    if (partialLeadIdRef.current) {
+      return true;
+    }
+
+    try {
+      const { data: result, error } = await supabase
+        .from('leads')
+        .insert({
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          project_type: data.project_type,
+          form_data: { partial: true, contactInfoOnly: true },
+          status: 'new',
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Error saving partial lead:', error);
+        return false;
+      }
+
+      partialLeadIdRef.current = result.id;
+      return true;
+    } catch (err) {
+      console.error('Unexpected error saving partial lead:', err);
+      return false;
     }
   }, []);
 
@@ -37,6 +80,28 @@ export function useSecureLeadSubmission() {
     setIsSubmitting(true);
     
     try {
+      // If we have a partial lead, update it instead of creating new
+      if (partialLeadIdRef.current) {
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({
+            name: data.name,
+            email: data.email,
+            phone: data.phone || null,
+            business_name: data.business_name || null,
+            form_data: data.form_data as Json,
+          })
+          .eq('id', partialLeadIdRef.current);
+
+        if (updateError) {
+          console.error('Error updating partial lead:', updateError);
+          // Fall through to regular submission
+        } else {
+          partialLeadIdRef.current = null;
+          return true;
+        }
+      }
+
       const { data: response, error } = await supabase.functions.invoke('submit-lead', {
         body: {
           name: data.name,
@@ -70,6 +135,7 @@ export function useSecureLeadSubmission() {
         return false;
       }
 
+      partialLeadIdRef.current = null;
       return true;
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -84,6 +150,7 @@ export function useSecureLeadSubmission() {
     isSubmitting,
     captchaVerified: !!captchaData,
     handleCaptchaVerify,
+    savePartialLead,
     submitLead,
   };
 }
