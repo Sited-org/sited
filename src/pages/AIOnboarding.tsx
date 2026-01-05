@@ -53,9 +53,6 @@ const AIOnboarding = () => {
     primaryGoals: [] as string[],
     specificUseCases: "",
     aiFeatures: [] as string[],
-    customerInteraction: "",
-    internalProcesses: "",
-    dataAnalysis: "",
     expectedOutcomes: "",
 
     // Budget & Timeline
