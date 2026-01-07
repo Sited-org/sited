@@ -147,7 +147,7 @@ export function MetricsTab({ lead }: MetricsTabProps) {
           <CardContent className="pt-6">
             <div className="text-center">
               <Zap className="h-5 w-5 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{analytics.avgLoadTime}ms</p>
+              <p className="text-2xl font-bold">{(analytics.avgLoadTime / 1000).toFixed(2)}s</p>
               <p className="text-xs text-muted-foreground">Load Time</p>
             </div>
           </CardContent>
