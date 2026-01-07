@@ -65,6 +65,72 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
+        {/* Project Progress Updates */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Project Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Add Update Form */}
+            {canEdit && (
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <Textarea
+                  placeholder="Add a project update..."
+                  value={newUpdate}
+                  onChange={(e) => setNewUpdate(e.target.value)}
+                  rows={3}
+                />
+                <Button 
+                  size="sm" 
+                  onClick={handleAddUpdate}
+                  disabled={!newUpdate.trim()}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Update
+                </Button>
+              </div>
+            )}
+
+            {/* Updates List */}
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading updates...</p>
+            ) : updates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No project updates yet</p>
+            ) : (
+              <div className="space-y-4">
+                {updates.map((update) => (
+                  <div 
+                    key={update.id} 
+                    className="border-l-2 border-primary pl-4 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-1">
+                          {format(new Date(update.created_at), 'PPp')}
+                        </p>
+                        <p className="text-sm whitespace-pre-wrap">{update.content}</p>
+                      </div>
+                      {canEdit && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive shrink-0"
+                          onClick={() => deleteUpdate(update.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Project Information */}
         <Card>
           <CardHeader>
@@ -156,71 +222,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
           </CardContent>
         </Card>
 
-        {/* Project Progress Updates */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Project Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Add Update Form */}
-            {canEdit && (
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <Textarea
-                  placeholder="Add a project update..."
-                  value={newUpdate}
-                  onChange={(e) => setNewUpdate(e.target.value)}
-                  rows={3}
-                />
-                <Button 
-                  size="sm" 
-                  onClick={handleAddUpdate}
-                  disabled={!newUpdate.trim()}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Update
-                </Button>
-              </div>
-            )}
-
-            {/* Updates List */}
-            {loading ? (
-              <p className="text-sm text-muted-foreground">Loading updates...</p>
-            ) : updates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No project updates yet</p>
-            ) : (
-              <div className="space-y-4">
-                {updates.map((update) => (
-                  <div 
-                    key={update.id} 
-                    className="border-l-2 border-primary pl-4 py-2"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {format(new Date(update.created_at), 'PPp')}
-                        </p>
-                        <p className="text-sm whitespace-pre-wrap">{update.content}</p>
-                      </div>
-                      {canEdit && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive shrink-0"
-                          onClick={() => deleteUpdate(update.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Sidebar - Quick Info */}
