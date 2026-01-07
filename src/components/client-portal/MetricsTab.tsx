@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { 
-  BarChart3, Clock, Eye, TrendingUp, Users, Globe, MousePointer, 
-  Copy, Check, Loader2, Monitor, Smartphone, Tablet, Zap 
+  Clock, Eye, TrendingUp, Users, MousePointer, 
+  Loader2, Monitor, Smartphone, Tablet, Zap 
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface MetricsTabProps {
   lead: {
@@ -40,7 +38,6 @@ function formatTime(seconds: number): string {
 
 export function MetricsTab({ lead }: MetricsTabProps) {
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalVisits: 0,
     uniqueVisitors: 0,
@@ -53,9 +50,6 @@ export function MetricsTab({ lead }: MetricsTabProps) {
     browsers: [],
     lastUpdated: null,
   });
-
-  const hasWebsite = !!lead.website_url;
-  const trackingId = lead.tracking_id;
 
   useEffect(() => {
     if (lead.id) {
@@ -91,75 +85,6 @@ export function MetricsTab({ lead }: MetricsTabProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const trackingScript = `<!-- Analytics Tracking Script -->
-<script>
-(function() {
-  var tid = "${trackingId || 'YOUR_TRACKING_ID'}";
-  var endpoint = "https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics";
-  var sid = sessionStorage.getItem('_sid') || Math.random().toString(36).substr(2, 9);
-  sessionStorage.setItem('_sid', sid);
-  var startTime = Date.now();
-  var loadTime = 0;
-  
-  function getLoadTime() {
-    if (window.performance && performance.timing) {
-      var t = performance.timing;
-      return t.loadEventEnd - t.navigationStart;
-    }
-    return 0;
-  }
-  
-  function track(eventType, extraData) {
-    var data = {
-      tracking_id: tid,
-      page_url: window.location.href,
-      page_title: document.title,
-      referrer: document.referrer,
-      user_agent: navigator.userAgent,
-      screen_width: window.screen.width,
-      screen_height: window.screen.height,
-      session_id: sid,
-      event_type: eventType || 'page_view',
-      page_load_time: loadTime
-    };
-    if (extraData) Object.assign(data, extraData);
-    
-    navigator.sendBeacon ? 
-      navigator.sendBeacon(endpoint, JSON.stringify(data)) :
-      fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true });
-  }
-  
-  function onLoad() {
-    loadTime = getLoadTime();
-    track('page_view');
-  }
-  
-  function onExit() {
-    var timeOnPage = Math.round((Date.now() - startTime) / 1000);
-    track('page_exit', { time_on_page: timeOnPage });
-  }
-  
-  function onSessionEnd() {
-    track('session_end');
-  }
-  
-  if (document.readyState === 'complete') { loadTime = getLoadTime(); track('page_view'); }
-  else { window.addEventListener('load', onLoad); }
-  
-  window.addEventListener('beforeunload', onExit);
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') onSessionEnd();
-  });
-})();
-</script>`;
-
-  const handleCopyScript = () => {
-    navigator.clipboard.writeText(trackingScript);
-    setCopied(true);
-    toast.success('Tracking script copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const getDeviceIcon = (device: string) => {
@@ -373,12 +298,6 @@ export function MetricsTab({ lead }: MetricsTabProps) {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Tracking ID:</span>
-              <code className="bg-muted px-2 py-0.5 rounded text-xs">
-                {trackingId || 'Not assigned'}
-              </code>
-            </div>
-            <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Status:</span>
               <Badge variant={analytics.totalVisits > 0 ? "default" : "secondary"}>
                 {analytics.totalVisits > 0 ? 'Receiving Data' : 'Awaiting Data'}
@@ -395,33 +314,6 @@ export function MetricsTab({ lead }: MetricsTabProps) {
           </div>
         </CardContent>
       </Card>
-
-      {/* Tracking Script */}
-      {trackingId && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Tracking Script</CardTitle>
-            <CardDescription>
-              Add this script to your website's HTML (before the closing &lt;/body&gt; tag) to start collecting analytics.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs max-h-64">
-                <code>{trackingScript}</code>
-              </pre>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="absolute top-2 right-2"
-                onClick={handleCopyScript}
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
