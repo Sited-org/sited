@@ -34,26 +34,50 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { email, lead_id, password, new_password, mode } = await req.json();
+    const { email, access_code, lead_id, password, new_password, mode } = await req.json();
     
-    if (!email || !lead_id) {
-      throw new Error("Email and Lead ID are required");
+    // Support both access_code (new) and lead_id (legacy)
+    const code = access_code?.toUpperCase().trim();
+    const legacyId = lead_id?.trim();
+    
+    if (!email || (!code && !legacyId)) {
+      throw new Error("Email and Access Code are required");
     }
 
-    logStep("Verifying access", { email, lead_id, mode });
+    logStep("Verifying access", { email, hasCode: !!code, hasLegacyId: !!legacyId, mode });
 
-    // Find the lead matching both email and ID
-    const { data: lead, error: leadError } = await supabaseClient
-      .from("leads")
-      .select("id, name, email, phone, business_name, project_type, status, form_data, created_at, client_password_hash, client_first_login_at")
-      .eq("id", lead_id)
-      .eq("email", email.toLowerCase().trim())
-      .single();
+    // Find the lead matching email and either access_code or lead_id
+    let lead;
+    let leadError;
+
+    if (code) {
+      // New flow: use access_code
+      const result = await supabaseClient
+        .from("leads")
+        .select("id, name, email, phone, business_name, project_type, status, form_data, created_at, client_password_hash, client_first_login_at, client_access_code")
+        .eq("client_access_code", code)
+        .eq("email", email.toLowerCase().trim())
+        .single();
+      
+      lead = result.data;
+      leadError = result.error;
+    } else if (legacyId) {
+      // Legacy flow: use lead_id
+      const result = await supabaseClient
+        .from("leads")
+        .select("id, name, email, phone, business_name, project_type, status, form_data, created_at, client_password_hash, client_first_login_at, client_access_code")
+        .eq("id", legacyId)
+        .eq("email", email.toLowerCase().trim())
+        .single();
+      
+      lead = result.data;
+      leadError = result.error;
+    }
 
     if (leadError || !lead) {
       logStep("Access denied - no matching lead found");
       return new Response(
-        JSON.stringify({ error: "Invalid email or Lead ID. Please check your details and try again." }),
+        JSON.stringify({ error: "Invalid email or access code. Please check your details and try again." }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 401,
@@ -64,7 +88,7 @@ serve(async (req) => {
     // Check if this is first login (no password set yet)
     const isFirstLogin = !lead.client_password_hash;
 
-    // Mode: first_login - using lead_id for first time access
+    // Mode: first_login - using access_code for first time access
     if (mode === 'first_login' || (!password && isFirstLogin)) {
       if (!isFirstLogin) {
         return new Response(
@@ -130,7 +154,7 @@ serve(async (req) => {
           client_password_hash: hashedPassword,
           client_first_login_at: new Date().toISOString()
         })
-        .eq("id", lead_id);
+        .eq("id", lead.id);
 
       if (updateError) {
         throw new Error("Failed to set password");

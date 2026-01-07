@@ -364,6 +364,7 @@ export type Database = {
           assigned_sales_rep: string | null
           assigned_to: string | null
           business_name: string | null
+          client_access_code: string | null
           client_first_login_at: string | null
           client_password_hash: string | null
           created_at: string
@@ -386,6 +387,7 @@ export type Database = {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
+          client_access_code?: string | null
           client_first_login_at?: string | null
           client_password_hash?: string | null
           created_at?: string
@@ -408,6 +410,7 @@ export type Database = {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           business_name?: string | null
+          client_access_code?: string | null
           client_first_login_at?: string | null
           client_password_hash?: string | null
           created_at?: string
@@ -860,6 +863,7 @@ export type Database = {
       can_manage_users: { Args: { _user_id: string }; Returns: boolean }
       can_view_payments: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_captchas: { Args: never; Returns: undefined }
+      generate_client_access_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

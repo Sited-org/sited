@@ -11,7 +11,7 @@ type LoginMode = 'initial' | 'password' | 'first_login';
 
 export default function ClientPortalLogin() {
   const [email, setEmail] = useState('');
-  const [leadId, setLeadId] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ export default function ClientPortalLogin() {
       const { data, error: invokeError } = await supabase.functions.invoke('verify-client-access', {
         body: { 
           email: email.trim().toLowerCase(), 
-          lead_id: leadId.trim(),
+          access_code: accessCode.trim().toUpperCase(),
           mode: 'first_login'
         },
       });
@@ -78,7 +78,7 @@ export default function ClientPortalLogin() {
       const { data, error: invokeError } = await supabase.functions.invoke('verify-client-access', {
         body: { 
           email: email.trim().toLowerCase(), 
-          lead_id: leadId.trim(),
+          access_code: accessCode.trim().toUpperCase(),
           password,
         },
       });
@@ -140,7 +140,7 @@ export default function ClientPortalLogin() {
             <CardDescription>
               {mode === 'password' 
                 ? 'Enter your password to access your portal'
-                : 'Enter your email and Lead ID to access your portal'
+                : 'Enter your email and access code to continue'
               }
             </CardDescription>
           </CardHeader>
@@ -168,24 +168,26 @@ export default function ClientPortalLogin() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="leadId">Lead ID</Label>
+                  <Label htmlFor="accessCode">Access Code</Label>
                   <Input
-                    id="leadId"
+                    id="accessCode"
                     type="text"
-                    placeholder="Your Lead ID"
-                    value={leadId}
-                    onChange={(e) => setLeadId(e.target.value)}
+                    placeholder="e.g. A1B2C3D4"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
                     required
+                    className="font-mono tracking-wider uppercase"
+                    maxLength={8}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your Lead ID was provided when you started your project
+                    Your access code was provided when you started your project
                   </p>
                 </div>
 
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={loading || !email || !leadId}
+                  disabled={loading || !email || !accessCode}
                 >
                   {loading ? (
                     <>
@@ -211,7 +213,7 @@ export default function ClientPortalLogin() {
 
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                   <p className="font-medium">{email}</p>
-                  <p className="text-muted-foreground text-xs">Lead ID: {leadId}</p>
+                  <p className="text-muted-foreground text-xs font-mono">Code: {accessCode}</p>
                 </div>
 
                 <div className="space-y-2">
