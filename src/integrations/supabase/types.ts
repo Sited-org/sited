@@ -77,6 +77,56 @@ export type Database = {
         }
         Relationships: []
       }
+      client_requests: {
+        Row: {
+          admin_notes: string | null
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          lead_id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_id: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           content: string
@@ -363,6 +413,7 @@ export type Database = {
         Row: {
           assigned_sales_rep: string | null
           assigned_to: string | null
+          billing_address: string | null
           business_name: string | null
           client_access_code: string | null
           client_first_login_at: string | null
@@ -382,10 +433,12 @@ export type Database = {
           status: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
+          website_url: string | null
         }
         Insert: {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
+          billing_address?: string | null
           business_name?: string | null
           client_access_code?: string | null
           client_first_login_at?: string | null
@@ -405,10 +458,12 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          website_url?: string | null
         }
         Update: {
           assigned_sales_rep?: string | null
           assigned_to?: string | null
+          billing_address?: string | null
           business_name?: string | null
           client_access_code?: string | null
           client_first_login_at?: string | null
@@ -428,6 +483,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          website_url?: string | null
         }
         Relationships: []
       }
@@ -505,6 +561,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_milestones: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          lead_id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          lead_id: string
+          status?: string
+          title: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          lead_id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_updates: {
         Row: {
