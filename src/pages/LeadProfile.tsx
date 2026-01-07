@@ -32,6 +32,8 @@ export default function LeadProfile() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [billingAddress, setBillingAddress] = useState('');
   const [status, setStatus] = useState<LeadStatus>('new');
   const [notes, setNotes] = useState('');
   const [dealAmount, setDealAmount] = useState('0');
@@ -57,6 +59,8 @@ export default function LeadProfile() {
       setEmail(data.email || '');
       setPhone(data.phone || '');
       setBusinessName(data.business_name || '');
+      setWebsiteUrl(data.website_url || '');
+      setBillingAddress(data.billing_address || '');
       setStatus(data.status as LeadStatus);
       setNotes(data.notes || '');
       setDealAmount(String(data.deal_amount || 0));
@@ -75,6 +79,8 @@ export default function LeadProfile() {
       email,
       phone,
       business_name: businessName,
+      website_url: websiteUrl,
+      billing_address: billingAddress,
       status,
       notes,
       deal_amount: parseFloat(dealAmount) || 0,
@@ -167,6 +173,10 @@ export default function LeadProfile() {
             setPhone={setPhone}
             businessName={businessName}
             setBusinessName={setBusinessName}
+            websiteUrl={websiteUrl}
+            setWebsiteUrl={setWebsiteUrl}
+            billingAddress={billingAddress}
+            setBillingAddress={setBillingAddress}
             status={status}
             setStatus={setStatus}
             notes={notes}

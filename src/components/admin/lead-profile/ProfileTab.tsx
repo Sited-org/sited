@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar, FileText, CreditCard } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -31,6 +31,10 @@ interface ProfileTabProps {
   setPhone: (v: string) => void;
   businessName: string;
   setBusinessName: (v: string) => void;
+  websiteUrl: string;
+  setWebsiteUrl: (v: string) => void;
+  billingAddress: string;
+  setBillingAddress: (v: string) => void;
   status: LeadStatus;
   setStatus: (v: LeadStatus) => void;
   notes: string;
@@ -48,6 +52,10 @@ export function ProfileTab({
   setPhone,
   businessName,
   setBusinessName,
+  websiteUrl,
+  setWebsiteUrl,
+  billingAddress,
+  setBillingAddress,
   status,
   setStatus,
   notes,
@@ -121,6 +129,40 @@ export function ProfileTab({
                     disabled={!canEdit}
                   />
                   <Building2 className="h-9 w-9 p-2 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+
+            {/* Website & Billing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-border/40">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Website URL</label>
+                <div className="flex gap-2 mt-1">
+                  <Input 
+                    value={websiteUrl} 
+                    onChange={(e) => setWebsiteUrl(e.target.value)} 
+                    disabled={!canEdit}
+                    placeholder="https://example.com"
+                  />
+                  {websiteUrl && (
+                    <Button variant="outline" size="icon" asChild>
+                      <a href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Billing Address</label>
+                <div className="flex gap-2 mt-1">
+                  <Input 
+                    value={billingAddress} 
+                    onChange={(e) => setBillingAddress(e.target.value)} 
+                    disabled={!canEdit}
+                    placeholder="123 Main St, City, State"
+                  />
+                  <MapPin className="h-9 w-9 p-2 text-muted-foreground" />
                 </div>
               </div>
             </div>

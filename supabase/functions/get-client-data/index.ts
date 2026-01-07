@@ -71,6 +71,28 @@ serve(async (req) => {
       logStep("Error fetching project updates", { error: updateError.message });
     }
 
+    // Fetch client requests
+    const { data: clientRequests, error: requestsError } = await supabaseClient
+      .from("client_requests")
+      .select("*")
+      .eq("lead_id", lead_id)
+      .order("created_at", { ascending: false });
+
+    if (requestsError) {
+      logStep("Error fetching client requests", { error: requestsError.message });
+    }
+
+    // Fetch project milestones
+    const { data: projectMilestones, error: milestonesError } = await supabaseClient
+      .from("project_milestones")
+      .select("*")
+      .eq("lead_id", lead_id)
+      .order("display_order", { ascending: true });
+
+    if (milestonesError) {
+      logStep("Error fetching project milestones", { error: milestonesError.message });
+    }
+
     // Fetch saved payment method if exists
     let savedPaymentMethod = null;
     if (lead.stripe_payment_method_id) {
@@ -110,7 +132,10 @@ serve(async (req) => {
           id: lead.id,
           name: lead.name,
           email: lead.email,
+          phone: lead.phone,
           business_name: lead.business_name,
+          billing_address: lead.billing_address,
+          website_url: lead.website_url,
           project_type: lead.project_type,
           status: lead.status,
           form_data: lead.form_data,
@@ -118,6 +143,8 @@ serve(async (req) => {
         },
         transactions: transactions || [],
         projectUpdates: projectUpdates || [],
+        clientRequests: clientRequests || [],
+        projectMilestones: projectMilestones || [],
         savedPaymentMethod,
       }),
       {
