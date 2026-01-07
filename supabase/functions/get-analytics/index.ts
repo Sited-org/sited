@@ -31,6 +31,29 @@ serve(async (req) => {
       throw new Error("lead_id is required");
     }
 
+    // Get the lead's website_url to filter out preview/dev URLs
+    const { data: leadData, error: leadError } = await supabaseClient
+      .from("leads")
+      .select("website_url")
+      .eq("id", lead_id)
+      .single();
+
+    if (leadError) {
+      logStep("Error fetching lead", { error: leadError.message });
+    }
+
+    // Extract domain from website_url for filtering
+    let websiteDomain: string | null = null;
+    if (leadData?.website_url) {
+      try {
+        const url = new URL(leadData.website_url);
+        websiteDomain = url.hostname.toLowerCase().replace('www.', '');
+      } catch {
+        websiteDomain = null;
+      }
+    }
+    logStep("Website domain for filtering", { websiteDomain });
+
     logStep("Fetching analytics for lead", { lead_id });
 
     // Get all page views for this lead
@@ -46,7 +69,26 @@ serve(async (req) => {
       throw eventsError;
     }
 
-    const events = allEvents || [];
+    // Filter events to only include those from the client's actual website domain
+    // Exclude Lovable preview URLs, localhost, etc.
+    const filteredEvents = (allEvents || []).filter(e => {
+      if (!websiteDomain) return true; // If no domain set, include all
+      try {
+        const eventUrl = new URL(e.page_url);
+        const eventDomain = eventUrl.hostname.toLowerCase().replace('www.', '');
+        return eventDomain === websiteDomain;
+      } catch {
+        return false;
+      }
+    });
+
+    logStep("Events filtered", { 
+      total: allEvents?.length || 0, 
+      filtered: filteredEvents.length,
+      websiteDomain 
+    });
+
+    const events = filteredEvents;
     const totalVisits = events.length;
 
     // Get unique sessions
