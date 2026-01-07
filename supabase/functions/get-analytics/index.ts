@@ -97,18 +97,38 @@ serve(async (req) => {
       .sort((a, b) => b.views - a.views)
       .slice(0, 5);
 
-    // Get traffic sources (grouped by referrer)
+    // Categorize traffic source by referrer hostname
+    function categorizeSource(referrer: string | null): string {
+      if (!referrer) return 'Direct';
+      try {
+        const url = new URL(referrer);
+        const host = url.hostname.toLowerCase();
+        // Search engines
+        if (host.includes('google.')) return 'Google';
+        if (host.includes('bing.')) return 'Bing';
+        if (host.includes('yahoo.')) return 'Yahoo';
+        if (host.includes('duckduckgo.')) return 'DuckDuckGo';
+        if (host.includes('baidu.')) return 'Baidu';
+        // Social media
+        if (host.includes('facebook.') || host.includes('fb.')) return 'Facebook';
+        if (host.includes('instagram.')) return 'Instagram';
+        if (host.includes('twitter.') || host.includes('x.com')) return 'Twitter/X';
+        if (host.includes('linkedin.')) return 'LinkedIn';
+        if (host.includes('pinterest.')) return 'Pinterest';
+        if (host.includes('tiktok.')) return 'TikTok';
+        if (host.includes('youtube.')) return 'YouTube';
+        if (host.includes('reddit.')) return 'Reddit';
+        // Return cleaned hostname for other sources
+        return host.replace('www.', '');
+      } catch {
+        return referrer || 'Direct';
+      }
+    }
+
+    // Get traffic sources (grouped by categorized referrer)
     const sourceCounts: Record<string, number> = {};
     events.forEach(e => {
-      let source = 'Direct';
-      if (e.referrer) {
-        try {
-          const url = new URL(e.referrer);
-          source = url.hostname || 'Direct';
-        } catch {
-          source = e.referrer || 'Direct';
-        }
-      }
+      const source = categorizeSource(e.referrer);
       sourceCounts[source] = (sourceCounts[source] || 0) + 1;
     });
 
