@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogOut, CreditCard, Clock, Home, Globe, MessageSquarePlus, User, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { PasswordSetupModal } from '@/components/client-portal/PasswordSetupModal';
 import { ClientOverviewTab } from '@/components/client-portal/ClientOverviewTab';
 import { MyWebsiteTab } from '@/components/client-portal/MyWebsiteTab';
 import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
@@ -30,8 +29,6 @@ interface ClientSession {
   };
   token: string;
   email: string;
-  isFirstLogin?: boolean;
-  requiresPasswordSetup?: boolean;
 }
 
 interface SavedPaymentMethod {
@@ -86,7 +83,6 @@ export default function ClientPortalDashboard() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
-  const [showPasswordSetup, setShowPasswordSetup] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
 
@@ -99,10 +95,6 @@ export default function ClientPortalDashboard() {
 
     const parsedSession = JSON.parse(storedSession) as ClientSession;
     setSession(parsedSession);
-    
-    if (parsedSession.requiresPasswordSetup) {
-      setShowPasswordSetup(true);
-    }
     
     fetchClientData(parsedSession);
   }, [navigate]);
@@ -159,12 +151,6 @@ export default function ClientPortalDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <PasswordSetupModal
-        open={showPasswordSetup}
-        onComplete={() => setShowPasswordSetup(false)}
-        leadId={session.lead.id}
-        email={session.email}
-      />
 
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
