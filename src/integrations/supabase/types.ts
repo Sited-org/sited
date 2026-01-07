@@ -436,6 +436,7 @@ export type Database = {
           status: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
+          tracking_id: string | null
           website_url: string | null
         }
         Insert: {
@@ -461,6 +462,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          tracking_id?: string | null
           website_url?: string | null
         }
         Update: {
@@ -486,6 +488,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
+          tracking_id?: string | null
           website_url?: string | null
         }
         Relationships: []
@@ -957,6 +960,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      website_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          page_title: string | null
+          page_url: string
+          referrer: string | null
+          screen_height: number | null
+          screen_width: number | null
+          session_id: string | null
+          tracking_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id: string
+          page_title?: string | null
+          page_url: string
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id?: string | null
+          tracking_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          page_title?: string | null
+          page_url?: string
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id?: string | null
+          tracking_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analytics_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
