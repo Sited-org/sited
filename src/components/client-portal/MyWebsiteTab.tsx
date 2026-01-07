@@ -104,6 +104,42 @@ export function MyWebsiteTab({ lead }: MyWebsiteTabProps) {
         )}
       </div>
 
+      {/* Website Preview */}
+      {(websiteUrl || previewUrl) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Monitor className="h-5 w-5" />
+              Preview
+            </CardTitle>
+            <CardDescription>Click to open in a new tab</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a 
+              href={websiteUrl || previewUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block group cursor-pointer"
+            >
+              <div className="relative rounded-lg overflow-hidden border bg-muted/30 aspect-video">
+                <iframe
+                  src={websiteUrl || previewUrl}
+                  title="Website Preview"
+                  className="w-full h-full pointer-events-none"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg">
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="font-medium">Open Website</span>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Website Features */}
       <Card>
         <CardHeader>
