@@ -118,8 +118,8 @@ export default function ClientPortalDashboard() {
       setTransactions(data.transactions || []);
       setProjectUpdates(data.projectUpdates || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
-      setRequests(data.requests || []);
-      setMilestones(data.milestones || []);
+      setRequests(data.clientRequests || []);
+      setMilestones(data.projectMilestones || []);
     } catch (err) {
       console.error('Error fetching client data:', err);
       toast.error('Failed to load your data');
