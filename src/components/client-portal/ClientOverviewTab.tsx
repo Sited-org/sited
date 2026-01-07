@@ -1,18 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { 
-  Sparkles, 
+  Globe, 
   Clock, 
   CheckCircle2, 
-  Calendar,
   CreditCard,
   FileText,
-  ExternalLink,
   ArrowRight,
-  Building2,
-  Mail,
-  Phone
+  MessageSquarePlus,
+  Palette,
+  TrendingUp,
+  DollarSign,
+  Calendar
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -32,6 +33,14 @@ interface ProjectUpdate {
   created_at: string;
 }
 
+interface ClientRequest {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  created_at: string;
+}
+
 interface ClientOverviewTabProps {
   lead: {
     id: string;
@@ -43,10 +52,14 @@ interface ClientOverviewTabProps {
     status: string;
     form_data: any;
     created_at: string;
+    website_url?: string;
   };
   transactions: Transaction[];
   projectUpdates: ProjectUpdate[];
+  requests: ClientRequest[];
   hasPaymentMethod: boolean;
+  designProgress: number;
+  metricsProgress: number;
   onNavigate: (tab: string) => void;
 }
 
@@ -54,13 +67,15 @@ export function ClientOverviewTab({
   lead, 
   transactions, 
   projectUpdates, 
+  requests,
   hasPaymentMethod,
+  designProgress,
+  metricsProgress,
   onNavigate 
 }: ClientOverviewTabProps) {
-  const previewUrl = lead.form_data?.preview_url || lead.form_data?.previewUrl;
-  
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalPending = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
+  const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
   const latestUpdate = projectUpdates[0];
   
   const getStatusInfo = (status: string) => {
@@ -80,122 +95,144 @@ export function ClientOverviewTab({
 
   const statusInfo = getStatusInfo(lead.status);
   const StatusIcon = statusInfo.icon;
+  const overallProgress = Math.round((designProgress + metricsProgress) / 2);
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium text-primary">Welcome back</span>
-              </div>
-              <h2 className="text-2xl font-bold mb-1">
-                {lead.name || lead.business_name || 'Valued Client'}
-              </h2>
-              <p className="text-muted-foreground">
-                We're excited to be working on your {lead.project_type.replace('_', ' ')} project. 
-                Here's everything you need to stay updated.
-              </p>
-            </div>
-            <Badge className={`${statusInfo.color} py-1.5 px-3 text-sm`}>
-              <StatusIcon className="h-4 w-4 mr-1.5" />
-              {statusInfo.label}
-            </Badge>
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-primary/20">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div>
+            <p className="text-sm font-medium text-primary mb-1">Welcome back</p>
+            <h2 className="text-2xl font-bold mb-1">
+              {lead.name || lead.business_name || 'Valued Client'}
+            </h2>
+            <p className="text-muted-foreground">
+              Here's an overview of your website project
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          <Badge className={`${statusInfo.color} py-1.5 px-3 text-sm shrink-0`}>
+            <StatusIcon className="h-4 w-4 mr-1.5" />
+            {statusInfo.label}
+          </Badge>
+        </div>
+      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('progress')}>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Project Updates</p>
-                <p className="text-2xl font-bold">{projectUpdates.length}</p>
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('website')}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                <Globe className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-blue-600" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Website</p>
+                <p className="text-sm font-semibold truncate">
+                  {lead.website_url ? 'Live' : 'In Progress'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('requests')}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                <MessageSquarePlus className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Requests</p>
+                <p className="text-sm font-semibold">
+                  {pendingRequests.length} Active
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('progress')}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Progress</p>
+                <p className="text-sm font-semibold">{overallProgress}%</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('payments')}>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Payment Status</p>
-                <p className="text-2xl font-bold">
-                  {hasPaymentMethod ? 'Active' : 'Setup'}
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${totalPending > 0 ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
+                <DollarSign className={`h-5 w-5 ${totalPending > 0 ? 'text-orange-600' : 'text-green-600'}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Due</p>
+                <p className="text-sm font-semibold">
+                  ${totalPending.toLocaleString('en-AU', { minimumFractionDigits: 0 })}
                 </p>
-              </div>
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${hasPaymentMethod ? 'bg-green-500/10' : 'bg-yellow-500/10'}`}>
-                <CreditCard className={`h-5 w-5 ${hasPaymentMethod ? 'text-green-600' : 'text-yellow-600'}`} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => onNavigate('history')}>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Balance</p>
-                <p className="text-2xl font-bold">
-                  ${totalPending.toLocaleString('en-AU', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${totalPending > 0 ? 'bg-orange-500/10' : 'bg-green-500/10'}`}>
-                <Clock className={`h-5 w-5 ${totalPending > 0 ? 'text-orange-600' : 'text-green-600'}`} />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Preview Link if available */}
-      {previewUrl && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="pt-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <ExternalLink className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Project Preview Available</h3>
-                  <p className="text-sm text-muted-foreground">View the latest version of your project</p>
-                </div>
+      {/* Progress Overview */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Project Progress</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate('progress')}>
+              View Details <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-purple-500" />
+                  Design
+                </span>
+                <span className="font-medium">{designProgress}%</span>
               </div>
-              <Button asChild>
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open Preview
-                </a>
-              </Button>
+              <Progress value={designProgress} className="h-2" />
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  Metrics & Performance
+                </span>
+                <span className="font-medium">{metricsProgress}%</span>
+              </div>
+              <Progress value={metricsProgress} className="h-2" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Latest Update & Action Cards */}
+      {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Latest Progress Update */}
+        {/* Latest Update */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center justify-between">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5" />
                 Latest Update
-              </span>
+              </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => onNavigate('progress')}>
-                View all <ArrowRight className="h-4 w-4 ml-1" />
+                All <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
-            </CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             {latestUpdate ? (
@@ -207,9 +244,8 @@ export function ClientOverviewTab({
               </div>
             ) : (
               <div className="text-center py-6 text-muted-foreground">
-                <Clock className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No updates yet</p>
-                <p className="text-xs">Updates will appear here as your project progresses</p>
               </div>
             )}
           </CardContent>
@@ -218,44 +254,41 @@ export function ClientOverviewTab({
         {/* Quick Actions */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Quick Actions
-            </CardTitle>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-between h-auto py-3"
+              onClick={() => onNavigate('requests')}
+            >
+              <span className="flex items-center gap-2">
+                <MessageSquarePlus className="h-4 w-4" />
+                Submit a Request
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
             {!hasPaymentMethod && (
               <Button 
                 variant="outline" 
-                className="w-full justify-between"
+                className="w-full justify-between h-auto py-3"
                 onClick={() => onNavigate('payments')}
               >
                 <span className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Set up payment method
+                  Set up Payment Method
                 </span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             )}
             <Button 
               variant="outline" 
-              className="w-full justify-between"
-              onClick={() => onNavigate('history')}
+              className="w-full justify-between h-auto py-3"
+              onClick={() => onNavigate('profile')}
             >
               <span className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                View payment history
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between"
-              onClick={() => onNavigate('progress')}
-            >
-              <span className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                View all project updates
+                Update Profile
               </span>
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -263,41 +296,39 @@ export function ClientOverviewTab({
         </Card>
       </div>
 
-      {/* Project Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Project Details
-          </CardTitle>
-          <CardDescription>Information about your project</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {lead.business_name && (
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Business</p>
-                <p className="font-medium">{lead.business_name}</p>
-              </div>
-            )}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Project Type</p>
-              <p className="font-medium">{lead.project_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+      {/* Upcoming Payments Preview */}
+      {pendingTransactions.length > 0 && (
+        <Card className="border-orange-500/30 bg-orange-500/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2 text-orange-700">
+                <CreditCard className="h-5 w-5" />
+                Upcoming Payments
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('payments')}>
+                View All <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Started</p>
-              <p className="font-medium">{format(new Date(lead.created_at), 'MMMM d, yyyy')}</p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingTransactions.slice(0, 3).map((t) => (
+                <div key={t.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div>
+                    <p className="font-medium">{t.item}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(t.transaction_date), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-orange-600 border-orange-600/30">
+                    ${t.debit.toFixed(2)}
+                  </Badge>
+                </div>
+              ))}
             </div>
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Contact Email</p>
-              <p className="font-medium flex items-center gap-1">
-                <Mail className="h-3 w-3" />
-                {lead.email}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
