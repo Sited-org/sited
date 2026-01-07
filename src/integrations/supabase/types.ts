@@ -84,6 +84,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           description: string | null
+          estimated_completion: string | null
           id: string
           lead_id: string
           priority: string
@@ -97,6 +98,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          estimated_completion?: string | null
           id?: string
           lead_id: string
           priority?: string
@@ -110,6 +112,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          estimated_completion?: string | null
           id?: string
           lead_id?: string
           priority?: string

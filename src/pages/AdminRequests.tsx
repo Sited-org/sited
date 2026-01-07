@@ -19,8 +19,10 @@ import {
   User, 
   ExternalLink,
   Search,
-  Filter
+  Filter,
+  Calendar
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 type RequestStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -37,6 +39,7 @@ interface ClientRequest {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  estimated_completion: string | null;
   leads?: {
     name: string | null;
     email: string;
@@ -67,6 +70,7 @@ export default function AdminRequests() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
+  const [estimatedCompletion, setEstimatedCompletion] = useState('');
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['admin-requests'],
@@ -90,10 +94,16 @@ export default function AdminRequests() {
   });
 
   const updateRequestMutation = useMutation({
-    mutationFn: async ({ id, status, admin_notes }: { id: string; status: string; admin_notes: string }) => {
+    mutationFn: async ({ id, status, admin_notes, estimated_completion }: { 
+      id: string; 
+      status: string; 
+      admin_notes: string;
+      estimated_completion: string | null;
+    }) => {
       const updates: any = { 
         status, 
         admin_notes,
+        estimated_completion: estimated_completion || null,
         updated_at: new Date().toISOString()
       };
       
@@ -138,6 +148,7 @@ export default function AdminRequests() {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
     setNewStatus(request.status as RequestStatus);
+    setEstimatedCompletion(request.estimated_completion ? request.estimated_completion.split('T')[0] : '');
   };
 
   const handleSaveRequest = () => {
@@ -146,6 +157,7 @@ export default function AdminRequests() {
         id: selectedRequest.id,
         status: newStatus,
         admin_notes: adminNotes,
+        estimated_completion: estimatedCompletion ? new Date(estimatedCompletion).toISOString() : null,
       });
     }
   };
@@ -369,9 +381,9 @@ export default function AdminRequests() {
 
                 {/* Status Update */}
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Status</h4>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                   <Select value={newStatus} onValueChange={(v) => setNewStatus(v as RequestStatus)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -383,14 +395,36 @@ export default function AdminRequests() {
                   </Select>
                 </div>
 
+                {/* ETA - Show when in progress */}
+                {newStatus === 'in_progress' && (
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">
+                      Estimated Completion Date
+                    </Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={estimatedCompletion}
+                        onChange={(e) => setEstimatedCompletion(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This will be visible to the client
+                    </p>
+                  </div>
+                )}
+
                 {/* Admin Notes */}
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Admin Notes</h4>
+                  <Label className="text-sm font-medium text-muted-foreground">Admin Notes</Label>
                   <Textarea
                     value={adminNotes}
                     onChange={(e) => setAdminNotes(e.target.value)}
                     placeholder="Add internal notes about this request..."
                     rows={4}
+                    className="mt-2"
                   />
                 </div>
 
