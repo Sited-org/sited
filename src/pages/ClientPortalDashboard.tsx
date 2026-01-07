@@ -65,6 +65,7 @@ interface ClientRequest {
   admin_notes: string | null;
   created_at: string;
   completed_at: string | null;
+  estimated_completion: string | null;
 }
 
 interface ProjectMilestone {
@@ -238,6 +239,8 @@ export default function ClientPortalDashboard() {
             <TabsContent value="requests">
               <MyRequestsTab
                 leadId={session.lead.id}
+                leadName={session.lead.name}
+                leadEmail={session.lead.email}
                 requests={requests}
                 onRequestCreated={handleRequestCreated}
               />
