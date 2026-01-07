@@ -130,9 +130,17 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     if(extra)for(var k in extra)d[k]=extra[k];
     try{navigator.sendBeacon(e,JSON.stringify(d))}catch(err){fetch(e,{method:"POST",body:JSON.stringify(d),keepalive:true})}
   }
-  function onLoad(){if(performance.timing){var n=performance.timing;lt=Math.max(0,Math.min((n.loadEventEnd||n.domComplete)-n.navigationStart,60000))}send("page_view")}
+  function getLoadTime(){
+    try{
+      var n=performance.getEntriesByType("navigation")[0];
+      if(n&&n.loadEventEnd>0)return Math.round(n.loadEventEnd);
+      if(performance.timing){var t=performance.timing;return Math.max(0,(t.loadEventEnd||t.domComplete)-t.navigationStart)}
+    }catch(e){}
+    return 0;
+  }
+  function onLoad(){lt=Math.min(getLoadTime(),60000);send("page_view")}
   function onExit(){send("page_exit",{time_on_page:Math.min(Math.round((Date.now()-st)/1000),86400)})}
-  if(document.readyState==="complete")onLoad();else window.addEventListener("load",onLoad);
+  if(document.readyState==="complete")setTimeout(onLoad,0);else window.addEventListener("load",function(){setTimeout(onLoad,0)});
   window.addEventListener("pagehide",onExit);
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")send("session_end")});
 })();
