@@ -128,14 +128,39 @@ export default function AdminRequests() {
     },
   });
 
-  const filteredRequests = requests.filter((request) => {
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesSearch = 
-      request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  // Sort order: pending -> in_progress -> completed -> cancelled
+  const statusOrder: Record<string, number> = {
+    pending: 0,
+    in_progress: 1,
+    completed: 2,
+    cancelled: 3,
+  };
+
+  // Priority order: urgent -> high -> medium -> low
+  const priorityOrder: Record<string, number> = {
+    urgent: 0,
+    high: 1,
+    medium: 2,
+    low: 3,
+  };
+
+  const filteredRequests = requests
+    .filter((request) => {
+      const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+      const matchesSearch = 
+        request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesSearch;
+    })
+    .sort((a, b) => {
+      // First sort by status
+      const statusDiff = (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+      if (statusDiff !== 0) return statusDiff;
+      
+      // Then sort by priority (high to low)
+      return (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
+    });
 
   const stats = {
     pending: requests.filter((r) => r.status === 'pending').length,
