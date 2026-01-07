@@ -9,7 +9,7 @@ import { useChatStore } from "@/hooks/useChatStore";
 const activities = [
   { name: "Sarah M.", action: "started a website project", location: "Sydney" },
   { name: "James K.", action: "booked a discovery call", location: "London" },
-  { name: "Emily R.", action: "launched their new app", location: "Toronto" },
+  { name: "Emily R.", action: "launched their new website", location: "Toronto" },
   { name: "Marcus L.", action: "requested AI integration", location: "Berlin" },
   { name: "Ana S.", action: "submitted project brief", location: "São Paulo" },
 ];
@@ -70,7 +70,6 @@ export const Footer = () => {
 
   const services = useMemo(() => [
     { name: "Website", path: "/onboarding/website", icon: "🌐", stat: "2 week delivery" },
-    { name: "App", path: "/onboarding/app", icon: "📱", stat: "from $15k" },
     { name: "AI", path: "/onboarding/ai", icon: "⚡", stat: "60% automation" },
   ], []);
 
@@ -120,7 +119,7 @@ export const Footer = () => {
             </p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-3 sm:mb-4">
               Ready to build your{" "}
-              <TypedText phrases={["dream website?", "next big app?", "AI advantage?"]} />
+              <TypedText phrases={["dream website?", "AI advantage?", "online presence?"]} />
             </h2>
           </div>
 

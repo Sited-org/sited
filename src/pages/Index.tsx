@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect, memo } from "react";
-import { ArrowRight, Sparkles, Zap, Smartphone, Globe, Star, Quote } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 
@@ -50,7 +50,7 @@ const Hero = memo(() => {
         >
           We build websites
           <br />
-          <span className="text-muted-foreground">& apps that convert.</span>
+          <span className="text-muted-foreground">that convert.</span>
         </motion.h1>
 
         <motion.p
@@ -144,11 +144,6 @@ const services = [
     icon: Globe,
     title: "Website Design & Development",
     description: "Custom-designed, responsive websites that capture your brand and convert visitors into customers.",
-  },
-  {
-    icon: Smartphone,
-    title: "App Building",
-    description: "Native and cross-platform applications designed for seamless user experiences across all devices.",
   },
   {
     icon: Zap,
@@ -351,7 +346,7 @@ const About = () => {
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
                 We're a boutique digital agency that combines AI precision with creative excellence. 
-                Our focused team delivers websites, apps, and AI integrations that actually drive results.
+                Our focused team delivers websites and AI integrations that actually drive results.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>
