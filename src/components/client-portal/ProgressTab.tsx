@@ -3,7 +3,6 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
   Palette, 
-  TrendingUp, 
   Clock, 
   CheckCircle2,
   Circle,
@@ -44,9 +43,7 @@ export function ProgressTab({
   lead, 
   projectUpdates, 
   designMilestones, 
-  metricsMilestones,
   designProgress,
-  metricsProgress 
 }: ProgressTabProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -59,21 +56,12 @@ export function ProgressTab({
     }
   };
 
-  const overallProgress = Math.round((designProgress + metricsProgress) / 2);
-
   // Default milestones if none exist
   const defaultDesignMilestones: ProjectMilestone[] = designMilestones.length > 0 ? designMilestones : [
     { id: '1', category: 'design', title: 'Initial Concept', description: 'Design concept and direction', status: 'pending', completed_at: null },
     { id: '2', category: 'design', title: 'Wireframes', description: 'Layout and structure', status: 'pending', completed_at: null },
     { id: '3', category: 'design', title: 'Visual Design', description: 'Colors, typography, imagery', status: 'pending', completed_at: null },
     { id: '4', category: 'design', title: 'Final Review', description: 'Design approval', status: 'pending', completed_at: null },
-  ];
-
-  const defaultMetricsMilestones: ProjectMilestone[] = metricsMilestones.length > 0 ? metricsMilestones : [
-    { id: '1', category: 'metrics', title: 'Performance Setup', description: 'Speed optimization', status: 'pending', completed_at: null },
-    { id: '2', category: 'metrics', title: 'SEO Configuration', description: 'Search engine optimization', status: 'pending', completed_at: null },
-    { id: '3', category: 'metrics', title: 'Analytics Integration', description: 'Tracking setup', status: 'pending', completed_at: null },
-    { id: '4', category: 'metrics', title: 'Launch Checklist', description: 'Final checks', status: 'pending', completed_at: null },
   ];
 
   return (
@@ -90,89 +78,51 @@ export function ProgressTab({
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-3xl font-bold">{overallProgress}%</p>
-                <p className="text-sm text-muted-foreground">Overall</p>
+                <p className="text-3xl font-bold">{designProgress}%</p>
+                <p className="text-sm text-muted-foreground">Complete</p>
               </div>
             </div>
           </div>
           <div className="mt-4">
-            <Progress value={overallProgress} className="h-3" />
+            <Progress value={designProgress} className="h-3" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Progress Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Design Progress */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="h-5 w-5 text-purple-500" />
-                Design
-              </CardTitle>
-              <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">
-                {designProgress}%
-              </Badge>
-            </div>
-            <Progress value={designProgress} className="h-2" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {defaultDesignMilestones.map((milestone, index) => (
-                <div key={milestone.id} className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    {getStatusIcon(milestone.status)}
-                  </div>
-                  <div className="flex-1">
-                    <p className={`font-medium text-sm ${milestone.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}>
-                      {milestone.title}
-                    </p>
-                    {milestone.description && (
-                      <p className="text-xs text-muted-foreground">{milestone.description}</p>
-                    )}
-                  </div>
+      {/* Design Progress */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Palette className="h-5 w-5 text-purple-500" />
+              Design
+            </CardTitle>
+            <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+              {designProgress}%
+            </Badge>
+          </div>
+          <Progress value={designProgress} className="h-2" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {defaultDesignMilestones.map((milestone) => (
+              <div key={milestone.id} className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  {getStatusIcon(milestone.status)}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Metrics Progress */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
-                Metrics & Performance
-              </CardTitle>
-              <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-                {metricsProgress}%
-              </Badge>
-            </div>
-            <Progress value={metricsProgress} className="h-2" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {defaultMetricsMilestones.map((milestone) => (
-                <div key={milestone.id} className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    {getStatusIcon(milestone.status)}
-                  </div>
-                  <div className="flex-1">
-                    <p className={`font-medium text-sm ${milestone.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}>
-                      {milestone.title}
-                    </p>
-                    {milestone.description && (
-                      <p className="text-xs text-muted-foreground">{milestone.description}</p>
-                    )}
-                  </div>
+                <div className="flex-1">
+                  <p className={`font-medium text-sm ${milestone.status === 'completed' ? 'text-muted-foreground line-through' : ''}`}>
+                    {milestone.title}
+                  </p>
+                  {milestone.description && (
+                    <p className="text-xs text-muted-foreground">{milestone.description}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Project Updates Timeline */}
       <Card>
