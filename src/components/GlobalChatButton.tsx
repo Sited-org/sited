@@ -54,10 +54,8 @@ export const GlobalChatButton = () => {
     if (businessMatch) updated.businessName = businessMatch[1].trim();
     
     const lowerText = text.toLowerCase();
-    if (lowerText.includes("website") || lowerText.includes("web site") || lowerText.includes("landing page")) {
+    if (lowerText.includes("website") || lowerText.includes("web site") || lowerText.includes("landing page") || lowerText.includes("app") || lowerText.includes("mobile") || lowerText.includes("ios") || lowerText.includes("android")) {
       updated.projectType = "website";
-    } else if (lowerText.includes("app") || lowerText.includes("mobile") || lowerText.includes("ios") || lowerText.includes("android")) {
-      updated.projectType = "app";
     } else if (lowerText.includes("ai") || lowerText.includes("chatbot") || lowerText.includes("automation")) {
       updated.projectType = "ai";
     }
@@ -162,7 +160,7 @@ export const GlobalChatButton = () => {
   
   const formLabels: Record<ProjectType, string> = {
     website: "Website",
-    app: "App", 
+    app: "Website", 
     ai: "AI Integration",
   };
 
@@ -207,7 +205,7 @@ export const GlobalChatButton = () => {
       );
     }
     
-    // Check for app form link
+    // Check for app form link - redirect to website
     if (content.includes("[Start App Project]") || content.includes("/app-onboarding")) {
       const parts = content.split(/\[Start App Project\]|\/app-onboarding/i);
       return (
@@ -217,9 +215,9 @@ export const GlobalChatButton = () => {
             size="sm" 
             variant="secondary" 
             className="mx-1 inline-flex"
-            onClick={() => goToForm("app")}
+            onClick={() => goToForm("website")}
           >
-            Start App Project <ArrowRight size={14} />
+            Start Website Project <ArrowRight size={14} />
           </Button>
           {parts[1] || ""}
         </>
