@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Clock, Eye, TrendingUp, Users, Globe, MousePointer, Copy, Check, Loader2 } from 'lucide-react';
+import { 
+  BarChart3, Clock, Eye, TrendingUp, Users, Globe, MousePointer, 
+  Copy, Check, Loader2, Monitor, Smartphone, Tablet, Zap 
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,9 +21,21 @@ interface MetricsTabProps {
 interface AnalyticsData {
   totalVisits: number;
   uniqueVisitors: number;
-  topPages: { page: string; views: number }[];
-  trafficSources: { source: string; percentage: number }[];
+  bounceRate: number;
+  avgTimeOnPage: number;
+  avgLoadTime: number;
+  topPages: { page: string; views: number; avgTime: number }[];
+  trafficSources: { source: string; visits: number; percentage: number }[];
+  devices: { device: string; count: number; percentage: number }[];
+  browsers: { browser: string; count: number; percentage: number }[];
   lastUpdated: string | null;
+}
+
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
 }
 
 export function MetricsTab({ lead }: MetricsTabProps) {
@@ -29,8 +44,13 @@ export function MetricsTab({ lead }: MetricsTabProps) {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalVisits: 0,
     uniqueVisitors: 0,
+    bounceRate: 0,
+    avgTimeOnPage: 0,
+    avgLoadTime: 0,
     topPages: [],
     trafficSources: [],
+    devices: [],
+    browsers: [],
     lastUpdated: null,
   });
 
@@ -56,8 +76,13 @@ export function MetricsTab({ lead }: MetricsTabProps) {
         setAnalytics({
           totalVisits: data.totalVisits || 0,
           uniqueVisitors: data.uniqueVisitors || 0,
+          bounceRate: data.bounceRate || 0,
+          avgTimeOnPage: data.avgTimeOnPage || 0,
+          avgLoadTime: data.avgLoadTime || 0,
           topPages: data.topPages || [],
           trafficSources: data.trafficSources || [],
+          devices: data.devices || [],
+          browsers: data.browsers || [],
           lastUpdated: data.lastUpdated,
         });
       }
@@ -72,28 +97,61 @@ export function MetricsTab({ lead }: MetricsTabProps) {
 <script>
 (function() {
   var tid = "${trackingId || 'YOUR_TRACKING_ID'}";
+  var endpoint = "https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics";
   var sid = sessionStorage.getItem('_sid') || Math.random().toString(36).substr(2, 9);
   sessionStorage.setItem('_sid', sid);
+  var startTime = Date.now();
+  var loadTime = 0;
   
-  function track() {
-    fetch("${window.location.origin.includes('localhost') ? 'https://xwjoqaflrynemntyzwmw.supabase.co' : 'https://xwjoqaflrynemntyzwmw.supabase.co'}/functions/v1/track-analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tracking_id: tid,
-        page_url: window.location.href,
-        page_title: document.title,
-        referrer: document.referrer,
-        user_agent: navigator.userAgent,
-        screen_width: window.screen.width,
-        screen_height: window.screen.height,
-        session_id: sid
-      })
-    }).catch(function() {});
+  function getLoadTime() {
+    if (window.performance && performance.timing) {
+      var t = performance.timing;
+      return t.loadEventEnd - t.navigationStart;
+    }
+    return 0;
   }
   
-  if (document.readyState === 'complete') { track(); }
-  else { window.addEventListener('load', track); }
+  function track(eventType, extraData) {
+    var data = {
+      tracking_id: tid,
+      page_url: window.location.href,
+      page_title: document.title,
+      referrer: document.referrer,
+      user_agent: navigator.userAgent,
+      screen_width: window.screen.width,
+      screen_height: window.screen.height,
+      session_id: sid,
+      event_type: eventType || 'page_view',
+      page_load_time: loadTime
+    };
+    if (extraData) Object.assign(data, extraData);
+    
+    navigator.sendBeacon ? 
+      navigator.sendBeacon(endpoint, JSON.stringify(data)) :
+      fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true });
+  }
+  
+  function onLoad() {
+    loadTime = getLoadTime();
+    track('page_view');
+  }
+  
+  function onExit() {
+    var timeOnPage = Math.round((Date.now() - startTime) / 1000);
+    track('page_exit', { time_on_page: timeOnPage });
+  }
+  
+  function onSessionEnd() {
+    track('session_end');
+  }
+  
+  if (document.readyState === 'complete') { loadTime = getLoadTime(); track('page_view'); }
+  else { window.addEventListener('load', onLoad); }
+  
+  window.addEventListener('beforeunload', onExit);
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') onSessionEnd();
+  });
 })();
 </script>`;
 
@@ -102,6 +160,14 @@ export function MetricsTab({ lead }: MetricsTabProps) {
     setCopied(true);
     toast.success('Tracking script copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getDeviceIcon = (device: string) => {
+    switch (device.toLowerCase()) {
+      case 'mobile': return <Smartphone className="h-4 w-4" />;
+      case 'tablet': return <Tablet className="h-4 w-4" />;
+      default: return <Monitor className="h-4 w-4" />;
+    }
   };
 
   if (loading) {
@@ -115,46 +181,62 @@ export function MetricsTab({ lead }: MetricsTabProps) {
   return (
     <div className="space-y-6">
       {/* Overview Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Website Analytics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {hasWebsite || analytics.totalVisits > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg text-center">
-                <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{analytics.totalVisits.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total Page Views</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg text-center">
-                <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{analytics.uniqueVisitors.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Unique Sessions</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg text-center">
-                <TrendingUp className="h-5 w-5 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{analytics.topPages.length}</p>
-                <p className="text-xs text-muted-foreground">Pages Tracked</p>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg text-center">
-                <Globe className="h-5 w-5 mx-auto mb-2 text-primary" />
-                <p className="text-2xl font-bold">{analytics.trafficSources.length}</p>
-                <p className="text-xs text-muted-foreground">Traffic Sources</p>
-              </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{analytics.totalVisits.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Page Views</p>
             </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Globe className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No analytics data yet.</p>
-              <p className="text-sm mt-1">Data will appear once your website starts receiving traffic with the tracking script installed.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{analytics.uniqueVisitors.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Sessions</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <MousePointer className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{analytics.bounceRate}%</p>
+              <p className="text-xs text-muted-foreground">Bounce Rate</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Clock className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{formatTime(analytics.avgTimeOnPage)}</p>
+              <p className="text-xs text-muted-foreground">Avg. Time</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Zap className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{analytics.avgLoadTime}ms</p>
+              <p className="text-xs text-muted-foreground">Load Time</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <TrendingUp className="h-5 w-5 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{analytics.topPages.length}</p>
+              <p className="text-xs text-muted-foreground">Pages</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Most Visited Pages */}
@@ -170,10 +252,15 @@ export function MetricsTab({ lead }: MetricsTabProps) {
               <div className="space-y-3">
                 {analytics.topPages.map((page, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm font-medium truncate max-w-[200px]" title={page.page}>
-                      {page.page}
-                    </span>
-                    <Badge variant="secondary">{page.views.toLocaleString()} views</Badge>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium truncate block" title={page.page}>
+                        {page.page}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Avg. {formatTime(page.avgTime)} per visit
+                      </span>
+                    </div>
+                    <Badge variant="secondary" className="ml-2">{page.views.toLocaleString()}</Badge>
                   </div>
                 ))}
               </div>
@@ -201,7 +288,7 @@ export function MetricsTab({ lead }: MetricsTabProps) {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-primary rounded-full" 
+                        className="h-full bg-primary rounded-full transition-all" 
                         style={{ width: `${source.percentage}%` }}
                       />
                     </div>
@@ -211,6 +298,61 @@ export function MetricsTab({ lead }: MetricsTabProps) {
             ) : (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No traffic source data available yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Device Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics.devices.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.devices.map((device, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {getDeviceIcon(device.device)}
+                      <span className="text-sm font-medium capitalize">{device.device}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{device.count}</span>
+                      <Badge variant="secondary">{device.percentage}%</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No device data available yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Browser Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Browsers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics.browsers.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.browsers.map((browser, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">{browser.browser}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">{browser.count}</span>
+                      <Badge variant="secondary">{browser.percentage}%</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No browser data available yet.
               </p>
             )}
           </CardContent>
@@ -254,7 +396,7 @@ export function MetricsTab({ lead }: MetricsTabProps) {
         </CardContent>
       </Card>
 
-      {/* Tracking Script - Only show if tracking_id exists */}
+      {/* Tracking Script */}
       {trackingId && (
         <Card>
           <CardHeader>
@@ -265,7 +407,7 @@ export function MetricsTab({ lead }: MetricsTabProps) {
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs max-h-64">
                 <code>{trackingScript}</code>
               </pre>
               <Button
