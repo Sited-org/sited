@@ -12,6 +12,28 @@ const logStep = (step: string, details?: any) => {
   console.log(`[TRACK-ANALYTICS] ${step}${detailsStr}`);
 };
 
+// Parse user agent to get browser and device type
+function parseUserAgent(ua: string): { browser: string; deviceType: string } {
+  let browser = 'Unknown';
+  let deviceType = 'desktop';
+
+  if (!ua) return { browser, deviceType };
+
+  // Detect browser
+  if (ua.includes('Firefox')) browser = 'Firefox';
+  else if (ua.includes('Edg')) browser = 'Edge';
+  else if (ua.includes('Chrome')) browser = 'Chrome';
+  else if (ua.includes('Safari')) browser = 'Safari';
+  else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera';
+
+  // Detect device type
+  if (/Mobile|Android|iPhone|iPad|iPod/i.test(ua)) {
+    deviceType = /iPad|Tablet/i.test(ua) ? 'tablet' : 'mobile';
+  }
+
+  return { browser, deviceType };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,7 +59,12 @@ serve(async (req) => {
       screen_width, 
       screen_height,
       session_id,
-      event_type = 'page_view'
+      event_type = 'page_view',
+      time_on_page = 0,
+      page_load_time = 0,
+      is_bounce = false,
+      is_exit = false,
+      is_entry = true,
     } = body;
 
     if (!tracking_id || !page_url) {
@@ -71,6 +98,70 @@ serve(async (req) => {
       );
     }
 
+    // Parse user agent for browser and device info
+    const { browser, deviceType } = parseUserAgent(user_agent || '');
+
+    // For exit events, update the previous page view with time_on_page
+    if (event_type === 'page_exit' && session_id) {
+      const { error: updateError } = await supabaseClient
+        .from("website_analytics")
+        .update({ 
+          time_on_page, 
+          is_exit: true 
+        })
+        .eq("session_id", session_id)
+        .eq("page_url", page_url)
+        .eq("event_type", "page_view")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (updateError) {
+        logStep("Error updating page exit", { error: updateError.message });
+      } else {
+        logStep("Page exit recorded", { session_id, time_on_page });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // For session end events, mark the session's last page as a bounce if only one page viewed
+    if (event_type === 'session_end' && session_id) {
+      // Count pages in this session
+      const { count, error: countError } = await supabaseClient
+        .from("website_analytics")
+        .select("*", { count: "exact", head: true })
+        .eq("session_id", session_id)
+        .eq("event_type", "page_view");
+
+      if (!countError && count === 1) {
+        // Mark as bounce
+        await supabaseClient
+          .from("website_analytics")
+          .update({ is_bounce: true })
+          .eq("session_id", session_id)
+          .eq("event_type", "page_view");
+        
+        logStep("Session marked as bounce", { session_id });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+
+    // Check if this is entry page (first page in session)
+    const { count: sessionPageCount } = await supabaseClient
+      .from("website_analytics")
+      .select("*", { count: "exact", head: true })
+      .eq("session_id", session_id)
+      .eq("event_type", "page_view");
+
+    const isEntryPage = (sessionPageCount || 0) === 0;
+
     // Insert the analytics event
     const { error: insertError } = await supabaseClient
       .from("website_analytics")
@@ -85,6 +176,13 @@ serve(async (req) => {
         screen_height,
         session_id,
         event_type,
+        time_on_page,
+        page_load_time,
+        is_bounce: false,
+        is_exit: false,
+        is_entry: isEntryPage,
+        browser,
+        device_type: deviceType,
       });
 
     if (insertError) {
@@ -95,9 +193,8 @@ serve(async (req) => {
       );
     }
 
-    logStep("Analytics recorded successfully", { lead_id: lead.id, event_type });
+    logStep("Analytics recorded successfully", { lead_id: lead.id, event_type, isEntryPage });
 
-    // Return a 1x1 transparent GIF for image-based tracking compatibility
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }

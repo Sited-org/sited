@@ -33,108 +33,147 @@ serve(async (req) => {
 
     logStep("Fetching analytics for lead", { lead_id });
 
-    // Get total page views
-    const { count: totalVisits, error: countError } = await supabaseClient
+    // Get all page views for this lead
+    const { data: allEvents, error: eventsError } = await supabaseClient
       .from("website_analytics")
-      .select("*", { count: "exact", head: true })
-      .eq("lead_id", lead_id);
+      .select("*")
+      .eq("lead_id", lead_id)
+      .eq("event_type", "page_view")
+      .order("created_at", { ascending: false });
 
-    if (countError) {
-      logStep("Error counting visits", { error: countError.message });
+    if (eventsError) {
+      logStep("Error fetching events", { error: eventsError.message });
+      throw eventsError;
     }
+
+    const events = allEvents || [];
+    const totalVisits = events.length;
 
     // Get unique sessions
-    const { data: sessionsData, error: sessionsError } = await supabaseClient
-      .from("website_analytics")
-      .select("session_id")
-      .eq("lead_id", lead_id)
-      .not("session_id", "is", null);
+    const uniqueSessions = new Set(events.map(e => e.session_id).filter(Boolean));
+    const uniqueVisitors = uniqueSessions.size;
 
-    const uniqueVisitors = sessionsError ? 0 : new Set(sessionsData?.map(s => s.session_id)).size;
+    // Calculate bounce rate
+    const bouncedSessions = events.filter(e => e.is_bounce).length;
+    const bounceRate = uniqueVisitors > 0 ? Math.round((bouncedSessions / uniqueVisitors) * 100) : 0;
+
+    // Calculate average time on page (only for events with time_on_page > 0)
+    const eventsWithTime = events.filter(e => e.time_on_page > 0);
+    const totalTimeOnPage = eventsWithTime.reduce((sum, e) => sum + (e.time_on_page || 0), 0);
+    const avgTimeOnPage = eventsWithTime.length > 0 
+      ? Math.round(totalTimeOnPage / eventsWithTime.length) 
+      : 0;
+
+    // Calculate average page load time
+    const eventsWithLoadTime = events.filter(e => e.page_load_time > 0);
+    const totalLoadTime = eventsWithLoadTime.reduce((sum, e) => sum + (e.page_load_time || 0), 0);
+    const avgLoadTime = eventsWithLoadTime.length > 0 
+      ? Math.round(totalLoadTime / eventsWithLoadTime.length) 
+      : 0;
 
     // Get top pages (grouped by page_url)
-    const { data: pageData, error: pageError } = await supabaseClient
-      .from("website_analytics")
-      .select("page_url")
-      .eq("lead_id", lead_id)
-      .eq("event_type", "page_view");
+    const pageCounts: Record<string, { views: number; totalTime: number }> = {};
+    events.forEach(e => {
+      let path = '/';
+      try {
+        const url = new URL(e.page_url);
+        path = url.pathname || '/';
+      } catch {
+        path = e.page_url;
+      }
+      if (!pageCounts[path]) {
+        pageCounts[path] = { views: 0, totalTime: 0 };
+      }
+      pageCounts[path].views++;
+      pageCounts[path].totalTime += e.time_on_page || 0;
+    });
 
-    let topPages: { page: string; views: number }[] = [];
-    if (!pageError && pageData) {
-      const pageCounts = pageData.reduce((acc: Record<string, number>, item) => {
-        // Extract path from URL
-        let path = '/';
-        try {
-          const url = new URL(item.page_url);
-          path = url.pathname || '/';
-        } catch {
-          path = item.page_url;
-        }
-        acc[path] = (acc[path] || 0) + 1;
-        return acc;
-      }, {});
-
-      topPages = Object.entries(pageCounts)
-        .map(([page, views]) => ({ page, views }))
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 5);
-    }
+    const topPages = Object.entries(pageCounts)
+      .map(([page, data]) => ({ 
+        page, 
+        views: data.views,
+        avgTime: data.views > 0 ? Math.round(data.totalTime / data.views) : 0
+      }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 5);
 
     // Get traffic sources (grouped by referrer)
-    const { data: referrerData, error: referrerError } = await supabaseClient
-      .from("website_analytics")
-      .select("referrer")
-      .eq("lead_id", lead_id);
-
-    let trafficSources: { source: string; percentage: number }[] = [];
-    if (!referrerError && referrerData && referrerData.length > 0) {
-      const sourceCounts = referrerData.reduce((acc: Record<string, number>, item) => {
-        let source = 'Direct';
-        if (item.referrer) {
-          try {
-            const url = new URL(item.referrer);
-            source = url.hostname || 'Direct';
-          } catch {
-            source = item.referrer || 'Direct';
-          }
+    const sourceCounts: Record<string, number> = {};
+    events.forEach(e => {
+      let source = 'Direct';
+      if (e.referrer) {
+        try {
+          const url = new URL(e.referrer);
+          source = url.hostname || 'Direct';
+        } catch {
+          source = e.referrer || 'Direct';
         }
-        acc[source] = (acc[source] || 0) + 1;
-        return acc;
-      }, {});
+      }
+      sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+    });
 
-      const total = referrerData.length;
-      trafficSources = Object.entries(sourceCounts)
-        .map(([source, count]) => ({
-          source,
-          percentage: Math.round((count / total) * 100),
-        }))
-        .sort((a, b) => b.percentage - a.percentage)
-        .slice(0, 5);
-    }
+    const trafficSources = Object.entries(sourceCounts)
+      .map(([source, count]) => ({
+        source,
+        visits: count,
+        percentage: totalVisits > 0 ? Math.round((count / totalVisits) * 100) : 0,
+      }))
+      .sort((a, b) => b.visits - a.visits)
+      .slice(0, 5);
+
+    // Get device breakdown
+    const deviceCounts: Record<string, number> = {};
+    events.forEach(e => {
+      const device = e.device_type || 'unknown';
+      deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+    });
+
+    const devices = Object.entries(deviceCounts)
+      .map(([device, count]) => ({
+        device,
+        count,
+        percentage: totalVisits > 0 ? Math.round((count / totalVisits) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    // Get browser breakdown
+    const browserCounts: Record<string, number> = {};
+    events.forEach(e => {
+      const browser = e.browser || 'Unknown';
+      browserCounts[browser] = (browserCounts[browser] || 0) + 1;
+    });
+
+    const browsers = Object.entries(browserCounts)
+      .map(([browser, count]) => ({
+        browser,
+        count,
+        percentage: totalVisits > 0 ? Math.round((count / totalVisits) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
 
     // Get last event timestamp
-    const { data: lastEvent, error: lastEventError } = await supabaseClient
-      .from("website_analytics")
-      .select("created_at")
-      .eq("lead_id", lead_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const lastUpdated = events.length > 0 ? events[0].created_at : null;
 
     logStep("Analytics fetched successfully", {
       totalVisits,
       uniqueVisitors,
-      topPagesCount: topPages.length,
-      sourcesCount: trafficSources.length,
+      bounceRate,
+      avgTimeOnPage,
+      avgLoadTime,
     });
 
     return new Response(
       JSON.stringify({
-        totalVisits: totalVisits || 0,
+        totalVisits,
         uniqueVisitors,
+        bounceRate,
+        avgTimeOnPage,
+        avgLoadTime,
         topPages,
         trafficSources,
-        lastUpdated: lastEvent?.created_at || null,
+        devices,
+        browsers,
+        lastUpdated,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

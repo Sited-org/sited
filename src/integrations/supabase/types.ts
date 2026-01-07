@@ -963,44 +963,71 @@ export type Database = {
       }
       website_analytics: {
         Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
           created_at: string
+          device_type: string | null
           event_type: string
           id: string
+          is_bounce: boolean | null
+          is_entry: boolean | null
+          is_exit: boolean | null
           lead_id: string
+          page_load_time: number | null
           page_title: string | null
           page_url: string
           referrer: string | null
           screen_height: number | null
           screen_width: number | null
           session_id: string | null
+          time_on_page: number | null
           tracking_id: string
           user_agent: string | null
         }
         Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event_type?: string
           id?: string
+          is_bounce?: boolean | null
+          is_entry?: boolean | null
+          is_exit?: boolean | null
           lead_id: string
+          page_load_time?: number | null
           page_title?: string | null
           page_url: string
           referrer?: string | null
           screen_height?: number | null
           screen_width?: number | null
           session_id?: string | null
+          time_on_page?: number | null
           tracking_id: string
           user_agent?: string | null
         }
         Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event_type?: string
           id?: string
+          is_bounce?: boolean | null
+          is_entry?: boolean | null
+          is_exit?: boolean | null
           lead_id?: string
+          page_load_time?: number | null
           page_title?: string | null
           page_url?: string
           referrer?: string | null
           screen_height?: number | null
           screen_width?: number | null
           session_id?: string | null
+          time_on_page?: number | null
           tracking_id?: string
           user_agent?: string | null
         }
