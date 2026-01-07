@@ -115,32 +115,34 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     }
   };
 
-  const trackingScript = `<!-- Sited Analytics -->
-<script>
+  const trackingScript = `<!-- Sited Analytics - Async, Non-Blocking -->
+<script defer>
 (function(){
   var t="${lead.tracking_id || 'YOUR_TRACKING_ID'}",
       e="https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics",
       s=sessionStorage.getItem("_sid")||"s"+Math.random().toString(36).substr(2,9)+Date.now().toString(36);
   sessionStorage.setItem("_sid",s);
-  var st=Date.now(),lt=0;
+  var st=Date.now(),lt=0,sent=false;
   function send(type,extra){
     var d={tracking_id:t,page_url:location.href,page_title:document.title,referrer:document.referrer,
       user_agent:navigator.userAgent,screen_width:Math.min(screen.width,9999),screen_height:Math.min(screen.height,9999),
       session_id:s,event_type:type,page_load_time:lt};
     if(extra)for(var k in extra)d[k]=extra[k];
-    try{navigator.sendBeacon(e,JSON.stringify(d))}catch(err){fetch(e,{method:"POST",body:JSON.stringify(d),keepalive:true})}
+    try{navigator.sendBeacon(e,JSON.stringify(d))}catch(err){fetch(e,{method:"POST",body:JSON.stringify(d),keepalive:true}).catch(function(){})}
   }
   function getLoadTime(){
     try{
       var n=performance.getEntriesByType("navigation")[0];
       if(n&&n.loadEventEnd>0)return Math.round(n.loadEventEnd);
-      if(performance.timing){var t=performance.timing;return Math.max(0,(t.loadEventEnd||t.domComplete)-t.navigationStart)}
     }catch(e){}
     return 0;
   }
-  function onLoad(){lt=Math.min(getLoadTime(),60000);send("page_view")}
+  function onLoad(){
+    if(sent)return;sent=true;
+    requestIdleCallback?requestIdleCallback(function(){lt=Math.min(getLoadTime(),60000);send("page_view")}):setTimeout(function(){lt=Math.min(getLoadTime(),60000);send("page_view")},100);
+  }
   function onExit(){send("page_exit",{time_on_page:Math.min(Math.round((Date.now()-st)/1000),86400)})}
-  if(document.readyState==="complete")setTimeout(onLoad,0);else window.addEventListener("load",function(){setTimeout(onLoad,0)});
+  if(document.readyState==="complete")onLoad();else window.addEventListener("load",onLoad);
   window.addEventListener("pagehide",onExit);
   document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")send("session_end")});
 })();
