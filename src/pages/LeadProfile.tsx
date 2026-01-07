@@ -193,7 +193,7 @@ export default function LeadProfile() {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <SettingsTab lead={lead} canEdit={canEdit} />
+          <SettingsTab lead={lead} canEdit={canEdit} onLeadUpdate={setLead} />
         </TabsContent>
       </Tabs>
     </div>
