@@ -6,9 +6,19 @@
     <title>Sited | AI-Powered Web Design & Development</title>
     <meta name="description" content="Sited creates stunning websites for small-medium businesses using AI-powered design and development." />
     <meta name="author" content="Sited" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Preconnect to external domains for faster resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://xwjoqaflrynemntyzwmw.supabase.co" />
+    
+    <!-- Preload critical font with display=swap to prevent FOIT -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+
+    <!-- DNS prefetch for third-party domains -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
     <meta property="og:title" content="Sited | AI-Powered Web Design & Development" />
     <meta property="og:description" content="Stunning websites for small-medium businesses" />
@@ -18,10 +28,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Sited" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Critical CSS inline for faster FCP -->
+    <style>
+      body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif}
+      #root{min-height:100vh}
+      .initial-loader{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#09090b}
+      .initial-loader::after{content:'';width:32px;height:32px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite}
+      @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="initial-loader"></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
