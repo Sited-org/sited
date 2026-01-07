@@ -35,7 +35,7 @@ interface ChatStore {
 
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
-  content: "Hey! 👋 Website, app, or AI project? Let's chat.",
+  content: "Hey! 👋 Looking to build a website? Tell me about your project.",
 };
 
 export const useChatStore = create<ChatStore>()(
