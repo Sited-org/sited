@@ -25,6 +25,7 @@ interface ClientSession {
     form_data: any;
     created_at: string;
     website_url?: string;
+    tracking_id?: string;
     billing_address?: string;
   };
   token: string;

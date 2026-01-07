@@ -40,7 +40,7 @@ serve(async (req) => {
     // Verify the lead exists and email matches
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("*, stripe_customer_id, stripe_payment_method_id")
+      .select("*, stripe_customer_id, stripe_payment_method_id, tracking_id")
       .eq("id", lead_id)
       .eq("email", email.toLowerCase().trim())
       .single();
@@ -136,6 +136,7 @@ serve(async (req) => {
           business_name: lead.business_name,
           billing_address: lead.billing_address,
           website_url: lead.website_url,
+          tracking_id: lead.tracking_id,
           project_type: lead.project_type,
           status: lead.status,
           form_data: lead.form_data,
