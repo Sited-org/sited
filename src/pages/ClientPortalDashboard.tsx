@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, CreditCard, Clock, Home, Globe, MessageSquarePlus, User } from 'lucide-react';
+import { Loader2, LogOut, CreditCard, Clock, Home, Globe, MessageSquarePlus, User, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { PasswordSetupModal } from '@/components/client-portal/PasswordSetupModal';
@@ -12,6 +12,7 @@ import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
 import { ProgressTab } from '@/components/client-portal/ProgressTab';
 import { PaymentsTab } from '@/components/client-portal/PaymentsTab';
 import { ProfileTab } from '@/components/client-portal/ProfileTab';
+import { MetricsTab } from '@/components/client-portal/MetricsTab';
 
 interface ClientSession {
   lead: {
@@ -192,7 +193,7 @@ export default function ClientPortalDashboard() {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -200,6 +201,10 @@ export default function ClientPortalDashboard() {
               <TabsTrigger value="website" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 <span className="hidden sm:inline">My Website</span>
+              </TabsTrigger>
+              <TabsTrigger value="metrics" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Metrics</span>
               </TabsTrigger>
               <TabsTrigger value="requests" className="flex items-center gap-2">
                 <MessageSquarePlus className="h-4 w-4" />
@@ -234,6 +239,10 @@ export default function ClientPortalDashboard() {
 
             <TabsContent value="website">
               <MyWebsiteTab lead={session.lead} />
+            </TabsContent>
+
+            <TabsContent value="metrics">
+              <MetricsTab lead={session.lead} />
             </TabsContent>
 
             <TabsContent value="requests">
