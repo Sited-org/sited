@@ -108,6 +108,16 @@ export default function ClientPortalDashboard() {
 
       if (error) throw error;
 
+      // Update session with fresh lead data from API
+      if (data.lead) {
+        const updatedSession = {
+          ...clientSession,
+          lead: { ...clientSession.lead, ...data.lead }
+        };
+        setSession(updatedSession);
+        sessionStorage.setItem('clientPortalSession', JSON.stringify(updatedSession));
+      }
+
       setTransactions(data.transactions || []);
       setProjectUpdates(data.projectUpdates || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
