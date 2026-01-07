@@ -115,11 +115,11 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     }
   };
 
-  const trackingScript = `<!-- Analytics Tracking Script -->
+  const trackingScript = `<!-- Sited Analytics Tracking Script -->
 <script>
 (function() {
   var tid = "${lead.tracking_id || 'YOUR_TRACKING_ID'}";
-  var endpoint = "${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-analytics";
+  var endpoint = "https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics";
   var sid = sessionStorage.getItem('_sid') || Math.random().toString(36).substr(2, 9);
   sessionStorage.setItem('_sid', sid);
   var startTime = Date.now();
