@@ -115,65 +115,26 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     }
   };
 
-  const trackingScript = `<!-- Sited Analytics Tracking Script -->
+  const trackingScript = `<!-- Sited Analytics -->
 <script>
-(function() {
-  var tid = "${lead.tracking_id || 'YOUR_TRACKING_ID'}";
-  var endpoint = "https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics";
-  var sid = sessionStorage.getItem('_sid') || Math.random().toString(36).substr(2, 9);
-  sessionStorage.setItem('_sid', sid);
-  var startTime = Date.now();
-  var loadTime = 0;
-  
-  function getLoadTime() {
-    if (window.performance && performance.timing) {
-      var t = performance.timing;
-      return t.loadEventEnd - t.navigationStart;
-    }
-    return 0;
+(function(){
+  var t="${lead.tracking_id || 'YOUR_TRACKING_ID'}",
+      e="https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics",
+      s=sessionStorage.getItem("_sid")||"s"+Math.random().toString(36).substr(2,9)+Date.now().toString(36);
+  sessionStorage.setItem("_sid",s);
+  var st=Date.now(),lt=0;
+  function send(type,extra){
+    var d={tracking_id:t,page_url:location.href,page_title:document.title,referrer:document.referrer,
+      user_agent:navigator.userAgent,screen_width:Math.min(screen.width,9999),screen_height:Math.min(screen.height,9999),
+      session_id:s,event_type:type,page_load_time:lt};
+    if(extra)for(var k in extra)d[k]=extra[k];
+    try{navigator.sendBeacon(e,JSON.stringify(d))}catch(err){fetch(e,{method:"POST",body:JSON.stringify(d),keepalive:true})}
   }
-  
-  function track(eventType, extraData) {
-    var data = {
-      tracking_id: tid,
-      page_url: window.location.href,
-      page_title: document.title,
-      referrer: document.referrer,
-      user_agent: navigator.userAgent,
-      screen_width: window.screen.width,
-      screen_height: window.screen.height,
-      session_id: sid,
-      event_type: eventType || 'page_view',
-      page_load_time: loadTime
-    };
-    if (extraData) Object.assign(data, extraData);
-    
-    navigator.sendBeacon ? 
-      navigator.sendBeacon(endpoint, JSON.stringify(data)) :
-      fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true });
-  }
-  
-  function onLoad() {
-    loadTime = getLoadTime();
-    track('page_view');
-  }
-  
-  function onExit() {
-    var timeOnPage = Math.round((Date.now() - startTime) / 1000);
-    track('page_exit', { time_on_page: timeOnPage });
-  }
-  
-  function onSessionEnd() {
-    track('session_end');
-  }
-  
-  if (document.readyState === 'complete') { loadTime = getLoadTime(); track('page_view'); }
-  else { window.addEventListener('load', onLoad); }
-  
-  window.addEventListener('beforeunload', onExit);
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') onSessionEnd();
-  });
+  function onLoad(){if(performance.timing){var n=performance.timing;lt=Math.max(0,Math.min((n.loadEventEnd||n.domComplete)-n.navigationStart,60000))}send("page_view")}
+  function onExit(){send("page_exit",{time_on_page:Math.min(Math.round((Date.now()-st)/1000),86400)})}
+  if(document.readyState==="complete")onLoad();else window.addEventListener("load",onLoad);
+  window.addEventListener("pagehide",onExit);
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")send("session_end")});
 })();
 </script>`;
 

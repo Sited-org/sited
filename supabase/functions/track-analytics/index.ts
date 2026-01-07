@@ -34,6 +34,14 @@ function parseUserAgent(ua: string): { browser: string; deviceType: string } {
   return { browser, deviceType };
 }
 
+// Safely parse integer within valid range
+function safeInt(value: any, defaultValue: number | null = 0, max: number = 10000): number | null {
+  if (value === null || value === undefined) return defaultValue;
+  const num = parseInt(String(value), 10);
+  if (isNaN(num) || num < 0 || num > max) return defaultValue;
+  return num;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -62,10 +70,9 @@ serve(async (req) => {
       event_type = 'page_view',
       time_on_page = 0,
       page_load_time = 0,
-      is_bounce = false,
-      is_exit = false,
-      is_entry = true,
     } = body;
+
+    logStep("Received data", { tracking_id, event_type, page_url: page_url?.substring(0, 50) });
 
     if (!tracking_id || !page_url) {
       logStep("Missing required fields", { tracking_id: !!tracking_id, page_url: !!page_url });
@@ -101,12 +108,18 @@ serve(async (req) => {
     // Parse user agent for browser and device info
     const { browser, deviceType } = parseUserAgent(user_agent || '');
 
+    // Safely parse numeric values to avoid integer overflow
+    const safeScreenWidth = safeInt(screen_width, null, 10000);
+    const safeScreenHeight = safeInt(screen_height, null, 10000);
+    const safeTimeOnPage = safeInt(time_on_page, 0, 86400); // max 24 hours
+    const safePageLoadTime = safeInt(page_load_time, 0, 60000); // max 60 seconds
+
     // For exit events, update the previous page view with time_on_page
     if (event_type === 'page_exit' && session_id) {
       const { error: updateError } = await supabaseClient
         .from("website_analytics")
         .update({ 
-          time_on_page, 
+          time_on_page: safeTimeOnPage, 
           is_exit: true 
         })
         .eq("session_id", session_id)
@@ -118,7 +131,7 @@ serve(async (req) => {
       if (updateError) {
         logStep("Error updating page exit", { error: updateError.message });
       } else {
-        logStep("Page exit recorded", { session_id, time_on_page });
+        logStep("Page exit recorded", { session_id, time_on_page: safeTimeOnPage });
       }
 
       return new Response(
@@ -154,36 +167,43 @@ serve(async (req) => {
     }
 
     // Check if this is entry page (first page in session)
-    const { count: sessionPageCount } = await supabaseClient
-      .from("website_analytics")
-      .select("*", { count: "exact", head: true })
-      .eq("session_id", session_id)
-      .eq("event_type", "page_view");
+    let isEntryPage = true;
+    if (session_id) {
+      const { count: sessionPageCount } = await supabaseClient
+        .from("website_analytics")
+        .select("*", { count: "exact", head: true })
+        .eq("session_id", session_id)
+        .eq("event_type", "page_view");
 
-    const isEntryPage = (sessionPageCount || 0) === 0;
+      isEntryPage = (sessionPageCount || 0) === 0;
+    }
 
     // Insert the analytics event
+    const insertData: any = {
+      lead_id: lead.id,
+      tracking_id,
+      page_url: page_url.substring(0, 2000), // Limit URL length
+      page_title: page_title?.substring(0, 500) || null,
+      referrer: referrer?.substring(0, 2000) || null,
+      user_agent: user_agent?.substring(0, 1000) || null,
+      session_id: session_id || null,
+      event_type,
+      time_on_page: safeTimeOnPage,
+      page_load_time: safePageLoadTime,
+      is_bounce: false,
+      is_exit: false,
+      is_entry: isEntryPage,
+      browser,
+      device_type: deviceType,
+    };
+
+    // Only add screen dimensions if they're valid
+    if (safeScreenWidth !== null) insertData.screen_width = safeScreenWidth;
+    if (safeScreenHeight !== null) insertData.screen_height = safeScreenHeight;
+
     const { error: insertError } = await supabaseClient
       .from("website_analytics")
-      .insert({
-        lead_id: lead.id,
-        tracking_id,
-        page_url,
-        page_title,
-        referrer,
-        user_agent,
-        screen_width,
-        screen_height,
-        session_id,
-        event_type,
-        time_on_page,
-        page_load_time,
-        is_bounce: false,
-        is_exit: false,
-        is_entry: isEntryPage,
-        browser,
-        device_type: deviceType,
-      });
+      .insert(insertData);
 
     if (insertError) {
       logStep("Error inserting analytics", { error: insertError.message });
