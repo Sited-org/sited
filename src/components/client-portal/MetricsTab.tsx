@@ -139,7 +139,7 @@ export function MetricsTab({ lead }: MetricsTabProps) {
             <div className="text-center">
               <Clock className="h-5 w-5 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{formatTime(analytics.avgTimeOnPage)}</p>
-              <p className="text-xs text-muted-foreground">Avg. Time</p>
+              <p className="text-xs text-muted-foreground">Avg. Session</p>
             </div>
           </CardContent>
         </Card>

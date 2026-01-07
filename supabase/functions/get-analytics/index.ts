@@ -57,11 +57,17 @@ serve(async (req) => {
     const bouncedSessions = events.filter(e => e.is_bounce).length;
     const bounceRate = uniqueVisitors > 0 ? Math.round((bouncedSessions / uniqueVisitors) * 100) : 0;
 
-    // Calculate average time on page (only for events with time_on_page > 0)
-    const eventsWithTime = events.filter(e => e.time_on_page > 0);
-    const totalTimeOnPage = eventsWithTime.reduce((sum, e) => sum + (e.time_on_page || 0), 0);
-    const avgTimeOnPage = eventsWithTime.length > 0 
-      ? Math.round(totalTimeOnPage / eventsWithTime.length) 
+    // Calculate average SESSION duration (total time visitor spends on website per session)
+    // Group events by session and sum time_on_page for each session
+    const sessionTimes: Record<string, number> = {};
+    events.forEach(e => {
+      if (e.session_id && e.time_on_page > 0) {
+        sessionTimes[e.session_id] = (sessionTimes[e.session_id] || 0) + e.time_on_page;
+      }
+    });
+    const sessionDurations = Object.values(sessionTimes);
+    const avgSessionDuration = sessionDurations.length > 0
+      ? Math.round(sessionDurations.reduce((a, b) => a + b, 0) / sessionDurations.length)
       : 0;
 
     // Calculate average page load time
@@ -178,7 +184,7 @@ serve(async (req) => {
       totalVisits,
       uniqueVisitors,
       bounceRate,
-      avgTimeOnPage,
+      avgSessionDuration,
       avgLoadTime,
     });
 
@@ -187,7 +193,7 @@ serve(async (req) => {
         totalVisits,
         uniqueVisitors,
         bounceRate,
-        avgTimeOnPage,
+        avgTimeOnPage: avgSessionDuration, // renamed for frontend compatibility
         avgLoadTime,
         topPages,
         trafficSources,
