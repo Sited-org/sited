@@ -57,52 +57,28 @@ export function MyWebsiteTab({ lead }: MyWebsiteTabProps) {
         </CardContent>
       </Card>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {websiteUrl && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Globe className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Live Website</h3>
-                  <p className="text-sm text-muted-foreground">Visit your published website</p>
-                </div>
-                <Button asChild className="w-full">
-                  <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visit Website
-                  </a>
-                </Button>
+      {/* Preview Link Button */}
+      {previewUrl && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Monitor className="h-6 w-6 text-purple-600" />
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {previewUrl && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Monitor className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Preview Link</h3>
-                  <p className="text-sm text-muted-foreground">View the latest development version</p>
-                </div>
-                <Button variant="outline" asChild className="w-full">
-                  <a href={previewUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Preview
-                  </a>
-                </Button>
+              <div>
+                <h3 className="font-semibold">Preview Link</h3>
+                <p className="text-sm text-muted-foreground">View the latest development version</p>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              <Button variant="outline" asChild className="w-full max-w-xs">
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Preview
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Website Preview */}
       {(websiteUrl || previewUrl) && (
