@@ -15,11 +15,12 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-import { Target } from 'lucide-react';
+import { Target, ClipboardList } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
+  { name: 'Requests', href: '/admin/requests', icon: ClipboardList },
   { name: 'New Sale', href: '/admin/new-sale', icon: Target, salesOnly: true },
   { name: 'Live Activity', href: '/admin/activity', icon: Activity },
   { name: 'Team', href: '/admin/team', icon: UserCircle },

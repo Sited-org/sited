@@ -20,6 +20,7 @@ import AdminTeam from "./pages/AdminTeam";
 import AdminSettings from "./pages/AdminSettings";
 import AdminTestimonials from "./pages/AdminTestimonials";
 import NewSale from "./pages/NewSale";
+import AdminRequests from "./pages/AdminRequests";
 import AdminLayout from "./components/admin/AdminLayout";
 import ClientPortalLogin from "./pages/ClientPortalLogin";
 import ClientPortalDashboard from "./pages/ClientPortalDashboard";
@@ -49,6 +50,7 @@ const App = () => (
             <Route index element={<AdminDashboard />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="leads/:id" element={<LeadProfile />} />
+            <Route path="requests" element={<AdminRequests />} />
             <Route path="testimonials" element={<AdminTestimonials />} />
             <Route path="activity" element={<AdminActivity />} />
             <Route path="team" element={<AdminTeam />} />
