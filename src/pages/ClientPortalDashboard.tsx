@@ -271,6 +271,7 @@ export default function ClientPortalDashboard() {
               <PaymentsTab
                 lead={session.lead}
                 email={session.email}
+                sessionToken={session.token}
                 transactions={transactions}
                 savedPaymentMethod={savedPaymentMethod}
                 onPaymentMethodSaved={(pm) => setSavedPaymentMethod(pm)}
