@@ -169,6 +169,126 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
+        {/* Website Metrics - only show if website_url exists */}
+        {lead.website_url && lead.tracking_id && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Website Metrics
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={fetchAnalytics} disabled={analyticsLoading}>
+                  <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {analyticsLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <Skeleton key={i} className="h-20 rounded-lg" />
+                  ))}
+                </div>
+              ) : analytics ? (
+                <>
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
+                      <p className="text-2xl font-bold">{analytics.totalVisits}</p>
+                      <p className="text-xs text-muted-foreground">Page Views</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
+                      <p className="text-2xl font-bold">{analytics.uniqueVisitors}</p>
+                      <p className="text-xs text-muted-foreground">Unique Visitors</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <ArrowUpRight className="h-5 w-5 mx-auto mb-2 text-primary" />
+                      <p className="text-2xl font-bold">{analytics.bounceRate}%</p>
+                      <p className="text-xs text-muted-foreground">Bounce Rate</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4 text-center">
+                      <Timer className="h-5 w-5 mx-auto mb-2 text-primary" />
+                      <p className="text-2xl font-bold">{analytics.avgTimeOnPage}s</p>
+                      <p className="text-xs text-muted-foreground">Avg. Time on Page</p>
+                    </div>
+                  </div>
+
+                  {/* Top Pages */}
+                  {analytics.topPages.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <Globe className="h-4 w-4" /> Top Pages
+                      </h4>
+                      <div className="space-y-2">
+                        {analytics.topPages.map((page, i) => (
+                          <div key={i} className="flex items-center justify-between text-sm bg-muted/30 rounded px-3 py-2">
+                            <span className="truncate max-w-[200px]">{page.page}</span>
+                            <div className="flex items-center gap-4">
+                              <span className="text-muted-foreground">{page.avgTime}s avg</span>
+                              <Badge variant="secondary">{page.views} views</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Traffic Sources & Devices */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {analytics.trafficSources.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3">Traffic Sources</h4>
+                        <div className="space-y-2">
+                          {analytics.trafficSources.map((source, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <span className="truncate max-w-[150px]">{source.source}</span>
+                              <span className="text-muted-foreground">{source.percentage}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {analytics.devices.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Monitor className="h-4 w-4" /> Devices
+                        </h4>
+                        <div className="space-y-2">
+                          {analytics.devices.map((device, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <span className="capitalize">{device.device}</span>
+                              <span className="text-muted-foreground">{device.percentage}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Load Time */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Zap className="h-4 w-4" />
+                    <span>Avg. Load Time: {analytics.avgLoadTime}ms</span>
+                    {analytics.lastUpdated && (
+                      <>
+                        <span className="mx-2">•</span>
+                        <span>Last updated: {format(new Date(analytics.lastUpdated), 'PPp')}</span>
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No analytics data yet. Views will appear once visitors interact with the tracking script.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Project Progress Updates */}
         <Card>
           <CardHeader>
@@ -315,126 +435,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                     {generatedPrompt}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Website Metrics */}
-        {lead.tracking_id && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Website Metrics
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={fetchAnalytics} disabled={analyticsLoading}>
-                  <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {analyticsLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map(i => (
-                    <Skeleton key={i} className="h-20 rounded-lg" />
-                  ))}
-                </div>
-              ) : analytics ? (
-                <>
-                  {/* Key Metrics Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.totalVisits}</p>
-                      <p className="text-xs text-muted-foreground">Page Views</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.uniqueVisitors}</p>
-                      <p className="text-xs text-muted-foreground">Unique Visitors</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <ArrowUpRight className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.bounceRate}%</p>
-                      <p className="text-xs text-muted-foreground">Bounce Rate</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Timer className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.avgTimeOnPage}s</p>
-                      <p className="text-xs text-muted-foreground">Avg. Time on Page</p>
-                    </div>
-                  </div>
-
-                  {/* Top Pages */}
-                  {analytics.topPages.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Globe className="h-4 w-4" /> Top Pages
-                      </h4>
-                      <div className="space-y-2">
-                        {analytics.topPages.map((page, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm bg-muted/30 rounded px-3 py-2">
-                            <span className="truncate max-w-[200px]">{page.page}</span>
-                            <div className="flex items-center gap-4">
-                              <span className="text-muted-foreground">{page.avgTime}s avg</span>
-                              <Badge variant="secondary">{page.views} views</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Traffic Sources & Devices */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {analytics.trafficSources.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Traffic Sources</h4>
-                        <div className="space-y-2">
-                          {analytics.trafficSources.map((source, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="truncate max-w-[150px]">{source.source}</span>
-                              <span className="text-muted-foreground">{source.percentage}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {analytics.devices.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                          <Monitor className="h-4 w-4" /> Devices
-                        </h4>
-                        <div className="space-y-2">
-                          {analytics.devices.map((device, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="capitalize">{device.device}</span>
-                              <span className="text-muted-foreground">{device.percentage}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Load Time */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Zap className="h-4 w-4" />
-                    <span>Avg. Page Load: {analytics.avgLoadTime}ms</span>
-                    {analytics.lastUpdated && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>Last data: {format(new Date(analytics.lastUpdated), 'PP')}</span>
-                      </>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No analytics data yet. Data will appear once visitors start using the client's website.
-                </p>
               )}
             </CardContent>
           </Card>
