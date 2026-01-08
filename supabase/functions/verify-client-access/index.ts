@@ -6,10 +6,95 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit configuration
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_ATTEMPTS_PER_IP = 10; // Max 10 attempts per hour per IP
+const MAX_ATTEMPTS_PER_EMAIL = 5; // Max 5 attempts per hour per email
+
+// Session token configuration
+const SESSION_EXPIRY_HOURS = 24;
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[VERIFY-CLIENT-ACCESS] ${step}${detailsStr}`);
 };
+
+async function checkRateLimit(
+  supabase: any,
+  identifier: string,
+  endpoint: string,
+  maxRequests: number
+): Promise<{ allowed: boolean; remaining: number }> {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+  
+  // Get current request count for this identifier and endpoint
+  const { data: existing } = await supabase
+    .from('rate_limits')
+    .select('request_count')
+    .eq('ip_address', identifier)
+    .eq('endpoint', endpoint)
+    .gte('window_start', windowStart.toISOString())
+    .single();
+
+  if (existing) {
+    if (existing.request_count >= maxRequests) {
+      return { allowed: false, remaining: 0 };
+    }
+    
+    // Increment counter
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('ip_address', identifier)
+      .eq('endpoint', endpoint)
+      .gte('window_start', windowStart.toISOString());
+    
+    return { allowed: true, remaining: maxRequests - existing.request_count - 1 };
+  }
+
+  // Create new rate limit entry
+  await supabase
+    .from('rate_limits')
+    .insert({
+      ip_address: identifier,
+      endpoint: endpoint,
+      request_count: 1,
+      window_start: new Date().toISOString(),
+    });
+
+  return { allowed: true, remaining: maxRequests - 1 };
+}
+
+// Helper function to convert Uint8Array to base64
+function uint8ArrayToBase64(arr: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < arr.byteLength; i++) {
+    binary += String.fromCharCode(arr[i]);
+  }
+  return btoa(binary);
+}
+
+function generateSecureSessionToken(leadId: string): { token: string; expiresAt: number } {
+  // Generate a cryptographically secure random component
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  const randomPart = uint8ArrayToBase64(randomBytes);
+  
+  // Create expiry timestamp
+  const expiresAt = Date.now() + (SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
+  
+  // Create token payload
+  const payload = {
+    lid: leadId, // lead id
+    exp: expiresAt, // expiry
+    rnd: randomPart, // random component
+  };
+  
+  // Encode as base64
+  const token = btoa(JSON.stringify(payload));
+  
+  return { token, expiresAt };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,17 +110,49 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Get client IP for rate limiting
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                      req.headers.get('cf-connecting-ip') || 
+                      'unknown';
+
+    // Check IP-based rate limit
+    const ipRateLimit = await checkRateLimit(supabaseClient, ipAddress, 'verify-client-access-ip', MAX_ATTEMPTS_PER_IP);
+    if (!ipRateLimit.allowed) {
+      logStep("Rate limit exceeded for IP", { ip: ipAddress });
+      return new Response(
+        JSON.stringify({ error: "Too many login attempts. Please try again later." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+        }
+      );
+    }
+
     const { email, access_code, lead_id } = await req.json();
     
-    // Support both access_code (new) and lead_id (legacy)
+    // Validate input
+    const emailTrimmed = email?.toLowerCase().trim();
     const code = access_code?.toUpperCase().trim();
     const legacyId = lead_id?.trim();
     
-    if (!email || (!code && !legacyId)) {
+    if (!emailTrimmed || (!code && !legacyId)) {
       throw new Error("Email and Access Code are required");
     }
 
-    logStep("Verifying access", { email, hasCode: !!code, hasLegacyId: !!legacyId });
+    // Check email-based rate limit (prevents targeted brute force on specific accounts)
+    const emailRateLimit = await checkRateLimit(supabaseClient, `email:${emailTrimmed}`, 'verify-client-access-email', MAX_ATTEMPTS_PER_EMAIL);
+    if (!emailRateLimit.allowed) {
+      logStep("Rate limit exceeded for email");
+      return new Response(
+        JSON.stringify({ error: "Too many login attempts for this email. Please try again later." }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429,
+        }
+      );
+    }
+
+    logStep("Verifying access", { hasCode: !!code, hasLegacyId: !!legacyId });
 
     // Find the lead matching email and either access_code or lead_id
     let lead;
@@ -47,7 +164,7 @@ serve(async (req) => {
         .from("leads")
         .select("id, name, email, phone, business_name, project_type, status, form_data, created_at, client_access_code")
         .eq("client_access_code", code)
-        .eq("email", email.toLowerCase().trim())
+        .eq("email", emailTrimmed)
         .single();
       
       lead = result.data;
@@ -58,7 +175,7 @@ serve(async (req) => {
         .from("leads")
         .select("id, name, email, phone, business_name, project_type, status, form_data, created_at, client_access_code")
         .eq("id", legacyId)
-        .eq("email", email.toLowerCase().trim())
+        .eq("email", emailTrimmed)
         .single();
       
       lead = result.data;
@@ -78,8 +195,8 @@ serve(async (req) => {
 
     logStep("Access granted", { leadId: lead.id, name: lead.name });
 
-    // Generate a simple session token
-    const sessionToken = btoa(`${lead.id}:${Date.now()}`);
+    // Generate a secure session token with expiration
+    const { token: sessionToken, expiresAt } = generateSecureSessionToken(lead.id);
 
     return new Response(
       JSON.stringify({ 
@@ -96,6 +213,7 @@ serve(async (req) => {
           created_at: lead.created_at,
         },
         sessionToken,
+        expiresAt,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -40,7 +40,7 @@ export function useLeads() {
     setLoading(true);
     const { data, error } = await supabase
       .from('leads')
-      .select('*')
+      .select('id, lead_number, name, email, phone, business_name, project_type, form_data, status, notes, last_contacted_at, assigned_to, created_at, deal_amount, deal_closed_at')
       .order('created_at', { ascending: false });
     
     if (error) {

@@ -36,6 +36,7 @@ export default function ClientPortalLogin() {
           lead: data.lead,
           token: data.sessionToken,
           email: email.trim().toLowerCase(),
+          expiresAt: data.expiresAt, // Store token expiry
         }));
         navigate('/client-portal/dashboard');
       } else {
