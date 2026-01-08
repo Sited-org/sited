@@ -57,6 +57,7 @@ interface PaymentsTabProps {
     email: string;
   };
   email: string;
+  sessionToken: string;
   transactions: Transaction[];
   savedPaymentMethod: SavedPaymentMethod | null;
   onPaymentMethodSaved: (pm: SavedPaymentMethod) => void;
@@ -105,7 +106,7 @@ function generateUpcomingCharges(transactions: Transaction[]): Transaction[] {
   return upcoming.sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
 }
 
-function CardForm({ lead, email, onCardSaved }: { lead: any; email: string; onCardSaved: (pm: SavedPaymentMethod) => void }) {
+function CardForm({ lead, email, sessionToken, onCardSaved }: { lead: any; email: string; sessionToken: string; onCardSaved: (pm: SavedPaymentMethod) => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -120,7 +121,7 @@ function CardForm({ lead, email, onCardSaved }: { lead: any; email: string; onCa
     
     try {
       const { data: setupData, error: setupError } = await supabase.functions.invoke('client-create-setup-intent', {
-        body: { lead_id: lead.id, email },
+        body: { lead_id: lead.id, email, session_token: sessionToken },
       });
 
       if (setupError || !setupData?.clientSecret) throw new Error('Failed to create setup intent');
@@ -136,7 +137,7 @@ function CardForm({ lead, email, onCardSaved }: { lead: any; email: string; onCa
       if (!setupIntent?.payment_method) throw new Error('No payment method returned');
 
       const { data: saveData, error: saveError } = await supabase.functions.invoke('client-save-payment-method', {
-        body: { lead_id: lead.id, email, payment_method_id: setupIntent.payment_method },
+        body: { lead_id: lead.id, email, payment_method_id: setupIntent.payment_method, session_token: sessionToken },
       });
 
       if (saveError) throw new Error('Failed to save payment method');
@@ -164,7 +165,7 @@ function CardForm({ lead, email, onCardSaved }: { lead: any; email: string; onCa
   );
 }
 
-function BankForm({ lead, email, onBankSaved }: { lead: any; email: string; onBankSaved: (pm: SavedPaymentMethod) => void }) {
+function BankForm({ lead, email, sessionToken, onBankSaved }: { lead: any; email: string; sessionToken: string; onBankSaved: (pm: SavedPaymentMethod) => void }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -180,7 +181,7 @@ function BankForm({ lead, email, onBankSaved }: { lead: any; email: string; onBa
     
     try {
       const { data: setupData, error: setupError } = await supabase.functions.invoke('client-create-setup-intent', {
-        body: { lead_id: lead.id, email, payment_method_type: 'au_becs_debit' },
+        body: { lead_id: lead.id, email, payment_method_type: 'au_becs_debit', session_token: sessionToken },
       });
 
       if (setupError || !setupData?.clientSecret) throw new Error('Failed to create setup intent');
@@ -196,7 +197,7 @@ function BankForm({ lead, email, onBankSaved }: { lead: any; email: string; onBa
       if (!setupIntent?.payment_method) throw new Error('No payment method returned');
 
       const { data: saveData, error: saveError } = await supabase.functions.invoke('client-save-payment-method', {
-        body: { lead_id: lead.id, email, payment_method_id: setupIntent.payment_method },
+        body: { lead_id: lead.id, email, payment_method_id: setupIntent.payment_method, session_token: sessionToken },
       });
 
       if (saveError) throw new Error('Failed to save payment method');
@@ -233,7 +234,7 @@ function BankForm({ lead, email, onBankSaved }: { lead: any; email: string; onBa
   );
 }
 
-export function PaymentsTab({ lead, email, transactions, savedPaymentMethod, onPaymentMethodSaved }: PaymentsTabProps) {
+export function PaymentsTab({ lead, email, sessionToken, transactions, savedPaymentMethod, onPaymentMethodSaved }: PaymentsTabProps) {
   const upcomingCharges = useMemo(() => generateUpcomingCharges(transactions), [transactions]);
   
   const totalDebit = transactions.reduce((sum, t) => sum + Number(t.debit), 0);
@@ -367,10 +368,10 @@ export function PaymentsTab({ lead, email, transactions, savedPaymentMethod, onP
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="card">
-                <CardForm lead={lead} email={email} onCardSaved={onPaymentMethodSaved} />
+                <CardForm lead={lead} email={email} sessionToken={sessionToken} onCardSaved={onPaymentMethodSaved} />
               </TabsContent>
               <TabsContent value="bank">
-                <BankForm lead={lead} email={email} onBankSaved={onPaymentMethodSaved} />
+                <BankForm lead={lead} email={email} sessionToken={sessionToken} onBankSaved={onPaymentMethodSaved} />
               </TabsContent>
             </Tabs>
           </Elements>
