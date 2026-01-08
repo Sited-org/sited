@@ -65,6 +65,20 @@ async function checkRateLimit(
   return { allowed: true, remaining: maxRequests - 1 };
 }
 
+// HMAC-SHA256 signing for session tokens
+async function createHmacSignature(data: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(signature)));
+}
+
 // Helper function to convert Uint8Array to base64
 function uint8ArrayToBase64(arr: Uint8Array): string {
   let binary = '';
@@ -74,8 +88,18 @@ function uint8ArrayToBase64(arr: Uint8Array): string {
   return btoa(binary);
 }
 
-function generateSecureSessionToken(leadId: string): { token: string; expiresAt: number } {
-  // Generate a cryptographically secure random component
+function getSessionSecret(): string {
+  const secret = Deno.env.get('CLIENT_SESSION_SECRET');
+  if (!secret) {
+    throw new Error('CLIENT_SESSION_SECRET is not configured');
+  }
+  return secret;
+}
+
+async function generateSecureSessionToken(leadId: string): Promise<{ token: string; expiresAt: number }> {
+  const secret = getSessionSecret();
+  
+  // Generate cryptographically secure random component
   const randomBytes = new Uint8Array(32);
   crypto.getRandomValues(randomBytes);
   const randomPart = uint8ArrayToBase64(randomBytes);
@@ -90,8 +114,14 @@ function generateSecureSessionToken(leadId: string): { token: string; expiresAt:
     rnd: randomPart, // random component
   };
   
-  // Encode as base64
-  const token = btoa(JSON.stringify(payload));
+  // Encode payload as base64
+  const payloadBase64 = btoa(JSON.stringify(payload));
+  
+  // Create HMAC signature
+  const signature = await createHmacSignature(payloadBase64, secret);
+  
+  // Combine payload and signature: payload.signature
+  const token = `${payloadBase64}.${signature}`;
   
   return { token, expiresAt };
 }
@@ -195,8 +225,8 @@ serve(async (req) => {
 
     logStep("Access granted", { leadId: lead.id, name: lead.name });
 
-    // Generate a secure session token with expiration
-    const { token: sessionToken, expiresAt } = generateSecureSessionToken(lead.id);
+    // Generate a cryptographically signed session token with expiration
+    const { token: sessionToken, expiresAt } = await generateSecureSessionToken(lead.id);
 
     return new Response(
       JSON.stringify({ 
