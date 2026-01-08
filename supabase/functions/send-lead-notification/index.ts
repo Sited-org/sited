@@ -94,9 +94,13 @@ const handler = async (req: Request): Promise<Response> => {
     // Convert mockup prompt to HTML-friendly format
     const mockupPromptHtml = mockupPrompt.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
+    // Get notification email from environment variable with fallback
+    const notificationEmails = Deno.env.get("LEAD_NOTIFICATION_EMAILS") || "andrewguinessfuller@gmail.com";
+    const recipients = notificationEmails.split(",").map(e => e.trim()).filter(e => e);
+    
     const emailResponse = await resend.emails.send({
       from: "Sited Leads <onboarding@resend.dev>",
-      to: ["andrewguinessfuller@gmail.com"],
+      to: recipients,
       subject: `New ${projectTypeLabel} Lead: ${name}`,
       html: `
         <!DOCTYPE html>

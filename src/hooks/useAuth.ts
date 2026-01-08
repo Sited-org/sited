@@ -38,7 +38,7 @@ export function useAuth() {
     setRoleLoading(true);
     const { data, error } = await supabase
       .from('user_roles')
-      .select('*')
+      .select('id, user_id, role, can_view, can_edit_leads, can_manage_users, can_view_payments, can_edit_project, can_delete_leads, can_charge_cards')
       .eq('user_id', userId)
       .maybeSingle();
     
@@ -53,7 +53,7 @@ export function useAuth() {
   const fetchAdminProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from('admin_profiles')
-      .select('*')
+      .select('id, user_id, display_name, email, avatar_url')
       .eq('user_id', userId)
       .maybeSingle();
     
