@@ -53,6 +53,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // SECURITY: Require LEAD_NOTIFICATION_EMAILS to be configured - no fallback
+    const notificationEmails = Deno.env.get("LEAD_NOTIFICATION_EMAILS");
+    if (!notificationEmails) {
+      console.error("LEAD_NOTIFICATION_EMAILS environment variable is not configured");
+      return new Response(
+        JSON.stringify({ error: "Email notifications are not configured. Please contact the administrator." }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const rawData = await req.json();
     
     // Validate input
@@ -94,9 +104,19 @@ const handler = async (req: Request): Promise<Response> => {
     // Convert mockup prompt to HTML-friendly format
     const mockupPromptHtml = mockupPrompt.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-    // Get notification email from environment variable with fallback
-    const notificationEmails = Deno.env.get("LEAD_NOTIFICATION_EMAILS") || "andrewguinessfuller@gmail.com";
-    const recipients = notificationEmails.split(",").map(e => e.trim()).filter(e => e);
+    // Parse and validate email recipients
+    const recipients = notificationEmails
+      .split(",")
+      .map(e => e.trim())
+      .filter(e => e && e.includes("@"));
+    
+    if (recipients.length === 0) {
+      console.error("No valid email recipients configured");
+      return new Response(
+        JSON.stringify({ error: "No valid notification recipients configured" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
     
     const emailResponse = await resend.emails.send({
       from: "Sited Leads <onboarding@resend.dev>",

@@ -104,7 +104,11 @@ export default function ClientPortalDashboard() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-client-data', {
-        body: { lead_id: clientSession.lead.id, email: clientSession.email },
+        body: { 
+          lead_id: clientSession.lead.id, 
+          email: clientSession.email,
+          session_token: clientSession.token,
+        },
       });
 
       if (error) throw error;
