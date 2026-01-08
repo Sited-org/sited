@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
   app: 'App',
@@ -47,6 +48,14 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   // Analytics state
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // AI Prompt state
+  const [promptContext, setPromptContext] = useState('');
+  const [designSuggestions, setDesignSuggestions] = useState('');
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [researchInsights, setResearchInsights] = useState('');
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
 
   const fetchAnalytics = async () => {
     if (!lead.tracking_id) return;
@@ -101,6 +110,60 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
 
   const formatKey = (key: string) => {
     return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const handleGeneratePrompt = async () => {
+    setIsGeneratingPrompt(true);
+    setGeneratedPrompt('');
+    setResearchInsights('');
+
+    try {
+      // Extract relevant info from form_data
+      const formData = lead.form_data || {};
+      const businessName = lead.business_name || formData.business_name || formData.businessName || 'Unknown Business';
+      const location = formData.location || formData.city || formData.suburb || 'Australia';
+      const industry = formData.industry || formData.business_type || formData.type || lead.project_type || 'General';
+      const website = lead.website_url || formData.website || formData.current_website || '';
+      
+      // Combine admin context and design suggestions with form details
+      let details = '';
+      if (promptContext) details += `Context: ${promptContext}\n`;
+      if (designSuggestions) details += `Design Suggestions: ${designSuggestions}\n`;
+      
+      // Add any other form data as additional details
+      const excludeKeys = ['business_name', 'businessName', 'location', 'city', 'suburb', 'industry', 'business_type', 'type', 'website', 'current_website', 'email', 'phone', 'name'];
+      Object.entries(formData).forEach(([key, value]) => {
+        if (!excludeKeys.includes(key) && value) {
+          details += `${formatKey(key)}: ${value}\n`;
+        }
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-sales-prompt', {
+        body: { businessName, location, industry, website, details: details.trim() }
+      });
+
+      if (error) throw error;
+
+      setGeneratedPrompt(data.prompt || '');
+      setResearchInsights(data.research || '');
+      toast({ title: 'Prompt generated successfully' });
+    } catch (error: any) {
+      console.error('Error generating prompt:', error);
+      toast({ 
+        title: 'Error generating prompt', 
+        description: error.message || 'Please try again',
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsGeneratingPrompt(false);
+    }
+  };
+
+  const copyPromptToClipboard = async () => {
+    await navigator.clipboard.writeText(generatedPrompt);
+    setPromptCopied(true);
+    toast({ title: 'Prompt copied to clipboard' });
+    setTimeout(() => setPromptCopied(false), 2000);
   };
 
   return (
@@ -171,6 +234,91 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
             )}
           </CardContent>
         </Card>
+
+        {/* AI Prompt Generator */}
+        {canEdit && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                AI Prompt Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Generate an AI prompt for this project based on form data. Add context and design suggestions to customize the output.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Additional Context</label>
+                  <Textarea
+                    placeholder="Add any additional context about the client or project (e.g., 'Client wants a minimalist feel', 'Focus on their premium service')..."
+                    value={promptContext}
+                    onChange={(e) => setPromptContext(e.target.value)}
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Design Suggestions</label>
+                  <Textarea
+                    placeholder="Add design preferences (e.g., 'Dark mode, bold typography, hero video section', 'Earthy colors, organic shapes')..."
+                    value={designSuggestions}
+                    onChange={(e) => setDesignSuggestions(e.target.value)}
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleGeneratePrompt} 
+                  disabled={isGeneratingPrompt}
+                  className="w-full"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {isGeneratingPrompt ? 'Generating...' : 'Generate AI Prompt'}
+                </Button>
+              </div>
+
+              {/* Research Insights */}
+              {researchInsights && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Research Insights</h4>
+                  <div className="bg-muted/30 rounded-lg p-4 text-sm max-h-48 overflow-y-auto whitespace-pre-wrap">
+                    {researchInsights}
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Prompt */}
+              {generatedPrompt && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium">Generated Prompt</h4>
+                    <Button variant="outline" size="sm" onClick={copyPromptToClipboard}>
+                      {promptCopied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-sm max-h-96 overflow-y-auto whitespace-pre-wrap border">
+                    {generatedPrompt}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Website Metrics */}
         {lead.tracking_id && (
