@@ -52,10 +52,11 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   // AI Prompt state
   const [promptContext, setPromptContext] = useState('');
   const [designSuggestions, setDesignSuggestions] = useState('');
-  const [generatedPrompt, setGeneratedPrompt] = useState('');
-  const [researchInsights, setResearchInsights] = useState('');
+  const [generatedPrompt, setGeneratedPrompt] = useState(lead.generated_prompt || '');
+  const [researchInsights, setResearchInsights] = useState(lead.generated_prompt_research || '');
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
+  const [promptGeneratedAt, setPromptGeneratedAt] = useState<string | null>(lead.prompt_generated_at || null);
 
   const fetchAnalytics = async () => {
     if (!lead.tracking_id) return;
@@ -139,14 +140,15 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
       });
 
       const { data, error } = await supabase.functions.invoke('generate-sales-prompt', {
-        body: { businessName, location, industry, website, details: details.trim() }
+        body: { businessName, location, industry, website, details: details.trim(), leadId: lead.id }
       });
 
       if (error) throw error;
 
       setGeneratedPrompt(data.prompt || '');
       setResearchInsights(data.research || '');
-      toast({ title: 'Prompt generated successfully' });
+      setPromptGeneratedAt(new Date().toISOString());
+      toast({ title: 'Prompt generated and saved' });
     } catch (error: any) {
       console.error('Error generating prompt:', error);
       toast({ 
@@ -416,7 +418,14 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
               {generatedPrompt && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-medium">Generated Prompt</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium">Generated Prompt</h4>
+                      {promptGeneratedAt && (
+                        <span className="text-xs text-muted-foreground">
+                          (saved {format(new Date(promptGeneratedAt), 'PP')})
+                        </span>
+                      )}
+                    </div>
                     <Button variant="outline" size="sm" onClick={copyPromptToClipboard}>
                       {promptCopied ? (
                         <>

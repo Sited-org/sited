@@ -426,6 +426,8 @@ export type Database = {
           deal_closed_at: string | null
           email: string
           form_data: Json
+          generated_prompt: string | null
+          generated_prompt_research: string | null
           id: string
           last_contacted_at: string | null
           lead_number: number | null
@@ -433,6 +435,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           project_type: string
+          prompt_generated_at: string | null
           status: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
@@ -452,6 +455,8 @@ export type Database = {
           deal_closed_at?: string | null
           email: string
           form_data: Json
+          generated_prompt?: string | null
+          generated_prompt_research?: string | null
           id?: string
           last_contacted_at?: string | null
           lead_number?: number | null
@@ -459,6 +464,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           project_type: string
+          prompt_generated_at?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
@@ -478,6 +484,8 @@ export type Database = {
           deal_closed_at?: string | null
           email?: string
           form_data?: Json
+          generated_prompt?: string | null
+          generated_prompt_research?: string | null
           id?: string
           last_contacted_at?: string | null
           lead_number?: number | null
@@ -485,6 +493,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           project_type?: string
+          prompt_generated_at?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
