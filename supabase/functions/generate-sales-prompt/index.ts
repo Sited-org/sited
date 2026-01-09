@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { businessName, location, industry, website, details } = await req.json();
+    const { businessName, location, industry, website, details, leadId } = await req.json();
 
     if (!businessName || !location || !industry) {
       return new Response(
@@ -24,6 +25,11 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
+
+    // Initialize Supabase client for saving prompt
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log(`Researching business: ${businessName} in ${location}, Industry: ${industry}`);
 
@@ -119,6 +125,26 @@ Format the prompt ready to be copied and pasted into Lovable.dev. Make it detail
     const generatedPrompt = promptData.choices?.[0]?.message?.content || '';
 
     console.log('Prompt generated successfully');
+
+    // Save the prompt to the lead profile if leadId is provided
+    if (leadId) {
+      console.log(`Saving prompt to lead: ${leadId}`);
+      const { error: updateError } = await supabase
+        .from('leads')
+        .update({
+          generated_prompt: generatedPrompt,
+          generated_prompt_research: researchInsights,
+          prompt_generated_at: new Date().toISOString(),
+        })
+        .eq('id', leadId);
+
+      if (updateError) {
+        console.error('Error saving prompt to lead:', updateError);
+        // Don't throw - still return the prompt even if save fails
+      } else {
+        console.log('Prompt saved to lead successfully');
+      }
+    }
 
     return new Response(
       JSON.stringify({ 
