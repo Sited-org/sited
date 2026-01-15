@@ -269,7 +269,7 @@ export function WebsiteTab({ leadId, email, websiteUrl, sessionToken }: WebsiteT
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : analytics ? (
+          ) : analytics && analytics.totalVisits > 0 ? (
             <>
               {/* Key Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
