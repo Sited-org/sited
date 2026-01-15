@@ -103,7 +103,7 @@ serve(async (req) => {
               Authorization: `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-              from: "Client Portal <notifications@sited.au>",
+              from: "Sited <hello@sited.co>",
               to: [email],
               subject: `New Request: ${title} [${priority?.toUpperCase() || 'NORMAL'}]`,
               html: emailHtml,
