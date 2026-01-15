@@ -482,6 +482,7 @@ export type Database = {
       }
       leads: {
         Row: {
+          analytics_status: string | null
           assigned_sales_rep: string | null
           assigned_to: string | null
           billing_address: string | null
@@ -513,6 +514,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          analytics_status?: string | null
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           billing_address?: string | null
@@ -544,6 +546,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          analytics_status?: string | null
           assigned_sales_rep?: string | null
           assigned_to?: string | null
           billing_address?: string | null
@@ -1075,71 +1078,116 @@ export type Database = {
         Row: {
           browser: string | null
           city: string | null
+          color_depth: number | null
+          connection_type: string | null
           country: string | null
           created_at: string
           device_type: string | null
+          dom_content_loaded: number | null
+          element_class: string | null
+          element_href: string | null
+          element_id: string | null
+          element_tag: string | null
+          element_text: string | null
           event_type: string
+          first_byte_time: number | null
           id: string
           is_bounce: boolean | null
           is_entry: boolean | null
           is_exit: boolean | null
+          language: string | null
           lead_id: string
           page_load_time: number | null
           page_title: string | null
           page_url: string
+          pixel_ratio: number | null
           referrer: string | null
           screen_height: number | null
           screen_width: number | null
+          scroll_depth: number | null
           session_id: string | null
           time_on_page: number | null
+          timezone: string | null
           tracking_id: string
           user_agent: string | null
+          viewport_height: number | null
+          viewport_width: number | null
         }
         Insert: {
           browser?: string | null
           city?: string | null
+          color_depth?: number | null
+          connection_type?: string | null
           country?: string | null
           created_at?: string
           device_type?: string | null
+          dom_content_loaded?: number | null
+          element_class?: string | null
+          element_href?: string | null
+          element_id?: string | null
+          element_tag?: string | null
+          element_text?: string | null
           event_type?: string
+          first_byte_time?: number | null
           id?: string
           is_bounce?: boolean | null
           is_entry?: boolean | null
           is_exit?: boolean | null
+          language?: string | null
           lead_id: string
           page_load_time?: number | null
           page_title?: string | null
           page_url: string
+          pixel_ratio?: number | null
           referrer?: string | null
           screen_height?: number | null
           screen_width?: number | null
+          scroll_depth?: number | null
           session_id?: string | null
           time_on_page?: number | null
+          timezone?: string | null
           tracking_id: string
           user_agent?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
         }
         Update: {
           browser?: string | null
           city?: string | null
+          color_depth?: number | null
+          connection_type?: string | null
           country?: string | null
           created_at?: string
           device_type?: string | null
+          dom_content_loaded?: number | null
+          element_class?: string | null
+          element_href?: string | null
+          element_id?: string | null
+          element_tag?: string | null
+          element_text?: string | null
           event_type?: string
+          first_byte_time?: number | null
           id?: string
           is_bounce?: boolean | null
           is_entry?: boolean | null
           is_exit?: boolean | null
+          language?: string | null
           lead_id?: string
           page_load_time?: number | null
           page_title?: string | null
           page_url?: string
+          pixel_ratio?: number | null
           referrer?: string | null
           screen_height?: number | null
           screen_width?: number | null
+          scroll_depth?: number | null
           session_id?: string | null
           time_on_page?: number | null
+          timezone?: string | null
           tracking_id?: string
           user_agent?: string | null
+          viewport_height?: number | null
+          viewport_width?: number | null
         }
         Relationships: [
           {
