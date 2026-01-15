@@ -51,13 +51,24 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [body, setBody] = useState('');
   const [priority, setPriority] = useState<string>('normal');
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newFiles: SelectedFile[] = files.map(file => ({
+    const maxSize = 10 * 1024 * 1024; // 10MB limit
+    
+    const validFiles = files.filter(file => {
+      if (file.size > maxSize) {
+        toast.error(`${file.name} is too large (max 10MB)`);
+        return false;
+      }
+      return true;
+    });
+
+    const newFiles: SelectedFile[] = validFiles.map(file => ({
       file,
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
     }));
@@ -121,6 +132,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         lead_id: leadId,
         title: title.trim(),
         description: description.trim() || null,
+        body: body.trim() || null,
         priority,
       }).select().single();
 
@@ -151,6 +163,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       toast.success('Request submitted');
       setTitle('');
       setDescription('');
+      setBody('');
       setPriority('normal');
       setSelectedFiles([]);
       setShowForm(false);
@@ -228,15 +241,30 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm">Details</Label>
+                <Label htmlFor="description" className="text-sm">Description</Label>
                 <Textarea
                   id="description"
-                  placeholder="Provide more details..."
+                  placeholder="Explain what you need and why..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={submitting}
-                  rows={3}
+                  rows={2}
                 />
+                <p className="text-xs text-muted-foreground">Describe your request</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="body" className="text-sm">Content to Upload</Label>
+                <Textarea
+                  id="body"
+                  placeholder="Paste text, code, or content that needs to be added..."
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  disabled={submitting}
+                  rows={4}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">Text or code that should be added to your site</p>
               </div>
 
               <div className="space-y-2">
