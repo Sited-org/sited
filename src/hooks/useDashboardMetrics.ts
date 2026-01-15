@@ -43,6 +43,7 @@ interface Transaction {
   debit: number;
   invoice_status: string | null;
   transaction_date: string;
+  stripe_invoice_id: string | null;
 }
 
 export function useDashboardMetrics(leads: Lead[]) {
@@ -52,7 +53,7 @@ export function useDashboardMetrics(leads: Lead[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, credit, debit, invoice_status, transaction_date, lead_id');
+        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id');
       if (error) throw error;
       return data as Transaction[];
     }
@@ -64,8 +65,11 @@ export function useDashboardMetrics(leads: Lead[]) {
     const weekStart = startOfWeek(now);
     const lastMonthStart = startOfMonth(subDays(monthStart, 1));
 
-    // Revenue calculations - ONLY count PAID invoices (processed payments)
-    const paidTransactions = allTransactions.filter(t => t.invoice_status === 'paid');
+    // ONLY count Stripe-processed transactions (must have stripe_invoice_id)
+    const stripeTransactions = allTransactions.filter(t => t.stripe_invoice_id);
+    
+    // Revenue = PAID Stripe transactions
+    const paidTransactions = stripeTransactions.filter(t => t.invoice_status === 'paid');
     const totalRevenue = paidTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
     const monthRevenue = paidTransactions
       .filter(t => new Date(t.transaction_date) >= monthStart)
@@ -74,7 +78,7 @@ export function useDashboardMetrics(leads: Lead[]) {
       .filter(t => new Date(t.transaction_date) >= weekStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
     
-    // Last month revenue for growth calculation (only paid)
+    // Last month revenue for growth calculation (only paid Stripe transactions)
     const lastMonthRevenue = paidTransactions
       .filter(t => {
         const date = new Date(t.transaction_date);
@@ -85,12 +89,12 @@ export function useDashboardMetrics(leads: Lead[]) {
       ? Math.round(((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
       : 0;
 
-    // Outstanding = total invoiced (sent) minus total paid
-    const sentInvoices = allTransactions.filter(t => t.invoice_status === 'sent');
+    // Outstanding = Stripe invoices that are 'sent' (not yet paid)
+    const sentInvoices = stripeTransactions.filter(t => t.invoice_status === 'sent');
     const totalOutstanding = sentInvoices.reduce((sum, t) => sum + Number(t.debit || 0), 0);
     
-    // Invoice counts for collection rate
-    const paidInvoiceCount = paidTransactions.filter(t => t.invoice_status === 'paid').length;
+    // Invoice counts for collection rate (Stripe only)
+    const paidInvoiceCount = paidTransactions.length;
     const sentInvoiceCount = sentInvoices.length;
     const totalInvoicesSentOrPaid = paidInvoiceCount + sentInvoiceCount;
     
