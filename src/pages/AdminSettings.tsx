@@ -55,7 +55,7 @@ const emptyMembershipForm: MembershipInsert = {
 };
 
 export default function AdminSettings() {
-  const { user, adminProfile, userRole, refreshAdminProfile } = useAuth();
+  const { user, adminProfile, userRole, refreshAdminProfile, refreshSession } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(adminProfile?.display_name || '');
   const [newPassword, setNewPassword] = useState('');
@@ -95,8 +95,14 @@ export default function AdminSettings() {
       display_name: displayName,
       email: user.email 
     }).eq('user_id', user.id);
-    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Profile updated' }); refreshAdminProfile(); }
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Profile updated' });
+      refreshAdminProfile();
+      // Refresh session to get updated user data
+      await refreshSession();
+    }
     setSaving(false);
   };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,10 +29,16 @@ export function EmailOTPVerify({
   const [error, setError] = useState('');
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  
+  // Prevent double-sending in React Strict Mode
+  const hasSentInitialCode = useRef(false);
 
   useEffect(() => {
-    // Auto-send code on mount
-    sendVerificationCode();
+    // Auto-send code on mount, but only once
+    if (!hasSentInitialCode.current) {
+      hasSentInitialCode.current = true;
+      sendVerificationCode();
+    }
   }, []);
 
   useEffect(() => {
