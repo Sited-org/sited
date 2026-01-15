@@ -58,6 +58,34 @@ const handler = async (req: Request): Promise<Response> => {
 
     const displayName = profile?.display_name || 'Admin';
 
+    // De-dupe: if an unused OTP is still valid AND was generated in the last ~30s, don't send again.
+    // We infer "generated recently" from expires_at since we set expires_at = now + 10 minutes.
+    const { data: existingOtp, error: existingOtpError } = await supabaseClient
+      .from('admin_otp_codes')
+      .select('expires_at, used')
+      .eq('user_id', user_id)
+      .eq('used', false)
+      .maybeSingle();
+
+    console.log('Existing admin OTP lookup:', { existingOtp, existingOtpError });
+
+    if (!existingOtpError && existingOtp?.expires_at) {
+      const expiresAtMs = new Date(existingOtp.expires_at).getTime();
+      const nowMs = Date.now();
+      const msUntilExpiry = expiresAtMs - nowMs;
+
+      console.log('Admin OTP dedupe check:', { msUntilExpiry });
+
+      // If expiry is still ~10 minutes away, it was just generated.
+      if (msUntilExpiry > 0 && msUntilExpiry > (10 * 60 * 1000 - 30_000)) {
+        console.log('De-duped admin OTP send (recent code already generated)');
+        return new Response(
+          JSON.stringify({ success: true, deduped: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Generate OTP
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
