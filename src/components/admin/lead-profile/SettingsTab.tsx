@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2, AlertTriangle, Calendar, User, Key, Copy, RefreshCw, Check, Code, Plus } from 'lucide-react';
+import { Trash2, AlertTriangle, Calendar, User, Key, Copy, RefreshCw, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -19,9 +19,7 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
   const { toast } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
-  const [generatingTrackingId, setGeneratingTrackingId] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [scriptCopied, setScriptCopied] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -74,38 +72,6 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     }
   };
 
-  const handleGenerateTrackingId = async () => {
-    setGeneratingTrackingId(true);
-    try {
-      // Generate a unique tracking ID
-      const trackingId = `trk_${Math.random().toString(36).substring(2, 15)}`;
-
-      // Update the lead with the new tracking ID
-      const { data: updatedLead, error: updateError } = await supabase
-        .from('leads')
-        .update({ tracking_id: trackingId })
-        .eq('id', lead.id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      toast({ title: 'Tracking ID created', description: `ID: ${trackingId}` });
-      
-      if (onLeadUpdate && updatedLead) {
-        onLeadUpdate(updatedLead);
-      }
-    } catch (error: any) {
-      toast({ 
-        title: 'Error creating tracking ID', 
-        description: error.message, 
-        variant: 'destructive' 
-      });
-    } finally {
-      setGeneratingTrackingId(false);
-    }
-  };
-
   const handleCopyCode = async () => {
     if (lead.client_access_code) {
       await navigator.clipboard.writeText(lead.client_access_code);
@@ -113,46 +79,6 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
       toast({ title: 'Code copied to clipboard' });
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const trackingScript = `<!-- Sited Analytics - Async, Non-Blocking -->
-<script defer>
-(function(){
-  var t="${lead.tracking_id || 'YOUR_TRACKING_ID'}",
-      e="https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/track-analytics",
-      s=sessionStorage.getItem("_sid")||"s"+Math.random().toString(36).substr(2,9)+Date.now().toString(36);
-  sessionStorage.setItem("_sid",s);
-  var st=Date.now(),lt=0,sent=false;
-  function send(type,extra){
-    var d={tracking_id:t,page_url:location.href,page_title:document.title,referrer:document.referrer,
-      user_agent:navigator.userAgent,screen_width:Math.min(screen.width,9999),screen_height:Math.min(screen.height,9999),
-      session_id:s,event_type:type,page_load_time:lt};
-    if(extra)for(var k in extra)d[k]=extra[k];
-    try{navigator.sendBeacon(e,JSON.stringify(d))}catch(err){fetch(e,{method:"POST",body:JSON.stringify(d),keepalive:true}).catch(function(){})}
-  }
-  function getLoadTime(){
-    try{
-      var n=performance.getEntriesByType("navigation")[0];
-      if(n&&n.loadEventEnd>0)return Math.round(n.loadEventEnd);
-    }catch(e){}
-    return 0;
-  }
-  function onLoad(){
-    if(sent)return;sent=true;
-    requestIdleCallback?requestIdleCallback(function(){lt=Math.min(getLoadTime(),60000);send("page_view")}):setTimeout(function(){lt=Math.min(getLoadTime(),60000);send("page_view")},100);
-  }
-  function onExit(){send("page_exit",{time_on_page:Math.min(Math.round((Date.now()-st)/1000),86400)})}
-  if(document.readyState==="complete")onLoad();else window.addEventListener("load",onLoad);
-  window.addEventListener("pagehide",onExit);
-  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")send("session_end")});
-})();
-</script>`;
-
-  const handleCopyScript = async () => {
-    await navigator.clipboard.writeText(trackingScript);
-    setScriptCopied(true);
-    toast({ title: 'Tracking script copied to clipboard' });
-    setTimeout(() => setScriptCopied(false), 2000);
   };
 
   return (
@@ -220,73 +146,6 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
                 >
                   <Key className={`h-4 w-4 mr-2 ${generatingCode ? 'animate-spin' : ''}`} />
                   {generatingCode ? 'Generating...' : 'Generate Access Code'}
-                </Button>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Website Tracking Script */}
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Code className="h-5 w-5 text-primary" />
-            Website Tracking Script
-          </CardTitle>
-          <CardDescription>
-            Add this script to the client's website to track analytics
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {lead.tracking_id ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Tracking ID:</span>
-                <code className="bg-muted px-2 py-0.5 rounded font-mono text-xs">
-                  {lead.tracking_id}
-                </code>
-              </div>
-              <div className="relative">
-                <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs max-h-48">
-                  <code>{trackingScript}</code>
-                </pre>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="absolute top-2 right-2"
-                  onClick={handleCopyScript}
-                >
-                  {scriptCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Add this script before the closing &lt;/body&gt; tag on the client's website.
-              </p>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateTrackingId}
-                  disabled={generatingTrackingId}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${generatingTrackingId ? 'animate-spin' : ''}`} />
-                  Regenerate Tracking ID
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-4">
-                No tracking script has been created for this client yet.
-              </p>
-              {canEdit && (
-                <Button
-                  onClick={handleGenerateTrackingId}
-                  disabled={generatingTrackingId}
-                >
-                  <Plus className={`h-4 w-4 mr-2 ${generatingTrackingId ? 'animate-spin' : ''}`} />
-                  {generatingTrackingId ? 'Creating...' : 'Create Tracking Script'}
                 </Button>
               )}
             </div>

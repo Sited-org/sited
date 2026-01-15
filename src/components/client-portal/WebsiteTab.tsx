@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, BarChart3, Users, Clock, MousePointerClick, ExternalLink, Globe, Key, Eye, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, BarChart3, Users, Clock, MousePointerClick, ExternalLink, Globe, Key, Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface WebsiteTabProps {
   leadId: string;
   websiteUrl?: string;
+  sessionToken: string;
 }
 
 interface AnalyticsData {
@@ -23,44 +25,48 @@ interface AnalyticsData {
   lastUpdated: string | null;
 }
 
-export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
+type GAStatus = 'not_connected' | 'pending' | 'connected';
+
+export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps) {
   const [gaPropertyId, setGaPropertyId] = useState('');
   const [savedPropertyId, setSavedPropertyId] = useState('');
+  const [gaStatus, setGaStatus] = useState<GAStatus>('not_connected');
   const [showPropertyId, setShowPropertyId] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [hasAnalytics, setHasAnalytics] = useState(false);
 
-  // Load saved property ID on mount
   useEffect(() => {
-    loadSavedPropertyId();
+    loadGAStatus();
   }, [leadId]);
 
-  const loadSavedPropertyId = async () => {
+  const loadGAStatus = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('leads')
-        .select('form_data')
-        .eq('id', leadId)
-        .single();
+      const { data, error } = await supabase.functions.invoke('get-client-data', {
+        body: { lead_id: leadId, email: '', session_token: sessionToken },
+      });
 
-      if (!error && data?.form_data) {
-        const formData = data.form_data as Record<string, unknown>;
-        const propertyId = formData.ga_property_id as string | undefined;
-        if (propertyId) {
-          setSavedPropertyId(propertyId);
-          setGaPropertyId(propertyId);
-          // Automatically fetch analytics if we have a property ID
-          fetchAnalytics(propertyId);
+      if (!error && data?.lead) {
+        const status = data.lead.ga_status || 'not_connected';
+        const propertyId = data.lead.ga_property_id || '';
+        setGaStatus(status);
+        setSavedPropertyId(propertyId);
+        setGaPropertyId(propertyId);
+
+        // If connected, fetch analytics
+        if (status === 'connected' && propertyId) {
+          fetchAnalytics();
         }
       }
     } catch (err) {
-      console.error('Error loading property ID:', err);
+      console.error('Error loading GA status:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const savePropertyId = async () => {
+  const submitPropertyId = async () => {
     if (!gaPropertyId.trim()) {
       toast.error('Please enter a Google Analytics Property ID');
       return;
@@ -68,70 +74,40 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
 
     setSaving(true);
     try {
-      // Get current form_data
-      const { data: currentData, error: fetchError } = await supabase
-        .from('leads')
-        .select('form_data')
-        .eq('id', leadId)
-        .single();
+      const { data, error } = await supabase.functions.invoke('submit-ga-property', {
+        body: { 
+          lead_id: leadId, 
+          ga_property_id: gaPropertyId.trim(),
+          session_token: sessionToken,
+        },
+      });
 
-      if (fetchError) throw fetchError;
-
-      const currentFormData = (currentData?.form_data as Record<string, unknown>) || {};
-      const updatedFormData = {
-        ...currentFormData,
-        ga_property_id: gaPropertyId.trim(),
-      };
-
-      // Update the lead with the new property ID
-      const { error: updateError } = await supabase
-        .from('leads')
-        .update({ form_data: updatedFormData })
-        .eq('id', leadId);
-
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       setSavedPropertyId(gaPropertyId.trim());
-      toast.success('Analytics property ID saved');
-      
-      // Fetch analytics with the new property ID
-      fetchAnalytics(gaPropertyId.trim());
-    } catch (err) {
-      console.error('Error saving property ID:', err);
-      toast.error('Failed to save property ID');
+      setGaStatus('pending');
+      toast.success('Property ID submitted! Our team will verify and connect it shortly.');
+    } catch (err: any) {
+      console.error('Error submitting property ID:', err);
+      toast.error(err.message || 'Failed to submit property ID');
     } finally {
       setSaving(false);
     }
   };
 
-  const fetchAnalytics = async (propertyId?: string) => {
-    const idToUse = propertyId || savedPropertyId;
-    if (!idToUse) {
-      toast.error('Please save your Google Analytics Property ID first');
-      return;
-    }
-
-    setLoading(true);
+  const fetchAnalytics = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('get-analytics', {
-        body: { lead_id: leadId, ga_property_id: idToUse },
+        body: { lead_id: leadId },
       });
 
       if (error) throw error;
 
       if (data) {
         setAnalytics(data);
-        setHasAnalytics(true);
       }
     } catch (err: any) {
       console.error('Error fetching analytics:', err);
-      // If analytics fetch fails, show the input form
-      setHasAnalytics(false);
-      if (err.message?.includes('credentials') || err.message?.includes('property')) {
-        toast.error('Unable to connect to Google Analytics. Please check your Property ID.');
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -146,6 +122,14 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
     if (id.length <= 8) return id;
     return id.substring(0, 4) + '••••' + id.substring(id.length - 4);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -172,7 +156,7 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
         </Card>
       )}
 
-      {/* Google Analytics Setup */}
+      {/* Google Analytics Connection */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -184,65 +168,96 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="ga-property">Property ID</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input
-                  id="ga-property"
-                  type={showPropertyId ? 'text' : 'password'}
-                  placeholder="e.g., 123456789"
-                  value={gaPropertyId}
-                  onChange={(e) => setGaPropertyId(e.target.value)}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                  onClick={() => setShowPropertyId(!showPropertyId)}
-                >
-                  {showPropertyId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
+          {/* Status Display */}
+          {gaStatus === 'pending' && (
+            <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              <div>
+                <p className="text-sm font-medium">Verifying Connection</p>
+                <p className="text-xs text-muted-foreground">
+                  Our team is setting up analytics on your website. This usually takes 24-48 hours.
+                </p>
               </div>
-              <Button onClick={savePropertyId} disabled={saving || !gaPropertyId.trim()}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
-              </Button>
+              <Badge variant="outline" className="ml-auto text-amber-500 border-amber-500/50">
+                Pending
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Find this in Google Analytics → Admin → Property Settings → Property ID
-            </p>
-          </div>
+          )}
 
-          {savedPropertyId && (
+          {gaStatus === 'connected' && (
+            <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <div>
+                <p className="text-sm font-medium">Analytics Connected</p>
+                <p className="text-xs text-muted-foreground">
+                  Your Google Analytics is connected and tracking visitors.
+                </p>
+              </div>
+              <Badge variant="outline" className="ml-auto text-green-500 border-green-500/50">
+                Connected
+              </Badge>
+            </div>
+          )}
+
+          {/* Property ID Input - only show if not connected */}
+          {gaStatus !== 'connected' && (
+            <div className="space-y-2">
+              <Label htmlFor="ga-property">Property ID</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="ga-property"
+                    type={showPropertyId ? 'text' : 'password'}
+                    placeholder="e.g., 123456789"
+                    value={gaPropertyId}
+                    onChange={(e) => setGaPropertyId(e.target.value)}
+                    disabled={gaStatus === 'pending'}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setShowPropertyId(!showPropertyId)}
+                  >
+                    {showPropertyId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {gaStatus === 'not_connected' && (
+                  <Button onClick={submitPropertyId} disabled={saving || !gaPropertyId.trim()}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Find this in Google Analytics → Admin → Property Settings → Property ID
+              </p>
+            </div>
+          )}
+
+          {/* Show saved property ID when pending or connected */}
+          {(gaStatus === 'pending' || gaStatus === 'connected') && savedPropertyId && (
             <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
               <div>
-                <p className="text-sm font-medium">Connected Property</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm font-medium">Property ID</p>
+                <p className="text-xs text-muted-foreground font-mono">
                   {showPropertyId ? savedPropertyId : maskPropertyId(savedPropertyId)}
                 </p>
               </div>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => fetchAnalytics()}
-                disabled={loading}
+                onClick={() => setShowPropertyId(!showPropertyId)}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Refresh Data'}
+                {showPropertyId ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Analytics Display */}
-      {loading && !analytics && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      )}
-
-      {analytics && (
+      {/* Analytics Display - only show when connected */}
+      {gaStatus === 'connected' && analytics && (
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -288,7 +303,7 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
           </div>
 
           {/* Top Pages */}
-          {analytics.topPages.length > 0 && (
+          {analytics.topPages && analytics.topPages.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Top Pages</CardTitle>
@@ -307,7 +322,7 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
           )}
 
           {/* Traffic Sources */}
-          {analytics.trafficSources.length > 0 && (
+          {analytics.trafficSources && analytics.trafficSources.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Traffic Sources</CardTitle>
@@ -326,27 +341,29 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
           )}
 
           {/* Devices */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Devices</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-semibold">{analytics.devices.desktop}%</p>
-                  <p className="text-xs text-muted-foreground">Desktop</p>
+          {analytics.devices && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Devices</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-semibold">{analytics.devices.desktop}%</p>
+                    <p className="text-xs text-muted-foreground">Desktop</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold">{analytics.devices.mobile}%</p>
+                    <p className="text-xs text-muted-foreground">Mobile</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-semibold">{analytics.devices.tablet}%</p>
+                    <p className="text-xs text-muted-foreground">Tablet</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-semibold">{analytics.devices.mobile}%</p>
-                  <p className="text-xs text-muted-foreground">Mobile</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-semibold">{analytics.devices.tablet}%</p>
-                  <p className="text-xs text-muted-foreground">Tablet</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {analytics.lastUpdated && (
             <p className="text-xs text-center text-muted-foreground">
@@ -356,19 +373,15 @@ export function WebsiteTab({ leadId, websiteUrl }: WebsiteTabProps) {
         </>
       )}
 
-      {!loading && !analytics && savedPropertyId && (
+      {/* No analytics yet when connected */}
+      {gaStatus === 'connected' && !analytics && (
         <Card>
           <CardContent className="py-8 text-center">
             <BarChart3 className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">No analytics data available yet</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4"
-              onClick={() => fetchAnalytics()}
-            >
-              Try Again
-            </Button>
+            <p className="text-xs text-muted-foreground mt-1">
+              Data will appear once visitors start browsing your website
+            </p>
           </CardContent>
         </Card>
       )}
