@@ -41,6 +41,7 @@ const AppOnboarding = () => {
     businessDescription: "",
     targetAudience: "",
     competitorApps: "",
+    brandLogoUrl: "",
 
     // App Concept
     appName: "",
@@ -416,6 +417,19 @@ const AppOnboarding = () => {
                     placeholder="List similar apps in the market and what you like/dislike about them..."
                     className="min-h-[100px]"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brandLogoUrl">Brand Logo URL (if available)</Label>
+                  <Input
+                    id="brandLogoUrl"
+                    value={formData.brandLogoUrl}
+                    onChange={(e) => updateFormData("brandLogoUrl", e.target.value)}
+                    placeholder="https://example.com/logo.png or link to Google Drive/Dropbox"
+                    className="h-12"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Share a link to your logo file (Google Drive, Dropbox, or direct URL)
+                  </p>
                 </div>
               </div>
             )}
@@ -968,12 +982,11 @@ const AppOnboarding = () => {
                     className="grid grid-cols-1 md:grid-cols-2 gap-3"
                   >
                     {[
-                      { value: "10k-25k", label: "$10,000 - $25,000 (MVP)" },
-                      { value: "25k-50k", label: "$25,000 - $50,000" },
-                      { value: "50k-100k", label: "$50,000 - $100,000" },
-                      { value: "100k-250k", label: "$100,000 - $250,000" },
-                      { value: "250k+", label: "$250,000+" },
-                      { value: "not-sure", label: "Not sure yet" },
+                      { value: "not-sure", label: "Not sure" },
+                      { value: "0-500", label: "$0 - $500" },
+                      { value: "500-1000", label: "$500 - $1,000" },
+                      { value: "1000-2500", label: "$1,000 - $2,500" },
+                      { value: "2500+", label: "$2,500+" },
                     ].map((option) => (
                       <div
                         key={option.value}

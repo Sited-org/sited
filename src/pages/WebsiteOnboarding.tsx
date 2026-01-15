@@ -39,6 +39,7 @@ const WebsiteOnboarding = () => {
     industry: "",
     businessDescription: "",
     targetAudience: "",
+    brandLogoUrl: "",
 
     // Project Goals
     primaryGoal: "",
@@ -51,7 +52,9 @@ const WebsiteOnboarding = () => {
     brandColors: "",
     brandFonts: "",
     designStyle: "",
-    inspirationSites: "",
+    inspirationSite1: "",
+    inspirationSite2: "",
+    inspirationSite3: "",
     contentReady: "no",
     contentHelp: [] as string[],
     requiredPages: [] as string[],
@@ -63,7 +66,6 @@ const WebsiteOnboarding = () => {
     domainName: "",
     domainRegistrar: "",
     domainRegistrarOther: "",
-    cmsPreference: "",
     integrations: [] as string[],
     otherIntegrations: "",
     features: [] as string[],
@@ -382,6 +384,19 @@ const WebsiteOnboarding = () => {
                     className="min-h-[100px]"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brandLogoUrl">Brand Logo URL (if available)</Label>
+                  <Input
+                    id="brandLogoUrl"
+                    value={formData.brandLogoUrl}
+                    onChange={(e) => updateFormData("brandLogoUrl", e.target.value)}
+                    placeholder="https://example.com/logo.png or link to Google Drive/Dropbox"
+                    className="h-12"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Share a link to your logo file (Google Drive, Dropbox, or direct URL)
+                  </p>
+                </div>
               </div>
             )}
 
@@ -554,15 +569,40 @@ const WebsiteOnboarding = () => {
                     ))}
                   </RadioGroup>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="inspirationSites">Websites you admire (for inspiration)</Label>
-                  <Textarea
-                    id="inspirationSites"
-                    value={formData.inspirationSites}
-                    onChange={(e) => updateFormData("inspirationSites", e.target.value)}
-                    placeholder="List 2-5 websites you like and what you like about them..."
-                    className="min-h-[100px]"
-                  />
+                <div className="space-y-4">
+                  <Label>Websites you admire (for inspiration)</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Input
+                        id="inspirationSite1"
+                        value={formData.inspirationSite1}
+                        onChange={(e) => updateFormData("inspirationSite1", e.target.value)}
+                        placeholder="https://example1.com"
+                        className="h-12"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        id="inspirationSite2"
+                        value={formData.inspirationSite2}
+                        onChange={(e) => updateFormData("inspirationSite2", e.target.value)}
+                        placeholder="https://example2.com"
+                        className="h-12"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Input
+                        id="inspirationSite3"
+                        value={formData.inspirationSite3}
+                        onChange={(e) => updateFormData("inspirationSite3", e.target.value)}
+                        placeholder="https://example3.com"
+                        className="h-12"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share up to 3 website links that inspire you
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <Label>Do you have content ready (text, images, videos)? *</Label>
@@ -748,23 +788,6 @@ const WebsiteOnboarding = () => {
                     )}
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="cmsPreference">CMS Preference (if any)</Label>
-                  <Select value={formData.cmsPreference} onValueChange={(v) => updateFormData("cmsPreference", v)}>
-                    <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Select CMS preference" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no-preference">No preference</SelectItem>
-                      <SelectItem value="wordpress">WordPress</SelectItem>
-                      <SelectItem value="shopify">Shopify</SelectItem>
-                      <SelectItem value="webflow">Webflow</SelectItem>
-                      <SelectItem value="squarespace">Squarespace</SelectItem>
-                      <SelectItem value="custom">Custom built</SelectItem>
-                      <SelectItem value="headless">Headless CMS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-3">
                   <Label>Required Integrations</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -863,12 +886,11 @@ const WebsiteOnboarding = () => {
                     className="grid grid-cols-1 md:grid-cols-2 gap-3"
                   >
                     {[
-                      { value: "2k-5k", label: "$2,000 - $5,000" },
-                      { value: "5k-10k", label: "$5,000 - $10,000" },
-                      { value: "10k-20k", label: "$10,000 - $20,000" },
-                      { value: "20k-50k", label: "$20,000 - $50,000" },
-                      { value: "50k+", label: "$50,000+" },
-                      { value: "not-sure", label: "Not sure yet" },
+                      { value: "not-sure", label: "Not sure" },
+                      { value: "0-500", label: "$0 - $500" },
+                      { value: "500-1000", label: "$500 - $1,000" },
+                      { value: "1000-2500", label: "$1,000 - $2,500" },
+                      { value: "2500+", label: "$2,500+" },
                     ].map((option) => (
                       <div
                         key={option.value}
