@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 
 interface WebsiteTabProps {
   leadId: string;
+  email: string;
   websiteUrl?: string;
   sessionToken: string;
 }
@@ -37,7 +38,7 @@ interface AnalyticsData {
 
 type AnalyticsStatus = 'not_setup' | 'pending' | 'active';
 
-export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps) {
+export function WebsiteTab({ leadId, email, websiteUrl, sessionToken }: WebsiteTabProps) {
   const [status, setStatus] = useState<AnalyticsStatus>('not_setup');
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -57,7 +58,7 @@ export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-client-data', {
-        body: { lead_id: leadId, email: '', session_token: sessionToken },
+        body: { lead_id: leadId, email, session_token: sessionToken },
       });
 
       if (!error && data?.lead) {
