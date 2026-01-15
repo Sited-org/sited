@@ -35,12 +35,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending OTP to:", email);
 
-    // Check if lead exists
+    // Check if lead exists (pick most recent if duplicates exist)
     const { data: lead, error: leadError } = await supabaseClient
       .from('leads')
       .select('id, name, email')
       .eq('email', email.toLowerCase())
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (leadError || !lead) {
       // Don't reveal if email exists or not
