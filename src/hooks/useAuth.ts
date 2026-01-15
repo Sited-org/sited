@@ -135,6 +135,15 @@ export function useAuth() {
     return { error };
   };
 
+  const refreshSession = async () => {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+    }
+    return { data, error };
+  };
+
   const isFullyLoaded = !loading && !roleLoading;
   const role = userRole?.role;
 
@@ -147,6 +156,7 @@ export function useAuth() {
     signIn,
     signUp,
     signOut,
+    refreshSession,
     isAuthenticated: !!session,
     isAdmin: !!userRole,
     // Role checks
