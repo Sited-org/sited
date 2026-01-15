@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      client_otp_codes: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          lead_id: string
+          otp_code: string
+          used: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          lead_id: string
+          otp_code: string
+          used?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          lead_id?: string
+          otp_code?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_otp_codes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_requests: {
         Row: {
           admin_notes: string | null
@@ -1061,6 +1099,7 @@ export type Database = {
       can_manage_users: { Args: { _user_id: string }; Returns: boolean }
       can_view_payments: { Args: { _user_id: string }; Returns: boolean }
       cleanup_expired_captchas: { Args: never; Returns: undefined }
+      cleanup_expired_otps: { Args: never; Returns: undefined }
       generate_client_access_code: { Args: never; Returns: string }
       has_role: {
         Args: {
