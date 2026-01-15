@@ -68,13 +68,20 @@ export function EmailOTPVerify({
   const sendVerificationCode = async (isResend = false) => {
     // Prevent duplicate sends
     if (sendingCode) return;
-    
+
     setSendingCode(true);
     setError('');
 
+    // IMPORTANT: mark as "sent" immediately to prevent React StrictMode double-mount
+    // from triggering two sends before the first request resolves.
+    const nowTs = Date.now().toString();
+    if (!isResend) {
+      sessionStorage.setItem(sessionKey, nowTs);
+    }
+
     try {
       const functionName = userType === 'admin' ? 'send-admin-otp' : 'send-client-otp';
-      const body = userType === 'admin' 
+      const body = userType === 'admin'
         ? { user_id: userId }
         : { email: email.trim().toLowerCase() };
 
@@ -85,12 +92,13 @@ export function EmailOTPVerify({
       if (invokeError) throw new Error(invokeError.message);
       if (data?.error) throw new Error(data.error);
 
-      // Mark that we've sent a code with timestamp
-      sessionStorage.setItem(sessionKey, Date.now().toString());
-      
       setCodeSent(true);
       setCountdown(60);
     } catch (err: any) {
+      // If the send failed, roll back the "sent" marker so the user can retry.
+      if (!isResend) {
+        sessionStorage.removeItem(sessionKey);
+      }
       setError(err.message || 'Failed to send verification code');
       // Clear the sending flag so user can retry
       isSendingRef.current = false;
