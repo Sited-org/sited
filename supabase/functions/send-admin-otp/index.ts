@@ -24,28 +24,34 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { email, user_id } = await req.json();
+    const { user_id } = await req.json();
     
-    if (!email || !user_id) {
+    if (!user_id) {
       return new Response(
-        JSON.stringify({ error: "Email and user_id are required" }),
+        JSON.stringify({ error: "user_id is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Sending admin OTP to:", email);
+    console.log("Sending admin OTP for user_id:", user_id);
 
-    // Verify the user exists in admin_profiles
+    // Look up the email we have on file for this admin
     const { data: profile, error: profileError } = await supabaseClient
       .from('admin_profiles')
-      .select('id, display_name, email, user_id')
+      .select('display_name, email, user_id')
       .eq('user_id', user_id)
-      .eq('email', email.toLowerCase())
-      .single();
+      .maybeSingle();
 
-    if (profileError || !profile) {
-      console.log("Admin profile not found:", profileError);
-      // Don't reveal if email exists or not for security
+    // Only send if we have an email on file
+    const toEmail = profile?.email?.toLowerCase().trim();
+
+    if (profileError || !toEmail) {
+      console.log("Admin email not on file, skipping OTP send", {
+        hasProfile: !!profile,
+        hasEmail: !!toEmail,
+        error: profileError,
+      });
+      // Don't reveal account existence
       return new Response(
         JSON.stringify({ success: true, message: "If the account exists, a code has been sent" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -61,7 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from('admin_otp_codes')
       .upsert({
         user_id: user_id,
-        email: email.toLowerCase(),
+        email: toEmail,
         otp_code: otp,
         expires_at: expiresAt.toISOString(),
         used: false,
@@ -77,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email with OTP
     const emailResponse = await resend.emails.send({
       from: "Sited <hello@sited.co>",
-      to: [email],
+      to: [toEmail],
       subject: "Your Admin Login Verification Code",
       html: `
         <!DOCTYPE html>
@@ -92,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
               <h1 style="color: white; margin: 0; font-size: 24px;">Sited Admin</h1>
             </div>
             <div style="padding: 30px; text-align: center;">
-              <p style="color: #64748b; margin: 0 0 20px;">Hi ${profile.display_name || 'Admin'},</p>
+              <p style="color: #64748b; margin: 0 0 20px;">Hi ${profile?.display_name || 'Admin'},</p>
               <p style="color: #1e293b; margin: 0 0 20px;">Your verification code is:</p>
               <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b; font-family: monospace;">${otp}</span>

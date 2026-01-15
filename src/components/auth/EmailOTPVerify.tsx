@@ -49,7 +49,7 @@ export function EmailOTPVerify({
     try {
       const functionName = userType === 'admin' ? 'send-admin-otp' : 'send-client-otp';
       const body = userType === 'admin' 
-        ? { email: email.trim().toLowerCase(), user_id: userId }
+        ? { user_id: userId }
         : { email: email.trim().toLowerCase() };
 
       const { data, error: invokeError } = await supabase.functions.invoke(functionName, {
@@ -81,7 +81,6 @@ export function EmailOTPVerify({
       if (userType === 'admin') {
         const { data, error: invokeError } = await supabase.functions.invoke('verify-admin-otp', {
           body: { 
-            email: email.trim().toLowerCase(),
             user_id: userId,
             otp_code: otpCode,
           },
@@ -129,7 +128,7 @@ export function EmailOTPVerify({
         <CardTitle>Enter Verification Code</CardTitle>
         <CardDescription>
           {codeSent 
-            ? `We sent a 6-digit code to ${email}`
+            ? (userType === 'admin' ? 'We sent a 6-digit code to your email on file' : `We sent a 6-digit code to ${email}`)
             : 'Sending verification code to your email...'
           }
         </CardDescription>

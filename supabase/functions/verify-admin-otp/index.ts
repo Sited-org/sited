@@ -17,23 +17,22 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { email, user_id, otp_code } = await req.json();
+    const { user_id, otp_code } = await req.json();
     
-    if (!email || !user_id || !otp_code) {
+    if (!user_id || !otp_code) {
       return new Response(
-        JSON.stringify({ error: "Email, user_id, and OTP are required" }),
+        JSON.stringify({ error: "user_id and OTP are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Verifying admin OTP for:", email);
+    console.log("Verifying admin OTP for user_id:", user_id);
 
     // Verify OTP
     const { data: otpRecord, error: otpError } = await supabaseClient
       .from('admin_otp_codes')
       .select('*')
       .eq('user_id', user_id)
-      .eq('email', email.toLowerCase())
       .eq('otp_code', otp_code)
       .eq('used', false)
       .single();
@@ -60,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ used: true })
       .eq('id', otpRecord.id);
 
-    console.log("Admin OTP verified successfully for:", email);
+    console.log("Admin OTP verified successfully for user_id:", user_id);
 
     return new Response(
       JSON.stringify({
