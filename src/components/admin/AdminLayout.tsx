@@ -70,7 +70,7 @@ export default function AdminLayout() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out lg:transform-none",
+        "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border overflow-hidden transform transition-transform duration-200 ease-in-out lg:transform-none",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
@@ -88,7 +88,7 @@ export default function AdminLayout() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-4 space-y-1 overflow-hidden">
             {navItems.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;

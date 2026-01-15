@@ -125,6 +125,12 @@ export function useAuth() {
   };
 
   const signOut = async () => {
+    // Clear per-session 2FA markers so the next login always requires verification.
+    if (user?.id) {
+      sessionStorage.removeItem(`admin_otp_verified_${user.id}`);
+      sessionStorage.removeItem(`otp_sent_admin_${user.id}`);
+    }
+
     const { error } = await supabase.auth.signOut();
     if (!error) {
       setUser(null);

@@ -146,6 +146,8 @@ export default function AdminLogin() {
         });
       } else if (data.user) {
         // Successfully authenticated, now require OTP verification
+        sessionStorage.removeItem(`admin_otp_verified_${data.user.id}`);
+        sessionStorage.removeItem(`otp_sent_admin_${data.user.id}`);
         setPendingUserId(data.user.id);
         setShowOTPVerify(true);
       }
