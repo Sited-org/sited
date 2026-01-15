@@ -47,12 +47,31 @@ export function useSecureLeadSubmission() {
 
   // Save partial lead after contact info step
   const savePartialLead = useCallback(async (data: PartialLeadData): Promise<boolean> => {
-    // Don't create duplicate partial leads
+    // Don't create duplicate partial leads in this session
     if (partialLeadIdRef.current) {
       return true;
     }
 
     try {
+      // First, check if a recent partial lead exists for this email/project_type
+      // to prevent duplicates from page refreshes or re-submissions
+      const { data: existingLead } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('email', data.email)
+        .eq('project_type', data.project_type)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Within last 24 hours
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingLead) {
+        // Use existing lead instead of creating a new one
+        partialLeadIdRef.current = existingLead.id;
+        console.log('Found existing partial lead:', existingLead.id);
+        return true;
+      }
+
       const { data: result, error } = await supabase
         .from('leads')
         .insert({
@@ -72,6 +91,7 @@ export function useSecureLeadSubmission() {
       }
 
       partialLeadIdRef.current = result.id;
+      console.log('Created new partial lead:', result.id);
       return true;
     } catch (err) {
       console.error('Unexpected error saving partial lead:', err);
@@ -119,7 +139,7 @@ export function useSecureLeadSubmission() {
     setIsSubmitting(true);
     
     try {
-      // If we have a partial lead, update it instead of creating new
+      // If we have a partial lead, update it instead of creating new - DO NOT call edge function
       if (partialLeadIdRef.current) {
         const { error: updateError } = await supabase
           .from('leads')
@@ -134,13 +154,16 @@ export function useSecureLeadSubmission() {
 
         if (updateError) {
           console.error('Error updating partial lead:', updateError);
-          // Fall through to regular submission
-        } else {
-          partialLeadIdRef.current = null;
-          return true;
+          toast.error('Failed to submit form. Please try again.');
+          return false;
         }
+        
+        console.log('Updated existing partial lead:', partialLeadIdRef.current);
+        partialLeadIdRef.current = null;
+        return true;
       }
 
+      // Only call edge function if no partial lead exists (fallback path)
       const { data: response, error } = await supabase.functions.invoke('submit-lead', {
         body: {
           name: data.name,
@@ -174,6 +197,7 @@ export function useSecureLeadSubmission() {
         return false;
       }
 
+      console.log('Created new lead via edge function');
       partialLeadIdRef.current = null;
       return true;
     } catch (err) {
