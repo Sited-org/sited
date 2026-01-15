@@ -30,13 +30,30 @@ export function EmailOTPVerify({
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   
-  // Prevent double-sending in React Strict Mode
-  const hasSentInitialCode = useRef(false);
+  // Create a unique session key for this OTP request to prevent duplicates
+  const sessionKey = userType === 'admin' 
+    ? `otp_sent_admin_${userId}` 
+    : `otp_sent_client_${email}`;
+  
+  // Use ref to track if we've initiated sending in this component instance
+  const isSendingRef = useRef(false);
 
   useEffect(() => {
-    // Auto-send code on mount, but only once
-    if (!hasSentInitialCode.current) {
-      hasSentInitialCode.current = true;
+    // Check if we've already sent a code recently (within last 30 seconds)
+    const lastSentTime = sessionStorage.getItem(sessionKey);
+    const now = Date.now();
+    
+    if (lastSentTime && now - parseInt(lastSentTime) < 30000) {
+      // Code was sent recently, don't send again
+      setCodeSent(true);
+      const elapsed = Math.floor((now - parseInt(lastSentTime)) / 1000);
+      setCountdown(Math.max(0, 60 - elapsed));
+      return;
+    }
+    
+    // Only send if we haven't started sending yet
+    if (!isSendingRef.current) {
+      isSendingRef.current = true;
       sendVerificationCode();
     }
   }, []);
@@ -48,7 +65,10 @@ export function EmailOTPVerify({
     }
   }, [countdown]);
 
-  const sendVerificationCode = async () => {
+  const sendVerificationCode = async (isResend = false) => {
+    // Prevent duplicate sends
+    if (sendingCode) return;
+    
     setSendingCode(true);
     setError('');
 
@@ -65,10 +85,15 @@ export function EmailOTPVerify({
       if (invokeError) throw new Error(invokeError.message);
       if (data?.error) throw new Error(data.error);
 
+      // Mark that we've sent a code with timestamp
+      sessionStorage.setItem(sessionKey, Date.now().toString());
+      
       setCodeSent(true);
       setCountdown(60);
     } catch (err: any) {
       setError(err.message || 'Failed to send verification code');
+      // Clear the sending flag so user can retry
+      isSendingRef.current = false;
     } finally {
       setSendingCode(false);
     }
@@ -190,7 +215,7 @@ export function EmailOTPVerify({
               <Button 
                 variant="link" 
                 size="sm" 
-                onClick={sendVerificationCode}
+                onClick={() => sendVerificationCode(true)}
                 disabled={countdown > 0 || sendingCode}
                 className="p-0 h-auto"
               >
