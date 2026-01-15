@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Smartphone } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Smartphone, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { GoogleRecaptcha } from "@/components/GoogleRecaptcha";
@@ -41,7 +41,6 @@ const AppOnboarding = () => {
     businessDescription: "",
     targetAudience: "",
     competitorApps: "",
-    brandLogoUrl: "",
 
     // App Concept
     appName: "",
@@ -66,6 +65,8 @@ const AppOnboarding = () => {
 
     // Design & UX
     existingBranding: "no",
+    brandLogoFile: null as File | null,
+    brandLogoFileName: "",
     brandAssets: "",
     designStyle: "",
     colorPreferences: "",
@@ -418,19 +419,6 @@ const AppOnboarding = () => {
                     className="min-h-[100px]"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="brandLogoUrl">Brand Logo URL (if available)</Label>
-                  <Input
-                    id="brandLogoUrl"
-                    value={formData.brandLogoUrl}
-                    onChange={(e) => updateFormData("brandLogoUrl", e.target.value)}
-                    placeholder="https://example.com/logo.png or link to Google Drive/Dropbox"
-                    className="h-12"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Share a link to your logo file (Google Drive, Dropbox, or direct URL)
-                  </p>
-                </div>
               </div>
             )}
 
@@ -766,15 +754,59 @@ const AppOnboarding = () => {
                   </RadioGroup>
                 </div>
                 {formData.existingBranding !== "no" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="brandAssets">Brand Assets Details</Label>
-                    <Textarea
-                      id="brandAssets"
-                      value={formData.brandAssets}
-                      onChange={(e) => updateFormData("brandAssets", e.target.value)}
-                      placeholder="Describe your brand colors, fonts, logo, and any style guides you have..."
-                      className="min-h-[100px]"
-                    />
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="brandAssets">Brand Assets Details</Label>
+                      <Textarea
+                        id="brandAssets"
+                        value={formData.brandAssets}
+                        onChange={(e) => updateFormData("brandAssets", e.target.value)}
+                        placeholder="Describe your brand colors, fonts, logo, and any style guides you have..."
+                        className="min-h-[100px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brandLogo">Upload Your Logo</Label>
+                      <div className="flex items-center gap-4">
+                        <label
+                          htmlFor="brandLogo"
+                          className="flex items-center gap-3 px-4 py-3 border border-border rounded-lg cursor-pointer hover:border-foreground/30 transition-colors flex-1"
+                        >
+                          <Upload size={20} className="text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {formData.brandLogoFileName || "Choose a file (PNG, JPG, SVG)"}
+                          </span>
+                        </label>
+                        <Input
+                          id="brandLogo"
+                          type="file"
+                          accept=".png,.jpg,.jpeg,.svg,.webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            updateFormData("brandLogoFile", file);
+                            updateFormData("brandLogoFileName", file?.name || "");
+                          }}
+                          className="hidden"
+                        />
+                        {formData.brandLogoFileName && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              updateFormData("brandLogoFile", null);
+                              updateFormData("brandLogoFileName", "");
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload your logo file (max 5MB)
+                      </p>
+                    </div>
                   </div>
                 )}
                 <div className="space-y-3">
