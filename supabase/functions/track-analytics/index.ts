@@ -66,10 +66,26 @@ serve(async (req) => {
       user_agent, 
       screen_width, 
       screen_height,
+      viewport_width,
+      viewport_height,
       session_id,
       event_type = 'page_view',
       time_on_page = 0,
       page_load_time = 0,
+      dom_content_loaded = 0,
+      first_byte_time = 0,
+      scroll_depth = 0,
+      language,
+      timezone,
+      connection_type,
+      color_depth,
+      pixel_ratio,
+      // Click tracking fields
+      element_tag,
+      element_text,
+      element_href,
+      element_id,
+      element_class,
     } = body;
 
     logStep("Received data", { tracking_id, event_type, page_url: page_url?.substring(0, 50) });
@@ -85,7 +101,7 @@ serve(async (req) => {
     // Look up the lead by tracking_id
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("id")
+      .select("id, analytics_status")
       .eq("tracking_id", tracking_id)
       .maybeSingle();
 
@@ -105,23 +121,44 @@ serve(async (req) => {
       );
     }
 
+    // Only track if analytics is active
+    if (lead.analytics_status !== 'active') {
+      logStep("Analytics not active for lead", { analytics_status: lead.analytics_status });
+      return new Response(
+        JSON.stringify({ error: "Analytics not active" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     // Parse user agent for browser and device info
     const { browser, deviceType } = parseUserAgent(user_agent || '');
 
     // Safely parse numeric values to avoid integer overflow
     const safeScreenWidth = safeInt(screen_width, null, 10000);
     const safeScreenHeight = safeInt(screen_height, null, 10000);
+    const safeViewportWidth = safeInt(viewport_width, null, 10000);
+    const safeViewportHeight = safeInt(viewport_height, null, 10000);
     const safeTimeOnPage = safeInt(time_on_page, 0, 86400); // max 24 hours
     const safePageLoadTime = safeInt(page_load_time, 0, 60000); // max 60 seconds
+    const safeDomContentLoaded = safeInt(dom_content_loaded, null, 60000);
+    const safeFirstByteTime = safeInt(first_byte_time, null, 60000);
+    const safeScrollDepth = safeInt(scroll_depth, null, 100);
+    const safeColorDepth = safeInt(color_depth, null, 64);
+    const safePixelRatio = pixel_ratio ? Math.min(parseFloat(String(pixel_ratio)) || 1, 10) : null;
 
-    // For exit events, update the previous page view with time_on_page
+    // For exit events, update the previous page view with time_on_page and scroll_depth
     if (event_type === 'page_exit' && session_id) {
+      const updateData: any = { 
+        time_on_page: safeTimeOnPage, 
+        is_exit: true 
+      };
+      if (safeScrollDepth !== null) {
+        updateData.scroll_depth = safeScrollDepth;
+      }
+
       const { error: updateError } = await supabaseClient
         .from("website_analytics")
-        .update({ 
-          time_on_page: safeTimeOnPage, 
-          is_exit: true 
-        })
+        .update(updateData)
         .eq("session_id", session_id)
         .eq("page_url", page_url)
         .eq("event_type", "page_view")
@@ -131,7 +168,7 @@ serve(async (req) => {
       if (updateError) {
         logStep("Error updating page exit", { error: updateError.message });
       } else {
-        logStep("Page exit recorded", { session_id, time_on_page: safeTimeOnPage });
+        logStep("Page exit recorded", { session_id, time_on_page: safeTimeOnPage, scroll_depth: safeScrollDepth });
       }
 
       return new Response(
@@ -168,7 +205,7 @@ serve(async (req) => {
 
     // Check if this is entry page (first page in session)
     let isEntryPage = true;
-    if (session_id) {
+    if (session_id && event_type === 'page_view') {
       const { count: sessionPageCount } = await supabaseClient
         .from("website_analytics")
         .select("*", { count: "exact", head: true })
@@ -192,14 +229,33 @@ serve(async (req) => {
       page_load_time: safePageLoadTime,
       is_bounce: false,
       is_exit: false,
-      is_entry: isEntryPage,
+      is_entry: event_type === 'page_view' ? isEntryPage : null,
       browser,
       device_type: deviceType,
+      language: language?.substring(0, 10) || null,
+      timezone: timezone?.substring(0, 50) || null,
+      connection_type: connection_type?.substring(0, 20) || null,
     };
 
     // Only add screen dimensions if they're valid
     if (safeScreenWidth !== null) insertData.screen_width = safeScreenWidth;
     if (safeScreenHeight !== null) insertData.screen_height = safeScreenHeight;
+    if (safeViewportWidth !== null) insertData.viewport_width = safeViewportWidth;
+    if (safeViewportHeight !== null) insertData.viewport_height = safeViewportHeight;
+    if (safeDomContentLoaded !== null) insertData.dom_content_loaded = safeDomContentLoaded;
+    if (safeFirstByteTime !== null) insertData.first_byte_time = safeFirstByteTime;
+    if (safeScrollDepth !== null) insertData.scroll_depth = safeScrollDepth;
+    if (safeColorDepth !== null) insertData.color_depth = safeColorDepth;
+    if (safePixelRatio !== null) insertData.pixel_ratio = safePixelRatio;
+
+    // Add click tracking fields
+    if (event_type === 'click') {
+      if (element_tag) insertData.element_tag = element_tag.substring(0, 50);
+      if (element_text) insertData.element_text = element_text.substring(0, 100);
+      if (element_href) insertData.element_href = element_href.substring(0, 500);
+      if (element_id) insertData.element_id = element_id.substring(0, 100);
+      if (element_class) insertData.element_class = element_class.substring(0, 200);
+    }
 
     const { error: insertError } = await supabaseClient
       .from("website_analytics")
