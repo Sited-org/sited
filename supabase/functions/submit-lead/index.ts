@@ -12,7 +12,7 @@ const corsHeaders = {
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 lead submissions per hour per IP
 
-// Validation schema
+// Validation schema - supports both old math captcha and new Google reCAPTCHA
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
   email: z.string().trim().email("Invalid email").max(255, "Email too long"),
@@ -20,8 +20,11 @@ const leadSchema = z.object({
   business_name: z.string().trim().max(200, "Business name too long").optional().nullable(),
   project_type: z.string().trim().min(1, "Project type is required").max(50),
   form_data: z.record(z.unknown()),
-  captcha_token: z.string().min(1, "CAPTCHA token is required"),
-  captcha_answer: z.number().int(),
+  // Old math captcha fields (optional for backwards compatibility)
+  captcha_token: z.string().optional().nullable(),
+  captcha_answer: z.number().int().optional().nullable(),
+  // New Google reCAPTCHA token
+  recaptcha_token: z.string().optional().nullable(),
 });
 
 async function checkRateLimit(
@@ -69,7 +72,7 @@ async function checkRateLimit(
   return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
 }
 
-async function verifyCaptcha(
+async function verifyMathCaptcha(
   supabase: any,
   token: string,
   answer: number
@@ -93,6 +96,32 @@ async function verifyCaptcha(
     .eq('token', token);
 
   return true;
+}
+
+async function verifyGoogleRecaptcha(token: string): Promise<boolean> {
+  const secretKey = Deno.env.get('RECAPTCHA_SECRET_KEY');
+  if (!secretKey) {
+    console.error('RECAPTCHA_SECRET_KEY not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${secretKey}&response=${token}`,
+    });
+
+    const result = await response.json();
+    console.log('reCAPTCHA verification result:', result);
+    
+    return result.success === true;
+  } catch (error) {
+    console.error('reCAPTCHA verification error:', error);
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -143,14 +172,25 @@ serve(async (req) => {
       );
     }
 
-    const { name, email, phone, business_name, project_type, form_data, captcha_token, captcha_answer } = validationResult.data;
+    const { name, email, phone, business_name, project_type, form_data, captcha_token, captcha_answer, recaptcha_token } = validationResult.data;
 
-    // Verify CAPTCHA
-    const captchaValid = await verifyCaptcha(supabase, captcha_token, captcha_answer);
+    // Verify CAPTCHA - support both Google reCAPTCHA and legacy math captcha
+    let captchaValid = false;
+    
+    if (recaptcha_token) {
+      // Use Google reCAPTCHA
+      captchaValid = await verifyGoogleRecaptcha(recaptcha_token);
+      console.log('Google reCAPTCHA verification:', captchaValid);
+    } else if (captcha_token && captcha_answer !== null && captcha_answer !== undefined) {
+      // Fallback to legacy math captcha
+      captchaValid = await verifyMathCaptcha(supabase, captcha_token, captcha_answer);
+      console.log('Math CAPTCHA verification:', captchaValid);
+    }
+    
     if (!captchaValid) {
       console.log('CAPTCHA verification failed');
       return new Response(
-        JSON.stringify({ error: 'CAPTCHA verification failed. Please try again.' }),
+        JSON.stringify({ error: 'Security verification failed. Please try again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
