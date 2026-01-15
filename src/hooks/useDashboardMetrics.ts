@@ -64,17 +64,18 @@ export function useDashboardMetrics(leads: Lead[]) {
     const weekStart = startOfWeek(now);
     const lastMonthStart = startOfMonth(subDays(monthStart, 1));
 
-    // Revenue calculations from transactions (credits = payments received)
-    const totalRevenue = allTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const monthRevenue = allTransactions
+    // Revenue calculations - ONLY count PAID invoices (processed payments)
+    const paidTransactions = allTransactions.filter(t => t.invoice_status === 'paid');
+    const totalRevenue = paidTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
+    const monthRevenue = paidTransactions
       .filter(t => new Date(t.transaction_date) >= monthStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const weekRevenue = allTransactions
+    const weekRevenue = paidTransactions
       .filter(t => new Date(t.transaction_date) >= weekStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
     
-    // Last month revenue for growth calculation
-    const lastMonthRevenue = allTransactions
+    // Last month revenue for growth calculation (only paid)
+    const lastMonthRevenue = paidTransactions
       .filter(t => {
         const date = new Date(t.transaction_date);
         return date >= lastMonthStart && date < monthStart;
@@ -84,15 +85,19 @@ export function useDashboardMetrics(leads: Lead[]) {
       ? Math.round(((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
       : 0;
 
-    // Outstanding & invoices
-    const totalDebit = allTransactions.reduce((sum, t) => sum + Number(t.debit || 0), 0);
-    const totalOutstanding = totalDebit - totalRevenue;
-    const paidInvoices = allTransactions.filter(t => t.invoice_status === 'paid').length;
-    const pendingInvoices = allTransactions.filter(t => 
-      t.invoice_status === 'sent' || t.invoice_status === 'processing'
-    ).length;
-    const totalInvoiced = paidInvoices + pendingInvoices;
-    const collectionRate = totalInvoiced > 0 ? Math.round((paidInvoices / totalInvoiced) * 100) : 100;
+    // Outstanding = total invoiced (sent) minus total paid
+    const sentInvoices = allTransactions.filter(t => t.invoice_status === 'sent');
+    const totalOutstanding = sentInvoices.reduce((sum, t) => sum + Number(t.debit || 0), 0);
+    
+    // Invoice counts for collection rate
+    const paidInvoiceCount = paidTransactions.filter(t => t.invoice_status === 'paid').length;
+    const sentInvoiceCount = sentInvoices.length;
+    const totalInvoicesSentOrPaid = paidInvoiceCount + sentInvoiceCount;
+    
+    // Collection rate = paid invoices / (paid + sent invoices)
+    const collectionRate = totalInvoicesSentOrPaid > 0 
+      ? Math.round((paidInvoiceCount / totalInvoicesSentOrPaid) * 100) 
+      : 100;
 
     // Lead metrics
     const totalLeads = leads.length;
@@ -130,8 +135,8 @@ export function useDashboardMetrics(leads: Lead[]) {
       weekRevenue,
       revenueGrowth,
       totalOutstanding,
-      paidInvoices,
-      pendingInvoices,
+      paidInvoices: paidInvoiceCount,
+      pendingInvoices: sentInvoiceCount,
       collectionRate,
       totalLeads,
       newLeadsThisWeek,
