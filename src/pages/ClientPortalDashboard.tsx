@@ -57,11 +57,18 @@ interface ClientRequest {
   estimated_completion: string | null;
 }
 
+interface ProjectUpdate {
+  id: string;
+  content: string;
+  created_at: string;
+}
+
 export default function ClientPortalDashboard() {
   const [session, setSession] = useState<ClientSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
+  const [projectUpdates, setProjectUpdates] = useState<ProjectUpdate[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const hasFetchedRef = useRef(false);
@@ -90,6 +97,7 @@ export default function ClientPortalDashboard() {
 
       setTransactions(data.transactions || []);
       setRequests(data.clientRequests || []);
+      setProjectUpdates(data.projectUpdates || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
     } catch (err) {
       console.error('Error fetching client data:', err);
@@ -192,6 +200,7 @@ export default function ClientPortalDashboard() {
                 lead={session.lead}
                 transactions={transactions}
                 requests={requests}
+                projectUpdates={projectUpdates}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
               />
