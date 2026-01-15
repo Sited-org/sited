@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User } from 'lucide-react';
+import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientOverviewTab } from '@/components/client-portal/ClientOverviewTab';
 import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
 import { PaymentsTab } from '@/components/client-portal/PaymentsTab';
 import { ProfileTab } from '@/components/client-portal/ProfileTab';
-
+import { WebsiteTab } from '@/components/client-portal/WebsiteTab';
 interface ClientSession {
   lead: {
     id: string;
@@ -64,7 +64,7 @@ export default function ClientPortalDashboard() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [hasFetched, setHasFetched] = useState(false);
+  const hasFetchedRef = useRef(false);
   const navigate = useNavigate();
 
   const fetchClientData = useCallback(async (clientSession: ClientSession) => {
@@ -96,7 +96,6 @@ export default function ClientPortalDashboard() {
       toast.error('Failed to load your data');
     } finally {
       setLoading(false);
-      setHasFetched(true);
     }
   }, []);
 
@@ -110,11 +109,14 @@ export default function ClientPortalDashboard() {
     const parsedSession = JSON.parse(storedSession) as ClientSession;
     setSession(parsedSession);
     
-    // Only fetch once on mount
-    if (!hasFetched) {
+    // Only fetch once on mount using ref to survive strict mode
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetchClientData(parsedSession);
+    } else {
+      setLoading(false);
     }
-  }, [navigate, hasFetched, fetchClientData]);
+  }, [navigate, fetchClientData]);
 
   const handleLogout = () => {
     sessionStorage.removeItem('clientPortalSession');
@@ -162,10 +164,14 @@ export default function ClientPortalDashboard() {
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Simple Tab Navigation */}
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className="grid w-full grid-cols-5 mb-6">
               <TabsTrigger value="overview" className="text-xs sm:text-sm">
                 <Home className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="website" className="text-xs sm:text-sm">
+                <Globe className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Website</span>
               </TabsTrigger>
               <TabsTrigger value="requests" className="text-xs sm:text-sm">
                 <MessageSquarePlus className="h-4 w-4 sm:mr-2" />
@@ -188,6 +194,13 @@ export default function ClientPortalDashboard() {
                 requests={requests}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
+              />
+            </TabsContent>
+
+            <TabsContent value="website">
+              <WebsiteTab
+                leadId={session.lead.id}
+                websiteUrl={session.lead.website_url}
               />
             </TabsContent>
 

@@ -6,11 +6,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Generate secure session token
-function generateSessionToken(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+// Generate HMAC-SHA256 signed session token
+async function generateSignedSessionToken(leadId: string, secret: string): Promise<{ token: string; expiresAt: string }> {
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  // Generate random component
+  const randomBytes = new Uint8Array(16);
+  crypto.getRandomValues(randomBytes);
+  const rnd = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  
+  // Create payload
+  const payload = {
+    lid: leadId,
+    exp: expiresAt.getTime(),
+    rnd: rnd,
+  };
+  
+  const payloadBase64 = btoa(JSON.stringify(payload));
+  
+  // Sign with HMAC-SHA256
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(payloadBase64));
+  const signature = btoa(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+  
+  return {
+    token: `${payloadBase64}.${signature}`,
+    expiresAt: expiresAt.toISOString(),
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,6 +52,11 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    const sessionSecret = Deno.env.get("CLIENT_SESSION_SECRET");
+    if (!sessionSecret) {
+      throw new Error("CLIENT_SESSION_SECRET is not configured");
+    }
 
     const { email, access_code, otp_code } = await req.json();
     
@@ -80,9 +114,8 @@ const handler = async (req: Request): Promise<Response> => {
       .update({ used: true })
       .eq('id', otpRecord.id);
 
-    // Generate session token
-    const sessionToken = generateSessionToken();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate signed session token
+    const { token: sessionToken, expiresAt } = await generateSignedSessionToken(lead.id, sessionSecret);
 
     console.log("Client verified successfully:", lead.email);
 
@@ -93,14 +126,18 @@ const handler = async (req: Request): Promise<Response> => {
           id: lead.id,
           name: lead.name,
           email: lead.email,
+          phone: lead.phone,
           business_name: lead.business_name,
           project_type: lead.project_type,
           status: lead.status,
           tracking_id: lead.tracking_id,
           website_url: lead.website_url,
+          billing_address: lead.billing_address,
+          form_data: lead.form_data,
+          created_at: lead.created_at,
         },
         sessionToken,
-        expiresAt: expiresAt.toISOString(),
+        expiresAt,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
