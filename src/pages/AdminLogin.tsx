@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, Mail, User, Phone, Calendar } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { TwoFactorVerify } from '@/components/auth/TwoFactorVerify';
+import { TwoFactorSetup } from '@/components/auth/TwoFactorSetup';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -32,16 +34,36 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showMfaVerify, setShowMfaVerify] = useState(false);
+  const [showMfaSetup, setShowMfaSetup] = useState(false);
   
   const { signIn, signUp, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && isAuthenticated && isAdmin) {
-      navigate('/admin');
-    }
-  }, [isAuthenticated, isAdmin, loading, navigate]);
+    const checkMfaAndRedirect = async () => {
+      if (!loading && isAuthenticated && isAdmin && !showMfaVerify && !showMfaSetup) {
+        // Check MFA status
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        
+        if (aalData) {
+          // If user has MFA enabled but hasn't verified this session
+          if (aalData.nextLevel === 'aal2' && aalData.currentLevel === 'aal1') {
+            setShowMfaVerify(true);
+            return;
+          }
+          
+          // If user is fully authenticated (either no MFA or MFA verified)
+          if (aalData.currentLevel === 'aal2' || aalData.nextLevel === 'aal1') {
+            navigate('/admin');
+          }
+        }
+      }
+    };
+    
+    checkMfaAndRedirect();
+  }, [isAuthenticated, isAdmin, loading, navigate, showMfaVerify, showMfaSetup]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,16 +146,59 @@ export default function AdminLogin() {
             : error.message,
           variant: "destructive"
         });
+      } else {
+        // Check if MFA is required after login
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.nextLevel === 'aal2' && aalData.currentLevel === 'aal1') {
+          setShowMfaVerify(true);
+        }
       }
     }
     
     setIsLoading(false);
   };
 
+  const handleMfaVerified = () => {
+    setShowMfaVerify(false);
+    navigate('/admin');
+  };
+
+  const handleMfaSetupComplete = () => {
+    setShowMfaSetup(false);
+    navigate('/admin');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show MFA verify screen
+  if (showMfaVerify) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <TwoFactorVerify
+          onVerified={handleMfaVerified}
+          onCancel={async () => {
+            await supabase.auth.signOut();
+            setShowMfaVerify(false);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Show MFA setup screen
+  if (showMfaSetup) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <TwoFactorSetup
+          onComplete={handleMfaSetupComplete}
+          onSkip={handleMfaSetupComplete}
+        />
       </div>
     );
   }

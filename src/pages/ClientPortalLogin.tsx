@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Lock, User, AlertCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { ClientTwoFactorVerify } from '@/components/auth/ClientTwoFactorVerify';
 
 export default function ClientPortalLogin() {
   const [email, setEmail] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -20,10 +22,12 @@ export default function ClientPortalLogin() {
     setLoading(true);
 
     try {
+      // First verify access code is valid before proceeding to 2FA
       const { data, error: invokeError } = await supabase.functions.invoke('verify-client-access', {
         body: { 
           email: email.trim().toLowerCase(), 
           access_code: accessCode.trim().toUpperCase(),
+          skip_session: true, // Just validate, don't create session yet
         },
       });
 
@@ -31,14 +35,9 @@ export default function ClientPortalLogin() {
         throw new Error(invokeError.message || 'Access denied');
       }
 
-      if (data?.success) {
-        sessionStorage.setItem('clientPortalSession', JSON.stringify({
-          lead: data.lead,
-          token: data.sessionToken,
-          email: email.trim().toLowerCase(),
-          expiresAt: data.expiresAt, // Store token expiry
-        }));
-        navigate('/client-portal/dashboard');
+      if (data?.success || data?.valid) {
+        // Credentials are valid, proceed to 2FA
+        setShowTwoFactor(true);
       } else {
         throw new Error(data?.error || 'Access denied');
       }
@@ -48,6 +47,30 @@ export default function ClientPortalLogin() {
       setLoading(false);
     }
   };
+
+  const handleTwoFactorVerified = (sessionData: any) => {
+    sessionStorage.setItem('clientPortalSession', JSON.stringify({
+      lead: sessionData.lead,
+      token: sessionData.sessionToken,
+      email: email.trim().toLowerCase(),
+      expiresAt: sessionData.expiresAt,
+    }));
+    navigate('/client-portal/dashboard');
+  };
+
+  // Show 2FA verification
+  if (showTwoFactor) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+        <ClientTwoFactorVerify
+          email={email}
+          accessCode={accessCode}
+          onVerified={handleTwoFactorVerified}
+          onCancel={() => setShowTwoFactor(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">

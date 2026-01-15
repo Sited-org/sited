@@ -158,7 +158,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, access_code, lead_id } = await req.json();
+    const { email, access_code, lead_id, skip_session } = await req.json();
     
     // Validate input
     const emailTrimmed = email?.toLowerCase().trim();
@@ -224,6 +224,21 @@ serve(async (req) => {
     }
 
     logStep("Access granted", { leadId: lead.id, name: lead.name });
+
+    // If skip_session is true, just validate credentials (for 2FA flow)
+    if (skip_session) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          valid: true,
+          message: "Credentials validated, proceed to 2FA"
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
 
     // Generate a cryptographically signed session token with expiration
     const { token: sessionToken, expiresAt } = await generateSecureSessionToken(lead.id);
