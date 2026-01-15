@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,10 @@ import {
   CheckCircle2, 
   Loader2,
   Plus,
-  X
+  X,
+  Paperclip,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -38,12 +41,72 @@ interface MyRequestsTabProps {
   onRequestCreated: () => void;
 }
 
+interface SelectedFile {
+  file: File;
+  preview?: string;
+}
+
 export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequestCreated }: MyRequestsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<string>('normal');
+  const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newFiles: SelectedFile[] = files.map(file => ({
+      file,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+    }));
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => {
+      const file = prev[index];
+      if (file.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const uploadFiles = async (requestId: string) => {
+    const uploadPromises = selectedFiles.map(async ({ file }) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${requestId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('request-attachments')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Create attachment record
+      const { error: recordError } = await supabase
+        .from('request_attachments')
+        .insert({
+          request_id: requestId,
+          file_name: file.name,
+          file_path: fileName,
+          file_size: file.size,
+          content_type: file.type,
+          uploaded_by: 'client'
+        });
+
+      if (recordError) throw recordError;
+    });
+
+    await Promise.all(uploadPromises);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +126,11 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
 
       if (error) throw error;
 
+      // Upload files if any
+      if (selectedFiles.length > 0) {
+        await uploadFiles(newRequest.id);
+      }
+
       try {
         await supabase.functions.invoke('notify-client-request', {
           body: {
@@ -73,6 +141,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
             priority,
             client_name: leadName,
             client_email: leadEmail,
+            has_attachments: selectedFiles.length > 0,
           },
         });
       } catch (notifyError) {
@@ -83,6 +152,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       setTitle('');
       setDescription('');
       setPriority('normal');
+      setSelectedFiles([]);
       setShowForm(false);
       onRequestCreated();
     } catch (error: any) {
@@ -137,7 +207,10 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                   type="button" 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setSelectedFiles([]);
+                  }}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -179,6 +252,70 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                     <SelectItem value="urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* File Upload */}
+              <div className="space-y-2">
+                <Label className="text-sm">Attachments</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={submitting}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  <Paperclip className="h-4 w-4 mr-2" />
+                  Add Files
+                </Button>
+
+                {/* Selected Files Preview */}
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-2 mt-2">
+                    {selectedFiles.map((item, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
+                      >
+                        {item.preview ? (
+                          <img 
+                            src={item.preview} 
+                            alt={item.file.name}
+                            className="h-10 w-10 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{item.file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(item.file.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          disabled={submitting}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <Button type="submit" disabled={submitting} className="w-full">

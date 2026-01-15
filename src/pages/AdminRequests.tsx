@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -20,18 +22,32 @@ import {
   ExternalLink,
   Search,
   Filter,
-  Calendar
+  Calendar,
+  Download,
+  FileText,
+  Image,
+  Paperclip
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 type RequestStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+interface RequestAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  content_type: string | null;
+  created_at: string;
+}
+
 interface ClientRequest {
   id: string;
   lead_id: string;
   title: string;
   description: string | null;
+  body: string | null;
   status: string;
   priority: string;
   admin_notes: string | null;
@@ -65,7 +81,9 @@ const priorityConfig: Record<RequestPriority, { label: string; color: string }> 
 export default function AdminRequests() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRequest, setSelectedRequest] = useState<ClientRequest | null>(null);
+  const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
@@ -92,6 +110,19 @@ export default function AdminRequests() {
       return data as ClientRequest[];
     },
   });
+
+  // Handle opening request from URL param
+  useEffect(() => {
+    const openRequestId = searchParams.get('open');
+    if (openRequestId && requests.length > 0) {
+      const request = requests.find(r => r.id === openRequestId);
+      if (request) {
+        handleOpenRequest(request);
+        // Clear the param after opening
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, requests]);
 
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, status, admin_notes, estimated_completion }: { 
@@ -169,11 +200,20 @@ export default function AdminRequests() {
     total: requests.length,
   };
 
-  const handleOpenRequest = (request: ClientRequest) => {
+  const handleOpenRequest = async (request: ClientRequest) => {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
     setNewStatus(request.status as RequestStatus);
     setEstimatedCompletion(request.estimated_completion ? request.estimated_completion.split('T')[0] : '');
+
+    // Fetch attachments
+    const { data } = await supabase
+      .from('request_attachments')
+      .select('*')
+      .eq('request_id', request.id)
+      .order('created_at', { ascending: false });
+    
+    setAttachments((data as RequestAttachment[]) || []);
   };
 
   const handleSaveRequest = () => {
@@ -185,6 +225,40 @@ export default function AdminRequests() {
         estimated_completion: estimatedCompletion ? new Date(estimatedCompletion).toISOString() : null,
       });
     }
+  };
+
+  const handleDownloadAttachment = async (attachment: RequestAttachment) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('request-attachments')
+        .download(attachment.file_path);
+
+      if (error) throw error;
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast({ title: 'Download failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const getFileIcon = (contentType: string | null) => {
+    if (contentType?.startsWith('image/')) return Image;
+    return FileText;
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   if (isLoading) {
@@ -350,7 +424,7 @@ export default function AdminRequests() {
 
       {/* Request Detail Sheet */}
       <Sheet open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-        <SheetContent className="sm:max-w-lg overflow-y-auto">
+        <SheetContent className="sm:max-w-xl w-full overflow-hidden flex flex-col">
           {selectedRequest && (
             <>
               <SheetHeader>
@@ -360,113 +434,163 @@ export default function AdminRequests() {
                 </SheetDescription>
               </SheetHeader>
 
-              <div className="space-y-6 mt-6">
-                {/* Client Info */}
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-between">
+              <ScrollArea className="flex-1 -mx-6 px-6">
+                <div className="space-y-6 mt-6 pb-6">
+                  {/* Client Info */}
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{selectedRequest.leads?.name || 'Unknown'}</p>
+                        <p className="text-sm text-muted-foreground">{selectedRequest.leads?.email}</p>
+                        {selectedRequest.leads?.business_name && (
+                          <p className="text-sm text-muted-foreground">{selectedRequest.leads?.business_name}</p>
+                        )}
+                      </div>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/admin/leads/${selectedRequest.lead_id}`}>
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Lead
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {selectedRequest.description && (
                     <div>
-                      <p className="font-medium">{selectedRequest.leads?.name || 'Unknown'}</p>
-                      <p className="text-sm text-muted-foreground">{selectedRequest.leads?.email}</p>
-                      {selectedRequest.leads?.business_name && (
-                        <p className="text-sm text-muted-foreground">{selectedRequest.leads?.business_name}</p>
-                      )}
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
+                      <p className="text-sm">{selectedRequest.description}</p>
                     </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link to={`/admin/leads/${selectedRequest.lead_id}`}>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Lead
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
+                  )}
 
-                {/* Request Details */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                  <p className="text-sm">
-                    {selectedRequest.description || 'No description provided'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Priority</h4>
-                    <Badge 
-                      variant="outline" 
-                      className={priorityConfig[selectedRequest.priority as RequestPriority]?.color}
-                    >
-                      {priorityConfig[selectedRequest.priority as RequestPriority]?.label || selectedRequest.priority}
-                    </Badge>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Submitted</h4>
-                    <p className="text-sm">{format(new Date(selectedRequest.created_at), 'PPp')}</p>
-                  </div>
-                </div>
-
-                {/* Status Update */}
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Select value={newStatus} onValueChange={(v) => setNewStatus(v as RequestStatus)}>
-                    <SelectTrigger className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* ETA - Show when in progress */}
-                {newStatus === 'in_progress' && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Estimated Completion Date
-                    </Label>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="date"
-                        value={estimatedCompletion}
-                        onChange={(e) => setEstimatedCompletion(e.target.value)}
-                        className="flex-1"
-                      />
+                  {/* Body Content - for detailed content like tracking scripts */}
+                  {selectedRequest.body && (
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Content</h4>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
+                          {selectedRequest.body}
+                        </pre>
+                      </div>
                     </div>
+                  )}
+
+                  {/* Attachments */}
+                  {attachments.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                        <Paperclip className="h-4 w-4" />
+                        Attachments ({attachments.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {attachments.map((attachment) => {
+                          const FileIcon = getFileIcon(attachment.content_type);
+                          return (
+                            <div 
+                              key={attachment.id}
+                              className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <FileIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{attachment.file_name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatFileSize(attachment.file_size)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleDownloadAttachment(attachment)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Priority</h4>
+                      <Badge 
+                        variant="outline" 
+                        className={priorityConfig[selectedRequest.priority as RequestPriority]?.color}
+                      >
+                        {priorityConfig[selectedRequest.priority as RequestPriority]?.label || selectedRequest.priority}
+                      </Badge>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Submitted</h4>
+                      <p className="text-sm">{format(new Date(selectedRequest.created_at), 'PPp')}</p>
+                    </div>
+                  </div>
+
+                  {/* Status Update */}
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <Select value={newStatus} onValueChange={(v) => setNewStatus(v as RequestStatus)}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* ETA - Show when in progress */}
+                  {newStatus === 'in_progress' && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Estimated Completion Date
+                      </Label>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="date"
+                          value={estimatedCompletion}
+                          onChange={(e) => setEstimatedCompletion(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This will be visible to the client
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Admin Notes */}
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Admin Notes</Label>
+                    <Textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      placeholder="Add notes visible to the client..."
+                      className="mt-2"
+                      rows={4}
+                    />
                     <p className="text-xs text-muted-foreground mt-1">
-                      This will be visible to the client
+                      These notes will be visible to the client
                     </p>
                   </div>
-                )}
 
-                {/* Admin Notes */}
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Admin Notes</Label>
-                  <Textarea
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Add internal notes about this request..."
-                    rows={4}
-                    className="mt-2"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3">
+                  {/* Save Button */}
                   <Button 
-                    className="flex-1" 
-                    onClick={handleSaveRequest}
+                    onClick={handleSaveRequest} 
+                    className="w-full"
                     disabled={updateRequestMutation.isPending}
                   >
                     {updateRequestMutation.isPending ? 'Saving...' : 'Save Changes'}
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedRequest(null)}>
-                    Cancel
-                  </Button>
                 </div>
-              </div>
+              </ScrollArea>
             </>
           )}
         </SheetContent>
