@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 
 // reCAPTCHA site key - this is a publishable key
@@ -30,37 +30,51 @@ declare global {
 export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<number | null>(null);
+  const onVerifyRef = useRef(onVerify);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRendered, setIsRendered] = useState(false);
 
-  const renderRecaptcha = useCallback(() => {
-    if (!containerRef.current || widgetIdRef.current !== null) return;
-
-    try {
-      widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
-        sitekey: RECAPTCHA_SITE_KEY,
-        callback: (token: string) => {
-          onVerify(token);
-        },
-        'expired-callback': () => {
-          onVerify(null);
-        },
-        'error-callback': () => {
-          setError('reCAPTCHA error. Please try again.');
-          onVerify(null);
-        },
-        theme: 'light',
-        size: 'normal',
-      });
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error rendering reCAPTCHA:', err);
-      setError('Failed to load reCAPTCHA');
-      setIsLoading(false);
-    }
+  // Keep the ref updated with the latest callback
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
   }, [onVerify]);
 
   useEffect(() => {
+    // Don't re-render if already rendered
+    if (isRendered) return;
+
+    const renderRecaptcha = () => {
+      if (!containerRef.current || widgetIdRef.current !== null) return;
+
+      try {
+        widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
+          sitekey: RECAPTCHA_SITE_KEY,
+          callback: (token: string) => {
+            console.log('reCAPTCHA verified successfully');
+            onVerifyRef.current(token);
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            onVerifyRef.current(null);
+          },
+          'error-callback': () => {
+            console.error('reCAPTCHA error occurred');
+            setError('reCAPTCHA error. Please try again.');
+            onVerifyRef.current(null);
+          },
+          theme: 'light',
+          size: 'normal',
+        });
+        setIsLoading(false);
+        setIsRendered(true);
+      } catch (err) {
+        console.error('Error rendering reCAPTCHA:', err);
+        setError('Failed to load reCAPTCHA');
+        setIsLoading(false);
+      }
+    };
+
     // Check if script is already loaded
     const existingScript = document.querySelector('script[src*="recaptcha"]');
     
@@ -100,7 +114,7 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
         }
       }
     };
-  }, [renderRecaptcha]);
+  }, [isRendered]);
 
   if (error) {
     return (
