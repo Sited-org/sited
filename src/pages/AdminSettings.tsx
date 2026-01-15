@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key } from 'lucide-react';
+import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
 import { ProductsSettingsTab } from '@/components/admin/settings/ProductsSettingsTab';
@@ -57,8 +58,11 @@ export default function AdminSettings() {
   const { user, adminProfile, userRole, refreshAdminProfile } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(adminProfile?.display_name || '');
+  const [emailOnFile, setEmailOnFile] = useState(adminProfile?.email || '');
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showPasswordOtp, setShowPasswordOtp] = useState(false);
+  const [pendingPasswordChange, setPendingPasswordChange] = useState('');
 
   // Memberships
   const { memberships, loading: membershipsLoading, addMembership, updateMembership, deleteMembership } = useMemberships();
@@ -81,25 +85,50 @@ export default function AdminSettings() {
     if (adminProfile?.display_name) {
       setDisplayName(adminProfile.display_name);
     }
+    if (adminProfile?.email) {
+      setEmailOnFile(adminProfile.email);
+    }
   }, [adminProfile]);
 
   // Profile handlers
   const handleUpdateProfile = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from('admin_profiles').update({ display_name: displayName }).eq('user_id', user.id);
+    const { error } = await supabase.from('admin_profiles').update({ 
+      display_name: displayName,
+      email: emailOnFile 
+    }).eq('user_id', user.id);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Profile updated' }); refreshAdminProfile(); }
     setSaving(false);
   };
 
-  const handleChangePassword = async () => {
-    if (newPassword.length < 6) { toast({ title: 'Password too short', variant: 'destructive' }); return; }
+  const handleInitiatePasswordChange = () => {
+    if (newPassword.length < 6) { 
+      toast({ title: 'Password too short', description: 'Password must be at least 6 characters', variant: 'destructive' }); 
+      return; 
+    }
+    setPendingPasswordChange(newPassword);
+    setShowPasswordOtp(true);
+  };
+
+  const handlePasswordChangeVerified = async () => {
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    else { toast({ title: 'Password updated' }); setNewPassword(''); }
+    const { error } = await supabase.auth.updateUser({ password: pendingPasswordChange });
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Password updated successfully' });
+      setNewPassword('');
+    }
+    setPendingPasswordChange('');
+    setShowPasswordOtp(false);
     setSaving(false);
+  };
+
+  const handlePasswordOtpCancel = () => {
+    setShowPasswordOtp(false);
+    setPendingPasswordChange('');
   };
 
   // Membership handlers
@@ -758,24 +787,76 @@ export default function AdminSettings() {
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6 mt-6 max-w-xl">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Display Name</Label>
-                <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={user?.email || ''} disabled />
-              </div>
-              <Button onClick={handleUpdateProfile} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </CardContent>
-          </Card>
+          {showPasswordOtp ? (
+            <EmailOTPVerify
+              email={adminProfile?.email || user?.email || ''}
+              userId={user?.id}
+              userType="admin"
+              onVerified={handlePasswordChangeVerified}
+              onCancel={handlePasswordOtpCancel}
+            />
+          ) : (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Display Name</Label>
+                    <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email on File (for 2FA codes)</Label>
+                    <Input 
+                      value={emailOnFile} 
+                      onChange={(e) => setEmailOnFile(e.target.value)} 
+                      placeholder="your@email.com"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Verification codes will be sent to this email address
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Login Email</Label>
+                    <Input value={user?.email || ''} disabled />
+                    <p className="text-xs text-muted-foreground">
+                      This is the email used for signing in (cannot be changed here)
+                    </p>
+                  </div>
+                  <Button onClick={handleUpdateProfile} disabled={saving}>
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    Change Password
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Password changes require 2FA verification for security.
+                  </p>
+                  <div className="space-y-2">
+                    <Label>New Password</Label>
+                    <Input 
+                      type="password" 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
+                      placeholder="••••••••" 
+                    />
+                  </div>
+                  <Button onClick={handleInitiatePasswordChange} disabled={saving || !newPassword}>
+                    {saving ? 'Updating...' : 'Change Password'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         {/* Security Tab */}
@@ -783,25 +864,16 @@ export default function AdminSettings() {
           <SecuritySettingsTab />
         </TabsContent>
 
-        {/* Settings Tab */}
+        {/* Settings Tab - Now empty, can be repurposed */}
         <TabsContent value="settings" className="space-y-6 mt-6 max-w-xl">
           <Card>
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
+              <CardTitle>General Settings</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>New Password</Label>
-                <Input 
-                  type="password" 
-                  value={newPassword} 
-                  onChange={(e) => setNewPassword(e.target.value)} 
-                  placeholder="••••••••" 
-                />
-              </div>
-              <Button onClick={handleChangePassword} disabled={saving || !newPassword}>
-                {saving ? 'Updating...' : 'Update Password'}
-              </Button>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Additional settings will appear here.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
