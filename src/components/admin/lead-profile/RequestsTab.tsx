@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Clock, 
   CheckCircle2, 
@@ -8,7 +10,8 @@ import {
   XCircle,
   Calendar,
   ArrowRight,
-  MessageSquare
+  MessageSquare,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +20,7 @@ interface ClientRequest {
   id: string;
   title: string;
   description: string | null;
+  body: string | null;
   priority: string;
   status: string;
   admin_notes: string | null;
@@ -30,6 +34,7 @@ interface RequestsTabProps {
 }
 
 export function RequestsTab({ leadId }: RequestsTabProps) {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,13 +47,17 @@ export function RequestsTab({ leadId }: RequestsTabProps) {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        setRequests(data);
+        setRequests(data as ClientRequest[]);
       }
       setLoading(false);
     }
 
     fetchRequests();
   }, [leadId]);
+
+  const handleOpenRequest = (requestId: string) => {
+    navigate(`/admin/requests?open=${requestId}`);
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -76,7 +85,10 @@ export function RequestsTab({ leadId }: RequestsTabProps) {
     showETA?: boolean;
     showCompletion?: boolean;
   }) => (
-    <div className="p-4 bg-card rounded-lg border hover:border-primary/30 transition-colors">
+    <div 
+      className="p-4 bg-card rounded-lg border hover:border-primary/30 transition-colors cursor-pointer group"
+      onClick={() => handleOpenRequest(request.id)}
+    >
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -107,6 +119,9 @@ export function RequestsTab({ leadId }: RequestsTabProps) {
             )}
           </div>
         </div>
+        <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <ExternalLink className="h-4 w-4" />
+        </Button>
       </div>
       {request.admin_notes && (
         <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-primary">

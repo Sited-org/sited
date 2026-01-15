@@ -149,6 +149,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           assigned_to: string | null
+          body: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -163,6 +164,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           assigned_to?: string | null
+          body?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -177,6 +179,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           assigned_to?: string | null
+          body?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -759,6 +762,47 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      request_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          request_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          request_id: string
+          uploaded_by?: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          request_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_attachments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "client_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales_metrics: {
         Row: {
