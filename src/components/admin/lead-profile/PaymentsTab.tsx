@@ -76,6 +76,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [selectedManualPaymentItems, setSelectedManualPaymentItems] = useState<string[]>([]);
   const [recordingManualPayment, setRecordingManualPayment] = useState(false);
 
+  // Add credit state
+  const [addCreditOpen, setAddCreditOpen] = useState(false);
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditDescription, setCreditDescription] = useState('');
+  const [addingCredit, setAddingCredit] = useState(false);
+
   // Membership subscription state
   const [creatingSubscription, setCreatingSubscription] = useState(false);
 
@@ -480,6 +486,49 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     }
   };
 
+  const handleAddCredit = async () => {
+    const amount = parseFloat(creditAmount);
+    if (!amount || amount <= 0) {
+      toast.error('Please enter a valid credit amount');
+      return;
+    }
+
+    setAddingCredit(true);
+    try {
+      const description = creditDescription || 'Account Credit';
+
+      await addTransaction({
+        lead_id: lead.id,
+        item: description,
+        credit: amount,
+        debit: 0,
+        notes: 'Credit added to account',
+        transaction_date: new Date().toISOString(),
+        is_recurring: false,
+        recurring_interval: null,
+        recurring_end_date: null,
+        parent_transaction_id: null,
+        status: 'completed',
+        invoice_status: 'paid',
+        stripe_invoice_id: null,
+        payment_method: 'credit' as any,
+      });
+
+      toast.success(`$${amount.toLocaleString()} credit added to account`);
+      setAddCreditOpen(false);
+      setCreditAmount('');
+      setCreditDescription('');
+      
+      // Refresh transactions
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error adding credit:', error);
+      toast.error(error.message || 'Failed to add credit');
+    } finally {
+      setAddingCredit(false);
+    }
+  };
+
   const getVoidedBadge = (transaction: TransactionWithBalance) => {
     if (transaction.item.startsWith('VOID:')) {
       return <Badge variant="destructive" className="text-xs">Void Entry</Badge>;
@@ -674,14 +723,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
               </Dialog>
             )}
             
-            {/* Record Manual Payment Button */}
-            <Dialog open={manualPaymentOpen} onOpenChange={setManualPaymentOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline" className="w-full mt-2">
-                  <Banknote className="h-4 w-4 mr-2" />
-                  Record Manual Payment
-                </Button>
-              </DialogTrigger>
+            {/* Record Manual Payment Button - only show when there's outstanding balance */}
+            {currentBalance > 0 && (
+              <Dialog open={manualPaymentOpen} onOpenChange={setManualPaymentOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="w-full mt-2">
+                    <Banknote className="h-4 w-4 mr-2" />
+                    Manual
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Record Manual Payment</DialogTitle>
@@ -828,6 +878,85 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     className="bg-green-600 hover:bg-green-700"
                   >
                     {recordingManualPayment ? 'Recording...' : 'Record Payment'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            )}
+
+            {/* Add Credit Button - always visible for adding credit */}
+            <Dialog open={addCreditOpen} onOpenChange={setAddCreditOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="w-full mt-2 text-green-600 hover:text-green-700 hover:bg-green-50">
+                  <TrendingDown className="h-4 w-4 mr-2" />
+                  Add Credit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Credit to Account</DialogTitle>
+                  <DialogDescription>
+                    Add credit to this client's account. Credit will be automatically applied to future charges before billing.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  {/* Credit Amount */}
+                  <div className="space-y-2">
+                    <Label htmlFor="creditAmount">Credit Amount</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input 
+                        id="creditAmount"
+                        type="number"
+                        placeholder="0.00"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(e.target.value)}
+                        className="pl-7"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="creditDescription">Description</Label>
+                    <Input 
+                      id="creditDescription"
+                      placeholder="e.g., Goodwill credit, Prepayment, Refund"
+                      value={creditDescription}
+                      onChange={(e) => setCreditDescription(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Current Balance Info */}
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Current Balance:</span>
+                      <span className={currentBalance > 0 ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
+                        ${currentBalance.toLocaleString()}
+                      </span>
+                    </div>
+                    {creditAmount && parseFloat(creditAmount) > 0 && (
+                      <div className="flex justify-between text-sm mt-2 pt-2 border-t">
+                        <span className="text-muted-foreground">After Credit:</span>
+                        <span className={currentBalance - parseFloat(creditAmount) > 0 ? 'text-amber-600 font-medium' : 'text-green-600 font-medium'}>
+                          ${(currentBalance - parseFloat(creditAmount)).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setAddCreditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleAddCredit} 
+                    disabled={addingCredit || !creditAmount || parseFloat(creditAmount) <= 0}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {addingCredit ? 'Adding...' : `Add $${creditAmount || '0'} Credit`}
                   </Button>
                 </DialogFooter>
               </DialogContent>
