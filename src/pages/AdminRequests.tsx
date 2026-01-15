@@ -26,12 +26,13 @@ import {
   Download,
   FileText,
   Image,
-  Paperclip
+  Paperclip,
+  XCircle
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
 type RequestStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
-type RequestPriority = 'low' | 'medium' | 'high' | 'urgent';
+type RequestPriority = 'low' | 'medium' | 'normal' | 'high' | 'urgent';
 
 interface RequestAttachment {
   id: string;
@@ -74,9 +75,71 @@ const statusConfig: Record<RequestStatus, { label: string; color: string; icon: 
 const priorityConfig: Record<RequestPriority, { label: string; color: string }> = {
   low: { label: 'Low', color: 'bg-slate-500/10 text-slate-500' },
   medium: { label: 'Medium', color: 'bg-blue-500/10 text-blue-500' },
+  normal: { label: 'Normal', color: 'bg-blue-500/10 text-blue-500' },
   high: { label: 'High', color: 'bg-orange-500/10 text-orange-500' },
   urgent: { label: 'Urgent', color: 'bg-red-500/10 text-red-500' },
 };
+
+// Request Card Component
+function RequestCard({ 
+  request, 
+  onOpen, 
+  showETA = false, 
+  showCompletion = false 
+}: { 
+  request: ClientRequest; 
+  onOpen: (request: ClientRequest) => void;
+  showETA?: boolean;
+  showCompletion?: boolean;
+}) {
+  const priorityInfo = priorityConfig[request.priority as RequestPriority] || priorityConfig.normal;
+  
+  return (
+    <div
+      className="p-4 bg-card rounded-lg border hover:border-primary/30 transition-colors cursor-pointer"
+      onClick={() => onOpen(request)}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h4 className="font-medium truncate">{request.title}</h4>
+            <Badge variant="outline" className={priorityInfo.color}>
+              {priorityInfo.label}
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+            <User className="h-3 w-3" />
+            <span className="truncate">
+              {request.leads?.name || request.leads?.email}
+              {request.leads?.lead_number && ` (#${request.leads.lead_number})`}
+            </span>
+          </div>
+          {request.description && (
+            <p className="text-sm text-muted-foreground line-clamp-1">{request.description}</p>
+          )}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(new Date(request.created_at), 'MMM d, yyyy')}
+            </span>
+            {showETA && request.estimated_completion && (
+              <span className="flex items-center gap-1 text-blue-600">
+                <Clock className="h-3 w-3" />
+                ETA: {format(new Date(request.estimated_completion), 'MMM d')}
+              </span>
+            )}
+            {showCompletion && request.completed_at && (
+              <span className="flex items-center gap-1 text-green-600">
+                <CheckCircle2 className="h-3 w-3" />
+                Completed {format(new Date(request.completed_at), 'MMM d')}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminRequests() {
   const { toast } = useToast();
@@ -359,68 +422,123 @@ export default function AdminRequests() {
         </Select>
       </div>
 
-      {/* Requests List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Requests</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredRequests.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+      {/* Categorized Requests */}
+      {filteredRequests.length === 0 ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center text-muted-foreground">
               <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No requests found</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredRequests.map((request) => {
-                const statusInfo = statusConfig[request.status as RequestStatus] || statusConfig.pending;
-                const priorityInfo = priorityConfig[request.priority as RequestPriority] || priorityConfig.medium;
-                const StatusIcon = statusInfo.icon;
-
-                return (
-                  <div
-                    key={request.id}
-                    className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => handleOpenRequest(request)}
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">{request.title}</h3>
-                          <Badge variant="outline" className={priorityInfo.color}>
-                            {priorityInfo.label}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <User className="h-3 w-3" />
-                          <span className="truncate">
-                            {request.leads?.name || request.leads?.email}
-                            {request.leads?.lead_number && ` (#${request.leads.lead_number})`}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className={statusInfo.color}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusInfo.label}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {format(new Date(request.created_at), 'MMM d')}
-                        </span>
-                      </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* Pending Requests */}
+          {(() => {
+            const pending = filteredRequests.filter(r => r.status === 'pending');
+            if (pending.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="p-1.5 bg-yellow-500/10 rounded-lg">
+                      <Clock className="h-5 w-5 text-yellow-500" />
                     </div>
-                    {request.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {request.description}
-                      </p>
-                    )}
+                    Pending
+                    <Badge variant="secondary" className="ml-auto">{pending.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pending.map((request) => (
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} />
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* In Progress Requests */}
+          {(() => {
+            const inProgress = filteredRequests.filter(r => r.status === 'in_progress');
+            if (inProgress.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-blue-500" />
+                    </div>
+                    In Progress
+                    <Badge variant="secondary" className="ml-auto">{inProgress.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {inProgress.map((request) => (
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} showETA />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* Completed Requests */}
+          {(() => {
+            const completed = filteredRequests.filter(r => r.status === 'completed');
+            if (completed.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="p-1.5 bg-green-500/10 rounded-lg">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    </div>
+                    Completed
+                    <Badge variant="secondary" className="ml-auto">{completed.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {completed.map((request) => (
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} showCompletion />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* Cancelled Requests */}
+          {(() => {
+            const cancelled = filteredRequests.filter(r => r.status === 'cancelled');
+            if (cancelled.length === 0) return null;
+            return (
+              <Card className="opacity-75">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
+                    <div className="p-1.5 bg-muted rounded-lg">
+                      <XCircle className="h-5 w-5" />
+                    </div>
+                    Cancelled
+                    <Badge variant="secondary" className="ml-auto">{cancelled.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {cancelled.map((request) => (
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Request Detail Sheet */}
       <Sheet open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
