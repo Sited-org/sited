@@ -35,14 +35,21 @@ interface CaptchaData {
 export function useSecureLeadSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [captchaData, setCaptchaData] = useState<CaptchaData | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const partialLeadIdRef = useRef<string | null>(null);
 
+  // Legacy math captcha handler
   const handleCaptchaVerify = useCallback((verified: boolean, token?: string, answer?: number) => {
     if (verified && token && answer !== undefined) {
       setCaptchaData({ token, answer });
     } else {
       setCaptchaData(null);
     }
+  }, []);
+
+  // Google reCAPTCHA handler
+  const handleRecaptchaVerify = useCallback((token: string | null) => {
+    setRecaptchaToken(token);
   }, []);
 
   // Save partial lead after contact info step
@@ -131,7 +138,8 @@ export function useSecureLeadSubmission() {
   }, []);
 
   const submitLead = useCallback(async (data: LeadSubmissionData): Promise<boolean> => {
-    if (!captchaData) {
+    // Check for either captcha type
+    if (!captchaData && !recaptchaToken) {
       toast.error('Please complete the security verification');
       return false;
     }
@@ -172,8 +180,10 @@ export function useSecureLeadSubmission() {
           business_name: data.business_name || null,
           project_type: data.project_type,
           form_data: data.form_data,
-          captcha_token: captchaData.token,
-          captcha_answer: captchaData.answer,
+          // Include either reCAPTCHA or legacy captcha
+          recaptcha_token: recaptchaToken || null,
+          captcha_token: captchaData?.token || null,
+          captcha_answer: captchaData?.answer ?? null,
         },
       });
 
@@ -183,7 +193,7 @@ export function useSecureLeadSubmission() {
         // Handle specific error cases
         if (error.message?.includes('429')) {
           toast.error('Too many submissions. Please try again later.');
-        } else if (error.message?.includes('CAPTCHA')) {
+        } else if (error.message?.includes('CAPTCHA') || error.message?.includes('verification')) {
           toast.error('Security verification failed. Please try again.');
         } else {
           toast.error('Failed to submit form. Please try again.');
@@ -207,12 +217,13 @@ export function useSecureLeadSubmission() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [captchaData]);
+  }, [captchaData, recaptchaToken]);
 
   return {
     isSubmitting,
-    captchaVerified: !!captchaData,
+    captchaVerified: !!captchaData || !!recaptchaToken,
     handleCaptchaVerify,
+    handleRecaptchaVerify,
     savePartialLead,
     updatePartialLead,
     submitLead,

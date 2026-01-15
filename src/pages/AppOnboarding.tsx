@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Smartphone } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Captcha } from "@/components/Captcha";
+import { GoogleRecaptcha } from "@/components/GoogleRecaptcha";
 import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
 
 const steps = [
@@ -25,7 +25,7 @@ const steps = [
 
 const AppOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { isSubmitting, captchaVerified, handleCaptchaVerify, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
+  const { isSubmitting, captchaVerified, handleRecaptchaVerify, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -1070,7 +1070,6 @@ const AppOnboarding = () => {
                 </Button>
               ) : (
                 <>
-                  <Captcha onVerify={handleCaptchaVerify} className="hidden" />
                   <Button
                     variant="hero"
                     onClick={handleSubmit}
@@ -1084,10 +1083,10 @@ const AppOnboarding = () => {
               )}
             </div>
             
-            {/* Captcha on last step */}
+            {/* Google reCAPTCHA on last step */}
             {currentStep === steps.length && (
               <div className="mt-6">
-                <Captcha onVerify={handleCaptchaVerify} />
+                <GoogleRecaptcha onVerify={handleRecaptchaVerify} />
               </div>
             )}
           </motion.div>
