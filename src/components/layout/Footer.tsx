@@ -70,7 +70,7 @@ export const Footer = () => {
 
   const services = useMemo(() => [
     { name: "Website", path: "/onboarding/website", icon: "🌐", stat: "2 week delivery" },
-    { name: "AI", path: "/onboarding/ai", icon: "⚡", stat: "60% automation" },
+    { name: "App", path: "/onboarding/app", icon: "📱", stat: "Custom built" },
   ], []);
 
   return (

@@ -14,7 +14,7 @@ const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
 const WebsiteOnboarding = lazy(() => import("./pages/WebsiteOnboarding"));
 const AppOnboarding = lazy(() => import("./pages/AppOnboarding"));
-const AIOnboarding = lazy(() => import("./pages/AIOnboarding"));
+// AI Onboarding removed - service no longer offered
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
             <Route path="/onboarding/app" element={<AppOnboarding />} />
-            <Route path="/onboarding/ai" element={<AIOnboarding />} />
+            {/* AI Onboarding route removed - service no longer offered */}
             {/* Client Portal Routes */}
             <Route path="/client-portal" element={<ClientPortalLogin />} />
             <Route path="/client-portal/dashboard" element={<ClientPortalDashboard />} />

@@ -9,13 +9,13 @@ export interface CollectedInfo {
   phone?: string;
   businessName?: string;
   industry?: string;
-  projectType?: "website" | "app" | "ai" | null;
+  projectType?: "website" | "app" | null;
   budget?: string;
   timeline?: string;
   description?: string;
 }
 
-export type ProjectType = "website" | "app" | "ai";
+export type ProjectType = "website" | "app";
 
 const MAX_USER_MESSAGES = 60;
 
