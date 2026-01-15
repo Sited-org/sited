@@ -119,7 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     const emailResponse = await resend.emails.send({
-      from: "Sited Leads <onboarding@resend.dev>",
+      from: "Sited Leads <hello@sited.co>",
       to: recipients,
       subject: `New ${projectTypeLabel} Lead: ${name}`,
       html: `
