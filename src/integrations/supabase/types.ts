@@ -1011,6 +1011,7 @@ export type Database = {
           lead_id: string
           notes: string | null
           parent_transaction_id: string | null
+          payment_method: string | null
           recurring_end_date: string | null
           recurring_interval: string | null
           status: string
@@ -1029,6 +1030,7 @@ export type Database = {
           lead_id: string
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_method?: string | null
           recurring_end_date?: string | null
           recurring_interval?: string | null
           status?: string
@@ -1047,6 +1049,7 @@ export type Database = {
           lead_id?: string
           notes?: string | null
           parent_transaction_id?: string | null
+          payment_method?: string | null
           recurring_end_date?: string | null
           recurring_interval?: string | null
           status?: string

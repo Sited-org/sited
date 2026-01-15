@@ -44,6 +44,7 @@ interface Transaction {
   invoice_status: string | null;
   transaction_date: string;
   stripe_invoice_id: string | null;
+  payment_method: string | null;
 }
 
 export function useDashboardMetrics(leads: Lead[]) {
@@ -53,7 +54,7 @@ export function useDashboardMetrics(leads: Lead[]) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id');
+        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id, payment_method');
       if (error) throw error;
       return data as Transaction[];
     }
@@ -65,21 +66,31 @@ export function useDashboardMetrics(leads: Lead[]) {
     const weekStart = startOfWeek(now);
     const lastMonthStart = startOfMonth(subDays(monthStart, 1));
 
-    // ONLY count Stripe-processed transactions (must have stripe_invoice_id)
+    // Stripe-processed transactions (have stripe_invoice_id)
     const stripeTransactions = allTransactions.filter(t => t.stripe_invoice_id);
     
-    // Revenue = PAID Stripe transactions
-    const paidTransactions = stripeTransactions.filter(t => t.invoice_status === 'paid');
-    const totalRevenue = paidTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const monthRevenue = paidTransactions
+    // Manual payments (cash, bank_transfer, other - no stripe_invoice_id but have credit and specific payment_method)
+    const manualPayments = allTransactions.filter(t => 
+      !t.stripe_invoice_id && 
+      Number(t.credit) > 0 && 
+      t.payment_method && 
+      ['cash', 'bank_transfer', 'other'].includes(t.payment_method)
+    );
+    
+    // Revenue = PAID Stripe transactions + manual payments
+    const paidStripeTransactions = stripeTransactions.filter(t => t.invoice_status === 'paid');
+    const allPaidTransactions = [...paidStripeTransactions, ...manualPayments];
+    
+    const totalRevenue = allPaidTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
+    const monthRevenue = allPaidTransactions
       .filter(t => new Date(t.transaction_date) >= monthStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const weekRevenue = paidTransactions
+    const weekRevenue = allPaidTransactions
       .filter(t => new Date(t.transaction_date) >= weekStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
     
-    // Last month revenue for growth calculation (only paid Stripe transactions)
-    const lastMonthRevenue = paidTransactions
+    // Last month revenue for growth calculation
+    const lastMonthRevenue = allPaidTransactions
       .filter(t => {
         const date = new Date(t.transaction_date);
         return date >= lastMonthStart && date < monthStart;
@@ -93,8 +104,8 @@ export function useDashboardMetrics(leads: Lead[]) {
     const sentInvoices = stripeTransactions.filter(t => t.invoice_status === 'sent');
     const totalOutstanding = sentInvoices.reduce((sum, t) => sum + Number(t.debit || 0), 0);
     
-    // Invoice counts for collection rate (Stripe only)
-    const paidInvoiceCount = paidTransactions.length;
+    // Invoice counts for collection rate (Stripe only - manual payments don't have invoices)
+    const paidInvoiceCount = paidStripeTransactions.length;
     const sentInvoiceCount = sentInvoices.length;
     const totalInvoicesSentOrPaid = paidInvoiceCount + sentInvoiceCount;
     
