@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
+import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,7 +48,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   // Analytics state
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [connectingGA, setConnectingGA] = useState(false);
+  const [trackingScriptCopied, setTrackingScriptCopied] = useState(false);
 
   // AI Prompt state
   const [promptContext, setPromptContext] = useState('');
@@ -60,7 +60,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const [promptGeneratedAt, setPromptGeneratedAt] = useState<string | null>(lead.prompt_generated_at || null);
 
   const fetchAnalytics = async () => {
-    if (lead.ga_status !== 'connected') return;
+    if (lead.analytics_status !== 'active') return;
     
     setAnalyticsLoading(true);
     try {
@@ -78,32 +78,97 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   };
 
   useEffect(() => {
-    if (lead.ga_status === 'connected') {
+    if (lead.analytics_status === 'active') {
       fetchAnalytics();
     }
-  }, [lead.id, lead.ga_status]);
+  }, [lead.id, lead.analytics_status]);
 
-  const handleConnectGA = async () => {
-    setConnectingGA(true);
+  const getTrackingScript = () => {
+    const trackingId = lead.tracking_id;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    return `<script src="${supabaseUrl}/functions/v1/track-analytics?id=${trackingId}" defer></script>`;
+  };
+
+  const copyTrackingScript = async () => {
+    const script = `<!-- Sited Analytics -->
+<script>
+(function() {
+  var TRACKING_ID = '${lead.tracking_id}';
+  var ENDPOINT = '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-analytics';
+  var sessionId = sessionStorage.getItem('_sa_sid');
+  if (!sessionId) {
+    sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    sessionStorage.setItem('_sa_sid', sessionId);
+  }
+  function trackPageView() {
+    var data = {
+      tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href,
+      page_title: document.title, referrer: document.referrer, user_agent: navigator.userAgent,
+      screen_width: window.screen.width, screen_height: window.screen.height,
+      viewport_width: window.innerWidth, viewport_height: window.innerHeight,
+      page_load_time: 0, event_type: 'page_view', language: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      connection_type: navigator.connection ? navigator.connection.effectiveType : null,
+      color_depth: window.screen.colorDepth, pixel_ratio: window.devicePixelRatio
+    };
+    if (window.performance && window.performance.timing) {
+      var t = window.performance.timing;
+      data.page_load_time = t.loadEventEnd - t.navigationStart;
+      data.dom_content_loaded = t.domContentLoadedEventEnd - t.navigationStart;
+      data.first_byte_time = t.responseStart - t.navigationStart;
+    }
+    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {});
+  }
+  var pageLoadTime = Date.now(), maxScrollDepth = 0;
+  function trackScrollDepth() {
+    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    var scrollPercent = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
+    if (scrollPercent > maxScrollDepth) maxScrollDepth = scrollPercent;
+  }
+  window.addEventListener('scroll', trackScrollDepth, { passive: true });
+  function trackExit() {
+    var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
+    var data = { tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href, event_type: 'page_exit', time_on_page: timeOnPage, scroll_depth: maxScrollDepth };
+    if (navigator.sendBeacon) { navigator.sendBeacon(ENDPOINT, JSON.stringify(data)); }
+    else { fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {}); }
+  }
+  document.addEventListener('click', function(e) {
+    var target = e.target.closest('a, button, [data-track]');
+    if (!target) return;
+    var data = { tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href, event_type: 'click', element_tag: target.tagName, element_text: (target.innerText || '').substring(0, 100), element_href: target.href || null, element_id: target.id || null, element_class: target.className || null };
+    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {});
+  });
+  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') trackExit(); });
+  window.addEventListener('beforeunload', trackExit);
+  window.addEventListener('pagehide', trackExit);
+  if (document.readyState === 'complete') { trackPageView(); } else { window.addEventListener('load', trackPageView); }
+})();
+</script>`;
+    await navigator.clipboard.writeText(script);
+    setTrackingScriptCopied(true);
+    toast({ title: 'Tracking script copied to clipboard' });
+    setTimeout(() => setTrackingScriptCopied(false), 2000);
+  };
+
+  const handleActivateAnalytics = async () => {
     try {
       const { data, error } = await supabase
         .from('leads')
-        .update({ ga_status: 'connected' })
+        .update({ analytics_status: 'active' })
         .eq('id', lead.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      toast({ title: 'Google Analytics connected', description: 'The client can now see their website metrics.' });
+      toast({ title: 'Analytics activated', description: 'The client can now see their website metrics.' });
       
       if (onLeadUpdate && data) {
         onLeadUpdate(data);
       }
     } catch (error: any) {
-      toast({ title: 'Error connecting GA', description: error.message, variant: 'destructive' });
-    } finally {
-      setConnectingGA(false);
+      toast({ title: 'Error activating analytics', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -196,13 +261,67 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        {/* Google Analytics Status */}
-        {lead.website_url && (lead.ga_property_id || lead.ga_status) && (
+        {/* Tracking Script */}
+        {lead.tracking_id && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Website Tracking
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Tracking Script Line */}
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg font-mono truncate">
+                  {`<!-- Sited Analytics: ${lead.tracking_id} -->`}
+                </code>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={copyTrackingScript}
+                  className="shrink-0"
+                >
+                  {trackingScriptCopied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              
+              {/* Status */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {lead.analytics_status === 'active' ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-green-600">Tracking Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Not Active</span>
+                    </>
+                  )}
+                </div>
+                {lead.analytics_status !== 'active' && canEdit && (
+                  <Button size="sm" variant="outline" onClick={handleActivateAnalytics}>
+                    Activate
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Website Metrics - Only show when active */}
+        {lead.analytics_status === 'active' && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
+                  <Eye className="h-5 w-5" />
                   Website Metrics
                 </CardTitle>
                 <Button variant="ghost" size="sm" onClick={fetchAnalytics} disabled={analyticsLoading}>
@@ -307,27 +426,10 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                     )}
                   </div>
                 </>
-              ) : lead.ga_status === 'pending' ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <AlertCircle className="h-5 w-5 text-amber-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">Client Submitted GA Property ID</p>
-                      <p className="text-xs text-muted-foreground font-mono mt-1">{lead.ga_property_id}</p>
-                    </div>
-                    <Badge variant="outline" className="text-amber-500 border-amber-500/50">Pending</Badge>
-                  </div>
-                  {canEdit && (
-                    <Button onClick={handleConnectGA} disabled={connectingGA} className="w-full">
-                      <Link2 className="h-4 w-4 mr-2" />
-                      {connectingGA ? 'Connecting...' : 'Mark as Connected'}
-                    </Button>
-                  )}
-                </div>
               ) : (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground">
-                    No Google Analytics connected yet. The client can submit their Property ID from their portal.
+                    No analytics data yet. Data will appear once visitors start browsing the website.
                   </p>
                 </div>
               )}

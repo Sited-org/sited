@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, BarChart3, Users, Clock, MousePointerClick, ExternalLink, Globe, CheckCircle2, AlertCircle, TrendingUp, Monitor, Smartphone, Tablet, Eye, Timer, Zap, ArrowUpRight, ArrowDownRight, Search, Filter, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
@@ -41,7 +40,6 @@ type AnalyticsStatus = 'not_setup' | 'pending' | 'active';
 export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps) {
   const [status, setStatus] = useState<AnalyticsStatus>('not_setup');
   const [loading, setLoading] = useState(true);
-  const [requesting, setRequesting] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   
@@ -75,28 +73,6 @@ export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps
       console.error('Error loading analytics status:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const requestAnalytics = async () => {
-    setRequesting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('request-analytics', {
-        body: { 
-          lead_id: leadId, 
-          session_token: sessionToken,
-        },
-      });
-
-      if (error) throw error;
-
-      setStatus('pending');
-      toast.success('Analytics requested! Our team will set this up for you shortly.');
-    } catch (err: any) {
-      console.error('Error requesting analytics:', err);
-      toast.error(err.message || 'Failed to request analytics');
-    } finally {
-      setRequesting(false);
     }
   };
 
@@ -178,8 +154,8 @@ export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps
         </Card>
       )}
 
-      {/* Analytics Status */}
-      {status === 'not_setup' && (
+      {/* Tracking Not Enabled - shown for not_setup or pending status */}
+      {(status === 'not_setup' || status === 'pending') && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -190,51 +166,15 @@ export function WebsiteTab({ leadId, websiteUrl, sessionToken }: WebsiteTabProps
               Track visitors, page views, and more for your website
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center py-6">
-              <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">Get Website Analytics</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-                Enable analytics tracking to see detailed insights about your website visitors, including page views, traffic sources, devices, and more.
-              </p>
-              <Button onClick={requestAnalytics} disabled={requesting} size="lg">
-                {requesting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Requesting...
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Get Analytics
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {status === 'pending' && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Website Analytics
-            </CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-              <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-muted/50 border border-border rounded-lg">
+              <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium">Setting Up Analytics</p>
+                <p className="text-sm font-medium">Tracking not enabled</p>
                 <p className="text-xs text-muted-foreground">
-                  Our team is adding the tracking code to your website. This usually takes 24-48 hours. You'll see your metrics here once it's complete.
+                  Analytics tracking will be available once our team has embedded the tracking script on your website.
                 </p>
               </div>
-              <Badge variant="outline" className="text-amber-500 border-amber-500/50 shrink-0">
-                Pending
-              </Badge>
             </div>
           </CardContent>
         </Card>
