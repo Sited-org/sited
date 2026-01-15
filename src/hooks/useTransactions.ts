@@ -20,6 +20,7 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'scheduled';
   invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | null;
   stripe_invoice_id: string | null;
+  payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'other' | null;
 }
 
 export interface TransactionWithBalance extends Transaction {
@@ -164,6 +165,7 @@ export function useTransactions(leadId: string | undefined) {
         status: transaction.status,
         invoice_status: transaction.invoice_status || 'not_sent',
         stripe_invoice_id: transaction.stripe_invoice_id || null,
+        payment_method: transaction.payment_method || 'stripe',
         created_by: userData.user?.id 
       });
 

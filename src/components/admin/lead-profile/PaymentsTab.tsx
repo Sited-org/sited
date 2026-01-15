@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet, Package, Ban } from 'lucide-react';
+import { Trash2, DollarSign, TrendingUp, TrendingDown, Send, FileText, RefreshCw, Calendar, XCircle, CreditCard, Wallet, Package, Ban, Banknote } from 'lucide-react';
 import { useTransactions, TransactionWithBalance } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 import { useProducts } from '@/hooks/useProducts';
@@ -67,6 +67,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [voidReason, setVoidReason] = useState('');
   const [processingVoid, setProcessingVoid] = useState(false);
 
+  // Manual payment state
+  const [manualPaymentOpen, setManualPaymentOpen] = useState(false);
+  const [manualPaymentAmount, setManualPaymentAmount] = useState('');
+  const [manualPaymentMethod, setManualPaymentMethod] = useState<string>('cash');
+  const [manualPaymentDescription, setManualPaymentDescription] = useState('');
+  const [manualPaymentDate, setManualPaymentDate] = useState('');
+  const [selectedManualPaymentItems, setSelectedManualPaymentItems] = useState<string[]>([]);
+  const [recordingManualPayment, setRecordingManualPayment] = useState(false);
+
   // Membership subscription state
   const [creatingSubscription, setCreatingSubscription] = useState(false);
 
@@ -88,6 +97,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       status: 'completed',
       invoice_status: 'not_sent',
       stripe_invoice_id: null,
+      payment_method: null,
     });
 
     setSelectedProduct('');
@@ -156,6 +166,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           status: 'completed',
           invoice_status: 'not_sent',
           stripe_invoice_id: null,
+          payment_method: null,
         });
 
         toast.success(`Recurring membership "${membership.name}" added. Charges will accumulate ${membership.billing_interval} until paid.`);
@@ -370,6 +381,105 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     }
   };
 
+  // Manual payment helpers
+  const toggleManualPaymentItemSelection = (id: string) => {
+    setSelectedManualPaymentItems(prev => 
+      prev.includes(id) 
+        ? prev.filter(i => i !== id) 
+        : [...prev, id]
+    );
+  };
+
+  const selectAllManualPaymentItems = () => {
+    const unpaidDebits = getUnpaidDebits();
+    if (selectedManualPaymentItems.length === unpaidDebits.length) {
+      setSelectedManualPaymentItems([]);
+    } else {
+      setSelectedManualPaymentItems(unpaidDebits.map(t => t.id));
+    }
+  };
+
+  const getSelectedManualPaymentTotal = () => {
+    return transactions
+      .filter(t => selectedManualPaymentItems.includes(t.id))
+      .reduce((sum, t) => sum + Number(t.debit || 0), 0);
+  };
+
+  const handleRecordManualPayment = async () => {
+    const paymentAmount = manualPaymentAmount 
+      ? parseFloat(manualPaymentAmount) 
+      : getSelectedManualPaymentTotal();
+
+    if (!paymentAmount || paymentAmount <= 0) {
+      toast.error('Please enter a valid payment amount or select items');
+      return;
+    }
+
+    setRecordingManualPayment(true);
+    try {
+      const paymentMethodLabel = manualPaymentMethod === 'cash' 
+        ? 'Cash' 
+        : manualPaymentMethod === 'bank_transfer' 
+          ? 'Bank Transfer' 
+          : 'Other';
+      
+      const description = manualPaymentDescription || `${paymentMethodLabel} Payment`;
+      const paymentDate = manualPaymentDate 
+        ? new Date(manualPaymentDate).toISOString() 
+        : new Date().toISOString();
+
+      // Create the credit transaction for the manual payment
+      await addTransaction({
+        lead_id: lead.id,
+        item: description,
+        credit: paymentAmount,
+        debit: 0,
+        notes: `Manual ${paymentMethodLabel.toLowerCase()} payment recorded`,
+        transaction_date: paymentDate,
+        is_recurring: false,
+        recurring_interval: null,
+        recurring_end_date: null,
+        parent_transaction_id: null,
+        status: 'completed',
+        invoice_status: 'paid',
+        stripe_invoice_id: null,
+        payment_method: manualPaymentMethod as 'cash' | 'bank_transfer' | 'other',
+      });
+
+      // Mark selected items as paid if any were selected
+      if (selectedManualPaymentItems.length > 0) {
+        for (const itemId of selectedManualPaymentItems) {
+          const transaction = rawTransactions.find(t => t.id === itemId);
+          if (transaction && transaction.invoice_status !== 'paid') {
+            await supabase
+              .from('transactions')
+              .update({ 
+                invoice_status: 'paid',
+                notes: `${transaction.notes || ''} [Paid via ${paymentMethodLabel.toLowerCase()}]`.trim()
+              })
+              .eq('id', itemId);
+          }
+        }
+      }
+
+      toast.success(`Manual payment of $${paymentAmount.toLocaleString()} recorded successfully`);
+      setManualPaymentOpen(false);
+      setManualPaymentAmount('');
+      setManualPaymentMethod('cash');
+      setManualPaymentDescription('');
+      setManualPaymentDate('');
+      setSelectedManualPaymentItems([]);
+      
+      // Refresh transactions
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error recording manual payment:', error);
+      toast.error(error.message || 'Failed to record payment');
+    } finally {
+      setRecordingManualPayment(false);
+    }
+  };
+
   const getVoidedBadge = (transaction: TransactionWithBalance) => {
     if (transaction.item.startsWith('VOID:')) {
       return <Badge variant="destructive" className="text-xs">Void Entry</Badge>;
@@ -563,6 +673,165 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 </DialogContent>
               </Dialog>
             )}
+            
+            {/* Record Manual Payment Button */}
+            <Dialog open={manualPaymentOpen} onOpenChange={setManualPaymentOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" className="w-full mt-2">
+                  <Banknote className="h-4 w-4 mr-2" />
+                  Record Manual Payment
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Record Manual Payment</DialogTitle>
+                  <DialogDescription>
+                    Record a payment received outside of Stripe (cash, bank transfer, etc.)
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  {/* Payment Method */}
+                  <div className="space-y-2">
+                    <Label>Payment Method</Label>
+                    <Select value={manualPaymentMethod} onValueChange={setManualPaymentMethod}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select method..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">
+                          <div className="flex items-center gap-2">
+                            <Banknote className="h-4 w-4" />
+                            Cash
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="bank_transfer">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4" />
+                            Bank Transfer / Direct Deposit
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="other">
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Other
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Select Items to Mark as Paid (optional) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Apply to Outstanding Items (optional)</Label>
+                      <Button variant="ghost" size="sm" onClick={selectAllManualPaymentItems}>
+                        {selectedManualPaymentItems.length === getUnpaidDebits().length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    </div>
+                    
+                    {getUnpaidDebits().length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2 text-center">No unpaid items</p>
+                    ) : (
+                      <div className="border rounded-lg divide-y max-h-[150px] overflow-y-auto">
+                        {getUnpaidDebits().map((t) => (
+                          <div 
+                            key={t.id} 
+                            className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
+                            onClick={() => toggleManualPaymentItemSelection(t.id)}
+                          >
+                            <Checkbox 
+                              checked={selectedManualPaymentItems.includes(t.id)}
+                              onCheckedChange={() => toggleManualPaymentItemSelection(t.id)}
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{t.item}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(t.transaction_date), 'PP')}
+                              </p>
+                            </div>
+                            <p className="font-semibold">${Number(t.debit).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Amount */}
+                  <div className="space-y-2">
+                    <Label htmlFor="manualAmount">
+                      Payment Amount {selectedManualPaymentItems.length > 0 && `(Selected: $${getSelectedManualPaymentTotal().toLocaleString()})`}
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input 
+                        id="manualAmount"
+                        type="number"
+                        placeholder={selectedManualPaymentItems.length > 0 ? getSelectedManualPaymentTotal().toString() : "0.00"}
+                        value={manualPaymentAmount}
+                        onChange={(e) => setManualPaymentAmount(e.target.value)}
+                        className="pl-7"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to use selected items total
+                    </p>
+                  </div>
+
+                  {/* Payment Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="manualDate">Payment Date</Label>
+                    <Input 
+                      id="manualDate"
+                      type="date"
+                      value={manualPaymentDate}
+                      onChange={(e) => setManualPaymentDate(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty for today
+                    </p>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="manualDescription">Description (optional)</Label>
+                    <Input 
+                      id="manualDescription"
+                      placeholder="e.g., Cash payment for website deposit"
+                      value={manualPaymentDescription}
+                      onChange={(e) => setManualPaymentDescription(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Summary */}
+                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Payment Method:</span>
+                      <span className="font-medium capitalize">{manualPaymentMethod.replace('_', ' ')}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                      <span>Amount:</span>
+                      <span className="text-green-600">
+                        ${(manualPaymentAmount ? parseFloat(manualPaymentAmount) : getSelectedManualPaymentTotal()).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setManualPaymentOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleRecordManualPayment} 
+                    disabled={recordingManualPayment || (!manualPaymentAmount && selectedManualPaymentItems.length === 0)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {recordingManualPayment ? 'Recording...' : 'Record Payment'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>
