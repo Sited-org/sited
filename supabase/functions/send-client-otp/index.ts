@@ -50,22 +50,24 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // De-dupe: if an unused OTP is still valid AND was generated in the last ~30s, don't send again.
-    // We infer "generated recently" from expires_at since we set expires_at = now + 10 minutes.
+    // De-dupe: if a still-valid, unused OTP was generated very recently, don't send again.
+    const thirtySecondsAgoIso = new Date(Date.now() - 30_000).toISOString();
+
     const { data: existingOtp, error: existingOtpError } = await supabaseClient
       .from('client_otp_codes')
-      .select('expires_at, used')
+      .select('created_at, expires_at')
       .eq('email', email.toLowerCase())
       .eq('used', false)
+      .gte('created_at', thirtySecondsAgoIso)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!existingOtpError && existingOtp?.expires_at) {
       const expiresAtMs = new Date(existingOtp.expires_at).getTime();
       const nowMs = Date.now();
-      const msUntilExpiry = expiresAtMs - nowMs;
 
-      // If expiry is still ~10 minutes away, it was just generated.
-      if (msUntilExpiry > 0 && msUntilExpiry > (10 * 60 * 1000 - 30_000)) {
+      if (expiresAtMs > nowMs) {
         console.log('De-duped client OTP send (recent code already generated)');
         return new Response(
           JSON.stringify({ success: true, deduped: true }),
