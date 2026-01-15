@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,10 +11,8 @@ import {
   Clock, 
   CheckCircle2, 
   Loader2,
-  XCircle,
   Plus,
-  Calendar,
-  ArrowRight
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -65,7 +63,6 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
 
       if (error) throw error;
 
-      // Send notification to admins
       try {
         await supabase.functions.invoke('notify-client-request', {
           body: {
@@ -80,10 +77,9 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         });
       } catch (notifyError) {
         console.error('Failed to send notification:', notifyError);
-        // Don't fail the request submission if notification fails
       }
 
-      toast.success('Request submitted successfully');
+      toast.success('Request submitted');
       setTitle('');
       setDescription('');
       setPriority('normal');
@@ -97,129 +93,61 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent':
-        return 'bg-red-500/10 text-red-600 border-red-500/20';
-      case 'high':
-        return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      case 'normal':
-        return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'low':
-        return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completed</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">In Progress</Badge>;
+      case 'cancelled':
+      case 'rejected':
+        return <Badge variant="secondary">Cancelled</Badge>;
       default:
-        return 'bg-muted';
+        return <Badge variant="outline">Pending</Badge>;
     }
   };
 
-  // Categorize requests
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const inProgressRequests = requests.filter(r => r.status === 'in_progress');
+  const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
   const completedRequests = requests.filter(r => r.status === 'completed');
-  const cancelledRequests = requests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
-
-  const RequestCard = ({ request, showETA = false, showCompletion = false }: { 
-    request: ClientRequest; 
-    showETA?: boolean;
-    showCompletion?: boolean;
-  }) => (
-    <div className="p-4 bg-card rounded-lg border hover:border-primary/30 transition-colors">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h4 className="font-medium truncate">{request.title}</h4>
-            <Badge className={getPriorityColor(request.priority)} variant="outline">
-              {request.priority}
-            </Badge>
-          </div>
-          {request.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{request.description}</p>
-          )}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Submitted {format(new Date(request.created_at), 'MMM d, yyyy')}
-            </span>
-            {showETA && request.estimated_completion && (
-              <span className="flex items-center gap-1 text-blue-600">
-                <Clock className="h-3 w-3" />
-                ETA: {format(new Date(request.estimated_completion), 'MMM d, yyyy')}
-              </span>
-            )}
-            {showCompletion && request.completed_at && (
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="h-3 w-3" />
-                Completed {format(new Date(request.completed_at), 'MMM d, yyyy')}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      {request.admin_notes && (
-        <div className="mt-3 p-3 bg-muted/50 rounded border-l-2 border-primary">
-          <p className="text-xs text-muted-foreground mb-1">Response from team:</p>
-          <p className="text-sm">{request.admin_notes}</p>
-        </div>
-      )}
-    </div>
-  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">My Requests</h2>
-          <p className="text-muted-foreground">Submit and track your project requests</p>
+          <h2 className="text-lg font-semibold">Requests</h2>
+          <p className="text-sm text-muted-foreground">Submit and track your requests</p>
         </div>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Request
+          <Button size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            New
           </Button>
         )}
       </div>
 
-      {/* Status Progress Indicator */}
-      <div className="flex items-center justify-center gap-2 py-4 overflow-x-auto">
-        <div className="flex items-center gap-1 px-3 py-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-          <Clock className="h-4 w-4 text-yellow-600" />
-          <span className="text-sm font-medium text-yellow-600">{pendingRequests.length}</span>
-          <span className="text-xs text-yellow-600/70 hidden sm:inline">Requested</span>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="flex items-center gap-1 px-3 py-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
-          <Loader2 className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-medium text-blue-600">{inProgressRequests.length}</span>
-          <span className="text-xs text-blue-600/70 hidden sm:inline">In Progress</span>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        <div className="flex items-center gap-1 px-3 py-2 bg-green-500/10 rounded-lg border border-green-500/20">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <span className="text-sm font-medium text-green-600">{completedRequests.length}</span>
-          <span className="text-xs text-green-600/70 hidden sm:inline">Completed</span>
-        </div>
-      </div>
-
       {/* New Request Form */}
       {showForm && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageSquarePlus className="h-5 w-5" />
-              Submit New Request
-            </CardTitle>
-            <CardDescription>
-              Describe what you'd like us to work on
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card>
+          <CardContent className="p-4">
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-sm">New Request</p>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowForm(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="title">Request Title *</Label>
+                <Label htmlFor="title" className="text-sm">Title *</Label>
                 <Input
                   id="title"
-                  placeholder="e.g., Update homepage banner image"
+                  placeholder="What do you need?"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   disabled={submitting}
@@ -227,19 +155,19 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-sm">Details</Label>
                 <Textarea
                   id="description"
-                  placeholder="Provide more details about your request..."
+                  placeholder="Provide more details..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={submitting}
-                  rows={4}
+                  rows={3}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority" className="text-sm">Priority</Label>
                 <Select value={priority} onValueChange={setPriority} disabled={submitting}>
                   <SelectTrigger>
                     <SelectValue />
@@ -253,134 +181,94 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                 </Select>
               </div>
 
-              <div className="flex gap-3">
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    'Submit Request'
-                  )}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} disabled={submitting}>
-                  Cancel
-                </Button>
-              </div>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
+              </Button>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Requested / Pending */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <div className="p-1.5 bg-yellow-500/10 rounded-lg">
-              <Clock className="h-5 w-5 text-yellow-600" />
-            </div>
-            Requested
-            {pendingRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-auto">{pendingRequests.length}</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>Awaiting review by our team</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {pendingRequests.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Clock className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No pending requests</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <RequestCard key={request.id} request={request} />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Active Requests */}
+      {activeRequests.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Active ({activeRequests.length})
+          </p>
+          {activeRequests.map((request) => (
+            <Card key={request.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{request.title}</p>
+                    {request.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{request.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(request.created_at), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+                {request.admin_notes && (
+                  <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-primary">
+                    <p className="text-xs text-muted-foreground mb-1">Response:</p>
+                    <p>{request.admin_notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* In Progress */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <div className="p-1.5 bg-blue-500/10 rounded-lg">
-              <Loader2 className="h-5 w-5 text-blue-600" />
-            </div>
-            In Progress
-            {inProgressRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-auto">{inProgressRequests.length}</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>Currently being worked on</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {inProgressRequests.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Loader2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No requests in progress</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {inProgressRequests.map((request) => (
-                <RequestCard key={request.id} request={request} showETA />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Completed Requests */}
+      {completedRequests.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Completed ({completedRequests.length})
+          </p>
+          {completedRequests.slice(0, 5).map((request) => (
+            <Card key={request.id} className="opacity-75">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{request.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Completed {request.completed_at && format(new Date(request.completed_at), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {/* Completed */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <div className="p-1.5 bg-green-500/10 rounded-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-            Completed
-            {completedRequests.length > 0 && (
-              <Badge variant="secondary" className="ml-auto">{completedRequests.length}</Badge>
-            )}
-          </CardTitle>
-          <CardDescription>Successfully delivered requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {completedRequests.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">No completed requests yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {completedRequests.map((request) => (
-                <RequestCard key={request.id} request={request} showCompletion />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Cancelled (if any) */}
-      {cancelledRequests.length > 0 && (
-        <Card className="opacity-75">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
-              <div className="p-1.5 bg-muted rounded-lg">
-                <XCircle className="h-5 w-5" />
-              </div>
-              Cancelled
-              <Badge variant="secondary" className="ml-auto">{cancelledRequests.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {cancelledRequests.map((request) => (
-                <RequestCard key={request.id} request={request} />
-              ))}
-            </div>
+      {/* Empty State */}
+      {requests.length === 0 && !showForm && (
+        <Card className="border-dashed">
+          <CardContent className="p-8 text-center">
+            <MessageSquarePlus className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">No requests yet</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-3"
+              onClick={() => setShowForm(true)}
+            >
+              Submit Your First Request
+            </Button>
           </CardContent>
         </Card>
       )}

@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, CreditCard, Clock, Home, Globe, MessageSquarePlus, User, BarChart3 } from 'lucide-react';
+import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientOverviewTab } from '@/components/client-portal/ClientOverviewTab';
-import { MyWebsiteTab } from '@/components/client-portal/MyWebsiteTab';
 import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
-import { ProgressTab } from '@/components/client-portal/ProgressTab';
 import { PaymentsTab } from '@/components/client-portal/PaymentsTab';
 import { ProfileTab } from '@/components/client-portal/ProfileTab';
-import { MetricsTab } from '@/components/client-portal/MetricsTab';
 
 interface ClientSession {
   lead: {
@@ -25,7 +22,6 @@ interface ClientSession {
     form_data: any;
     created_at: string;
     website_url?: string;
-    tracking_id?: string;
     billing_address?: string;
   };
   token: string;
@@ -49,12 +45,6 @@ interface Transaction {
   recurring_interval: string | null;
 }
 
-interface ProjectUpdate {
-  id: string;
-  content: string;
-  created_at: string;
-}
-
 interface ClientRequest {
   id: string;
   title: string;
@@ -67,41 +57,17 @@ interface ClientRequest {
   estimated_completion: string | null;
 }
 
-interface ProjectMilestone {
-  id: string;
-  category: 'design' | 'metrics';
-  title: string;
-  description: string | null;
-  status: 'pending' | 'in_progress' | 'completed';
-  completed_at: string | null;
-}
-
 export default function ClientPortalDashboard() {
   const [session, setSession] = useState<ClientSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [projectUpdates, setProjectUpdates] = useState<ProjectUpdate[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
-  const [milestones, setMilestones] = useState<ProjectMilestone[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [hasFetched, setHasFetched] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedSession = sessionStorage.getItem('clientPortalSession');
-    if (!storedSession) {
-      navigate('/client-portal');
-      return;
-    }
-
-    const parsedSession = JSON.parse(storedSession) as ClientSession;
-    setSession(parsedSession);
-    
-    fetchClientData(parsedSession);
-  }, [navigate]);
-
-  const fetchClientData = async (clientSession: ClientSession) => {
-    setLoading(true);
+  const fetchClientData = useCallback(async (clientSession: ClientSession) => {
     try {
       const { data, error } = await supabase.functions.invoke('get-client-data', {
         body: { 
@@ -113,7 +79,6 @@ export default function ClientPortalDashboard() {
 
       if (error) throw error;
 
-      // Update session with fresh lead data from API
       if (data.lead) {
         const updatedSession = {
           ...clientSession,
@@ -124,103 +89,94 @@ export default function ClientPortalDashboard() {
       }
 
       setTransactions(data.transactions || []);
-      setProjectUpdates(data.projectUpdates || []);
-      setSavedPaymentMethod(data.savedPaymentMethod);
       setRequests(data.clientRequests || []);
-      setMilestones(data.projectMilestones || []);
+      setSavedPaymentMethod(data.savedPaymentMethod);
     } catch (err) {
       console.error('Error fetching client data:', err);
       toast.error('Failed to load your data');
     } finally {
       setLoading(false);
+      setHasFetched(true);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const storedSession = sessionStorage.getItem('clientPortalSession');
+    if (!storedSession) {
+      navigate('/client-portal');
+      return;
+    }
+
+    const parsedSession = JSON.parse(storedSession) as ClientSession;
+    setSession(parsedSession);
+    
+    // Only fetch once on mount
+    if (!hasFetched) {
+      fetchClientData(parsedSession);
+    }
+  }, [navigate, hasFetched, fetchClientData]);
 
   const handleLogout = () => {
     sessionStorage.removeItem('clientPortalSession');
     navigate('/client-portal');
   };
 
-  const handleNavigate = (tab: string) => setActiveTab(tab);
-
-  const handleRequestCreated = () => {
-    if (session) fetchClientData(session);
-  };
-
-  const designMilestones = milestones.filter(m => m.category === 'design');
-  const metricsMilestones = milestones.filter(m => m.category === 'metrics');
-  const designProgress = designMilestones.length > 0 
-    ? Math.round((designMilestones.filter(m => m.status === 'completed').length / designMilestones.length) * 100) 
-    : 0;
-  const metricsProgress = metricsMilestones.length > 0 
-    ? Math.round((metricsMilestones.filter(m => m.status === 'completed').length / metricsMilestones.length) * 100) 
-    : 0;
+  const handleRequestCreated = useCallback(() => {
+    if (session) {
+      // Refetch data when a request is created
+      fetchClientData(session);
+    }
+  }, [session, fetchClientData]);
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+  const clientName = session.lead.name || session.lead.business_name || session.lead.email.split('@')[0];
 
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Globe className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Client Portal</h1>
-              <p className="text-sm text-muted-foreground">
-                {session.lead.name || session.lead.business_name || session.lead.email}
-              </p>
-            </div>
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Minimal Header */}
+      <header className="border-b sticky top-0 z-50 bg-background">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="font-semibold">{clientName}</p>
+            <p className="text-xs text-muted-foreground">{session.lead.email}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            {/* Simple Tab Navigation */}
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="overview" className="text-xs sm:text-sm">
+                <Home className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="website" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">My Website</span>
-              </TabsTrigger>
-              <TabsTrigger value="metrics" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Metrics</span>
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center gap-2">
-                <MessageSquarePlus className="h-4 w-4" />
+              <TabsTrigger value="requests" className="text-xs sm:text-sm">
+                <MessageSquarePlus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Requests</span>
               </TabsTrigger>
-              <TabsTrigger value="progress" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span className="hidden sm:inline">Progress</span>
-              </TabsTrigger>
-              <TabsTrigger value="payments" className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
+              <TabsTrigger value="payments" className="text-xs sm:text-sm">
+                <CreditCard className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Payments</span>
               </TabsTrigger>
-              <TabsTrigger value="profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <TabsTrigger value="profile" className="text-xs sm:text-sm">
+                <User className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Profile</span>
               </TabsTrigger>
             </TabsList>
@@ -229,21 +185,10 @@ export default function ClientPortalDashboard() {
               <ClientOverviewTab
                 lead={session.lead}
                 transactions={transactions}
-                projectUpdates={projectUpdates}
                 requests={requests}
                 hasPaymentMethod={!!savedPaymentMethod}
-                designProgress={designProgress}
-                metricsProgress={metricsProgress}
-                onNavigate={handleNavigate}
+                onNavigate={setActiveTab}
               />
-            </TabsContent>
-
-            <TabsContent value="website">
-              <MyWebsiteTab lead={session.lead} />
-            </TabsContent>
-
-            <TabsContent value="metrics">
-              <MetricsTab lead={session.lead} />
             </TabsContent>
 
             <TabsContent value="requests">
@@ -253,17 +198,6 @@ export default function ClientPortalDashboard() {
                 leadEmail={session.lead.email}
                 requests={requests}
                 onRequestCreated={handleRequestCreated}
-              />
-            </TabsContent>
-
-            <TabsContent value="progress">
-              <ProgressTab
-                lead={session.lead}
-                projectUpdates={projectUpdates}
-                designMilestones={designMilestones}
-                metricsMilestones={metricsMilestones}
-                designProgress={designProgress}
-                metricsProgress={metricsProgress}
               />
             </TabsContent>
 
@@ -284,12 +218,6 @@ export default function ClientPortalDashboard() {
           </Tabs>
         )}
       </main>
-
-      <footer className="border-t mt-auto py-6">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Need help? Contact our support team.</p>
-        </div>
-      </footer>
     </div>
   );
 }

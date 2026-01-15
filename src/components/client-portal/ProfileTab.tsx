@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   User, 
@@ -30,165 +30,110 @@ interface ProfileTabProps {
 }
 
 export function ProfileTab({ lead, hasPaymentMethod }: ProfileTabProps) {
-  const getStatusInfo = (status: string) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'new':
-        return { label: 'New Client', color: 'bg-blue-500/10 text-blue-600' };
-      case 'contacted':
-        return { label: 'In Discussion', color: 'bg-yellow-500/10 text-yellow-600' };
-      case 'booked_call':
-        return { label: 'Call Scheduled', color: 'bg-purple-500/10 text-purple-600' };
-      case 'sold':
-        return { label: 'Active Client', color: 'bg-green-500/10 text-green-600' };
-      default:
-        return { label: status, color: 'bg-muted' };
+      case 'new': return 'New Client';
+      case 'contacted': return 'In Discussion';
+      case 'booked_call': return 'Call Scheduled';
+      case 'sold': return 'Active Client';
+      default: return status;
     }
   };
 
-  const statusInfo = getStatusInfo(lead.status);
+  const InfoRow = ({ icon: Icon, label, value }: { icon: any; label: string; value: string | React.ReactNode }) => (
+    <div className="flex items-start gap-3 py-3 border-b last:border-0">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium break-words">{value}</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-lg font-semibold">Profile</h2>
+        <p className="text-sm text-muted-foreground">Your account information</p>
+      </div>
+
       {/* Profile Header */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="h-8 w-8 text-primary" />
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <User className="h-6 w-6 text-primary" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold">{lead.name || lead.business_name || 'Client'}</h2>
-              <p className="text-muted-foreground">{lead.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold truncate">{lead.name || lead.business_name || 'Client'}</p>
+              <p className="text-sm text-muted-foreground truncate">{lead.email}</p>
             </div>
-            <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
+            <Badge variant="outline" className="shrink-0">{getStatusLabel(lead.status)}</Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Contact Information */}
+      {/* Contact Details */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Contact Information</CardTitle>
-          <CardDescription>Your contact details on file</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {lead.name && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <User className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Full Name</p>
-                  <p className="font-medium">{lead.name}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Email</p>
-                <p className="font-medium">{lead.email}</p>
-              </div>
-            </div>
-
-            {lead.phone && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Phone</p>
-                  <p className="font-medium">{lead.phone}</p>
-                </div>
-              </div>
-            )}
-
-            {lead.business_name && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Building2 className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Business</p>
-                  <p className="font-medium">{lead.business_name}</p>
-                </div>
-              </div>
-            )}
-          </div>
+        <CardContent className="p-4">
+          <p className="text-sm font-medium mb-2">Contact</p>
+          {lead.name && <InfoRow icon={User} label="Name" value={lead.name} />}
+          <InfoRow icon={Mail} label="Email" value={lead.email} />
+          {lead.phone && <InfoRow icon={Phone} label="Phone" value={lead.phone} />}
+          {lead.business_name && <InfoRow icon={Building2} label="Business" value={lead.business_name} />}
         </CardContent>
       </Card>
 
       {/* Website & Billing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Website & Billing</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-4">
+      {(lead.website_url || lead.billing_address) && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm font-medium mb-2">Website & Billing</p>
             {lead.website_url && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Globe className="h-5 w-5 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground">Website URL</p>
-                  <a href={lead.website_url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+              <InfoRow 
+                icon={Globe} 
+                label="Website" 
+                value={
+                  <a 
+                    href={lead.website_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline"
+                  >
                     {lead.website_url}
                   </a>
-                </div>
-              </div>
+                } 
+              />
             )}
-
             {lead.billing_address && (
-              <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
-                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Billing Address</p>
-                  <p className="font-medium whitespace-pre-line">{lead.billing_address}</p>
-                </div>
-              </div>
+              <InfoRow icon={MapPin} label="Billing Address" value={lead.billing_address} />
             )}
-
-            {!lead.website_url && !lead.billing_address && (
-              <p className="text-muted-foreground text-sm text-center py-4">
-                No website or billing information on file
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Account Status */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Account Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Client Since</p>
-                  <p className="font-medium">{format(new Date(lead.created_at), 'MMMM d, yyyy')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Globe className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Project Type</p>
-                  <p className="font-medium">{lead.project_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className={`flex items-center justify-between p-3 rounded-lg ${hasPaymentMethod ? 'bg-green-500/10' : 'bg-yellow-500/10'}`}>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className={`h-5 w-5 ${hasPaymentMethod ? 'text-green-600' : 'text-yellow-600'}`} />
-                <div>
-                  <p className="text-xs text-muted-foreground">Payment Method</p>
-                  <p className={`font-medium ${hasPaymentMethod ? 'text-green-700' : 'text-yellow-700'}`}>
-                    {hasPaymentMethod ? 'Active' : 'Not Set Up'}
-                  </p>
-                </div>
-              </div>
+        <CardContent className="p-4">
+          <p className="text-sm font-medium mb-2">Account</p>
+          <InfoRow 
+            icon={Calendar} 
+            label="Client Since" 
+            value={format(new Date(lead.created_at), 'MMMM d, yyyy')} 
+          />
+          <InfoRow 
+            icon={Globe} 
+            label="Project Type" 
+            value={lead.project_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} 
+          />
+          <div className="flex items-start gap-3 py-3">
+            <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${hasPaymentMethod ? 'text-green-600' : 'text-muted-foreground'}`} />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Payment Method</p>
+              <p className={`text-sm font-medium ${hasPaymentMethod ? 'text-green-600' : ''}`}>
+                {hasPaymentMethod ? 'Active' : 'Not Set Up'}
+              </p>
             </div>
           </div>
         </CardContent>
