@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_otp_codes: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp_code: string
+          used: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          used?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          used?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_profiles: {
         Row: {
           avatar_url: string | null
@@ -1125,6 +1155,7 @@ export type Database = {
       can_edit_leads: { Args: { _user_id: string }; Returns: boolean }
       can_manage_users: { Args: { _user_id: string }; Returns: boolean }
       can_view_payments: { Args: { _user_id: string }; Returns: boolean }
+      cleanup_expired_admin_otps: { Args: never; Returns: undefined }
       cleanup_expired_captchas: { Args: never; Returns: undefined }
       cleanup_expired_otps: { Args: never; Returns: undefined }
       generate_client_access_code: { Args: never; Returns: string }

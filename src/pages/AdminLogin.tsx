@@ -8,8 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Lock, Mail, User, Phone, Calendar } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
-import { TwoFactorVerify } from '@/components/auth/TwoFactorVerify';
-import { TwoFactorSetup } from '@/components/auth/TwoFactorSetup';
+import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -34,66 +33,31 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showMfaVerify, setShowMfaVerify] = useState(false);
-  const [showMfaSetup, setShowMfaSetup] = useState(false);
-  const [require2fa, setRequire2fa] = useState(false);
+  const [showOTPVerify, setShowOTPVerify] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
-  const { signIn, signUp, isAuthenticated, isAdmin, loading } = useAuth();
+  const { signIn, signUp, isAuthenticated, isAdmin, loading, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if 2FA is required by system settings
+  // Check if already authenticated and OTP verified
   useEffect(() => {
-    const checkSettings = async () => {
-      const { data } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'security')
-        .maybeSingle();
-      
-      if (data?.setting_value) {
-        const settings = data.setting_value as { require_2fa_for_team?: boolean };
-        setRequire2fa(settings.require_2fa_for_team ?? false);
-      }
-    };
-    checkSettings();
-  }, []);
-
-  useEffect(() => {
-    const checkMfaAndRedirect = async () => {
-      if (!loading && isAuthenticated && isAdmin && !showMfaVerify && !showMfaSetup) {
-        // Check MFA status
-        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        const { data: factorsData } = await supabase.auth.mfa.listFactors();
-        
-        const hasVerifiedTotp = factorsData?.totp?.some(f => f.status === 'verified') ?? false;
-        
-        if (aalData) {
-          // If user has MFA enabled but hasn't verified this session
-          if (aalData.nextLevel === 'aal2' && aalData.currentLevel === 'aal1') {
-            setShowMfaVerify(true);
-            return;
-          }
-          
-          // If 2FA is required but user hasn't enrolled
-          if (require2fa && !hasVerifiedTotp && aalData.currentLevel === 'aal1') {
-            setShowMfaSetup(true);
-            return;
-          }
-          
-          // If user is fully authenticated (either no MFA required, or MFA verified)
-          const isFullyAuthenticated = aalData.currentLevel === 'aal2' || 
-            (aalData.nextLevel === 'aal1' && !require2fa);
-          
-          if (isFullyAuthenticated) {
-            navigate('/admin');
-          }
+    const checkAuthAndRedirect = async () => {
+      if (!loading && isAuthenticated && isAdmin && !showOTPVerify) {
+        // Check if user has completed OTP verification for this session
+        const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+        if (otpVerified === 'true') {
+          navigate('/admin');
+        } else if (user?.id) {
+          // User is authenticated but needs OTP verification
+          setPendingUserId(user.id);
+          setShowOTPVerify(true);
         }
       }
     };
     
-    checkMfaAndRedirect();
-  }, [isAuthenticated, isAdmin, loading, navigate, showMfaVerify, showMfaSetup, require2fa]);
+    checkAuthAndRedirect();
+  }, [isAuthenticated, isAdmin, loading, navigate, showOTPVerify, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,7 +131,11 @@ export default function AdminLogin() {
 
       setIsLoading(true);
       
-      const { error } = await signIn(email, password);
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
       if (error) {
         toast({
           title: "Login failed",
@@ -176,26 +144,30 @@ export default function AdminLogin() {
             : error.message,
           variant: "destructive"
         });
-      } else {
-        // Check if MFA is required after login
-        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aalData?.nextLevel === 'aal2' && aalData.currentLevel === 'aal1') {
-          setShowMfaVerify(true);
-        }
+      } else if (data.user) {
+        // Successfully authenticated, now require OTP verification
+        setPendingUserId(data.user.id);
+        setShowOTPVerify(true);
       }
     }
     
     setIsLoading(false);
   };
 
-  const handleMfaVerified = () => {
-    setShowMfaVerify(false);
+  const handleOTPVerified = () => {
+    // Mark this session as OTP verified
+    if (pendingUserId) {
+      sessionStorage.setItem(`admin_otp_verified_${pendingUserId}`, 'true');
+    }
+    setShowOTPVerify(false);
     navigate('/admin');
   };
 
-  const handleMfaSetupComplete = () => {
-    setShowMfaSetup(false);
-    navigate('/admin');
+  const handleOTPCancel = async () => {
+    // Sign out the user if they cancel OTP verification
+    await supabase.auth.signOut();
+    setShowOTPVerify(false);
+    setPendingUserId(null);
   };
 
   if (loading) {
@@ -206,29 +178,16 @@ export default function AdminLogin() {
     );
   }
 
-  // Show MFA verify screen
-  if (showMfaVerify) {
+  // Show OTP verification screen
+  if (showOTPVerify && pendingUserId) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <TwoFactorVerify
-          onVerified={handleMfaVerified}
-          onCancel={async () => {
-            await supabase.auth.signOut();
-            setShowMfaVerify(false);
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Show MFA setup screen
-  if (showMfaSetup) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <TwoFactorSetup
-          onComplete={handleMfaSetupComplete}
-          onSkip={require2fa ? undefined : handleMfaSetupComplete}
-          required={require2fa}
+        <EmailOTPVerify
+          email={email || user?.email || ''}
+          userId={pendingUserId}
+          userType="admin"
+          onVerified={handleOTPVerified}
+          onCancel={handleOTPCancel}
         />
       </div>
     );
