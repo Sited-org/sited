@@ -36,16 +36,37 @@ export default function AdminLogin() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showMfaVerify, setShowMfaVerify] = useState(false);
   const [showMfaSetup, setShowMfaSetup] = useState(false);
+  const [require2fa, setRequire2fa] = useState(false);
   
   const { signIn, signUp, isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if 2FA is required by system settings
+  useEffect(() => {
+    const checkSettings = async () => {
+      const { data } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'security')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        const settings = data.setting_value as { require_2fa_for_team?: boolean };
+        setRequire2fa(settings.require_2fa_for_team ?? false);
+      }
+    };
+    checkSettings();
+  }, []);
 
   useEffect(() => {
     const checkMfaAndRedirect = async () => {
       if (!loading && isAuthenticated && isAdmin && !showMfaVerify && !showMfaSetup) {
         // Check MFA status
         const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
+        
+        const hasVerifiedTotp = factorsData?.totp?.some(f => f.status === 'verified') ?? false;
         
         if (aalData) {
           // If user has MFA enabled but hasn't verified this session
@@ -54,8 +75,17 @@ export default function AdminLogin() {
             return;
           }
           
-          // If user is fully authenticated (either no MFA or MFA verified)
-          if (aalData.currentLevel === 'aal2' || aalData.nextLevel === 'aal1') {
+          // If 2FA is required but user hasn't enrolled
+          if (require2fa && !hasVerifiedTotp && aalData.currentLevel === 'aal1') {
+            setShowMfaSetup(true);
+            return;
+          }
+          
+          // If user is fully authenticated (either no MFA required, or MFA verified)
+          const isFullyAuthenticated = aalData.currentLevel === 'aal2' || 
+            (aalData.nextLevel === 'aal1' && !require2fa);
+          
+          if (isFullyAuthenticated) {
             navigate('/admin');
           }
         }
@@ -63,7 +93,7 @@ export default function AdminLogin() {
     };
     
     checkMfaAndRedirect();
-  }, [isAuthenticated, isAdmin, loading, navigate, showMfaVerify, showMfaSetup]);
+  }, [isAuthenticated, isAdmin, loading, navigate, showMfaVerify, showMfaSetup, require2fa]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,7 +227,8 @@ export default function AdminLogin() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <TwoFactorSetup
           onComplete={handleMfaSetupComplete}
-          onSkip={handleMfaSetupComplete}
+          onSkip={require2fa ? undefined : handleMfaSetupComplete}
+          required={require2fa}
         />
       </div>
     );
