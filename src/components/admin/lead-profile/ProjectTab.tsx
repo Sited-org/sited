@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check } from 'lucide-react';
+import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,6 +48,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   // Analytics state
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [connectingGA, setConnectingGA] = useState(false);
 
   // AI Prompt state
   const [promptContext, setPromptContext] = useState('');
@@ -59,7 +60,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const [promptGeneratedAt, setPromptGeneratedAt] = useState<string | null>(lead.prompt_generated_at || null);
 
   const fetchAnalytics = async () => {
-    if (!lead.tracking_id) return;
+    if (lead.ga_status !== 'connected') return;
     
     setAnalyticsLoading(true);
     try {
@@ -77,10 +78,34 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   };
 
   useEffect(() => {
-    if (lead.tracking_id) {
+    if (lead.ga_status === 'connected') {
       fetchAnalytics();
     }
-  }, [lead.id, lead.tracking_id]);
+  }, [lead.id, lead.ga_status]);
+
+  const handleConnectGA = async () => {
+    setConnectingGA(true);
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ ga_status: 'connected' })
+        .eq('id', lead.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({ title: 'Google Analytics connected', description: 'The client can now see their website metrics.' });
+      
+      if (onLeadUpdate && data) {
+        onLeadUpdate(data);
+      }
+    } catch (error: any) {
+      toast({ title: 'Error connecting GA', description: error.message, variant: 'destructive' });
+    } finally {
+      setConnectingGA(false);
+    }
+  };
 
   const handleAddUpdate = async () => {
     if (!newUpdate.trim()) return;
@@ -171,8 +196,8 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-        {/* Website Metrics - only show if website_url exists */}
-        {lead.website_url && lead.tracking_id && (
+        {/* Google Analytics Status */}
+        {lead.website_url && (lead.ga_property_id || lead.ga_status) && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -282,10 +307,29 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                     )}
                   </div>
                 </>
+              ) : lead.ga_status === 'pending' ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">Client Submitted GA Property ID</p>
+                      <p className="text-xs text-muted-foreground font-mono mt-1">{lead.ga_property_id}</p>
+                    </div>
+                    <Badge variant="outline" className="text-amber-500 border-amber-500/50">Pending</Badge>
+                  </div>
+                  {canEdit && (
+                    <Button onClick={handleConnectGA} disabled={connectingGA} className="w-full">
+                      <Link2 className="h-4 w-4 mr-2" />
+                      {connectingGA ? 'Connecting...' : 'Mark as Connected'}
+                    </Button>
+                  )}
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No analytics data yet. Views will appear once visitors interact with the tracking script.
-                </p>
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    No Google Analytics connected yet. The client can submit their Property ID from their portal.
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>

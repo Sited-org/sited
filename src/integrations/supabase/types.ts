@@ -494,6 +494,8 @@ export type Database = {
           deal_closed_at: string | null
           email: string
           form_data: Json
+          ga_property_id: string | null
+          ga_status: string | null
           generated_prompt: string | null
           generated_prompt_research: string | null
           id: string
@@ -523,6 +525,8 @@ export type Database = {
           deal_closed_at?: string | null
           email: string
           form_data: Json
+          ga_property_id?: string | null
+          ga_status?: string | null
           generated_prompt?: string | null
           generated_prompt_research?: string | null
           id?: string
@@ -552,6 +556,8 @@ export type Database = {
           deal_closed_at?: string | null
           email?: string
           form_data?: Json
+          ga_property_id?: string | null
+          ga_status?: string | null
           generated_prompt?: string | null
           generated_prompt_research?: string | null
           id?: string
