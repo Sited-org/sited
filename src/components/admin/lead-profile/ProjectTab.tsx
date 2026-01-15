@@ -336,7 +336,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                     <Skeleton key={i} className="h-20 rounded-lg" />
                   ))}
                 </div>
-              ) : analytics ? (
+              ) : analytics && analytics.totalVisits > 0 ? (
                 <>
                   {/* Key Metrics Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
