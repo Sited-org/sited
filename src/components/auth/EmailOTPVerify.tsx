@@ -6,19 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Mail, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface ClientTwoFactorVerifyProps {
+interface EmailOTPVerifyProps {
   email: string;
-  accessCode: string;
-  onVerified: (sessionData: any) => void;
+  userId?: string; // For admin users
+  accessCode?: string; // For client users
+  userType: 'admin' | 'client';
+  onVerified: (data?: any) => void;
   onCancel: () => void;
 }
 
-export function ClientTwoFactorVerify({ 
+export function EmailOTPVerify({ 
   email, 
-  accessCode, 
+  userId,
+  accessCode,
+  userType,
   onVerified, 
   onCancel 
-}: ClientTwoFactorVerifyProps) {
+}: EmailOTPVerifyProps) {
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
@@ -43,12 +47,17 @@ export function ClientTwoFactorVerify({
     setError('');
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('send-client-otp', {
-        body: { email: email.trim().toLowerCase() },
+      const functionName = userType === 'admin' ? 'send-admin-otp' : 'send-client-otp';
+      const body = userType === 'admin' 
+        ? { email: email.trim().toLowerCase(), user_id: userId }
+        : { email: email.trim().toLowerCase() };
+
+      const { data, error: invokeError } = await supabase.functions.invoke(functionName, {
+        body,
       });
 
       if (invokeError) throw new Error(invokeError.message);
-      if (!data?.success) throw new Error(data?.error || 'Failed to send code');
+      if (data?.error) throw new Error(data.error);
 
       setCodeSent(true);
       setCountdown(60);
@@ -69,20 +78,36 @@ export function ClientTwoFactorVerify({
     setError('');
 
     try {
-      const { data, error: invokeError } = await supabase.functions.invoke('verify-client-otp', {
-        body: { 
-          email: email.trim().toLowerCase(),
-          access_code: accessCode.trim().toUpperCase(),
-          otp_code: otpCode,
-        },
-      });
+      if (userType === 'admin') {
+        const { data, error: invokeError } = await supabase.functions.invoke('verify-admin-otp', {
+          body: { 
+            email: email.trim().toLowerCase(),
+            user_id: userId,
+            otp_code: otpCode,
+          },
+        });
 
-      if (invokeError) throw new Error(invokeError.message);
-      if (!data?.success) throw new Error(data?.error || 'Invalid verification code');
+        if (invokeError) throw new Error(invokeError.message);
+        if (!data?.success) throw new Error(data?.error || 'Invalid verification code');
 
-      onVerified(data);
+        onVerified();
+      } else {
+        // Client verification with session creation
+        const { data, error: invokeError } = await supabase.functions.invoke('verify-client-otp', {
+          body: { 
+            email: email.trim().toLowerCase(),
+            access_code: accessCode?.trim().toUpperCase(),
+            otp_code: otpCode,
+          },
+        });
+
+        if (invokeError) throw new Error(invokeError.message);
+        if (!data?.success) throw new Error(data?.error || 'Invalid verification code');
+
+        onVerified(data);
+      }
     } catch (err: any) {
-      setError(err.message || 'Verification failed');
+      setError(err.message || 'Verification failed. Please try again.');
       setOtpCode('');
     } finally {
       setLoading(false);
@@ -101,7 +126,7 @@ export function ClientTwoFactorVerify({
         <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
           <Mail className="h-6 w-6 text-primary" />
         </div>
-        <CardTitle>Verify Your Identity</CardTitle>
+        <CardTitle>Enter Verification Code</CardTitle>
         <CardDescription>
           {codeSent 
             ? `We sent a 6-digit code to ${email}`

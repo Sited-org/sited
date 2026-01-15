@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Lock, User, AlertCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { ClientTwoFactorVerify } from '@/components/auth/ClientTwoFactorVerify';
+import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 
 export default function ClientPortalLogin() {
   const [email, setEmail] = useState('');
@@ -62,9 +62,10 @@ export default function ClientPortalLogin() {
   if (showTwoFactor) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
-        <ClientTwoFactorVerify
+        <EmailOTPVerify
           email={email}
           accessCode={accessCode}
+          userType="client"
           onVerified={handleTwoFactorVerified}
           onCancel={() => setShowTwoFactor(false)}
         />
