@@ -87,6 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
         lead_id: lead.id,
         email: email.toLowerCase(),
         otp_code: otp,
+        created_at: new Date().toISOString(),
         expires_at: expiresAt.toISOString(),
         used: false,
       }, {

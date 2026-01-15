@@ -59,7 +59,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="h-screen bg-background flex overflow-hidden">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -151,7 +151,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0">
+      <main className="flex-1 min-w-0 h-screen overflow-hidden flex flex-col">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-30 bg-background border-b border-border p-4 flex items-center gap-4">
           <button
@@ -165,7 +165,7 @@ export default function AdminLayout() {
           </span>
         </header>
 
-        <div className="p-6 lg:p-8">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8">
           <Outlet />
         </div>
       </main>
