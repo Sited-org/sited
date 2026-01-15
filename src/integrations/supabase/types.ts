@@ -819,6 +819,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           business_name: string
@@ -974,6 +998,7 @@ export type Database = {
           can_view_payments: boolean
           created_at: string
           id: string
+          mfa_enrolled: boolean
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
@@ -988,6 +1013,7 @@ export type Database = {
           can_view_payments?: boolean
           created_at?: string
           id?: string
+          mfa_enrolled?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
@@ -1002,6 +1028,7 @@ export type Database = {
           can_view_payments?: boolean
           created_at?: string
           id?: string
+          mfa_enrolled?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id?: string

@@ -10,9 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 interface TwoFactorSetupProps {
   onComplete: () => void;
   onSkip?: () => void;
+  required?: boolean;
 }
 
-export function TwoFactorSetup({ onComplete, onSkip }: TwoFactorSetupProps) {
+export function TwoFactorSetup({ onComplete, onSkip, required = false }: TwoFactorSetupProps) {
   const [step, setStep] = useState<'intro' | 'qr' | 'verify'>('intro');
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
@@ -71,6 +72,15 @@ export function TwoFactorSetup({ onComplete, onSkip }: TwoFactorSetupProps) {
 
       if (verifyError) throw verifyError;
 
+      // Update mfa_enrolled status in user_roles
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await supabase
+          .from('user_roles')
+          .update({ mfa_enrolled: true })
+          .eq('user_id', userData.user.id);
+      }
+
       toast({
         title: "2FA Enabled",
         description: "Two-factor authentication has been set up successfully.",
@@ -100,7 +110,9 @@ export function TwoFactorSetup({ onComplete, onSkip }: TwoFactorSetupProps) {
           </div>
           <CardTitle>Secure Your Account</CardTitle>
           <CardDescription>
-            Add an extra layer of security with two-factor authentication (2FA)
+            {required 
+              ? 'Your organization requires two-factor authentication (2FA) for all team members'
+              : 'Add an extra layer of security with two-factor authentication (2FA)'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -133,7 +145,7 @@ export function TwoFactorSetup({ onComplete, onSkip }: TwoFactorSetupProps) {
             )}
           </Button>
           
-          {onSkip && (
+          {onSkip && !required && (
             <Button variant="ghost" onClick={onSkip} className="w-full">
               Skip for now
             </Button>

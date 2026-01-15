@@ -14,10 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield } from 'lucide-react';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
 import { ProductsSettingsTab } from '@/components/admin/settings/ProductsSettingsTab';
+import SecuritySettingsTab from '@/components/admin/settings/SecuritySettingsTab';
 // FormFieldsSettingsTab import removed - form editing disabled
 
 const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
@@ -235,6 +236,10 @@ export default function AdminSettings() {
           <TabsTrigger value="profile" className="gap-2 flex-1 min-w-[100px]">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2 flex-1 min-w-[100px]">
+            <Shield className="h-4 w-4" />
+            <span className="hidden sm:inline">Security</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2 flex-1 min-w-[100px]">
             <Settings className="h-4 w-4" />
@@ -771,6 +776,11 @@ export default function AdminSettings() {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Security Tab */}
+        <TabsContent value="security" className="mt-6">
+          <SecuritySettingsTab />
         </TabsContent>
 
         {/* Settings Tab */}
