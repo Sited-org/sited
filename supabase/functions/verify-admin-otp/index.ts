@@ -26,19 +26,40 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Verifying admin OTP for user_id:", user_id);
+    console.log("Verifying admin OTP for user_id:", user_id, "otp_code:", otp_code);
 
-    // Verify OTP
+    // First check what OTPs exist for this user
+    const { data: allOtps, error: allOtpsError } = await supabaseClient
+      .from('admin_otp_codes')
+      .select('id, otp_code, used, expires_at, created_at')
+      .eq('user_id', user_id)
+      .eq('used', false)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    console.log("Available OTPs for user:", allOtps, "error:", allOtpsError);
+
+    // Verify OTP - use maybeSingle() to handle 0 rows gracefully
     const { data: otpRecord, error: otpError } = await supabaseClient
       .from('admin_otp_codes')
       .select('*')
       .eq('user_id', user_id)
       .eq('otp_code', otp_code)
       .eq('used', false)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (otpError || !otpRecord) {
-      console.log("Invalid OTP:", otpError);
+    if (otpError) {
+      console.log("OTP query error:", otpError);
+      return new Response(
+        JSON.stringify({ error: "Verification failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!otpRecord) {
+      console.log("No matching OTP found. Entered code:", otp_code);
       return new Response(
         JSON.stringify({ error: "Invalid verification code" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
