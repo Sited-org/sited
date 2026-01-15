@@ -58,7 +58,6 @@ export default function AdminSettings() {
   const { user, adminProfile, userRole, refreshAdminProfile } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(adminProfile?.display_name || '');
-  const [emailOnFile, setEmailOnFile] = useState(adminProfile?.email || '');
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [showPasswordOtp, setShowPasswordOtp] = useState(false);
@@ -85,18 +84,16 @@ export default function AdminSettings() {
     if (adminProfile?.display_name) {
       setDisplayName(adminProfile.display_name);
     }
-    if (adminProfile?.email) {
-      setEmailOnFile(adminProfile.email);
-    }
   }, [adminProfile]);
 
   // Profile handlers
   const handleUpdateProfile = async () => {
     if (!user) return;
     setSaving(true);
+    // Update display name and sync email with auth email
     const { error } = await supabase.from('admin_profiles').update({ 
       display_name: displayName,
-      email: emailOnFile 
+      email: user.email 
     }).eq('user_id', user.id);
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
     else { toast({ title: 'Profile updated' }); refreshAdminProfile(); }
@@ -269,10 +266,6 @@ export default function AdminSettings() {
           <TabsTrigger value="security" className="gap-2 flex-1 min-w-[100px]">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Security</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2 flex-1 min-w-[100px]">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
@@ -807,21 +800,10 @@ export default function AdminSettings() {
                     <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Email on File (for 2FA codes)</Label>
-                    <Input 
-                      value={emailOnFile} 
-                      onChange={(e) => setEmailOnFile(e.target.value)} 
-                      placeholder="your@email.com"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Verification codes will be sent to this email address
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Login Email</Label>
+                    <Label>Email</Label>
                     <Input value={user?.email || ''} disabled />
                     <p className="text-xs text-muted-foreground">
-                      This is the email used for signing in (cannot be changed here)
+                      This email is used for login and 2FA verification codes
                     </p>
                   </div>
                   <Button onClick={handleUpdateProfile} disabled={saving}>
@@ -864,19 +846,6 @@ export default function AdminSettings() {
           <SecuritySettingsTab />
         </TabsContent>
 
-        {/* Settings Tab - Now empty, can be repurposed */}
-        <TabsContent value="settings" className="space-y-6 mt-6 max-w-xl">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Additional settings will appear here.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );

@@ -35,28 +35,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending admin OTP for user_id:", user_id);
 
-    // Look up the email we have on file for this admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('admin_profiles')
-      .select('display_name, email, user_id')
-      .eq('user_id', user_id)
-      .maybeSingle();
-
-    // Only send if we have an email on file
-    const toEmail = profile?.email?.toLowerCase().trim();
-
-    if (profileError || !toEmail) {
-      console.log("Admin email not on file, skipping OTP send", {
-        hasProfile: !!profile,
-        hasEmail: !!toEmail,
-        error: profileError,
-      });
+    // Get the auth user's email (login email = OTP email now)
+    const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(user_id);
+    
+    if (authError || !authUser?.user?.email) {
+      console.log("User not found:", { error: authError, hasUser: !!authUser });
       // Don't reveal account existence
       return new Response(
         JSON.stringify({ success: true, message: "If the account exists, a code has been sent" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const toEmail = authUser.user.email.toLowerCase().trim();
+    
+    // Get display name from admin_profiles
+    const { data: profile } = await supabaseClient
+      .from('admin_profiles')
+      .select('display_name')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    const displayName = profile?.display_name || 'Admin';
 
     // Generate OTP
     const otp = generateOTP();
@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
               <h1 style="color: white; margin: 0; font-size: 24px;">Sited Admin</h1>
             </div>
             <div style="padding: 30px; text-align: center;">
-              <p style="color: #64748b; margin: 0 0 20px;">Hi ${profile?.display_name || 'Admin'},</p>
+              <p style="color: #64748b; margin: 0 0 20px;">Hi ${displayName},</p>
               <p style="color: #1e293b; margin: 0 0 20px;">Your verification code is:</p>
               <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b; font-family: monospace;">${otp}</span>
