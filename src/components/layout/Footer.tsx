@@ -70,7 +70,6 @@ export const Footer = () => {
 
   const services = useMemo(() => [
     { name: "Website", path: "/onboarding/website", icon: "🌐", stat: "2 week delivery" },
-    { name: "App", path: "/onboarding/app", icon: "📱", stat: "Custom built" },
   ], []);
 
   return (
@@ -119,12 +118,12 @@ export const Footer = () => {
             </p>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-3 sm:mb-4">
               Ready to build your{" "}
-              <TypedText phrases={["dream website?", "AI advantage?", "online presence?"]} />
+              <TypedText phrases={["dream website?", "online presence?", "digital brand?"]} />
             </h2>
           </div>
 
           {/* Interactive Service Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-10 sm:mb-14">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-10 sm:mb-14 max-w-2xl mx-auto">
             {services.map((service) => (
               <Link
                 key={service.name}
