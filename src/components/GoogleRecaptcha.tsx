@@ -13,14 +13,32 @@ declare global {
   interface Window {
     grecaptcha: {
       ready: (callback: () => void) => void;
-      render: (container: HTMLElement, options: {
-        sitekey: string;
-        callback: (token: string) => void;
-        'expired-callback': () => void;
-        'error-callback': () => void;
-        theme?: 'light' | 'dark';
-        size?: 'compact' | 'normal';
-      }) => number;
+      enterprise?: {
+        ready: (callback: () => void) => void;
+        render: (
+          container: HTMLElement,
+          options: {
+            sitekey: string;
+            callback: (token: string) => void;
+            'expired-callback': () => void;
+            'error-callback': () => void;
+            theme?: 'light' | 'dark';
+            size?: 'compact' | 'normal';
+          }
+        ) => number;
+        reset: (widgetId?: number) => void;
+      };
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          callback: (token: string) => void;
+          'expired-callback': () => void;
+          'error-callback': () => void;
+          theme?: 'light' | 'dark';
+          size?: 'compact' | 'normal';
+        }
+      ) => number;
       reset: (widgetId?: number) => void;
     };
     onRecaptchaLoad?: () => void;
@@ -42,9 +60,11 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
   }, [onVerify]);
 
   const resetRecaptcha = useCallback(() => {
-    if (widgetIdRef.current !== null && window.grecaptcha?.reset) {
+    const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
+
+    if (widgetIdRef.current !== null && grecaptchaApi?.reset) {
       try {
-        window.grecaptcha.reset(widgetIdRef.current);
+        grecaptchaApi.reset(widgetIdRef.current);
         setError(null);
         onVerifyRef.current(null);
       } catch (e) {
@@ -65,11 +85,18 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
 
     const renderRecaptcha = () => {
       if (!containerRef.current) return;
-      
+
+      const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
+      if (!grecaptchaApi?.render) {
+        setError('Security verification failed to initialize. Please refresh the page.');
+        setIsLoading(false);
+        return;
+      }
+
       // Reset widget if it exists
       if (widgetIdRef.current !== null) {
         try {
-          window.grecaptcha.reset(widgetIdRef.current);
+          grecaptchaApi.reset(widgetIdRef.current);
         } catch (e) {
           // Ignore reset errors
         }
@@ -77,7 +104,7 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
       }
 
       try {
-        widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
+        widgetIdRef.current = grecaptchaApi.render(containerRef.current, {
           sitekey: RECAPTCHA_SITE_KEY,
           callback: (token: string) => {
             console.log('reCAPTCHA verified successfully');
@@ -89,8 +116,9 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
             onVerifyRef.current(null);
           },
           'error-callback': () => {
-            console.error('reCAPTCHA encountered an error - this may be due to network issues or domain configuration');
-            setError('Verification temporarily unavailable. Please try again.');
+            const host = typeof window !== 'undefined' ? window.location.hostname : '';
+            console.error('reCAPTCHA encountered an error (often key/domain mismatch). Host:', host);
+            setError(`Verification unavailable for this domain (${host}). Please ensure this domain is allowed in your reCAPTCHA settings.`);
             onVerifyRef.current(null);
           },
           theme: 'light',
@@ -106,27 +134,33 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
     };
 
     // Check if script is already loaded
-    const existingScript = document.querySelector('script[src*="recaptcha"]');
-    
+    const existingScript = document.querySelector('script[src*="recaptcha"]') as HTMLScriptElement | null;
+
+    // Prefer Enterprise if present
+    if (window.grecaptcha?.enterprise?.ready) {
+      window.grecaptcha.enterprise.ready(renderRecaptcha);
+      return;
+    }
+
     if (window.grecaptcha?.ready) {
       window.grecaptcha.ready(renderRecaptcha);
       return;
     }
 
     if (existingScript) {
-      // Script exists but not loaded yet
-      window.onRecaptchaLoad = renderRecaptcha;
+      // Script exists but not initialized yet
+      existingScript.addEventListener('load', renderRecaptcha, { once: true });
       return;
     }
 
-    // Load the reCAPTCHA script
+    // Load the reCAPTCHA script (fallback if not already present)
     const script = document.createElement('script');
-    script.src = 'https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit';
+    script.src = 'https://www.google.com/recaptcha/enterprise.js';
     script.async = true;
     script.defer = true;
-    
-    window.onRecaptchaLoad = renderRecaptcha;
-    
+
+    script.onload = renderRecaptcha;
+
     script.onerror = () => {
       setError('Failed to load security verification. Please check your connection.');
       setIsLoading(false);
@@ -136,9 +170,10 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
 
     return () => {
       // Cleanup
-      if (widgetIdRef.current !== null && window.grecaptcha?.reset) {
+      const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
+      if (widgetIdRef.current !== null && grecaptchaApi?.reset) {
         try {
-          window.grecaptcha.reset(widgetIdRef.current);
+          grecaptchaApi.reset(widgetIdRef.current);
         } catch (e) {
           // Ignore cleanup errors
         }
