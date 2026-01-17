@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Loader2, RefreshCw } from "lucide-react";
 
 // reCAPTCHA site key - this is a publishable key
 const RECAPTCHA_SITE_KEY = "6LcXJqMqAAAAAApg1f6hHZ2XGPFJ0CSlLZYQNlgH";
@@ -34,24 +34,54 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRendered, setIsRendered] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Keep the ref updated with the latest callback
   useEffect(() => {
     onVerifyRef.current = onVerify;
   }, [onVerify]);
 
+  const resetRecaptcha = useCallback(() => {
+    if (widgetIdRef.current !== null && window.grecaptcha?.reset) {
+      try {
+        window.grecaptcha.reset(widgetIdRef.current);
+        setError(null);
+        onVerifyRef.current(null);
+      } catch (e) {
+        console.error('Error resetting reCAPTCHA:', e);
+      }
+    }
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setRetryCount(prev => prev + 1);
+    resetRecaptcha();
+  }, [resetRecaptcha]);
+
   useEffect(() => {
-    // Don't re-render if already rendered
-    if (isRendered) return;
+    // Don't re-render if already rendered (unless retrying)
+    if (isRendered && retryCount === 0) return;
 
     const renderRecaptcha = () => {
-      if (!containerRef.current || widgetIdRef.current !== null) return;
+      if (!containerRef.current) return;
+      
+      // Reset widget if it exists
+      if (widgetIdRef.current !== null) {
+        try {
+          window.grecaptcha.reset(widgetIdRef.current);
+        } catch (e) {
+          // Ignore reset errors
+        }
+        widgetIdRef.current = null;
+      }
 
       try {
         widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
           sitekey: RECAPTCHA_SITE_KEY,
           callback: (token: string) => {
             console.log('reCAPTCHA verified successfully');
+            setError(null);
             onVerifyRef.current(token);
           },
           'expired-callback': () => {
@@ -59,8 +89,8 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
             onVerifyRef.current(null);
           },
           'error-callback': () => {
-            console.error('reCAPTCHA error occurred');
-            setError('reCAPTCHA error. Please try again.');
+            console.error('reCAPTCHA encountered an error - this may be due to network issues or domain configuration');
+            setError('Verification temporarily unavailable. Please try again.');
             onVerifyRef.current(null);
           },
           theme: 'light',
@@ -70,7 +100,7 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
         setIsRendered(true);
       } catch (err) {
         console.error('Error rendering reCAPTCHA:', err);
-        setError('Failed to load reCAPTCHA');
+        setError('Failed to load verification. Please refresh the page.');
         setIsLoading(false);
       }
     };
@@ -98,7 +128,7 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
     window.onRecaptchaLoad = renderRecaptcha;
     
     script.onerror = () => {
-      setError('Failed to load reCAPTCHA script');
+      setError('Failed to load security verification. Please check your connection.');
       setIsLoading(false);
     };
 
@@ -114,19 +144,22 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
         }
       }
     };
-  }, [isRendered]);
+  }, [isRendered, retryCount]);
 
   if (error) {
     return (
-      <div className={`p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-center ${className}`}>
-        <p className="text-sm text-destructive">{error}</p>
-        <button 
-          type="button"
-          onClick={() => window.location.reload()} 
-          className="text-xs text-primary underline mt-2"
-        >
-          Reload page to try again
-        </button>
+      <div className={`p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg ${className}`}>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
+          <button 
+            type="button"
+            onClick={handleRetry} 
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+          >
+            <RefreshCw size={14} />
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, MapPin, ArrowRight, Globe, Smartphone } from "lucide-react";
+import { Mail, MapPin, ArrowRight, Globe, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -157,32 +157,59 @@ const Contact = () => {
                 </div>
               </ScrollReveal>
 
+              {/* Large Website Project CTA Block */}
               <ScrollReveal delay={0.2}>
-                <div className="border-t border-border pt-6 sm:pt-8">
-                  <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">
-                    Ready to start your project?
-                  </h2>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                    Fill out our detailed onboarding form to help us understand
-                    your project requirements in depth.
-                  </p>
-                  <div className="space-y-2 sm:space-y-3">
-                    <Button variant="outline" size="lg" className="w-full justify-start text-sm sm:text-base" asChild>
-                      <Link to="/onboarding/website">
-                        <Globe size={18} className="sm:w-5 sm:h-5" />
-                        Start Website Project
-                        <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px] ml-auto" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="lg" className="w-full justify-start text-sm sm:text-base" asChild>
-                      <Link to="/onboarding/app">
-                        <Smartphone size={18} className="sm:w-5 sm:h-5" />
-                        Start App Project
-                        <ArrowRight size={16} className="sm:w-[18px] sm:h-[18px] ml-auto" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
+                <Link to="/onboarding/website">
+                  <motion.div
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative overflow-hidden bg-foreground text-background rounded-xl sm:rounded-2xl p-6 sm:p-8 cursor-pointer group"
+                  >
+                    {/* Decorative gradient */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-background/10 to-transparent rounded-full blur-2xl" />
+                    
+                    <div className="relative">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-background/10 flex items-center justify-center">
+                          <Globe size={24} className="text-background" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-background/60 uppercase tracking-wider">
+                            Ready to start?
+                          </span>
+                          <h3 className="text-xl sm:text-2xl font-semibold text-background">
+                            Website Project
+                          </h3>
+                        </div>
+                      </div>
+                      
+                      <p className="text-background/80 mb-6 text-sm sm:text-base">
+                        Fill out our detailed brief and let us bring your vision to life. 
+                        Get a stunning, high-performance website built by experts.
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-4 mb-6 text-sm">
+                        <div className="flex items-center gap-1.5 text-background/70">
+                          <CheckCircle2 size={14} />
+                          <span>Custom design</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-background/70">
+                          <Clock size={14} />
+                          <span>2 week delivery</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-background/70">
+                          <Sparkles size={14} />
+                          <span>Premium quality</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-background font-medium group-hover:gap-3 transition-all">
+                        Start Your Project
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
               </ScrollReveal>
 
               <ScrollReveal delay={0.3}>
