@@ -1,114 +1,75 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 
-// reCAPTCHA site key - this is a publishable key
-const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAAEGC4rJcbcoNEF2ycS8-WmAyqgA";
+// reCAPTCHA Enterprise site key
+const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAJ4fnEykeEgrL-7XiMzZWwYrf-VT";
 
 interface GoogleRecaptchaProps {
   onVerify: (token: string | null) => void;
   className?: string;
+  action?: string;
 }
 
 declare global {
   interface Window {
     grecaptcha: {
-      ready: (callback: () => void) => void;
-      enterprise?: {
+      enterprise: {
         ready: (callback: () => void) => void;
         render: (
-          container: HTMLElement,
+          container: HTMLElement | string,
           options: {
             sitekey: string;
-            callback: (token: string) => void;
-            'expired-callback': () => void;
-            'error-callback': () => void;
+            action?: string;
+            callback?: (token: string) => void;
+            'expired-callback'?: () => void;
+            'error-callback'?: () => void;
             theme?: 'light' | 'dark';
             size?: 'compact' | 'normal';
           }
         ) => number;
         reset: (widgetId?: number) => void;
       };
-      render: (
-        container: HTMLElement,
-        options: {
-          sitekey: string;
-          callback: (token: string) => void;
-          'expired-callback': () => void;
-          'error-callback': () => void;
-          theme?: 'light' | 'dark';
-          size?: 'compact' | 'normal';
-        }
-      ) => number;
-      reset: (widgetId?: number) => void;
     };
-    onRecaptchaLoad?: () => void;
   }
 }
 
-export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaProps) => {
+export const GoogleRecaptcha = ({ 
+  onVerify, 
+  className = "",
+  action = "LOGIN"
+}: GoogleRecaptchaProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<number | null>(null);
   const onVerifyRef = useRef(onVerify);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRendered, setIsRendered] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
-  // Keep the ref updated with the latest callback
+  // Keep callback ref updated
   useEffect(() => {
     onVerifyRef.current = onVerify;
   }, [onVerify]);
 
-  const resetRecaptcha = useCallback(() => {
-    const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
-
-    if (widgetIdRef.current !== null && grecaptchaApi?.reset) {
+  const handleRetry = useCallback(() => {
+    setError(null);
+    if (widgetIdRef.current !== null && window.grecaptcha?.enterprise?.reset) {
       try {
-        grecaptchaApi.reset(widgetIdRef.current);
-        setError(null);
-        onVerifyRef.current(null);
+        window.grecaptcha.enterprise.reset(widgetIdRef.current);
       } catch (e) {
-        console.error('Error resetting reCAPTCHA:', e);
+        console.error('Reset error:', e);
       }
     }
   }, []);
 
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setRetryCount(prev => prev + 1);
-    resetRecaptcha();
-  }, [resetRecaptcha]);
-
   useEffect(() => {
-    // Don't re-render if already rendered (unless retrying)
-    if (isRendered && retryCount === 0) return;
-
-    const renderRecaptcha = () => {
-      if (!containerRef.current) return;
-
-      const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
-      if (!grecaptchaApi?.render) {
-        setError('Security verification failed to initialize. Please refresh the page.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Reset widget if it exists
-      if (widgetIdRef.current !== null) {
-        try {
-          grecaptchaApi.reset(widgetIdRef.current);
-        } catch (e) {
-          // Ignore reset errors
-        }
-        widgetIdRef.current = null;
-      }
+    const renderWidget = () => {
+      if (!containerRef.current || widgetIdRef.current !== null) return;
 
       try {
-        widgetIdRef.current = grecaptchaApi.render(containerRef.current, {
+        widgetIdRef.current = window.grecaptcha.enterprise.render(containerRef.current, {
           sitekey: RECAPTCHA_SITE_KEY,
+          action: action,
           callback: (token: string) => {
-            console.log('reCAPTCHA verified successfully');
-            setError(null);
+            console.log('reCAPTCHA verified');
             onVerifyRef.current(token);
           },
           'expired-callback': () => {
@@ -116,70 +77,48 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
             onVerifyRef.current(null);
           },
           'error-callback': () => {
-            const host = typeof window !== 'undefined' ? window.location.hostname : '';
-            console.error('reCAPTCHA encountered an error (often key/domain mismatch). Host:', host);
-            setError(`Verification unavailable for this domain (${host}). Please ensure this domain is allowed in your reCAPTCHA settings.`);
+            console.error('reCAPTCHA error');
+            setError('Verification failed. Please try again.');
             onVerifyRef.current(null);
           },
           theme: 'light',
           size: 'normal',
         });
         setIsLoading(false);
-        setIsRendered(true);
       } catch (err) {
-        console.error('Error rendering reCAPTCHA:', err);
-        setError('Failed to load verification. Please refresh the page.');
+        console.error('Render error:', err);
+        setError('Failed to load verification.');
         setIsLoading(false);
       }
     };
 
-    // Check if script is already loaded
-    const existingScript = document.querySelector('script[src*="recaptcha"]') as HTMLScriptElement | null;
-
-    // Prefer Enterprise if present
+    // Wait for grecaptcha.enterprise to be ready
     if (window.grecaptcha?.enterprise?.ready) {
-      window.grecaptcha.enterprise.ready(renderRecaptcha);
-      return;
-    }
-
-    if (window.grecaptcha?.ready) {
-      window.grecaptcha.ready(renderRecaptcha);
-      return;
-    }
-
-    if (existingScript) {
-      // Script exists but not initialized yet
-      existingScript.addEventListener('load', renderRecaptcha, { once: true });
-      return;
-    }
-
-    // Load the reCAPTCHA script (fallback if not already present)
-    const script = document.createElement('script');
-    script.src = 'https://www.google.com/recaptcha/enterprise.js';
-    script.async = true;
-    script.defer = true;
-
-    script.onload = renderRecaptcha;
-
-    script.onerror = () => {
-      setError('Failed to load security verification. Please check your connection.');
-      setIsLoading(false);
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup
-      const grecaptchaApi = window.grecaptcha?.enterprise ?? window.grecaptcha;
-      if (widgetIdRef.current !== null && grecaptchaApi?.reset) {
-        try {
-          grecaptchaApi.reset(widgetIdRef.current);
-        } catch (e) {
-          // Ignore cleanup errors
+      window.grecaptcha.enterprise.ready(renderWidget);
+    } else {
+      // Poll until ready
+      const interval = setInterval(() => {
+        if (window.grecaptcha?.enterprise?.ready) {
+          clearInterval(interval);
+          window.grecaptcha.enterprise.ready(renderWidget);
         }
-      }
-    };
-  }, [isRendered, retryCount]);
+      }, 100);
+
+      // Timeout after 10 seconds
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+        if (widgetIdRef.current === null) {
+          setError('Security verification timed out. Please refresh.');
+          setIsLoading(false);
+        }
+      }, 10000);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, [action]);
 
   if (error) {
     return (
@@ -209,7 +148,7 @@ export const GoogleRecaptcha = ({ onVerify, className = "" }: GoogleRecaptchaPro
           </div>
         )}
         <div 
-          ref={containerRef} 
+          ref={containerRef}
           className={isLoading ? 'hidden' : ''}
         />
       </div>
