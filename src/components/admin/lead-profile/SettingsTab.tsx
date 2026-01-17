@@ -56,7 +56,30 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
 
       if (updateError) throw updateError;
 
-      toast({ title: 'Access code generated', description: `Code: ${codeData}` });
+      // Send credentials email to client
+      const portalUrl = `${window.location.origin}/client`;
+      const { error: emailError } = await supabase.functions.invoke('send-client-credentials', {
+        body: {
+          clientName: lead.name || '',
+          clientEmail: lead.email,
+          accessCode: codeData,
+          portalUrl
+        }
+      });
+
+      if (emailError) {
+        console.error('Failed to send credentials email:', emailError);
+        toast({ 
+          title: 'Access code generated', 
+          description: `Code: ${codeData}. Note: Email could not be sent.`,
+          variant: 'default'
+        });
+      } else {
+        toast({ 
+          title: 'Access code generated & emailed', 
+          description: `Code sent to ${lead.email}` 
+        });
+      }
       
       if (onLeadUpdate && updatedLead) {
         onLeadUpdate(updatedLead);

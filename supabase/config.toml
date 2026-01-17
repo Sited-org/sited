@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.verify-admin-otp]
 verify_jwt = false
+
+[functions.send-client-credentials]
+verify_jwt = true
