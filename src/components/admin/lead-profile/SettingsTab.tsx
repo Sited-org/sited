@@ -57,7 +57,7 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
       if (updateError) throw updateError;
 
       // Send credentials email to client
-      const portalUrl = `${window.location.origin}/client`;
+      const portalUrl = 'https://sited.co/client-portal';
       const { error: emailError } = await supabase.functions.invoke('send-client-credentials', {
         body: {
           clientName: lead.name || '',
