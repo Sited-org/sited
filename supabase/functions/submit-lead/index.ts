@@ -100,19 +100,19 @@ async function verifyMathCaptcha(
 
 // reCAPTCHA Enterprise verification
 const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAJ4fnEykeEgrL-7XiMzZWwYrf-VT";
+const RECAPTCHA_PROJECT_ID = "sited-1768462576172";
 
 async function verifyGoogleRecaptcha(token: string, expectedAction: string = "LOGIN"): Promise<boolean> {
   const apiKey = Deno.env.get('RECAPTCHA_API_KEY');
-  const projectId = Deno.env.get('RECAPTCHA_PROJECT_ID');
   
-  if (!apiKey || !projectId) {
-    console.error('RECAPTCHA_API_KEY or RECAPTCHA_PROJECT_ID not configured');
+  if (!apiKey) {
+    console.error('RECAPTCHA_API_KEY not configured');
     return false;
   }
 
   try {
     // reCAPTCHA Enterprise API endpoint
-    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${apiKey}`;
+    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${RECAPTCHA_PROJECT_ID}/assessments?key=${apiKey}`;
     
     const requestBody = {
       event: {
