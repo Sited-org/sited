@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 
 // reCAPTCHA site key - this is a publishable key
-const RECAPTCHA_SITE_KEY = "6LcXJqMqAAAAAApg1f6hHZ2XGPFJ0CSlLZYQNlgH";
+const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAAEGC4rJcbcoNEF2ycS8-WmAyqgA";
 
 interface GoogleRecaptchaProps {
   onVerify: (token: string | null) => void;
