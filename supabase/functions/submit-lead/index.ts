@@ -98,28 +98,67 @@ async function verifyMathCaptcha(
   return true;
 }
 
-async function verifyGoogleRecaptcha(token: string): Promise<boolean> {
-  const secretKey = Deno.env.get('RECAPTCHA_SECRET_KEY');
-  if (!secretKey) {
-    console.error('RECAPTCHA_SECRET_KEY not configured');
+// reCAPTCHA Enterprise verification
+const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAJ4fnEykeEgrL-7XiMzZWwYrf-VT";
+
+async function verifyGoogleRecaptcha(token: string, expectedAction: string = "LOGIN"): Promise<boolean> {
+  const apiKey = Deno.env.get('RECAPTCHA_API_KEY');
+  const projectId = Deno.env.get('RECAPTCHA_PROJECT_ID');
+  
+  if (!apiKey || !projectId) {
+    console.error('RECAPTCHA_API_KEY or RECAPTCHA_PROJECT_ID not configured');
     return false;
   }
 
   try {
-    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    // reCAPTCHA Enterprise API endpoint
+    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${projectId}/assessments?key=${apiKey}`;
+    
+    const requestBody = {
+      event: {
+        token: token,
+        expectedAction: expectedAction,
+        siteKey: RECAPTCHA_SITE_KEY,
+      }
+    };
+
+    console.log('Sending reCAPTCHA Enterprise assessment request');
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: `secret=${secretKey}&response=${token}`,
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
-    console.log('reCAPTCHA verification result:', result);
+    console.log('reCAPTCHA Enterprise assessment result:', JSON.stringify(result));
     
-    return result.success === true;
+    // Check if token is valid
+    if (!result.tokenProperties?.valid) {
+      console.error('Invalid reCAPTCHA token:', result.tokenProperties?.invalidReason);
+      return false;
+    }
+    
+    // Check if action matches
+    if (result.tokenProperties?.action !== expectedAction) {
+      console.error('Action mismatch:', result.tokenProperties?.action, '!==', expectedAction);
+      return false;
+    }
+    
+    // Check risk score (0.0 is bad, 1.0 is good) - allow scores >= 0.5
+    const score = result.riskAnalysis?.score ?? 0;
+    console.log('reCAPTCHA risk score:', score);
+    
+    if (score < 0.5) {
+      console.error('Low reCAPTCHA score:', score);
+      return false;
+    }
+    
+    return true;
   } catch (error) {
-    console.error('reCAPTCHA verification error:', error);
+    console.error('reCAPTCHA Enterprise verification error:', error);
     return false;
   }
 }
