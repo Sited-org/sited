@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,6 @@ import {
   Server,
   RotateCcw,
   ArrowRight,
-  X
 } from 'lucide-react';
 import {
   Dialog,
@@ -23,6 +22,7 @@ import {
   useProjectMilestones, 
   ProjectMilestone, 
   MilestoneStatus,
+  FRONTEND_MILESTONES,
 } from '@/hooks/useProjectMilestones';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 
@@ -85,8 +85,17 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
   const [selectedMilestone, setSelectedMilestone] = useState<ProjectMilestone | null>(null);
   const [note, setNote] = useState('');
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   const showBackendLine = hasBackendMilestones || needsBackend(lead.form_data);
+
+  // Auto-initialize frontend milestones if they don't exist
+  useEffect(() => {
+    if (!loading && !hasFrontendMilestones && !hasInitialized) {
+      setHasInitialized(true);
+      initializeFrontendMilestones();
+    }
+  }, [loading, hasFrontendMilestones, hasInitialized, initializeFrontendMilestones]);
 
   const handleMilestoneClick = (milestone: ProjectMilestone) => {
     if (!canEdit) return;
@@ -223,25 +232,6 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     label: string;
   }) => {
     if (milestones.length === 0) {
-      // Show initialize button if no milestones
-      if (category === 'frontend' && canEdit) {
-        return (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 w-24 shrink-0">
-              <Icon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={initializeFrontendMilestones}
-              className="h-7 text-xs"
-            >
-              Start Project
-            </Button>
-          </div>
-        );
-      }
       return null;
     }
 
