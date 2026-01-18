@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Globe, 
@@ -11,9 +10,6 @@ import {
   ArrowRight,
   Clock,
   ChevronDown,
-  CheckCircle2,
-  Circle,
-  Loader2,
   Server
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -81,7 +77,6 @@ export function ClientOverviewTab({
   onNavigate 
 }: ClientOverviewTabProps) {
   const [expandedUpdates, setExpandedUpdates] = useState<Record<string, boolean>>({});
-  const [milestonesExpanded, setMilestonesExpanded] = useState(true);
   
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalDue = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
@@ -109,17 +104,6 @@ export function ClientOverviewTab({
   const totalCompleted = completedFrontend + completedBackend;
   const overallProgress = totalMilestones > 0 ? Math.round((totalCompleted / totalMilestones) * 100) : 0;
   
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-3 w-3 text-green-500" />;
-      case 'in_progress':
-        return <Loader2 className="h-3 w-3 animate-spin text-primary" />;
-      default:
-        return <Circle className="h-3 w-3 text-muted-foreground" />;
-    }
-  };
-  
   const toggleUpdate = (id: string) => {
     setExpandedUpdates(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -140,77 +124,58 @@ export function ClientOverviewTab({
         </p>
       </div>
 
-      {/* Project Progress */}
+      {/* Project Progress - Compact horizontal timeline */}
       {hasMilestones && (
         <Card>
-          <Collapsible open={milestonesExpanded} onOpenChange={setMilestonesExpanded}>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="pb-3 cursor-pointer">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Globe className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">Build Progress</CardTitle>
-                      <CardDescription className="text-xs">{overallProgress}% complete</CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Progress value={overallProgress} className="w-20 h-2" />
-                    <ChevronDown className={`h-4 w-4 transition-transform ${milestonesExpanded ? 'rotate-180' : ''}`} />
-                  </div>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Build Progress</span>
+              </div>
+              <span className="text-xs text-muted-foreground">{overallProgress}% complete</span>
+            </div>
+            
+            {/* Frontend mini timeline */}
+            {frontendMilestones.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Website</span>
+                  <span>{frontendProgress}%</span>
                 </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0 space-y-4">
-                {/* Frontend */}
-                {frontendMilestones.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-muted-foreground">Website</span>
-                      <span className="text-xs text-muted-foreground">{frontendProgress}%</span>
-                    </div>
-                    <div className="space-y-1">
-                      {frontendMilestones.map(m => (
-                        <div key={m.id} className="flex items-center gap-2 text-sm">
-                          {getStatusIcon(m.status)}
-                          <span className={m.status === 'completed' ? 'text-muted-foreground line-through' : m.status === 'in_progress' ? 'font-medium' : ''}>
-                            {m.title}
-                          </span>
-                          {m.status === 'in_progress' && <Badge variant="secondary" className="text-[10px] h-4">Current</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Backend */}
-                {backendMilestones.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                        <Server className="h-3 w-3" /> Backend
-                      </span>
-                      <span className="text-xs text-muted-foreground">{backendProgress}%</span>
-                    </div>
-                    <div className="space-y-1">
-                      {backendMilestones.map(m => (
-                        <div key={m.id} className="flex items-center gap-2 text-sm">
-                          {getStatusIcon(m.status)}
-                          <span className={m.status === 'completed' ? 'text-muted-foreground line-through' : m.status === 'in_progress' ? 'font-medium' : ''}>
-                            {m.title}
-                          </span>
-                          {m.status === 'in_progress' && <Badge variant="secondary" className="text-[10px] h-4">Current</Badge>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
+                <div className="relative h-2">
+                  <div className="absolute inset-0 bg-muted rounded-full" />
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${frontendProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Backend mini timeline */}
+            {backendMilestones.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Server className="h-3 w-3" /> Backend
+                  </span>
+                  <span>{backendProgress}%</span>
+                </div>
+                <div className="relative h-2">
+                  <div className="absolute inset-0 bg-muted rounded-full" />
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 bg-green-500 rounded-full transition-all duration-500"
+                    style={{ width: `${backendProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <Button variant="ghost" size="sm" className="w-full" onClick={() => onNavigate('project')}>
+              View Details <ArrowRight className="h-3 w-3 ml-1" />
+            </Button>
+          </CardContent>
         </Card>
       )}
 
