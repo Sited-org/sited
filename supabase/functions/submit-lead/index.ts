@@ -12,7 +12,7 @@ const corsHeaders = {
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 lead submissions per hour per IP
 
-// Validation schema - supports both old math captcha and new Google reCAPTCHA
+// Validation schema
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
   email: z.string().trim().email("Invalid email").max(255, "Email too long"),
@@ -20,11 +20,6 @@ const leadSchema = z.object({
   business_name: z.string().trim().max(200, "Business name too long").optional().nullable(),
   project_type: z.string().trim().min(1, "Project type is required").max(50),
   form_data: z.record(z.unknown()),
-  // Old math captcha fields (optional for backwards compatibility)
-  captcha_token: z.string().optional().nullable(),
-  captcha_answer: z.number().int().optional().nullable(),
-  // New Google reCAPTCHA token
-  recaptcha_token: z.string().optional().nullable(),
 });
 
 async function checkRateLimit(
@@ -70,97 +65,6 @@ async function checkRateLimit(
     });
 
   return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
-}
-
-async function verifyMathCaptcha(
-  supabase: any,
-  token: string,
-  answer: number
-): Promise<boolean> {
-  const { data: challenge } = await supabase
-    .from('captcha_challenges')
-    .select('*')
-    .eq('token', token)
-    .eq('used', false)
-    .gt('expires_at', new Date().toISOString())
-    .single();
-
-  if (!challenge || challenge.answer !== answer) {
-    return false;
-  }
-
-  // Mark as used
-  await supabase
-    .from('captcha_challenges')
-    .update({ used: true })
-    .eq('token', token);
-
-  return true;
-}
-
-// reCAPTCHA Enterprise verification
-const RECAPTCHA_SITE_KEY = "6LfySkssAAAAAJ4fnEykeEgrL-7XiMzZWwYrf-VT";
-const RECAPTCHA_PROJECT_ID = "sited-1768462576172";
-
-async function verifyGoogleRecaptcha(token: string, expectedAction: string = "LOGIN"): Promise<boolean> {
-  const apiKey = Deno.env.get('RECAPTCHA_API_KEY');
-  
-  if (!apiKey) {
-    console.error('RECAPTCHA_API_KEY not configured');
-    return false;
-  }
-
-  try {
-    // reCAPTCHA Enterprise API endpoint
-    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${RECAPTCHA_PROJECT_ID}/assessments?key=${apiKey}`;
-    
-    const requestBody = {
-      event: {
-        token: token,
-        expectedAction: expectedAction,
-        siteKey: RECAPTCHA_SITE_KEY,
-      }
-    };
-
-    console.log('Sending reCAPTCHA Enterprise assessment request');
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const result = await response.json();
-    console.log('reCAPTCHA Enterprise assessment result:', JSON.stringify(result));
-    
-    // Check if token is valid
-    if (!result.tokenProperties?.valid) {
-      console.error('Invalid reCAPTCHA token:', result.tokenProperties?.invalidReason);
-      return false;
-    }
-    
-    // Check if action matches
-    if (result.tokenProperties?.action !== expectedAction) {
-      console.error('Action mismatch:', result.tokenProperties?.action, '!==', expectedAction);
-      return false;
-    }
-    
-    // Check risk score (0.0 is bad, 1.0 is good) - allow scores >= 0.5
-    const score = result.riskAnalysis?.score ?? 0;
-    console.log('reCAPTCHA risk score:', score);
-    
-    if (score < 0.5) {
-      console.error('Low reCAPTCHA score:', score);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('reCAPTCHA Enterprise verification error:', error);
-    return false;
-  }
 }
 
 serve(async (req) => {
@@ -211,28 +115,7 @@ serve(async (req) => {
       );
     }
 
-    const { name, email, phone, business_name, project_type, form_data, captcha_token, captcha_answer, recaptcha_token } = validationResult.data;
-
-    // Verify CAPTCHA - support both Google reCAPTCHA and legacy math captcha
-    let captchaValid = false;
-    
-    if (recaptcha_token) {
-      // Use Google reCAPTCHA
-      captchaValid = await verifyGoogleRecaptcha(recaptcha_token);
-      console.log('Google reCAPTCHA verification:', captchaValid);
-    } else if (captcha_token && captcha_answer !== null && captcha_answer !== undefined) {
-      // Fallback to legacy math captcha
-      captchaValid = await verifyMathCaptcha(supabase, captcha_token, captcha_answer);
-      console.log('Math CAPTCHA verification:', captchaValid);
-    }
-    
-    if (!captchaValid) {
-      console.log('CAPTCHA verification failed');
-      return new Response(
-        JSON.stringify({ error: 'Security verification failed. Please try again.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { name, email, phone, business_name, project_type, form_data } = validationResult.data;
 
     // Insert lead
     const { data: lead, error: insertError } = await supabase

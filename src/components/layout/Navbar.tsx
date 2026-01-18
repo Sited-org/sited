@@ -113,7 +113,7 @@ export const Navbar = () => {
 
           <div className="hidden md:block">
             <Button variant="hero" size="sm" asChild>
-              <Link to="/contact">Start a Project</Link>
+              <Link to="/onboarding/website">Start a Project</Link>
             </Button>
           </div>
 
@@ -171,7 +171,7 @@ export const Navbar = () => {
                 transition={{ delay: 0.3 }}
               >
                 <Button variant="hero" size="lg" asChild>
-                  <Link to="/contact">Start a Project</Link>
+                  <Link to="/onboarding/website">Start a Project</Link>
                 </Button>
               </motion.div>
             </motion.nav>

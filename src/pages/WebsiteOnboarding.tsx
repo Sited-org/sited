@@ -11,7 +11,6 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Globe, Upload } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { GoogleRecaptcha } from "@/components/GoogleRecaptcha";
 import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
 
 const steps = [
@@ -25,7 +24,7 @@ const steps = [
 
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const { isSubmitting, captchaVerified, handleRecaptchaVerify, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
+  const { isSubmitting, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
     fullName: "",
@@ -999,8 +998,6 @@ const WebsiteOnboarding = () => {
                   />
                 </div>
                 
-                {/* Google reCAPTCHA */}
-                <GoogleRecaptcha onVerify={handleRecaptchaVerify} />
               </div>
             )}
 
@@ -1024,7 +1021,7 @@ const WebsiteOnboarding = () => {
                 <Button
                   variant="hero"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || !captchaVerified}
+                  disabled={isSubmitting}
                   className="gap-2"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Project Request"}

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, MapPin, ArrowRight, Globe, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { Mail, MapPin, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -157,56 +157,23 @@ const Contact = () => {
                 </div>
               </ScrollReveal>
 
-              {/* Large Website Project CTA Block */}
+              {/* Minimalist Website CTA */}
               <ScrollReveal delay={0.2}>
                 <Link to="/onboarding/website">
                   <motion.div
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="relative overflow-hidden bg-foreground text-background rounded-xl sm:rounded-2xl p-6 sm:p-8 cursor-pointer group"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="bg-foreground text-background rounded-xl p-6 cursor-pointer group"
                   >
-                    {/* Decorative gradient */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-background/10 to-transparent rounded-full blur-2xl" />
-                    
-                    <div className="relative">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-background/10 flex items-center justify-center">
-                          <Globe size={24} className="text-background" />
-                        </div>
-                        <div>
-                          <span className="text-xs font-medium text-background/60 uppercase tracking-wider">
-                            Ready to start?
-                          </span>
-                          <h3 className="text-xl sm:text-2xl font-semibold text-background">
-                            Website Project
-                          </h3>
-                        </div>
-                      </div>
-                      
-                      <p className="text-background/80 mb-6 text-sm sm:text-base">
-                        Fill out our detailed brief and let us bring your vision to life. 
-                        Get a stunning, high-performance website built by experts.
-                      </p>
-                      
-                      <div className="flex flex-wrap gap-4 mb-6 text-sm">
-                        <div className="flex items-center gap-1.5 text-background/70">
-                          <CheckCircle2 size={14} />
-                          <span>Custom design</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-background/70">
-                          <Clock size={14} />
-                          <span>2 week delivery</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-background/70">
-                          <Sparkles size={14} />
-                          <span>Premium quality</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-background font-medium group-hover:gap-3 transition-all">
-                        Start Your Project
-                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                      </div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Ready to build your website?
+                    </h3>
+                    <p className="text-background/70 text-sm mb-4">
+                      Tell us about your project and we'll handle the rest.
+                    </p>
+                    <div className="flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
+                      Start Your Project
+                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                     </div>
                   </motion.div>
                 </Link>
