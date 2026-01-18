@@ -5,25 +5,25 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-neutral-800/70 dark:bg-neutral-700/70 text-white backdrop-blur-xl border border-white/10 hover:bg-neutral-700/80 dark:hover:bg-neutral-600/80 shadow-lg shadow-black/20",
-        destructive: "bg-red-900/70 text-white backdrop-blur-xl border border-red-500/20 hover:bg-red-800/80 shadow-lg shadow-red-900/20",
-        outline: "border border-neutral-300/40 dark:border-white/10 bg-neutral-100/30 dark:bg-neutral-800/30 backdrop-blur-xl text-foreground hover:bg-neutral-200/40 dark:hover:bg-neutral-700/40",
-        secondary: "bg-neutral-200/40 dark:bg-neutral-700/40 text-foreground backdrop-blur-xl border border-neutral-300/30 dark:border-white/10 hover:bg-neutral-300/50 dark:hover:bg-neutral-600/50",
-        ghost: "hover:bg-neutral-200/30 dark:hover:bg-neutral-700/30 backdrop-blur-lg text-foreground",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-soft hover:shadow-elevated",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-border bg-transparent hover:bg-secondary hover:text-secondary-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-secondary hover:text-secondary-foreground",
         link: "text-foreground underline-offset-4 hover:underline",
-        hero: "bg-neutral-800/75 dark:bg-neutral-700/75 text-white backdrop-blur-xl border border-white/15 hover:bg-neutral-700/85 dark:hover:bg-neutral-600/85 shadow-xl shadow-black/25 hover:scale-[1.02]",
-        "hero-outline": "border border-neutral-400/40 dark:border-white/20 bg-neutral-100/30 dark:bg-neutral-800/30 backdrop-blur-xl text-foreground hover:bg-neutral-200/50 dark:hover:bg-neutral-700/50",
-        glass: "bg-neutral-800/60 dark:bg-neutral-700/60 text-white backdrop-blur-xl border border-white/10 hover:bg-neutral-700/70 dark:hover:bg-neutral-600/70 shadow-lg shadow-black/20",
+        mint: "bg-accent text-accent-foreground hover:bg-accent/80 shadow-soft",
+        hero: "bg-foreground text-background hover:bg-foreground/90 shadow-elevated hover:scale-105",
+        "hero-outline": "border-2 border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background",
       },
       size: {
         default: "h-10 px-5 py-2",
-        sm: "h-9 rounded-lg px-4",
-        lg: "h-12 rounded-xl px-8 text-base",
-        xl: "h-14 rounded-2xl px-10 text-lg",
+        sm: "h-9 rounded-md px-4",
+        lg: "h-12 rounded-lg px-8 text-base",
+        xl: "h-14 rounded-xl px-10 text-lg",
         icon: "h-10 w-10",
       },
     },
