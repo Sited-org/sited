@@ -77,7 +77,7 @@ export const Navbar = () => {
         className={cn(
           "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
           isScrolled
-            ? "glass border-b border-border/50 py-4"
+            ? "bg-white/70 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-white/50 dark:border-white/10 py-4 shadow-lg shadow-black/5 dark:shadow-black/20"
             : "bg-transparent py-6"
         )}
       >
