@@ -507,98 +507,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
           </CardContent>
         </Card>
 
-        {/* AI Prompt Generator */}
-        {canEdit && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                AI Prompt Generator
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Generate an AI prompt for this project based on form data. Add context and design suggestions to customize the output.
-              </p>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Additional Context</label>
-                  <Textarea
-                    placeholder="Add any additional context about the client or project (e.g., 'Client wants a minimalist feel', 'Focus on their premium service')..."
-                    value={promptContext}
-                    onChange={(e) => setPromptContext(e.target.value)}
-                    rows={3}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Design Suggestions</label>
-                  <Textarea
-                    placeholder="Add design preferences (e.g., 'Dark mode, bold typography, hero video section', 'Earthy colors, organic shapes')..."
-                    value={designSuggestions}
-                    onChange={(e) => setDesignSuggestions(e.target.value)}
-                    rows={3}
-                    className="mt-1"
-                  />
-                </div>
-
-                <Button 
-                  onClick={handleGeneratePrompt} 
-                  disabled={isGeneratingPrompt}
-                  className="w-full"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  {isGeneratingPrompt ? 'Generating...' : 'Generate AI Prompt'}
-                </Button>
-              </div>
-
-              {/* Research Insights */}
-              {researchInsights && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Research Insights</h4>
-                  <div className="bg-muted/30 rounded-lg p-4 text-sm max-h-48 overflow-y-auto whitespace-pre-wrap">
-                    {researchInsights}
-                  </div>
-                </div>
-              )}
-
-              {/* Generated Prompt */}
-              {generatedPrompt && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-medium">Generated Prompt</h4>
-                      {promptGeneratedAt && (
-                        <span className="text-xs text-muted-foreground">
-                          (saved {format(new Date(promptGeneratedAt), 'PP')})
-                        </span>
-                      )}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={copyPromptToClipboard}>
-                      {promptCopied ? (
-                        <>
-                          <Check className="h-4 w-4 mr-1" />
-                          Copied
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-4 text-sm max-h-96 overflow-y-auto whitespace-pre-wrap border">
-                    {generatedPrompt}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Project Information */}
         <Card>
           <CardHeader>
@@ -689,6 +597,109 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
             )}
           </CardContent>
         </Card>
+
+        {/* Generated Prompt Display - Always show if prompt exists */}
+        {generatedPrompt && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                AI Website Brief
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Research Insights */}
+              {researchInsights && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">Research Insights</h4>
+                  <div className="bg-muted/30 rounded-lg p-4 text-sm max-h-48 overflow-y-auto whitespace-pre-wrap">
+                    {researchInsights}
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Prompt */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-medium">Generated Prompt</h4>
+                    {promptGeneratedAt && (
+                      <span className="text-xs text-muted-foreground">
+                        (generated {format(new Date(promptGeneratedAt), 'PP')})
+                      </span>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={copyPromptToClipboard}>
+                    {promptCopied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-4 text-sm max-h-96 overflow-y-auto whitespace-pre-wrap border">
+                  {generatedPrompt}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Prompt Generator - Only show if no prompt generated yet */}
+        {canEdit && !generatedPrompt && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                AI Prompt Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Generate an AI prompt for this project based on form data. Add context and design suggestions to customize the output.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Additional Context</label>
+                  <Textarea
+                    placeholder="Add any additional context about the client or project (e.g., 'Client wants a minimalist feel', 'Focus on their premium service')..."
+                    value={promptContext}
+                    onChange={(e) => setPromptContext(e.target.value)}
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Design Suggestions</label>
+                  <Textarea
+                    placeholder="Add design preferences (e.g., 'Dark mode, bold typography, hero video section', 'Earthy colors, organic shapes')..."
+                    value={designSuggestions}
+                    onChange={(e) => setDesignSuggestions(e.target.value)}
+                    rows={3}
+                    className="mt-1"
+                  />
+                </div>
+
+                <Button 
+                  onClick={handleGeneratePrompt} 
+                  disabled={isGeneratingPrompt}
+                  className="w-full"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  {isGeneratingPrompt ? 'Generating...' : 'Generate AI Prompt'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       </div>
 

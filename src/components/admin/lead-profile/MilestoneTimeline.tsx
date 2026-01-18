@@ -91,11 +91,11 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
 
   // Auto-initialize frontend milestones if they don't exist
   useEffect(() => {
-    if (!loading && !hasFrontendMilestones && !hasInitialized) {
+    if (!loading && !hasFrontendMilestones && !hasInitialized && leadId) {
       setHasInitialized(true);
       initializeFrontendMilestones();
     }
-  }, [loading, hasFrontendMilestones, hasInitialized, initializeFrontendMilestones]);
+  }, [loading, hasFrontendMilestones, hasInitialized, leadId, initializeFrontendMilestones]);
 
   const handleMilestoneClick = (milestone: ProjectMilestone) => {
     if (!canEdit) return;
