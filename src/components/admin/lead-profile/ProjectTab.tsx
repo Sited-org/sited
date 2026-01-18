@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProjectMilestones } from './ProjectMilestones';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -261,6 +262,9 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
+        {/* Project Milestones */}
+        <ProjectMilestones leadId={lead.id} canEdit={canEdit} />
+        
         {/* Tracking Script */}
         {lead.tracking_id && (
           <Card>
