@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type MilestoneCategory = 'frontend' | 'backend';
 export type MilestoneStatus = 'pending' | 'in_progress' | 'completed';
 
-// Frontend milestones (no backend)
-export const FRONTEND_MILESTONES = [
+// Project milestones
+export const PROJECT_MILESTONES = [
   { title: 'Received Form', description: 'Project request received and reviewed' },
   { title: 'Building Initiated', description: 'Development has started' },
   { title: 'V1 Complete', description: 'First version ready for review' },
@@ -16,37 +15,10 @@ export const FRONTEND_MILESTONES = [
   { title: 'Launch', description: 'Website is live' },
 ];
 
-// Backend milestone options
-export const BACKEND_FEATURE_OPTIONS = [
-  'User Authentication',
-  'Database & Data Storage',
-  'Payment Processing',
-  'Email Automation',
-  'API Integrations',
-  'Admin Dashboard',
-  'File Storage',
-  'Analytics',
-  'CRM Integration',
-  'Booking System',
-  'Custom Logic',
-];
-
-export const BACKEND_MILESTONES = [
-  { title: 'Backend Needs Identified', description: 'Required backend features confirmed' },
-  { title: 'Developer Access Granted', description: 'Access credentials shared with dev team' },
-  { title: 'Backend Building Initiated', description: 'Backend development started' },
-  { title: 'Integrations Complete', description: 'All required integrations connected' },
-  { title: 'Backend Testing', description: 'Testing all backend functionality' },
-  { title: 'Security Enhancement', description: 'Security review and hardening' },
-  { title: 'Backend V1 Complete', description: 'Backend ready for final review' },
-  { title: 'Delivery', description: 'Backend fully integrated' },
-  { title: 'Launch', description: 'Full application is live' },
-];
-
 export interface ProjectMilestone {
   id: string;
   lead_id: string;
-  category: MilestoneCategory;
+  category: string;
   title: string;
   description: string | null;
   status: MilestoneStatus;
@@ -68,6 +40,7 @@ export function useProjectMilestones(leadId: string) {
         .from('project_milestones')
         .select('*')
         .eq('lead_id', leadId)
+        .eq('category', 'frontend') // Only fetch frontend milestones
         .order('display_order', { ascending: true });
 
       if (error) throw error;
@@ -85,29 +58,19 @@ export function useProjectMilestones(leadId: string) {
     }
   }, [fetchMilestones, leadId]);
 
-  const frontendMilestones = milestones.filter(m => m.category === 'frontend');
-  const backendMilestones = milestones.filter(m => m.category === 'backend');
-
-  const hasFrontendMilestones = frontendMilestones.length > 0;
-  const hasBackendMilestones = backendMilestones.length > 0;
-
-  const completedFrontend = frontendMilestones.filter(m => m.status === 'completed').length;
-  const completedBackend = backendMilestones.filter(m => m.status === 'completed').length;
-
-  const frontendProgress = frontendMilestones.length > 0 
-    ? Math.round((completedFrontend / frontendMilestones.length) * 100) 
-    : 0;
-  const backendProgress = backendMilestones.length > 0 
-    ? Math.round((completedBackend / backendMilestones.length) * 100) 
+  const hasMilestones = milestones.length > 0;
+  const completedCount = milestones.filter(m => m.status === 'completed').length;
+  const progress = milestones.length > 0 
+    ? Math.round((completedCount / milestones.length) * 100) 
     : 0;
 
-  // Initialize frontend milestones for a project
-  const initializeFrontendMilestones = async () => {
+  // Initialize milestones for a project
+  const initializeMilestones = async () => {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      const milestonesToInsert = FRONTEND_MILESTONES.map((m, index) => ({
+      const milestonesToInsert = PROJECT_MILESTONES.map((m, index) => ({
         lead_id: leadId,
-        category: 'frontend' as MilestoneCategory,
+        category: 'frontend',
         title: m.title,
         description: m.description,
         status: index === 0 ? 'completed' : 'pending' as MilestoneStatus,
@@ -121,43 +84,10 @@ export function useProjectMilestones(leadId: string) {
         .insert(milestonesToInsert);
 
       if (error) throw error;
-      toast({ title: 'Frontend milestones initialized' });
+      toast({ title: 'Milestones initialized' });
       fetchMilestones();
     } catch (error: any) {
       toast({ title: 'Error initializing milestones', description: error.message, variant: 'destructive' });
-    }
-  };
-
-  // Initialize backend milestones for a project
-  const initializeBackendMilestones = async (selectedFeatures: string[]) => {
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      // Create custom description with selected features
-      const featuresDescription = selectedFeatures.length > 0 
-        ? `Features: ${selectedFeatures.join(', ')}`
-        : 'Backend features to be determined';
-
-      const backendMilestonesToInsert = BACKEND_MILESTONES.map((m, index) => ({
-        lead_id: leadId,
-        category: 'backend' as MilestoneCategory,
-        title: m.title,
-        description: index === 0 ? featuresDescription : m.description,
-        status: 'pending' as MilestoneStatus,
-        display_order: index,
-        completed_at: null,
-        created_by: userData.user?.id || null,
-      }));
-
-      const { error } = await supabase
-        .from('project_milestones')
-        .insert(backendMilestonesToInsert);
-
-      if (error) throw error;
-      toast({ title: 'Backend milestones initialized' });
-      fetchMilestones();
-    } catch (error: any) {
-      toast({ title: 'Error initializing backend milestones', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -181,17 +111,17 @@ export function useProjectMilestones(leadId: string) {
     }
   };
 
-  // Delete all milestones for a category
-  const clearMilestones = async (category: MilestoneCategory) => {
+  // Delete all milestones
+  const clearMilestones = async () => {
     try {
       const { error } = await supabase
         .from('project_milestones')
         .delete()
         .eq('lead_id', leadId)
-        .eq('category', category);
+        .eq('category', 'frontend');
 
       if (error) throw error;
-      toast({ title: `${category === 'frontend' ? 'Frontend' : 'Backend'} milestones cleared` });
+      toast({ title: 'Milestones cleared' });
       fetchMilestones();
     } catch (error: any) {
       toast({ title: 'Error clearing milestones', description: error.message, variant: 'destructive' });
@@ -200,16 +130,12 @@ export function useProjectMilestones(leadId: string) {
 
   return {
     milestones,
-    frontendMilestones,
-    backendMilestones,
-    hasFrontendMilestones,
-    hasBackendMilestones,
-    frontendProgress,
-    backendProgress,
+    hasMilestones,
+    completedCount,
+    progress,
     loading,
     refetch: fetchMilestones,
-    initializeFrontendMilestones,
-    initializeBackendMilestones,
+    initializeMilestones,
     updateMilestoneStatus,
     clearMilestones,
   };
