@@ -93,13 +93,20 @@ export function useTransactions(leadId: string | undefined) {
     if (error) {
       toast({ title: 'Error fetching transactions', description: error.message, variant: 'destructive' });
     } else {
+      const today = startOfDay(new Date());
       setTransactions((data || []) as Transaction[]);
       // Exclude voided transactions from totals (both VOID entries and transactions marked as voided)
+      // Only count debits where transaction_date <= today (past or current charges)
       const nonVoidedTransactions = (data || []).filter(t => 
         !t.item.startsWith('VOID:') && !t.notes?.includes('[VOIDED:')
       );
       setTotalCredit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.credit), 0));
-      setTotalDebit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.debit), 0));
+      // Only include debits that are due (transaction_date <= today)
+      setTotalDebit(nonVoidedTransactions.reduce((sum, t) => {
+        const transactionDate = startOfDay(new Date(t.transaction_date));
+        const isDue = !isAfter(transactionDate, today);
+        return sum + (isDue ? Number(t.debit) : 0);
+      }, 0));
     }
     setLoading(false);
   }, [leadId, toast]);
@@ -122,16 +129,20 @@ export function useTransactions(leadId: string | undefined) {
     
     // Combine and sort all transactions
     const allTransactions: TransactionWithBalance[] = [
-      ...transactions.map(t => ({ 
-        ...t, 
-        balance: 0, 
-        isFuture: false,
-        status: t.status as 'completed' | 'pending' | 'scheduled'
-      })),
+      ...transactions.map(t => {
+        const transactionDate = startOfDay(new Date(t.transaction_date));
+        const isFutureCharge = isAfter(transactionDate, today);
+        return { 
+          ...t, 
+          balance: 0, 
+          isFuture: isFutureCharge, // Mark as future if date is after today
+          status: t.status as 'completed' | 'pending' | 'scheduled'
+        };
+      }),
       ...futureTransactions
     ].sort((a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime());
     
-    // Calculate running balance (only for completed/real transactions)
+    // Calculate running balance (only for due transactions - not future)
     let runningBalance = 0;
     const withBalance = allTransactions.map((t) => {
       if (!t.isFuture) {
