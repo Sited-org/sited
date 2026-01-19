@@ -129,15 +129,88 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     }
   };
 
-  // Train-rail style timeline row
+  // Milestone stop component
+  const MilestoneStop = ({ 
+    milestone, 
+    milestones, 
+    idx, 
+    currentIdx,
+    showRailAfter,
+    isWrapping = false,
+  }: { 
+    milestone: ProjectMilestone; 
+    milestones: ProjectMilestone[];
+    idx: number;
+    currentIdx: number;
+    showRailAfter: boolean;
+    isWrapping?: boolean;
+  }) => {
+    const isCompleted = milestone.status === 'completed';
+    const isCurrent = idx === currentIdx && !isCompleted;
+    const isPast = isCompleted;
+    const isClickable = canEdit && !isCompleted && idx === currentIdx;
+
+    return (
+      <div className={cn("flex items-center", !isWrapping && "flex-1 last:flex-none")}>
+        {/* Stop/Station */}
+        <button
+          onClick={() => handleMilestoneClick(milestone, milestones)}
+          disabled={!isClickable}
+          className={cn(
+            "relative flex flex-col items-center",
+            isClickable ? "cursor-pointer" : "cursor-default"
+          )}
+        >
+          {/* Dot */}
+          <div
+            className={cn(
+              "w-4 h-4 rounded-full border-2 transition-all z-10",
+              isCompleted && "bg-green-500 border-green-500",
+              isCurrent && "bg-primary border-primary ring-4 ring-primary/20",
+              !isCompleted && !isCurrent && "bg-background border-muted-foreground/40",
+              isClickable && "hover:scale-125"
+            )}
+          >
+            {isCompleted && (
+              <Check className="h-2.5 w-2.5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            )}
+          </div>
+          
+          {/* Label below dot - always visible, no truncation */}
+          <span 
+            className={cn(
+              "absolute top-6 text-[10px] whitespace-nowrap text-center",
+              isCompleted && "text-green-600 font-medium",
+              isCurrent && "text-primary font-semibold",
+              !isCompleted && !isCurrent && "text-muted-foreground"
+            )}
+          >
+            {milestone.title}
+          </span>
+        </button>
+        
+        {/* Rail after station */}
+        {showRailAfter && (
+          <div className={cn("h-0.5 mx-1", isWrapping ? "w-8" : "flex-1")}>
+            <div 
+              className={cn(
+                "h-full transition-colors",
+                isPast ? "bg-green-500" : "bg-muted-foreground/20"
+              )}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Train-rail style timeline row (single line for frontend)
   const TrainRailTimeline = ({ 
     milestones, 
-    category, 
     icon: Icon, 
     label 
   }: { 
     milestones: ProjectMilestone[]; 
-    category: 'frontend' | 'backend';
     icon: typeof Globe;
     label: string;
   }) => {
@@ -153,70 +226,98 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
           <span className="text-sm font-medium text-muted-foreground">{label}</span>
         </div>
         
-        {/* Train Rail */}
+        {/* Train Rail - single line */}
         <div className="relative flex items-center pt-1 pb-8">
-          {milestones.map((milestone, idx) => {
-            const isCompleted = milestone.status === 'completed';
-            const isCurrent = idx === currentIdx && !isCompleted;
-            const isPast = isCompleted;
-            // Can only click the next pending milestone
-            const isClickable = canEdit && !isCompleted && idx === currentIdx;
-            
-            return (
-              <div key={milestone.id} className="flex items-center flex-1 last:flex-none">
-                {/* Stop/Station */}
-                <button
-                  onClick={() => handleMilestoneClick(milestone, milestones)}
-                  disabled={!isClickable}
-                  className={cn(
-                    "relative flex flex-col items-center",
-                    isClickable ? "cursor-pointer" : "cursor-default"
-                  )}
-                >
-                  {/* Dot */}
-                  <div
-                    className={cn(
-                      "w-4 h-4 rounded-full border-2 transition-all z-10",
-                      isCompleted && "bg-green-500 border-green-500",
-                      isCurrent && "bg-primary border-primary ring-4 ring-primary/20",
-                      !isCompleted && !isCurrent && "bg-background border-muted-foreground/40",
-                      isClickable && "hover:scale-125"
-                    )}
-                  >
-                    {isCompleted && (
-                      <Check className="h-2.5 w-2.5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                    )}
-                  </div>
-                  
-                  {/* Label below dot - always visible */}
-                  <span 
-                    className={cn(
-                      "absolute top-6 text-[10px] whitespace-nowrap max-w-[80px] truncate text-center",
-                      isCompleted && "text-green-600 font-medium",
-                      isCurrent && "text-primary font-semibold",
-                      !isCompleted && !isCurrent && "text-muted-foreground"
-                    )}
-                    title={milestone.title}
-                  >
-                    {milestone.title}
-                  </span>
-                </button>
-                
-                {/* Rail between stations */}
-                {idx < milestones.length - 1 && (
-                  <div className="flex-1 h-0.5 mx-1">
-                    <div 
-                      className={cn(
-                        "h-full transition-colors",
-                        isPast ? "bg-green-500" : "bg-muted-foreground/20"
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {milestones.map((milestone, idx) => (
+            <MilestoneStop
+              key={milestone.id}
+              milestone={milestone}
+              milestones={milestones}
+              idx={idx}
+              currentIdx={currentIdx}
+              showRailAfter={idx < milestones.length - 1}
+            />
+          ))}
         </div>
+      </div>
+    );
+  };
+
+  // Wrapping train-rail for backend (splits into two rows)
+  const WrappingTrainRailTimeline = ({ 
+    milestones, 
+    icon: Icon, 
+    label 
+  }: { 
+    milestones: ProjectMilestone[]; 
+    icon: typeof Globe;
+    label: string;
+  }) => {
+    if (milestones.length === 0) return null;
+
+    const currentIdx = getCurrentIndex(milestones);
+    
+    // Split milestones into two rows (first 5, rest on second row)
+    const splitAt = 5;
+    const firstRow = milestones.slice(0, splitAt);
+    const secondRow = milestones.slice(splitAt);
+    const hasSecondRow = secondRow.length > 0;
+
+    // Check if the last item in first row is completed (for connector styling)
+    const lastFirstRowCompleted = firstRow[firstRow.length - 1]?.status === 'completed';
+
+    return (
+      <div className="space-y-2">
+        {/* Label */}
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        </div>
+        
+        {/* First Row */}
+        <div className="relative flex items-center pt-1 pb-8">
+          {firstRow.map((milestone, idx) => (
+            <MilestoneStop
+              key={milestone.id}
+              milestone={milestone}
+              milestones={milestones}
+              idx={idx}
+              currentIdx={currentIdx}
+              showRailAfter={idx < firstRow.length - 1}
+            />
+          ))}
+          
+          {/* Connector going down to second row */}
+          {hasSecondRow && (
+            <div className="flex items-start ml-1">
+              <div 
+                className={cn(
+                  "w-0.5 h-12 transition-colors",
+                  lastFirstRowCompleted ? "bg-green-500" : "bg-muted-foreground/20"
+                )}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Second Row */}
+        {hasSecondRow && (
+          <div className="relative flex items-center pt-1 pb-8 pl-0">
+            {secondRow.map((milestone, idx) => {
+              const actualIdx = splitAt + idx;
+              return (
+                <MilestoneStop
+                  key={milestone.id}
+                  milestone={milestone}
+                  milestones={milestones}
+                  idx={actualIdx}
+                  currentIdx={currentIdx}
+                  showRailAfter={idx < secondRow.length - 1}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -250,16 +351,14 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
         {/* Frontend Timeline */}
         <TrainRailTimeline 
           milestones={frontendMilestones} 
-          category="frontend"
           icon={Globe} 
           label="Frontend" 
         />
         
-        {/* Backend Timeline */}
+        {/* Backend Timeline - uses wrapping layout */}
         {showBackendLine && hasBackendMilestones && (
-          <TrainRailTimeline 
+          <WrappingTrainRailTimeline 
             milestones={backendMilestones} 
-            category="backend"
             icon={Server} 
             label="Backend" 
           />
