@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Clock, CheckCircle2, Circle, Loader2, Globe, Server, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import {
   Collapsible,
   CollapsibleContent,
@@ -51,54 +52,59 @@ export function ClientProjectTab({ lead, projectUpdates, projectMilestones = [] 
   const hasBackendMilestones = backendMilestones.length > 0;
   const hasMilestones = hasFrontendMilestones || hasBackendMilestones;
 
-  // Calculate progress
-  const getProgress = (milestones: ProjectMilestone[]) => {
-    if (milestones.length === 0) return 0;
-    const completed = milestones.filter(m => m.status === 'completed').length;
-    return Math.round((completed / milestones.length) * 100);
+  // Get current index (first non-completed)
+  const getCurrentIndex = (milestones: ProjectMilestone[]) => {
+    const pendingIdx = milestones.findIndex(m => m.status === 'pending');
+    if (pendingIdx >= 0) return pendingIdx;
+    return milestones.length - 1;
   };
 
-  const frontendProgress = getProgress(frontendMilestones);
-  const backendProgress = getProgress(backendMilestones);
-
-  // Horizontal dot component for client view
-  const MilestoneDot = ({ milestone }: { milestone: ProjectMilestone }) => {
+  // Milestone stop component
+  const MilestoneStop = ({ 
+    milestone, 
+    idx, 
+    currentIdx,
+  }: { 
+    milestone: ProjectMilestone; 
+    idx: number;
+    currentIdx: number;
+  }) => {
     const isCompleted = milestone.status === 'completed';
-    const isInProgress = milestone.status === 'in_progress';
-    
+    const isCurrent = idx === currentIdx && !isCompleted;
+
     return (
-      <div className="flex flex-col items-center relative group">
+      <div className="relative flex flex-col items-center shrink-0 group">
+        {/* Dot */}
         <div
-          className={`
-            w-3.5 h-3.5 rounded-full border-2 transition-all z-10 relative flex items-center justify-center
-            ${isCompleted 
-              ? 'bg-green-500 border-green-500' 
-              : isInProgress 
-                ? 'bg-primary border-primary'
-                : 'bg-background border-muted-foreground/30'
-            }
-          `}
+          className={cn(
+            "w-3.5 h-3.5 rounded-full border-2 transition-all z-10 relative flex items-center justify-center",
+            isCompleted && "bg-green-500 border-green-500",
+            isCurrent && "bg-primary border-primary ring-4 ring-primary/20",
+            !isCompleted && !isCurrent && "bg-background border-muted-foreground/40"
+          )}
         >
           {isCompleted && (
             <Check className="h-2 w-2 text-white" />
           )}
-          {isInProgress && (
-            <Loader2 className="h-2 w-2 text-primary-foreground animate-spin" />
-          )}
         </div>
         
-        {/* Tooltip on hover */}
-        <div className="absolute -bottom-7 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
-          <div className="bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap border">
-            {milestone.title}
-          </div>
-        </div>
+        {/* Label below dot */}
+        <span 
+          className={cn(
+            "absolute top-5 text-[9px] whitespace-nowrap text-center",
+            isCompleted && "text-green-600 font-medium",
+            isCurrent && "text-primary font-semibold",
+            !isCompleted && !isCurrent && "text-muted-foreground"
+          )}
+        >
+          {milestone.title}
+        </span>
       </div>
     );
   };
 
-  // Timeline line component
-  const TimelineLine = ({ 
+  // Single line timeline (for frontend)
+  const TrainRailTimeline = ({ 
     milestones, 
     icon: Icon, 
     label 
@@ -109,42 +115,165 @@ export function ClientProjectTab({ lead, projectUpdates, projectMilestones = [] 
   }) => {
     if (milestones.length === 0) return null;
 
+    const currentIdx = getCurrentIndex(milestones);
     const completedCount = milestones.filter(m => m.status === 'completed').length;
-    const progressPercent = (completedCount / milestones.length) * 100;
-    const currentMilestone = milestones.find(m => m.status === 'in_progress');
 
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{label}</span>
-            {currentMilestone && (
-              <Badge variant="secondary" className="text-xs">
-                {currentMilestone.title}
-              </Badge>
-            )}
-          </div>
-          <span className="text-sm text-muted-foreground">{Math.round(progressPercent)}%</span>
+        {/* Label */}
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">{label}</span>
         </div>
         
-        {/* Timeline */}
-        <div className="relative">
-          {/* Background line */}
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-muted-foreground/20 transform -translate-y-1/2" />
+        {/* Train Rail */}
+        <div className="relative pt-1 pb-7">
+          {/* Background rail */}
+          <div className="absolute top-[8px] left-1.5 right-1.5 h-0.5 bg-muted-foreground/20" />
           
-          {/* Progress line */}
-          <div 
-            className="absolute top-1/2 left-0 h-0.5 bg-green-500 transform -translate-y-1/2 transition-all duration-500"
-            style={{ width: `${progressPercent}%` }}
-          />
+          {/* Progress rail */}
+          {completedCount > 0 && (
+            <div 
+              className="absolute top-[8px] left-1.5 h-0.5 bg-green-500 transition-all"
+              style={{ 
+                width: `calc(${(completedCount / milestones.length) * 100}% - 12px)` 
+              }}
+            />
+          )}
           
-          {/* Dots */}
-          <div className="relative flex justify-between items-center py-3">
-            {milestones.map((milestone) => (
-              <MilestoneDot key={milestone.id} milestone={milestone} />
+          {/* Stops */}
+          <div className="relative flex justify-between">
+            {milestones.map((milestone, idx) => (
+              <MilestoneStop
+                key={milestone.id}
+                milestone={milestone}
+                idx={idx}
+                currentIdx={currentIdx}
+              />
             ))}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Wrapping timeline for backend with U-turn
+  const WrappingTrainRailTimeline = ({ 
+    milestones, 
+    icon: Icon, 
+    label 
+  }: { 
+    milestones: ProjectMilestone[]; 
+    icon: typeof Globe;
+    label: string;
+  }) => {
+    if (milestones.length === 0) return null;
+
+    const currentIdx = getCurrentIndex(milestones);
+    
+    // Split: first 5 on row 1, rest on row 2
+    const splitAt = 5;
+    const firstRow = milestones.slice(0, splitAt);
+    const secondRow = milestones.slice(splitAt);
+    const hasSecondRow = secondRow.length > 0;
+
+    const completedInFirstRow = firstRow.filter(m => m.status === 'completed').length;
+    const allFirstRowComplete = completedInFirstRow === firstRow.length;
+    const completedInSecondRow = secondRow.filter(m => m.status === 'completed').length;
+
+    return (
+      <div className="space-y-2">
+        {/* Label */}
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        </div>
+        
+        <div className="relative">
+          {/* First Row */}
+          <div className="relative pt-1 pb-7 pr-7">
+            {/* Background rail */}
+            <div className="absolute top-[8px] left-1.5 right-7 h-0.5 bg-muted-foreground/20" />
+            
+            {/* Progress rail */}
+            {completedInFirstRow > 0 && (
+              <div 
+                className="absolute top-[8px] left-1.5 h-0.5 bg-green-500 transition-all"
+                style={{ 
+                  width: `calc(${(completedInFirstRow / firstRow.length) * 100}% - ${allFirstRowComplete ? 28 : 12}px)` 
+                }}
+              />
+            )}
+            
+            {/* Stops */}
+            <div className="relative flex justify-between">
+              {firstRow.map((milestone, idx) => (
+                <MilestoneStop
+                  key={milestone.id}
+                  milestone={milestone}
+                  idx={idx}
+                  currentIdx={currentIdx}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* U-Turn Connector */}
+          {hasSecondRow && (
+            <div className="absolute right-0 top-[8px]">
+              <svg width="28" height="48" viewBox="0 0 28 48" fill="none">
+                {/* Background path */}
+                <line x1="0" y1="0" x2="6" y2="0" stroke="hsl(var(--muted-foreground) / 0.2)" strokeWidth="2" />
+                <path d="M6 0 Q20 0 20 14 L20 34 Q20 48 6 48 L0 48" stroke="hsl(var(--muted-foreground) / 0.2)" strokeWidth="2" fill="none" />
+                
+                {/* Progress overlay */}
+                {allFirstRowComplete && (
+                  <>
+                    <line x1="0" y1="0" x2="6" y2="0" stroke="#22c55e" strokeWidth="2" />
+                    <path 
+                      d="M6 0 Q20 0 20 14 L20 34 Q20 48 6 48 L0 48" 
+                      stroke="#22c55e" 
+                      strokeWidth="2" 
+                      fill="none"
+                    />
+                  </>
+                )}
+              </svg>
+            </div>
+          )}
+
+          {/* Second Row */}
+          {hasSecondRow && (
+            <div className="relative pt-1 pb-7 pl-7">
+              {/* Background rail */}
+              <div className="absolute top-[8px] left-7 right-1.5 h-0.5 bg-muted-foreground/20" />
+              
+              {/* Progress rail */}
+              {completedInSecondRow > 0 && (
+                <div 
+                  className="absolute top-[8px] left-7 h-0.5 bg-green-500 transition-all"
+                  style={{ 
+                    width: `calc(${(completedInSecondRow / secondRow.length) * 100}% - 12px)` 
+                  }}
+                />
+              )}
+              
+              {/* Stops */}
+              <div className="relative flex justify-between">
+                {secondRow.map((milestone, idx) => {
+                  const actualIdx = splitAt + idx;
+                  return (
+                    <MilestoneStop
+                      key={milestone.id}
+                      milestone={milestone}
+                      idx={actualIdx}
+                      currentIdx={currentIdx}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -175,16 +304,16 @@ export function ClientProjectTab({ lead, projectUpdates, projectMilestones = [] 
         </Card>
       )}
 
-      {/* Project Progress - Horizontal Timelines */}
+      {/* Project Progress - Hidden on mobile */}
       {hasMilestones && (
-        <Card>
+        <Card className="hidden md:block">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Build Progress</CardTitle>
             <CardDescription>Track your project development</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {hasFrontendMilestones && (
-              <TimelineLine 
+              <TrainRailTimeline 
                 milestones={frontendMilestones} 
                 icon={Globe} 
                 label="Website" 
@@ -192,11 +321,65 @@ export function ClientProjectTab({ lead, projectUpdates, projectMilestones = [] 
             )}
             
             {hasBackendMilestones && (
-              <TimelineLine 
+              <WrappingTrainRailTimeline 
                 milestones={backendMilestones} 
                 icon={Server} 
                 label="Backend" 
               />
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Mobile Progress Summary */}
+      {hasMilestones && (
+        <Card className="md:hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Build Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {hasFrontendMilestones && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Website</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {frontendMilestones.filter(m => m.status === 'completed').length}/{frontendMilestones.length}
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-green-500 transition-all"
+                    style={{ 
+                      width: `${(frontendMilestones.filter(m => m.status === 'completed').length / frontendMilestones.length) * 100}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {hasBackendMilestones && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Backend</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {backendMilestones.filter(m => m.status === 'completed').length}/{backendMilestones.length}
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-green-500 transition-all"
+                    style={{ 
+                      width: `${(backendMilestones.filter(m => m.status === 'completed').length / backendMilestones.length) * 100}%` 
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
