@@ -94,7 +94,10 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     const milestoneIdx = milestones.findIndex(m => m.id === milestone.id);
     const currentIdx = getCurrentIndex(milestones);
     
-    // Only allow clicking on current or previous milestones
+    // Cannot click on completed milestones (no going back)
+    if (milestone.status === 'completed') return;
+    
+    // Only allow clicking on current in-progress or the next pending milestone
     if (milestoneIdx > currentIdx + 1) return;
     
     // Determine next status based on current
@@ -104,8 +107,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     } else if (milestone.status === 'in_progress') {
       newStatus = 'completed';
     } else {
-      // Already completed - clicking goes back to in_progress
-      newStatus = 'in_progress';
+      return; // Already completed - no action
     }
     
     setSelectedMilestone(milestone);
@@ -181,13 +183,14 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
         </div>
         
         {/* Train Rail */}
-        <div className="relative flex items-center">
+        <div className="relative flex items-center pt-1 pb-8">
           {milestones.map((milestone, idx) => {
             const isCompleted = milestone.status === 'completed';
             const isInProgress = milestone.status === 'in_progress';
             const isCurrent = idx === currentIdx;
             const isPast = idx < currentIdx || isCompleted;
-            const isClickable = canEdit && idx <= currentIdx + 1;
+            // Can only click if not completed and is current or next milestone
+            const isClickable = canEdit && !isCompleted && idx <= currentIdx + 1;
             
             return (
               <div key={milestone.id} className="flex items-center flex-1 last:flex-none">
@@ -196,7 +199,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
                   onClick={() => handleMilestoneClick(milestone, milestones)}
                   disabled={!isClickable}
                   className={cn(
-                    "relative flex flex-col items-center group",
+                    "relative flex flex-col items-center",
                     isClickable ? "cursor-pointer" : "cursor-default"
                   )}
                 >
@@ -219,14 +222,15 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
                     )}
                   </div>
                   
-                  {/* Label below dot */}
+                  {/* Label below dot - always visible */}
                   <span 
                     className={cn(
-                      "absolute top-6 text-[10px] whitespace-nowrap max-w-[60px] truncate text-center",
-                      isCurrent ? "text-foreground font-medium" : "text-muted-foreground",
-                      "opacity-0 group-hover:opacity-100 transition-opacity",
-                      isCurrent && "opacity-100"
+                      "absolute top-6 text-[10px] whitespace-nowrap max-w-[80px] truncate text-center",
+                      isCompleted && "text-green-600 font-medium",
+                      isInProgress && "text-primary font-semibold",
+                      !isCompleted && !isInProgress && "text-muted-foreground"
                     )}
+                    title={milestone.title}
                   >
                     {milestone.title}
                   </span>
