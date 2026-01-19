@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Clock,
   ChevronDown,
-  Server
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
@@ -40,7 +39,7 @@ interface ProjectUpdate {
 
 interface ProjectMilestone {
   id: string;
-  category: 'frontend' | 'backend';
+  category: string;
   title: string;
   description: string | null;
   status: 'pending' | 'in_progress' | 'completed';
@@ -84,25 +83,11 @@ export function ClientOverviewTab({
   
   const latestUpdates = projectUpdates.slice(0, 2);
   
-  // Process milestones
-  const frontendMilestones = projectMilestones.filter(m => m.category === 'frontend');
-  const backendMilestones = projectMilestones.filter(m => m.category === 'backend');
-  const hasMilestones = frontendMilestones.length > 0 || backendMilestones.length > 0;
-  
-  const completedFrontend = frontendMilestones.filter(m => m.status === 'completed').length;
-  const completedBackend = backendMilestones.filter(m => m.status === 'completed').length;
-  
-  const frontendProgress = frontendMilestones.length > 0 
-    ? Math.round((completedFrontend / frontendMilestones.length) * 100) 
-    : 0;
-  const backendProgress = backendMilestones.length > 0 
-    ? Math.round((completedBackend / backendMilestones.length) * 100) 
-    : 0;
-  
-  // Overall progress
-  const totalMilestones = frontendMilestones.length + backendMilestones.length;
-  const totalCompleted = completedFrontend + completedBackend;
-  const overallProgress = totalMilestones > 0 ? Math.round((totalCompleted / totalMilestones) * 100) : 0;
+  // Only frontend milestones
+  const milestones = projectMilestones.filter(m => m.category === 'frontend');
+  const hasMilestones = milestones.length > 0;
+  const completedCount = milestones.filter(m => m.status === 'completed').length;
+  const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
   
   const toggleUpdate = (id: string) => {
     setExpandedUpdates(prev => ({ ...prev, [id]: !prev[id] }));
@@ -124,7 +109,7 @@ export function ClientOverviewTab({
         </p>
       </div>
 
-      {/* Project Progress - Compact horizontal timeline */}
+      {/* Project Progress */}
       {hasMilestones && (
         <Card>
           <CardContent className="p-4 space-y-4">
@@ -133,44 +118,22 @@ export function ClientOverviewTab({
                 <Globe className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Build Progress</span>
               </div>
-              <span className="text-xs text-muted-foreground">{overallProgress}% complete</span>
+              <span className="text-xs text-muted-foreground">{progress}% complete</span>
             </div>
             
-            {/* Frontend mini timeline */}
-            {frontendMilestones.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Website</span>
-                  <span>{frontendProgress}%</span>
-                </div>
-                <div className="relative h-2">
-                  <div className="absolute inset-0 bg-muted rounded-full" />
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 bg-green-500 rounded-full transition-all duration-500"
-                    style={{ width: `${frontendProgress}%` }}
-                  />
-                </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Website</span>
+                <span>{completedCount}/{milestones.length}</span>
               </div>
-            )}
-            
-            {/* Backend mini timeline */}
-            {backendMilestones.length > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Server className="h-3 w-3" /> Backend
-                  </span>
-                  <span>{backendProgress}%</span>
-                </div>
-                <div className="relative h-2">
-                  <div className="absolute inset-0 bg-muted rounded-full" />
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 bg-green-500 rounded-full transition-all duration-500"
-                    style={{ width: `${backendProgress}%` }}
-                  />
-                </div>
+              <div className="relative h-2">
+                <div className="absolute inset-0 bg-muted rounded-full" />
+                <div 
+                  className="absolute left-0 top-0 bottom-0 bg-green-500 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
-            )}
+            </div>
             
             <Button variant="ghost" size="sm" className="w-full" onClick={() => onNavigate('project')}>
               View Details <ArrowRight className="h-3 w-3 ml-1" />
