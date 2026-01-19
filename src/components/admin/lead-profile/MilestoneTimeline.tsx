@@ -243,7 +243,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     );
   };
 
-  // Wrapping train-rail for backend (splits into two rows)
+  // Wrapping train-rail for backend (splits into two rows with curved connector)
   const WrappingTrainRailTimeline = ({ 
     milestones, 
     icon: Icon, 
@@ -265,6 +265,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
 
     // Check if the last item in first row is completed (for connector styling)
     const lastFirstRowCompleted = firstRow[firstRow.length - 1]?.status === 'completed';
+    const connectorColor = lastFirstRowCompleted ? '#22c55e' : 'rgba(115, 115, 115, 0.2)';
 
     return (
       <div className="space-y-2">
@@ -274,50 +275,68 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
           <span className="text-sm font-medium text-muted-foreground">{label}</span>
         </div>
         
-        {/* First Row */}
-        <div className="relative flex items-center pt-1 pb-8">
-          {firstRow.map((milestone, idx) => (
-            <MilestoneStop
-              key={milestone.id}
-              milestone={milestone}
-              milestones={milestones}
-              idx={idx}
-              currentIdx={currentIdx}
-              showRailAfter={idx < firstRow.length - 1}
-            />
-          ))}
-          
-          {/* Connector going down to second row */}
-          {hasSecondRow && (
-            <div className="flex items-start ml-1">
-              <div 
-                className={cn(
-                  "w-0.5 h-12 transition-colors",
-                  lastFirstRowCompleted ? "bg-green-500" : "bg-muted-foreground/20"
-                )}
+        <div className="relative">
+          {/* First Row */}
+          <div className="relative flex items-center pt-1 pb-6">
+            {firstRow.map((milestone, idx) => (
+              <MilestoneStop
+                key={milestone.id}
+                milestone={milestone}
+                milestones={milestones}
+                idx={idx}
+                currentIdx={currentIdx}
+                showRailAfter={idx < firstRow.length - 1}
               />
+            ))}
+          </div>
+
+          {/* Curved Connector SVG */}
+          {hasSecondRow && (
+            <svg 
+              className="absolute right-0 top-[22px]" 
+              width="40" 
+              height="48" 
+              viewBox="0 0 40 48"
+              fill="none"
+            >
+              {/* Horizontal line from last dot */}
+              <path 
+                d="M0 2 H20" 
+                stroke={connectorColor} 
+                strokeWidth="2" 
+                strokeLinecap="round"
+              />
+              {/* Curved corner going down */}
+              <path 
+                d="M20 2 Q32 2 32 14 V34 Q32 46 20 46 H0" 
+                stroke={connectorColor} 
+                strokeWidth="2" 
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          )}
+
+          {/* Second Row - reversed direction */}
+          {hasSecondRow && (
+            <div className="relative flex items-center justify-end pt-2 pb-6 pr-10">
+              {[...secondRow].reverse().map((milestone, idx) => {
+                const actualIdx = splitAt + (secondRow.length - 1 - idx);
+                const reversedIdx = secondRow.length - 1 - idx;
+                return (
+                  <MilestoneStop
+                    key={milestone.id}
+                    milestone={milestone}
+                    milestones={milestones}
+                    idx={actualIdx}
+                    currentIdx={currentIdx}
+                    showRailAfter={reversedIdx > 0}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
-
-        {/* Second Row */}
-        {hasSecondRow && (
-          <div className="relative flex items-center pt-1 pb-8 pl-0">
-            {secondRow.map((milestone, idx) => {
-              const actualIdx = splitAt + idx;
-              return (
-                <MilestoneStop
-                  key={milestone.id}
-                  milestone={milestone}
-                  milestones={milestones}
-                  idx={actualIdx}
-                  currentIdx={currentIdx}
-                  showRailAfter={idx < secondRow.length - 1}
-                />
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   };
