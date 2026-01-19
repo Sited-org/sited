@@ -1,29 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useRef } from 'react';
 import { 
   Check, 
   Loader2, 
   Globe,
   Server,
-  ChevronRight,
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { 
   useProjectMilestones, 
   ProjectMilestone, 
   MilestoneStatus,
-  FRONTEND_MILESTONES,
 } from '@/hooks/useProjectMilestones';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface MilestoneTimelineProps {
   leadId: string;
@@ -59,12 +48,6 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
   } = useProjectMilestones(leadId);
 
   const { addUpdate } = useProjectUpdates(leadId);
-  
-  const [advanceDialogOpen, setAdvanceDialogOpen] = useState(false);
-  const [selectedMilestone, setSelectedMilestone] = useState<ProjectMilestone | null>(null);
-  const [nextStatus, setNextStatus] = useState<MilestoneStatus>('in_progress');
-  const [note, setNote] = useState('');
-  const [isAdvancing, setIsAdvancing] = useState(false);
   const hasInitializedRef = useRef(false);
 
   const showBackendLine = hasBackendMilestones || needsBackend(lead.form_data);
@@ -88,7 +71,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     return milestones.length - 1; // All completed
   };
 
-  const handleMilestoneClick = (milestone: ProjectMilestone, milestones: ProjectMilestone[]) => {
+  const handleMilestoneClick = async (milestone: ProjectMilestone, milestones: ProjectMilestone[]) => {
     if (!canEdit) return;
     
     const milestoneIdx = milestones.findIndex(m => m.id === milestone.id);
@@ -110,51 +93,18 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
       return; // Already completed - no action
     }
     
-    setSelectedMilestone(milestone);
-    setNextStatus(newStatus);
-    setNote('');
-    setAdvanceDialogOpen(true);
-  };
-
-  const handleAdvanceMilestone = async () => {
-    if (!selectedMilestone) return;
-    
-    setIsAdvancing(true);
-    
     try {
-      await updateMilestoneStatus(selectedMilestone.id, nextStatus);
+      await updateMilestoneStatus(milestone.id, newStatus);
       
-      const statusLabel = nextStatus === 'completed' ? 'completed' : 
-                         nextStatus === 'in_progress' ? 'started' : 'reset';
-      const categoryLabel = selectedMilestone.category === 'frontend' ? '🌐 Frontend' : '⚙️ Backend';
+      const statusLabel = newStatus === 'completed' ? 'completed' : 'started';
+      const categoryLabel = milestone.category === 'frontend' ? '🌐 Frontend' : '⚙️ Backend';
       
-      let updateContent = `${categoryLabel}: "${selectedMilestone.title}" ${statusLabel}`;
-      if (note.trim()) {
-        updateContent += `\n\n${note.trim()}`;
-      }
-      
+      const updateContent = `${categoryLabel}: "${milestone.title}" ${statusLabel}`;
       await addUpdate(updateContent);
       
-      setAdvanceDialogOpen(false);
-      setSelectedMilestone(null);
-      setNote('');
-    } finally {
-      setIsAdvancing(false);
-    }
-  };
-
-  const handleSkipNote = async () => {
-    if (!selectedMilestone) return;
-    
-    setIsAdvancing(true);
-    
-    try {
-      await updateMilestoneStatus(selectedMilestone.id, nextStatus);
-      setAdvanceDialogOpen(false);
-      setSelectedMilestone(null);
-      setNote('');
-    } finally {
-      setIsAdvancing(false);
+      toast.success(`Milestone ${statusLabel}`);
+    } catch (error) {
+      toast.error('Failed to update milestone');
     }
   };
 
@@ -279,91 +229,24 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
   }
 
   return (
-    <>
-      <div className="bg-muted/30 rounded-lg p-4 space-y-6">
-        {/* Frontend Timeline */}
+    <div className="bg-muted/30 rounded-lg p-4 space-y-6">
+      {/* Frontend Timeline */}
+      <TrainRailTimeline 
+        milestones={frontendMilestones} 
+        category="frontend"
+        icon={Globe} 
+        label="Frontend" 
+      />
+      
+      {/* Backend Timeline */}
+      {showBackendLine && hasBackendMilestones && (
         <TrainRailTimeline 
-          milestones={frontendMilestones} 
-          category="frontend"
-          icon={Globe} 
-          label="Frontend" 
+          milestones={backendMilestones} 
+          category="backend"
+          icon={Server} 
+          label="Backend" 
         />
-        
-        {/* Backend Timeline */}
-        {showBackendLine && hasBackendMilestones && (
-          <TrainRailTimeline 
-            milestones={backendMilestones} 
-            category="backend"
-            icon={Server} 
-            label="Backend" 
-          />
-        )}
-      </div>
-
-      {/* Advance Milestone Dialog */}
-      <Dialog open={advanceDialogOpen} onOpenChange={setAdvanceDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {nextStatus === 'completed' ? (
-                <Check className="h-5 w-5 text-green-500" />
-              ) : nextStatus === 'in_progress' ? (
-                <Loader2 className="h-5 w-5 text-primary" />
-              ) : (
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              )}
-              {nextStatus === 'completed' ? 'Complete Milestone' : 
-               nextStatus === 'in_progress' ? 'Start Milestone' : 'Update Milestone'}
-            </DialogTitle>
-            <DialogDescription>
-              {nextStatus === 'completed' 
-                ? `Mark "${selectedMilestone?.title}" as complete` 
-                : nextStatus === 'in_progress'
-                ? `Start working on "${selectedMilestone?.title}"`
-                : `Update "${selectedMilestone?.title}"`
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium">
-                Add a note (optional)
-              </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                This will be posted to Project Progress for the client to see
-              </p>
-              <Textarea
-                placeholder="e.g., 'First draft ready for review...'"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleSkipNote}
-              disabled={isAdvancing}
-            >
-              Skip Note
-            </Button>
-            <Button 
-              onClick={handleAdvanceMilestone}
-              disabled={isAdvancing}
-            >
-              {isAdvancing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <ChevronRight className="h-4 w-4 mr-2" />
-              )}
-              {note.trim() ? 'Update & Post' : 'Update'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+      )}
+    </div>
   );
 }
