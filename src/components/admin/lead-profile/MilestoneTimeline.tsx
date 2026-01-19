@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   Check, 
   Loader2, 
@@ -8,11 +8,20 @@ import {
 import { 
   useProjectMilestones, 
   ProjectMilestone, 
-  MilestoneStatus,
 } from '@/hooks/useProjectMilestones';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface MilestoneTimelineProps {
   leadId: string;
@@ -44,34 +53,45 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     hasBackendMilestones,
     loading,
     initializeFrontendMilestones,
+    initializeBackendMilestones,
     updateMilestoneStatus,
   } = useProjectMilestones(leadId);
 
   const { addUpdate } = useProjectUpdates(leadId);
-  const hasInitializedRef = useRef(false);
+  const hasInitializedFrontendRef = useRef(false);
+  const hasInitializedBackendRef = useRef(false);
+
+  // Confirmation dialog state
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingMilestone, setPendingMilestone] = useState<{ milestone: ProjectMilestone; milestones: ProjectMilestone[] } | null>(null);
 
   const showBackendLine = hasBackendMilestones || needsBackend(lead.form_data);
 
   // Auto-initialize frontend milestones if they don't exist
   useEffect(() => {
-    if (!loading && !hasFrontendMilestones && !hasInitializedRef.current && leadId) {
-      hasInitializedRef.current = true;
+    if (!loading && !hasFrontendMilestones && !hasInitializedFrontendRef.current && leadId) {
+      hasInitializedFrontendRef.current = true;
       initializeFrontendMilestones();
     }
   }, [loading, hasFrontendMilestones, leadId, initializeFrontendMilestones]);
 
+  // Auto-initialize backend milestones if needed and they don't exist
+  useEffect(() => {
+    if (!loading && hasFrontendMilestones && !hasBackendMilestones && !hasInitializedBackendRef.current && leadId && needsBackend(lead.form_data)) {
+      hasInitializedBackendRef.current = true;
+      initializeBackendMilestones([]);
+    }
+  }, [loading, hasFrontendMilestones, hasBackendMilestones, leadId, lead.form_data, initializeBackendMilestones]);
+
   // Get current milestone index (first non-completed)
   const getCurrentIndex = (milestones: ProjectMilestone[]) => {
-    const inProgressIdx = milestones.findIndex(m => m.status === 'in_progress');
-    if (inProgressIdx >= 0) return inProgressIdx;
-    
     const pendingIdx = milestones.findIndex(m => m.status === 'pending');
     if (pendingIdx >= 0) return pendingIdx;
     
     return milestones.length - 1; // All completed
   };
 
-  const handleMilestoneClick = async (milestone: ProjectMilestone, milestones: ProjectMilestone[]) => {
+  const handleMilestoneClick = (milestone: ProjectMilestone, milestones: ProjectMilestone[]) => {
     if (!canEdit) return;
     
     const milestoneIdx = milestones.findIndex(m => m.id === milestone.id);
@@ -80,31 +100,32 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
     // Cannot click on completed milestones (no going back)
     if (milestone.status === 'completed') return;
     
-    // Only allow clicking on current in-progress or the next pending milestone
-    if (milestoneIdx > currentIdx + 1) return;
+    // Can only click on the next pending milestone (currentIdx)
+    if (milestoneIdx !== currentIdx) return;
     
-    // Determine next status based on current
-    let newStatus: MilestoneStatus;
-    if (milestone.status === 'pending') {
-      newStatus = 'in_progress';
-    } else if (milestone.status === 'in_progress') {
-      newStatus = 'completed';
-    } else {
-      return; // Already completed - no action
-    }
+    // Open confirmation dialog
+    setPendingMilestone({ milestone, milestones });
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!pendingMilestone) return;
+    
+    const { milestone } = pendingMilestone;
     
     try {
-      await updateMilestoneStatus(milestone.id, newStatus);
+      await updateMilestoneStatus(milestone.id, 'completed');
       
-      const statusLabel = newStatus === 'completed' ? 'completed' : 'started';
       const categoryLabel = milestone.category === 'frontend' ? '🌐 Frontend' : '⚙️ Backend';
-      
-      const updateContent = `${categoryLabel}: "${milestone.title}" ${statusLabel}`;
+      const updateContent = `${categoryLabel}: "${milestone.title}" completed`;
       await addUpdate(updateContent);
       
-      toast.success(`Milestone ${statusLabel}`);
+      toast.success(`Milestone completed`);
     } catch (error) {
       toast.error('Failed to update milestone');
+    } finally {
+      setConfirmDialogOpen(false);
+      setPendingMilestone(null);
     }
   };
 
@@ -136,11 +157,10 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
         <div className="relative flex items-center pt-1 pb-8">
           {milestones.map((milestone, idx) => {
             const isCompleted = milestone.status === 'completed';
-            const isInProgress = milestone.status === 'in_progress';
-            const isCurrent = idx === currentIdx;
-            const isPast = idx < currentIdx || isCompleted;
-            // Can only click if not completed and is current or next milestone
-            const isClickable = canEdit && !isCompleted && idx <= currentIdx + 1;
+            const isCurrent = idx === currentIdx && !isCompleted;
+            const isPast = isCompleted;
+            // Can only click the next pending milestone
+            const isClickable = canEdit && !isCompleted && idx === currentIdx;
             
             return (
               <div key={milestone.id} className="flex items-center flex-1 last:flex-none">
@@ -158,17 +178,13 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
                     className={cn(
                       "w-4 h-4 rounded-full border-2 transition-all z-10",
                       isCompleted && "bg-green-500 border-green-500",
-                      isInProgress && "bg-primary border-primary ring-4 ring-primary/20",
-                      !isCompleted && !isInProgress && isPast && "bg-muted-foreground border-muted-foreground",
-                      !isCompleted && !isInProgress && !isPast && "bg-background border-muted-foreground/40",
+                      isCurrent && "bg-primary border-primary ring-4 ring-primary/20",
+                      !isCompleted && !isCurrent && "bg-background border-muted-foreground/40",
                       isClickable && "hover:scale-125"
                     )}
                   >
                     {isCompleted && (
                       <Check className="h-2.5 w-2.5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                    )}
-                    {isInProgress && (
-                      <Loader2 className="h-2.5 w-2.5 text-primary-foreground animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     )}
                   </div>
                   
@@ -177,8 +193,8 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
                     className={cn(
                       "absolute top-6 text-[10px] whitespace-nowrap max-w-[80px] truncate text-center",
                       isCompleted && "text-green-600 font-medium",
-                      isInProgress && "text-primary font-semibold",
-                      !isCompleted && !isInProgress && "text-muted-foreground"
+                      isCurrent && "text-primary font-semibold",
+                      !isCompleted && !isCurrent && "text-muted-foreground"
                     )}
                     title={milestone.title}
                   >
@@ -192,7 +208,7 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
                     <div 
                       className={cn(
                         "h-full transition-colors",
-                        isPast || isCompleted ? "bg-green-500" : "bg-muted-foreground/20"
+                        isPast ? "bg-green-500" : "bg-muted-foreground/20"
                       )}
                     />
                   </div>
@@ -229,24 +245,45 @@ export function MilestoneTimeline({ leadId, lead, canEdit }: MilestoneTimelinePr
   }
 
   return (
-    <div className="bg-muted/30 rounded-lg p-4 space-y-6">
-      {/* Frontend Timeline */}
-      <TrainRailTimeline 
-        milestones={frontendMilestones} 
-        category="frontend"
-        icon={Globe} 
-        label="Frontend" 
-      />
-      
-      {/* Backend Timeline */}
-      {showBackendLine && hasBackendMilestones && (
+    <>
+      <div className="bg-muted/30 rounded-lg p-4 space-y-6">
+        {/* Frontend Timeline */}
         <TrainRailTimeline 
-          milestones={backendMilestones} 
-          category="backend"
-          icon={Server} 
-          label="Backend" 
+          milestones={frontendMilestones} 
+          category="frontend"
+          icon={Globe} 
+          label="Frontend" 
         />
-      )}
-    </div>
+        
+        {/* Backend Timeline */}
+        {showBackendLine && hasBackendMilestones && (
+          <TrainRailTimeline 
+            milestones={backendMilestones} 
+            category="backend"
+            icon={Server} 
+            label="Backend" 
+          />
+        )}
+      </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Complete Milestone</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark "{pendingMilestone?.milestone.title}" as completed? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingMilestone(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmComplete}>
+              Complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
