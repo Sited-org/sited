@@ -195,7 +195,7 @@ export default function LeadProfile() {
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">
-          <RequestsTab leadId={id!} />
+          <RequestsTab leadId={id!} leadName={name} leadEmail={email} />
         </TabsContent>
 
         <TabsContent value="payments" className="mt-6">
