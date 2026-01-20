@@ -17,30 +17,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-// Helper function to calculate available credit for a lead
+// Helper function to calculate available credit for a lead (credit pool minus already-paid debits)
 async function getAvailableCredit(leadId: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
   
   const { data: transactions, error } = await supabaseAdmin
     .from("transactions")
-    .select("credit, debit, transaction_date")
+    .select("credit, debit, transaction_date, invoice_status, item, notes")
     .eq("lead_id", leadId);
 
   if (error || !transactions || transactions.length === 0) {
     return 0;
   }
 
-  // Calculate available credit: when total credits exceed total debits
-  const totalCredits = transactions
-    .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
-    .reduce((sum, t) => sum + Number(t.credit || 0), 0);
-  const totalDebits = transactions
-    .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
-    .reduce((sum, t) => sum + Number(t.debit || 0), 0);
-  
-  // Available credit is the surplus when credits exceed debits (negative balance)
-  const balance = totalDebits - totalCredits;
-  return balance < 0 ? Math.abs(balance) : 0;
+  // Filter to due transactions (not future) and exclude voided
+  const dueTxs = transactions.filter((t: any) =>
+    t.transaction_date <= today + 'T23:59:59.999Z' &&
+    !t.item?.startsWith('VOID:') &&
+    !t.notes?.includes('[VOIDED:')
+  );
+
+  // Credit pool = all credits received
+  const creditPool = dueTxs.reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
+  // Paid debits = debits that have been settled (invoice_status = 'paid')
+  const paidDebits = dueTxs
+    .filter((t: any) => t.invoice_status === 'paid')
+    .reduce((sum: number, t: any) => sum + Number(t.debit || 0), 0);
+
+  return Math.max(0, creditPool - paidDebits);
 }
 
 serve(async (req) => {
@@ -286,12 +290,13 @@ serve(async (req) => {
       }
 
       case "invoice.created": {
-        // Handle subscription invoice creation - create debit transaction for future billing
+        // Handle subscription invoice creation - apply credit and create debit transaction
         const invoice = event.data.object as Stripe.Invoice;
-        console.log("[STRIPE-WEBHOOK] Invoice created:", invoice.id);
+        console.log("[STRIPE-WEBHOOK] Invoice created:", invoice.id, "Status:", invoice.status);
         
-        if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
-          console.log("[STRIPE-WEBHOOK] Subscription cycle invoice detected");
+        // Only process draft invoices for subscription cycles (before they're finalized)
+        if (invoice.subscription && invoice.billing_reason === 'subscription_cycle' && invoice.status === 'draft') {
+          console.log("[STRIPE-WEBHOOK] Subscription cycle draft invoice detected - checking for credit to apply");
           
           try {
             const subscriptionId = typeof invoice.subscription === 'string' 
@@ -302,31 +307,74 @@ serve(async (req) => {
             const membershipName = subscription.metadata?.membership_name;
             
             if (leadId && invoice.amount_due) {
-              const amount = invoice.amount_due / 100;
+              const invoiceAmount = invoice.amount_due / 100;
               
-              // Check available credit for preview in notes
+              // Check available credit
               const availableCredit = await getAvailableCredit(leadId);
-              const creditNote = availableCredit > 0 
-                ? ` (Available credit: $${availableCredit.toFixed(2)} will be applied automatically)`
+              const creditToApply = Math.min(availableCredit, invoiceAmount);
+              const netAmount = invoiceAmount - creditToApply;
+              
+              console.log("[STRIPE-WEBHOOK] Credit calculation for subscription:", {
+                invoiceAmount,
+                availableCredit,
+                creditToApply,
+                netAmount
+              });
+              
+              // Apply credit as a negative invoice item on the Stripe invoice
+              if (creditToApply > 0) {
+                await stripe.invoiceItems.create({
+                  customer: typeof invoice.customer === 'string' ? invoice.customer : invoice.customer!.id,
+                  invoice: invoice.id,
+                  amount: -Math.round(creditToApply * 100), // Negative = credit
+                  currency: invoice.currency || 'aud',
+                  description: 'Account credit applied',
+                  metadata: {
+                    type: 'account_credit',
+                    lead_id: leadId,
+                  },
+                });
+                console.log("[STRIPE-WEBHOOK] Applied credit to Stripe invoice:", creditToApply);
+                
+                // Record the credit consumption in our ledger
+                await supabaseAdmin
+                  .from('transactions')
+                  .insert({
+                    lead_id: leadId,
+                    item: `Credit Applied: ${membershipName || 'Subscription Renewal'}`,
+                    credit: 0,
+                    debit: creditToApply,
+                    notes: `Account credit applied to subscription invoice ${invoice.id}. Original: $${invoiceAmount}, Credit: $${creditToApply}, Net: $${netAmount}`,
+                    transaction_date: new Date().toISOString(),
+                    is_recurring: false,
+                    status: 'completed',
+                    invoice_status: 'paid',
+                    stripe_invoice_id: invoice.id,
+                  });
+                console.log("[STRIPE-WEBHOOK] Recorded credit application in ledger");
+              }
+              
+              // Create a debit transaction for this billing cycle (full amount for audit trail)
+              const creditNote = creditToApply > 0 
+                ? ` ($${creditToApply.toFixed(2)} credit applied, $${netAmount.toFixed(2)} to charge)`
                 : '';
               
-              // Create a debit transaction for this billing cycle
               await supabaseAdmin
                 .from('transactions')
                 .insert({
                   lead_id: leadId,
                   item: membershipName || 'Subscription Renewal',
                   credit: 0,
-                  debit: amount,
+                  debit: invoiceAmount,
                   notes: `Auto-generated for subscription billing cycle${creditNote}`,
                   transaction_date: new Date().toISOString(),
                   is_recurring: true,
-                  recurring_interval: 'monthly', // Will be overwritten based on subscription
+                  recurring_interval: 'monthly',
                   status: 'completed',
                   invoice_status: 'processing',
                   stripe_invoice_id: invoice.id,
                 });
-              console.log("[STRIPE-WEBHOOK] Created debit transaction for subscription cycle:", amount, "Available credit:", availableCredit);
+              console.log("[STRIPE-WEBHOOK] Created debit transaction for subscription cycle:", invoiceAmount);
             }
           } catch (subError: any) {
             console.error("[STRIPE-WEBHOOK] Error handling subscription invoice:", subError.message);
