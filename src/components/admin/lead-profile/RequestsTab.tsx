@@ -11,10 +11,12 @@ import {
   Calendar,
   ArrowRight,
   MessageSquare,
-  ExternalLink
+  ExternalLink,
+  Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
+import { CreateRequestDialog } from './CreateRequestDialog';
 
 interface ClientRequest {
   id: string;
@@ -31,27 +33,30 @@ interface ClientRequest {
 
 interface RequestsTabProps {
   leadId: string;
+  leadName?: string;
+  leadEmail?: string;
 }
 
-export function RequestsTab({ leadId }: RequestsTabProps) {
+export function RequestsTab({ leadId, leadName, leadEmail }: RequestsTabProps) {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from('client_requests')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setRequests(data as ClientRequest[]);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    async function fetchRequests() {
-      const { data, error } = await supabase
-        .from('client_requests')
-        .select('*')
-        .eq('lead_id', leadId)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setRequests(data as ClientRequest[]);
-      }
-      setLoading(false);
-    }
-
     fetchRequests();
   }, [leadId]);
 
@@ -142,6 +147,18 @@ export function RequestsTab({ leadId }: RequestsTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* Header with Add Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Client Requests</h3>
+          <p className="text-sm text-muted-foreground">Manage requests for this client</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Request
+        </Button>
+      </div>
+
       {/* Status Progress Indicator */}
       <div className="flex items-center justify-center gap-2 py-4 overflow-x-auto">
         <div className="flex items-center gap-1 px-3 py-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
@@ -167,10 +184,24 @@ export function RequestsTab({ leadId }: RequestsTabProps) {
         <Card>
           <CardContent className="py-12 text-center">
             <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-            <p className="text-muted-foreground">No requests from this client yet</p>
+            <p className="text-muted-foreground mb-4">No requests from this client yet</p>
+            <Button variant="outline" onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create First Request
+            </Button>
           </CardContent>
         </Card>
       )}
+
+      {/* Create Request Dialog */}
+      <CreateRequestDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        leadId={leadId}
+        leadName={leadName}
+        leadEmail={leadEmail}
+        onRequestCreated={fetchRequests}
+      />
 
       {/* Requested / Pending */}
       {pendingRequests.length > 0 && (
