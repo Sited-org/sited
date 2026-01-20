@@ -280,9 +280,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setSendingInvoice(false);
     }
   };
-  // Payment functions
+  // Payment functions - only show truly unpaid items
   const getUnpaidDebits = () => {
-    return transactions.filter(t => Number(t.debit) > 0 && !t.isFuture);
+    return transactions.filter(t => 
+      Number(t.debit) > 0 && 
+      !t.isFuture && 
+      t.invoice_status !== 'paid' &&
+      !t.item.startsWith('VOID:') && 
+      !t.notes?.includes('[VOIDED:')
+    );
   };
 
   const togglePaymentItemSelection = (id: string) => {
@@ -1145,23 +1151,59 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     />
                   </div>
 
-                  {/* Summary */}
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Selected Items:</span>
-                      <span>{getSelectedItems().length}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Invoice Total:</span>
-                      <span className="font-semibold">
-                        ${getSelectedItems().reduce((sum, i) => sum + i.amount, 0).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-semibold border-t pt-2">
-                      <span>Current Balance Due:</span>
-                      <span className="text-amber-600">${currentBalance.toLocaleString()}</span>
-                    </div>
-                  </div>
+                  {/* Summary with Credit Info */}
+                  {(() => {
+                    const invoiceTotal = getSelectedItems().reduce((sum, i) => sum + i.amount, 0);
+                    const availableCredit = getAvailableCredit();
+                    const creditToApply = Math.min(availableCredit, invoiceTotal);
+                    const netOwed = invoiceTotal - creditToApply;
+                    
+                    return (
+                      <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Selected Items:</span>
+                          <span>{getSelectedItems().length}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Invoice Total:</span>
+                          <span className="font-semibold">${invoiceTotal.toLocaleString()}</span>
+                        </div>
+                        
+                        {availableCredit > 0 && invoiceTotal > 0 && (
+                          <>
+                            <div className="flex justify-between text-sm text-primary border-t pt-2">
+                              <span>Account Credit Available:</span>
+                              <span>-${availableCredit.toLocaleString()}</span>
+                            </div>
+                            {creditToApply > 0 && (
+                              <div className="flex justify-between text-sm text-primary bg-primary/10 -mx-2 px-2 py-1 rounded">
+                                <span>Credit to Apply:</span>
+                                <span>-${creditToApply.toLocaleString()}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-semibold">
+                              <span>Net Amount Due:</span>
+                              <span className={netOwed === 0 ? 'text-green-600' : 'text-amber-600'}>
+                                ${netOwed.toLocaleString()}
+                              </span>
+                            </div>
+                            {netOwed === 0 && (
+                              <p className="text-xs text-primary text-center">
+                                ✓ Invoice fully covered by account credit
+                              </p>
+                            )}
+                          </>
+                        )}
+                        
+                        {availableCredit === 0 && (
+                          <div className="flex justify-between font-semibold border-t pt-2">
+                            <span>Current Balance Due:</span>
+                            <span className="text-amber-600">${currentBalance.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <DialogFooter>
