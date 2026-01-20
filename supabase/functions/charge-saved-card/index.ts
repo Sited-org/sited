@@ -51,110 +51,190 @@ serve(async (req) => {
       .single();
 
     if (leadError || !lead) throw new Error("Lead not found");
-    if (!lead.stripe_customer_id) throw new Error("No Stripe customer found for this lead");
-    if (!lead.stripe_payment_method_id) throw new Error("No saved payment method found for this lead");
-    
-    logStep("Lead found with payment details", { 
-      customerId: lead.stripe_customer_id, 
-      paymentMethodId: lead.stripe_payment_method_id 
-    });
+    logStep("Lead found", { customerId: lead.stripe_customer_id });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    // Calculate available credit balance for this lead
+    const today = new Date().toISOString().split('T')[0];
+    const { data: transactions, error: txQueryError } = await supabaseClient
+      .from("transactions")
+      .select("credit, debit, transaction_date, status")
+      .eq("lead_id", lead_id);
 
-    // Retrieve the payment method to determine its type
-    const paymentMethod = await stripe.paymentMethods.retrieve(lead.stripe_payment_method_id);
-    logStep("Payment method retrieved", { 
-      type: paymentMethod.type,
-      id: paymentMethod.id 
-    });
-
-    // Determine payment method types based on saved method
-    let paymentMethodTypes: string[];
-    if (paymentMethod.type === "au_becs_debit") {
-      paymentMethodTypes = ["au_becs_debit"];
-    } else {
-      paymentMethodTypes = ["card"];
+    if (txQueryError) {
+      logStep("Warning: Failed to query transactions for credit calculation", { error: txQueryError.message });
     }
 
-    // Create PaymentIntent and charge immediately
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: "aud",
-      customer: lead.stripe_customer_id,
-      payment_method: lead.stripe_payment_method_id,
-      payment_method_types: paymentMethodTypes,
-      off_session: true,
-      confirm: true,
-      description: description || `Payment for Lead: ${lead.name || lead.email}`,
-      metadata: {
-        lead_id: lead.id,
-        transaction_ids: transaction_ids ? JSON.stringify(transaction_ids) : undefined,
-      },
-      // For AU BECS debit, we need a mandate
-      ...(paymentMethod.type === "au_becs_debit" && {
-        mandate_data: {
-          customer_acceptance: {
-            type: "offline",
-          },
-        },
-      }),
-    });
-
-    logStep("PaymentIntent created", { 
-      paymentIntentId: paymentIntent.id, 
-      status: paymentIntent.status 
-    });
-
-    // AU BECS debit payments may have "processing" status initially
-    if (paymentIntent.status === "succeeded" || paymentIntent.status === "processing") {
-      // Create credit transaction for the payment
-      // Use item_description if provided, otherwise fallback to generic description
-      const transactionItem = item_description || `Payment received`;
+    let availableCredit = 0;
+    if (transactions && transactions.length > 0) {
+      // Calculate available credit: total credits - total debits (only for past/current transactions)
+      const totalCredits = transactions
+        .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
+        .reduce((sum, t) => sum + Number(t.credit || 0), 0);
+      const totalDebits = transactions
+        .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
+        .reduce((sum, t) => sum + Number(t.debit || 0), 0);
       
+      // Available credit is the surplus when credits exceed debits
+      const balance = totalDebits - totalCredits;
+      availableCredit = balance < 0 ? Math.abs(balance) : 0;
+    }
+    logStep("Calculated available credit", { availableCredit, requestedAmount: amount });
+
+    // Determine how much credit to apply and how much to charge
+    const creditToApply = Math.min(availableCredit, amount);
+    const netChargeAmount = amount - creditToApply;
+    logStep("Credit application calculated", { creditToApply, netChargeAmount });
+
+    const transactionItem = item_description || `Payment received`;
+    let paymentIntentId = null;
+    let paymentStatus = 'succeeded';
+
+    // If there's an amount to charge via Stripe
+    if (netChargeAmount > 0) {
+      if (!lead.stripe_customer_id) throw new Error("No Stripe customer found for this lead");
+      if (!lead.stripe_payment_method_id) throw new Error("No saved payment method found for this lead");
+      
+      logStep("Charging remaining amount via Stripe", { 
+        customerId: lead.stripe_customer_id, 
+        paymentMethodId: lead.stripe_payment_method_id,
+        netChargeAmount
+      });
+
+      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+      // Retrieve the payment method to determine its type
+      const paymentMethod = await stripe.paymentMethods.retrieve(lead.stripe_payment_method_id);
+      logStep("Payment method retrieved", { 
+        type: paymentMethod.type,
+        id: paymentMethod.id 
+      });
+
+      // Determine payment method types based on saved method
+      let paymentMethodTypes: string[];
+      if (paymentMethod.type === "au_becs_debit") {
+        paymentMethodTypes = ["au_becs_debit"];
+      } else {
+        paymentMethodTypes = ["card"];
+      }
+
+      // Create PaymentIntent for the net amount (after credit applied)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(netChargeAmount * 100), // Convert to cents
+        currency: "aud",
+        customer: lead.stripe_customer_id,
+        payment_method: lead.stripe_payment_method_id,
+        payment_method_types: paymentMethodTypes,
+        off_session: true,
+        confirm: true,
+        description: description || `Payment for Lead: ${lead.name || lead.email}`,
+        metadata: {
+          lead_id: lead.id,
+          transaction_ids: transaction_ids ? JSON.stringify(transaction_ids) : undefined,
+          credit_applied: creditToApply.toString(),
+          original_amount: amount.toString(),
+        },
+        // For AU BECS debit, we need a mandate
+        ...(paymentMethod.type === "au_becs_debit" && {
+          mandate_data: {
+            customer_acceptance: {
+              type: "offline",
+            },
+          },
+        }),
+      });
+
+      logStep("PaymentIntent created", { 
+        paymentIntentId: paymentIntent.id, 
+        status: paymentIntent.status 
+      });
+
+      if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "processing") {
+        throw new Error(`Payment failed with status: ${paymentIntent.status}`);
+      }
+
+      paymentIntentId = paymentIntent.id;
+      paymentStatus = paymentIntent.status;
+    } else {
+      logStep("Full amount covered by credit, no Stripe charge needed");
+    }
+
+    // Record credit application transaction if credit was used
+    if (creditToApply > 0) {
+      const { error: creditTxError } = await supabaseClient
+        .from("transactions")
+        .insert({
+          lead_id: lead_id,
+          item: `Credit Applied: ${transactionItem}`,
+          credit: 0,
+          debit: creditToApply,
+          status: "completed",
+          transaction_date: new Date().toISOString(),
+          notes: `Account credit applied to payment. Original charge: $${amount}, Credit used: $${creditToApply}${netChargeAmount > 0 ? `, Charged to card: $${netChargeAmount}` : ''}`,
+          created_by: adminUserId,
+          invoice_status: 'paid',
+        });
+
+      if (creditTxError) {
+        logStep("Warning: Failed to create credit application record", { error: creditTxError.message });
+      } else {
+        logStep("Credit application transaction recorded", { creditToApply });
+      }
+    }
+
+    // Record payment received transaction (for the net amount charged or full amount if only credit)
+    if (netChargeAmount > 0) {
       const { error: txError } = await supabaseClient
         .from("transactions")
         .insert({
           lead_id: lead_id,
           item: transactionItem,
-          credit: amount,
+          credit: netChargeAmount,
           debit: 0,
-          status: paymentIntent.status === "processing" ? "pending" : "completed",
+          status: paymentStatus === "processing" ? "pending" : "completed",
           transaction_date: new Date().toISOString(),
-          notes: `Stripe PaymentIntent: ${paymentIntent.id}${paymentIntent.status === "processing" ? " (processing - bank transfer may take a few days)" : ""}`,
+          notes: `Stripe PaymentIntent: ${paymentIntentId}${paymentStatus === "processing" ? " (processing - bank transfer may take a few days)" : ""}${creditToApply > 0 ? `. Note: $${creditToApply} credit was also applied to this payment.` : ''}`,
           created_by: adminUserId,
+          invoice_status: 'paid',
         });
 
       if (txError) {
-        logStep("Warning: Failed to create transaction record", { error: txError.message });
+        logStep("Warning: Failed to create payment transaction record", { error: txError.message });
       }
-
-      // Mark selected transactions as paid if provided
-      if (transaction_ids && transaction_ids.length > 0) {
-        await supabaseClient
-          .from("transactions")
-          .update({ status: paymentIntent.status === "processing" ? "pending" : "completed" })
-          .in("id", transaction_ids);
-        logStep("Marked transactions as completed/pending", { transaction_ids });
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          paymentIntentId: paymentIntent.id,
-          status: paymentIntent.status,
-          amount: amount,
-          message: paymentIntent.status === "processing" 
-            ? "Bank transfer initiated - payment will be completed in 1-3 business days" 
-            : "Payment completed successfully",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        }
-      );
-    } else {
-      throw new Error(`Payment failed with status: ${paymentIntent.status}`);
     }
+
+    // Mark selected transactions as paid if provided
+    if (transaction_ids && transaction_ids.length > 0) {
+      await supabaseClient
+        .from("transactions")
+        .update({ 
+          status: paymentStatus === "processing" ? "pending" : "completed",
+          invoice_status: 'paid'
+        })
+        .in("id", transaction_ids);
+      logStep("Marked transactions as completed/pending", { transaction_ids });
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        paymentIntentId: paymentIntentId,
+        status: paymentStatus,
+        amount: amount,
+        creditApplied: creditToApply,
+        amountCharged: netChargeAmount,
+        message: netChargeAmount === 0 
+          ? `Full amount of $${amount} covered by account credit`
+          : creditToApply > 0
+            ? `$${creditToApply} credit applied, $${netChargeAmount} charged to payment method`
+            : paymentStatus === "processing" 
+              ? "Bank transfer initiated - payment will be completed in 1-3 business days" 
+              : "Payment completed successfully",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      }
+    );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
