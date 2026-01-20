@@ -20,7 +20,6 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const LeadProfile = lazy(() => import("./pages/LeadProfile"));
-const AdminActivity = lazy(() => import("./pages/AdminActivity"));
 const AdminTeam = lazy(() => import("./pages/AdminTeam"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminTestimonials = lazy(() => import("./pages/AdminTestimonials"));
@@ -65,7 +64,6 @@ const App = () => (
               <Route path="leads/:id" element={<LeadProfile />} />
               <Route path="requests" element={<AdminRequests />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
-              <Route path="activity" element={<AdminActivity />} />
               <Route path="team" element={<AdminTeam />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="new-sale" element={<NewSale />} />
