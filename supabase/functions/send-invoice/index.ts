@@ -118,6 +118,39 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('id', leadId);
     }
 
+    // Calculate available account credit for this lead (credit pool minus already-paid debits)
+    const today = new Date().toISOString().split('T')[0];
+    const { data: ledgerTxs, error: ledgerError } = await supabaseAdmin
+      .from('transactions')
+      .select('credit, debit, transaction_date, item, notes, invoice_status')
+      .eq('lead_id', leadId);
+
+    if (ledgerError) {
+      console.warn('[SEND-INVOICE] Failed to query transactions for credit calculation:', ledgerError.message);
+    }
+
+    let availableCredit = 0;
+    if (ledgerTxs?.length) {
+      const dueTxs = ledgerTxs.filter(t =>
+        t.transaction_date <= today + 'T23:59:59.999Z' &&
+        !t.item?.startsWith('VOID:') &&
+        !t.notes?.includes('[VOIDED:')
+      );
+
+      const creditPool = dueTxs.reduce((sum, t) => sum + Number(t.credit || 0), 0);
+      const paidDebits = dueTxs
+        .filter(t => t.invoice_status === 'paid')
+        .reduce((sum, t) => sum + Number(t.debit || 0), 0);
+
+      availableCredit = Math.max(0, creditPool - paidDebits);
+    }
+
+    const invoiceSubtotal = items.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+    const creditToApply = Math.min(availableCredit, invoiceSubtotal);
+    const netInvoiceTotal = invoiceSubtotal - creditToApply;
+
+    console.log('[SEND-INVOICE] Credit computed', { availableCredit, invoiceSubtotal, creditToApply, netInvoiceTotal });
+
     // Create Stripe invoice with explicit currency
     const invoiceParams: Stripe.InvoiceCreateParams = {
       customer: customerId,
@@ -127,6 +160,9 @@ const handler = async (req: Request): Promise<Response> => {
       metadata: {
         lead_id: leadId,
         transaction_ids: transactionIds.join(','),
+        credit_applied: creditToApply.toString(),
+        invoice_subtotal: invoiceSubtotal.toString(),
+        invoice_net_total: netInvoiceTotal.toString(),
       },
     };
 
@@ -135,9 +171,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const invoice = await stripe.invoices.create(invoiceParams);
-    console.log("[SEND-INVOICE] Created invoice:", invoice.id, "currency:", customerCurrency);
+    console.log('[SEND-INVOICE] Created invoice:', invoice.id, 'currency:', customerCurrency);
 
-    // Add invoice items with matching currency
+    // Add invoice items with matching currency (full itemisation)
     for (const item of items) {
       await stripe.invoiceItems.create({
         customer: customerId,
@@ -151,7 +187,39 @@ const handler = async (req: Request): Promise<Response> => {
         },
       });
     }
-    console.log("[SEND-INVOICE] Added", items.length, "line items");
+
+    // Apply account credit as a negative line item so the invoice total equals the amount actually owing
+    if (creditToApply > 0) {
+      await stripe.invoiceItems.create({
+        customer: customerId,
+        invoice: invoice.id,
+        amount: -Math.round(creditToApply * 100),
+        currency: customerCurrency,
+        description: 'Account credit applied',
+        metadata: {
+          type: 'account_credit',
+        },
+      });
+
+      // Record the credit consumption in the ledger for audit trail + accurate future credit availability
+      const itemsSummary = items.map(i => i.item).join(', ');
+      await supabaseAdmin
+        .from('transactions')
+        .insert({
+          lead_id: leadId,
+          item: `Credit Applied (Invoice): ${itemsSummary}`,
+          credit: 0,
+          debit: creditToApply,
+          status: 'completed',
+          transaction_date: new Date().toISOString(),
+          notes: `Applied $${creditToApply} account credit to invoice ${invoice.id}. Subtotal: $${invoiceSubtotal}. Net due: $${netInvoiceTotal}.`,
+          created_by: user.id,
+          invoice_status: 'paid',
+          stripe_invoice_id: invoice.id,
+        });
+    }
+
+    console.log('[SEND-INVOICE] Added', items.length, 'line items', creditToApply > 0 ? 'plus credit line item' : '');
 
     // Finalize and send the invoice
     const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);

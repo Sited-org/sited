@@ -53,11 +53,11 @@ serve(async (req) => {
     if (leadError || !lead) throw new Error("Lead not found");
     logStep("Lead found", { customerId: lead.stripe_customer_id });
 
-    // Calculate available credit balance for this lead
+    // Calculate available account credit for this lead (credit pool minus already-paid debits)
     const today = new Date().toISOString().split('T')[0];
     const { data: transactions, error: txQueryError } = await supabaseClient
       .from("transactions")
-      .select("credit, debit, transaction_date, status")
+      .select("credit, debit, transaction_date, invoice_status, item, notes")
       .eq("lead_id", lead_id);
 
     if (txQueryError) {
@@ -65,18 +65,19 @@ serve(async (req) => {
     }
 
     let availableCredit = 0;
-    if (transactions && transactions.length > 0) {
-      // Calculate available credit: total credits - total debits (only for past/current transactions)
-      const totalCredits = transactions
-        .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
-        .reduce((sum, t) => sum + Number(t.credit || 0), 0);
-      const totalDebits = transactions
-        .filter(t => t.transaction_date <= today + 'T23:59:59.999Z')
-        .reduce((sum, t) => sum + Number(t.debit || 0), 0);
-      
-      // Available credit is the surplus when credits exceed debits
-      const balance = totalDebits - totalCredits;
-      availableCredit = balance < 0 ? Math.abs(balance) : 0;
+    if (transactions?.length) {
+      const dueTxs = transactions.filter((t: any) =>
+        t.transaction_date <= today + 'T23:59:59.999Z' &&
+        !t.item?.startsWith('VOID:') &&
+        !t.notes?.includes('[VOIDED:')
+      );
+
+      const creditPool = dueTxs.reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
+      const paidDebits = dueTxs
+        .filter((t: any) => t.invoice_status === 'paid')
+        .reduce((sum: number, t: any) => sum + Number(t.debit || 0), 0);
+
+      availableCredit = Math.max(0, creditPool - paidDebits);
     }
     logStep("Calculated available credit", { availableCredit, requestedAmount: amount });
 

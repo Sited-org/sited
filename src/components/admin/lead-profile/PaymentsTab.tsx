@@ -312,12 +312,22 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       .reduce((sum, t) => sum + Number(t.debit), 0);
   };
 
-  // Calculate available credit (when totalCredit > totalDebit, the surplus is available credit)
+  // Calculate available account credit that can be applied to new charges.
+  // This is NOT the same as an overall negative balance.
+  // We treat any paid credits as a pool that gets consumed by paid debits.
   const getAvailableCredit = () => {
-    // Available credit is when they've paid more than they owe (negative balance)
-    // currentBalance = totalDebit - totalCredit
-    // If currentBalance < 0, that means they have credit available
-    return currentBalance < 0 ? Math.abs(currentBalance) : 0;
+    const eligible = transactions.filter(t =>
+      !t.isFuture &&
+      !t.item.startsWith('VOID:') &&
+      !t.notes?.includes('[VOIDED:')
+    );
+
+    const creditPool = eligible.reduce((sum, t) => sum + Number(t.credit || 0), 0);
+    const paidDebits = eligible
+      .filter(t => t.invoice_status === 'paid')
+      .reduce((sum, t) => sum + Number(t.debit || 0), 0);
+
+    return Math.max(0, creditPool - paidDebits);
   };
 
   // Calculate credit to be applied and net charge amount
