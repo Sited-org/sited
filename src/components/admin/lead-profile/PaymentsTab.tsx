@@ -280,7 +280,6 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setSendingInvoice(false);
     }
   };
-
   // Payment functions
   const getUnpaidDebits = () => {
     return transactions.filter(t => Number(t.debit) > 0 && !t.isFuture);
@@ -307,14 +306,33 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       .reduce((sum, t) => sum + Number(t.debit), 0);
   };
 
+  // Calculate available credit (when totalCredit > totalDebit, the surplus is available credit)
+  const getAvailableCredit = () => {
+    // Available credit is when they've paid more than they owe (negative balance)
+    // currentBalance = totalDebit - totalCredit
+    // If currentBalance < 0, that means they have credit available
+    return currentBalance < 0 ? Math.abs(currentBalance) : 0;
+  };
+
+  // Calculate credit to be applied and net charge amount
+  const getCreditApplication = () => {
+    const paymentTotal = getSelectedPaymentTotal();
+    const availableCredit = getAvailableCredit();
+    const creditToApply = Math.min(availableCredit, paymentTotal);
+    const netChargeAmount = paymentTotal - creditToApply;
+    return { paymentTotal, availableCredit, creditToApply, netChargeAmount };
+  };
+
   const handleProcessPayment = async () => {
     if (selectedPaymentItems.length === 0) {
       toast.error('Please select at least one item to pay');
       return;
     }
 
-    // Check if lead has a saved payment method (card or bank account)
-    if (!lead.stripe_payment_method_id) {
+    const { netChargeAmount } = getCreditApplication();
+
+    // Only check for payment method if there's an amount to charge
+    if (netChargeAmount > 0 && !lead.stripe_payment_method_id) {
       toast.error('No payment method on file. Please add a card or bank account in the Card tab first.');
       return;
     }
@@ -346,7 +364,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         throw new Error(data?.error || 'Payment was not successful');
       }
       
-      toast.success(`Payment of $${paymentTotal.toLocaleString()} processed successfully`);
+      // Show appropriate success message based on credit application
+      const successMessage = data.creditApplied > 0 
+        ? `$${data.creditApplied.toLocaleString()} credit applied${data.amountCharged > 0 ? `, $${data.amountCharged.toLocaleString()} charged` : ''}`
+        : `Payment of $${paymentTotal.toLocaleString()} processed successfully`;
+      
+      toast.success(successMessage);
       setPaymentOpen(false);
       setSelectedPaymentItems([]);
       
@@ -685,39 +708,95 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                       )}
                     </div>
 
-                    {/* Payment Summary */}
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Selected Items:</span>
-                        <span>{selectedPaymentItems.length}</span>
-                      </div>
-                      <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                        <span>Payment Total:</span>
-                        <span>${getSelectedPaymentTotal().toLocaleString()}</span>
-                      </div>
-                    </div>
+                    {/* Payment Summary with Credit Application */}
+                    {(() => {
+                      const { paymentTotal, availableCredit, creditToApply, netChargeAmount } = getCreditApplication();
+                      return (
+                        <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Selected Items:</span>
+                            <span>{selectedPaymentItems.length}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Total Charges:</span>
+                            <span>${paymentTotal.toLocaleString()}</span>
+                          </div>
+                          
+                          {availableCredit > 0 && paymentTotal > 0 && (
+                            <>
+                              <div className="flex justify-between text-sm text-primary">
+                                <span>Credit Available:</span>
+                                <span>-${availableCredit.toLocaleString()}</span>
+                              </div>
+                              {creditToApply > 0 && (
+                                <div className="flex justify-between text-sm font-medium text-primary bg-primary/10 -mx-2 px-2 py-1 rounded">
+                                  <span>Credit to Apply:</span>
+                                  <span>-${creditToApply.toLocaleString()}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          
+                          <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                            <span>{netChargeAmount > 0 ? 'Amount to Charge:' : 'Covered by Credit:'}</span>
+                            <span className={netChargeAmount === 0 ? 'text-primary' : ''}>
+                              ${netChargeAmount.toLocaleString()}
+                            </span>
+                          </div>
+                          
+                          {creditToApply > 0 && netChargeAmount === 0 && (
+                            <p className="text-xs text-primary text-center mt-1">
+                              ✓ Full amount will be covered by account credit
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Payment Method Info */}
-                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
-                      <Wallet className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Payment Method</p>
-                        <p className="text-xs text-muted-foreground">Card or bank account on file (see Card tab)</p>
+                    {getCreditApplication().netChargeAmount > 0 && (
+                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border">
+                        <Wallet className="h-5 w-5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Payment Method</p>
+                          <p className="text-xs text-muted-foreground">Card or bank account on file (see Card tab)</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {getCreditApplication().netChargeAmount === 0 && getCreditApplication().creditToApply > 0 && (
+                      <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border border-primary/30">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-primary">Credit Only</p>
+                          <p className="text-xs text-muted-foreground">No card charge required - using account credit</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setPaymentOpen(false)}>
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleProcessPayment} 
-                      disabled={processingPayment || selectedPaymentItems.length === 0}
-                      className="bg-foreground text-background hover:bg-foreground/90"
-                    >
-                      {processingPayment ? 'Processing...' : `Pay $${getSelectedPaymentTotal().toLocaleString()}`}
-                    </Button>
+                    {(() => {
+                      const { creditToApply, netChargeAmount } = getCreditApplication();
+                      const buttonText = netChargeAmount === 0 && creditToApply > 0
+                        ? `Apply $${creditToApply.toLocaleString()} Credit`
+                        : creditToApply > 0
+                          ? `Apply Credit & Charge $${netChargeAmount.toLocaleString()}`
+                          : `Charge $${netChargeAmount.toLocaleString()}`;
+                      
+                      return (
+                        <Button 
+                          onClick={handleProcessPayment} 
+                          disabled={processingPayment || selectedPaymentItems.length === 0}
+                          className="bg-foreground text-background hover:bg-foreground/90"
+                        >
+                          {processingPayment ? 'Processing...' : buttonText}
+                        </Button>
+                      );
+                    })()}
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
