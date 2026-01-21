@@ -39,6 +39,7 @@ interface MyRequestsTabProps {
   leadEmail?: string;
   requests: ClientRequest[];
   onRequestCreated: () => void;
+  sessionToken?: string;
 }
 
 interface SelectedFile {
@@ -46,7 +47,7 @@ interface SelectedFile {
   preview?: string;
 }
 
-export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequestCreated }: MyRequestsTabProps) {
+export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequestCreated, sessionToken }: MyRequestsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
@@ -91,29 +92,31 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
   };
 
   const uploadFiles = async (requestId: string) => {
+    if (!sessionToken) {
+      throw new Error('Session token required for file upload');
+    }
+
     const uploadPromises = selectedFiles.map(async ({ file }) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${requestId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('request-attachments')
-        .upload(fileName, file);
+      const formData = new FormData();
+      formData.append('session_token', sessionToken);
+      formData.append('lead_id', leadId);
+      formData.append('request_id', requestId);
+      formData.append('file', file);
 
-      if (uploadError) throw uploadError;
+      const { data, error } = await supabase.functions.invoke('upload-request-attachment', {
+        body: formData,
+      });
 
-      // Create attachment record
-      const { error: recordError } = await supabase
-        .from('request_attachments')
-        .insert({
-          request_id: requestId,
-          file_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-          content_type: file.type,
-          uploaded_by: 'client'
-        });
+      if (error) {
+        console.error('Upload error:', error);
+        throw new Error(`Failed to upload ${file.name}`);
+      }
 
-      if (recordError) throw recordError;
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
     });
 
     await Promise.all(uploadPromises);
@@ -126,38 +129,50 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       return;
     }
 
+    if (!sessionToken) {
+      toast.error('Session expired. Please log in again.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { data: newRequest, error } = await supabase.from('client_requests').insert({
-        lead_id: leadId,
-        title: title.trim(),
-        description: description.trim() || null,
-        body: body.trim() || null,
-        priority,
-      }).select().single();
+      // Use the secure edge function to submit the request
+      const { data, error } = await supabase.functions.invoke('submit-client-request', {
+        body: {
+          session_token: sessionToken,
+          lead_id: leadId,
+          title: title.trim(),
+          description: description.trim() || null,
+          body: body.trim() || null,
+          priority,
+          client_name: leadName,
+          client_email: leadEmail,
+        },
+      });
 
-      if (error) throw error;
-
-      // Upload files if any
-      if (selectedFiles.length > 0) {
-        await uploadFiles(newRequest.id);
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to submit request');
       }
 
-      try {
-        await supabase.functions.invoke('notify-client-request', {
-          body: {
-            request_id: newRequest.id,
-            lead_id: leadId,
-            title: title.trim(),
-            description: description.trim() || null,
-            priority,
-            client_name: leadName,
-            client_email: leadEmail,
-            has_attachments: selectedFiles.length > 0,
-          },
-        });
-      } catch (notifyError) {
-        console.error('Failed to send notification:', notifyError);
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const newRequest = data?.request;
+      
+      if (!newRequest?.id) {
+        throw new Error('Failed to create request');
+      }
+
+      // Upload files if any - using the service role bucket access
+      if (selectedFiles.length > 0) {
+        try {
+          await uploadFiles(newRequest.id);
+        } catch (uploadError) {
+          console.error('File upload error (non-fatal):', uploadError);
+          toast.warning('Request submitted but some files failed to upload');
+        }
       }
 
       toast.success('Request submitted');
@@ -170,7 +185,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       onRequestCreated();
     } catch (error: any) {
       console.error('Error submitting request:', error);
-      toast.error('Failed to submit request');
+      toast.error(error.message || 'Failed to submit request');
     } finally {
       setSubmitting(false);
     }

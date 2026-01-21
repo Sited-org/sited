@@ -247,6 +247,7 @@ export default function ClientPortalDashboard() {
                 leadEmail={session.lead.email}
                 requests={requests}
                 onRequestCreated={handleRequestCreated}
+                sessionToken={session.token}
               />
             </TabsContent>
 

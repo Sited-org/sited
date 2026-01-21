@@ -77,3 +77,12 @@ verify_jwt = false
 
 [functions.send-client-credentials]
 verify_jwt = true
+
+[functions.submit-client-request]
+verify_jwt = false
+
+[functions.notify-client-request]
+verify_jwt = false
+
+[functions.upload-request-attachment]
+verify_jwt = false
