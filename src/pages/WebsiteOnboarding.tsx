@@ -40,6 +40,7 @@ const WebsiteOnboarding = () => {
     industry: "",
     businessDescription: "",
     targetAudience: "",
+    averageCustomerValue: "",
 
     // Project Goals
     primaryGoal: "",
@@ -413,15 +414,54 @@ const WebsiteOnboarding = () => {
                     className="min-h-[100px]"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="averageCustomerValue">Average Customer Value (Approximate) *</Label>
+                  <Input
+                    id="averageCustomerValue"
+                    value={formData.averageCustomerValue}
+                    onChange={(e) => updateFormData("averageCustomerValue", e.target.value)}
+                    placeholder="E.g., $500, $1,000, $50,000"
+                    className="h-12"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If the business has not launched, estimate the average value of a customer
+                  </p>
+                </div>
               </div>
             )}
 
             {/* Step 3: Project Goals */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Project Goals</h2>
-                  <p className="text-muted-foreground">What do you want to achieve?</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Project Goals</h2>
+                    <p className="text-muted-foreground">What do you want to achieve?</p>
+                  </div>
+                </div>
+                
+                {/* AI Help CTA */}
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Need help defining your goals?</p>
+                        <p className="text-xs text-muted-foreground">Let Sited AI help you articulate your vision</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Sparkles size={14} className="mr-2" />
+                      Get Sited AI to help
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label>Primary Goal for the Website *</Label>
@@ -503,9 +543,35 @@ const WebsiteOnboarding = () => {
             {/* Step 4: Design & Content */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Design & Content</h2>
-                  <p className="text-muted-foreground">Visual preferences and content needs</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Design & Content</h2>
+                    <p className="text-muted-foreground">Visual preferences and content needs</p>
+                  </div>
+                </div>
+                
+                {/* AI Help CTA */}
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Not sure about design choices?</p>
+                        <p className="text-xs text-muted-foreground">Let Sited AI guide your creative decisions</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Sparkles size={14} className="mr-2" />
+                      Get Sited AI to help
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label>Do you have existing branding (logo, colors, fonts)? *</Label>
@@ -768,9 +834,35 @@ const WebsiteOnboarding = () => {
             {/* Step 5: Technical Requirements */}
             {currentStep === 5 && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Technical Requirements</h2>
-                  <p className="text-muted-foreground">Technical specifications and integrations</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Technical Requirements</h2>
+                    <p className="text-muted-foreground">Technical specifications and integrations</p>
+                  </div>
+                </div>
+                
+                {/* AI Help CTA */}
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Unsure about technical requirements?</p>
+                        <p className="text-xs text-muted-foreground">Sited AI can recommend what you need</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Sparkles size={14} className="mr-2" />
+                      Get Sited AI to help
+                    </Button>
+                  </div>
                 </div>
                 
                 {/* Domain Question First */}
