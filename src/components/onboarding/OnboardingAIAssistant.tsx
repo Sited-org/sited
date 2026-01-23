@@ -39,27 +39,25 @@ export function OnboardingAIAssistant({
     return "Hey! 👋 I'm here to help you fill out this form faster. Just chat with me naturally and I'll gather all the info we need. What's your name and what kind of project are you working on?";
   };
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: getInitialMessage(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Reset messages with personalized greeting when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setMessages([{ role: "assistant", content: getInitialMessage() }]);
+      setCollectedData({});
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen, currentFormData?.fullName]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
