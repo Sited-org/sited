@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
@@ -12,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MilestoneTimeline } from './MilestoneTimeline';
+import { FormResponsesDisplay } from './FormResponsesDisplay';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -528,13 +528,13 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
               </div>
             </div>
 
-            {/* Form Responses */}
+            {/* Form Responses - Categorized Display */}
             {lead.form_data && Object.keys(lead.form_data).length > 0 && (
               <>
                 <Separator />
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-muted-foreground">Form Responses</label>
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-sm font-medium text-muted-foreground">Project Details</label>
                     {canEdit && (
                       <div className="flex items-center gap-2">
                         {isEditingForm && (
@@ -563,35 +563,20 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                       </div>
                     )}
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                    {Object.entries(isEditingForm ? editedFormData : lead.form_data).map(([key, value]) => (
-                      <div key={key} className="space-y-1">
-                        {isEditingForm ? (
-                          <>
-                            <label className="text-sm font-medium text-muted-foreground">{formatKey(key)}</label>
-                            <Input
-                              value={typeof value === 'object' ? JSON.stringify(value) : String(value || '')}
-                              onChange={(e) => handleFieldChange(key, e.target.value)}
-                            />
-                          </>
-                        ) : (
-                          <div className="flex gap-2 text-sm">
-                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                            <span className="text-muted-foreground">{String(value)}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {isEditingForm && canEdit && (
-                      <div className="pt-2 flex justify-end">
-                        <Button onClick={handleSaveFormData} disabled={isSavingForm}>
-                          <Save className="h-4 w-4 mr-1" />
-                          {isSavingForm ? 'Saving...' : 'Save'}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  <FormResponsesDisplay
+                    formData={lead.form_data}
+                    isEditing={isEditingForm}
+                    editedFormData={editedFormData}
+                    onFieldChange={handleFieldChange}
+                  />
+                  {isEditingForm && canEdit && (
+                    <div className="pt-4 flex justify-end">
+                      <Button onClick={handleSaveFormData} disabled={isSavingForm}>
+                        <Save className="h-4 w-4 mr-1" />
+                        {isSavingForm ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </>
             )}

@@ -8,10 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Globe, Upload } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Globe, Sparkles, Upload } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
+import { OnboardingAIAssistant } from "@/components/onboarding/OnboardingAIAssistant";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -24,6 +25,7 @@ const steps = [
 
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const { isSubmitting, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
@@ -179,15 +181,36 @@ const WebsiteOnboarding = () => {
               <ArrowLeft size={18} />
               Back to Contact
             </Link>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
-                <Globe size={24} className="text-accent-foreground" />
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
+                  <Globe size={24} className="text-accent-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-semibold">Website Project Onboarding</h1>
+                  <p className="text-muted-foreground">Tell us everything about your website project</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-semibold">Website Project Onboarding</h1>
-                <p className="text-muted-foreground">Tell us everything about your website project</p>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAIAssistant(true)}
+                className="hidden sm:flex items-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
+              >
+                <Sparkles size={16} className="text-primary" />
+                <span>Get AI Help</span>
+              </Button>
             </div>
+            {/* Mobile AI Help Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAIAssistant(true)}
+              className="sm:hidden w-full flex items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5 mb-4"
+            >
+              <Sparkles size={16} className="text-primary" />
+              <span>Not sure? Get Sited AI to help</span>
+            </Button>
           </motion.div>
 
           {/* Progress Steps */}
@@ -743,16 +766,8 @@ const WebsiteOnboarding = () => {
                   <h2 className="text-xl font-semibold mb-2">Technical Requirements</h2>
                   <p className="text-muted-foreground">Technical specifications and integrations</p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currentWebsite">Current Website URL (if any)</Label>
-                  <Input
-                    id="currentWebsite"
-                    value={formData.currentWebsite}
-                    onChange={(e) => updateFormData("currentWebsite", e.target.value)}
-                    placeholder="https://www.example.com"
-                    className="h-12"
-                  />
-                </div>
+                
+                {/* Domain Question First */}
                 <div className="space-y-3">
                   <Label>Do you own a domain name?</Label>
                   <RadioGroup
@@ -780,8 +795,20 @@ const WebsiteOnboarding = () => {
                     </div>
                   </RadioGroup>
                 </div>
+
+                {/* Show these fields only if they own a domain */}
                 {formData.domainOwned === "yes" && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 p-4 bg-muted/30 rounded-lg border border-border">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentWebsite">Current Website URL (if any)</Label>
+                      <Input
+                        id="currentWebsite"
+                        value={formData.currentWebsite}
+                        onChange={(e) => updateFormData("currentWebsite", e.target.value)}
+                        placeholder="https://www.example.com"
+                        className="h-12"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="domainName">Domain Name</Label>
                       <Input
@@ -1032,6 +1059,18 @@ const WebsiteOnboarding = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* AI Assistant Dialog */}
+      <OnboardingAIAssistant
+        isOpen={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        onDataCollected={(data) => {
+          setFormData(prev => ({ ...prev, ...data }));
+          toast.success("Form updated with collected information!");
+        }}
+        currentFormData={formData}
+        projectType="website"
+      />
     </Layout>
   );
 };

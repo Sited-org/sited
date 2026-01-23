@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.upload-request-attachment]
 verify_jwt = false
+
+[functions.onboarding-assistant]
+verify_jwt = false
