@@ -181,36 +181,15 @@ const WebsiteOnboarding = () => {
               <ArrowLeft size={18} />
               Back to Contact
             </Link>
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
-                  <Globe size={24} className="text-accent-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-semibold">Website Project Onboarding</h1>
-                  <p className="text-muted-foreground">Tell us everything about your website project</p>
-                </div>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
+                <Globe size={24} className="text-accent-foreground" />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAIAssistant(true)}
-                className="hidden sm:flex items-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5"
-              >
-                <Sparkles size={16} className="text-primary" />
-                <span>Get AI Help</span>
-              </Button>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-semibold">Website Project Onboarding</h1>
+                <p className="text-muted-foreground">Tell us everything about your website project</p>
+              </div>
             </div>
-            {/* Mobile AI Help Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAIAssistant(true)}
-              className="sm:hidden w-full flex items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5 mb-4"
-            >
-              <Sparkles size={16} className="text-primary" />
-              <span>Not sure? Get Sited AI to help</span>
-            </Button>
           </motion.div>
 
           {/* Progress Steps */}
@@ -349,10 +328,37 @@ const WebsiteOnboarding = () => {
             {/* Step 2: Business Details */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Business Details</h2>
-                  <p className="text-muted-foreground">Tell us about your business</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold mb-2">Business Details</h2>
+                    <p className="text-muted-foreground">Tell us about your business</p>
+                  </div>
                 </div>
+                
+                {/* AI Help CTA */}
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={20} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">Not sure how to answer?</p>
+                        <p className="text-xs text-muted-foreground">Let Sited AI guide you through the process</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      <Sparkles size={14} className="mr-2" />
+                      Get Sited AI to help
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Business Name *</Label>
