@@ -30,10 +30,19 @@ export function OnboardingAIAssistant({
   currentFormData,
   projectType,
 }: OnboardingAIAssistantProps) {
+  // Generate personalized initial message based on collected form data
+  const getInitialMessage = (): string => {
+    const name = currentFormData?.fullName?.split(' ')[0]; // Get first name
+    if (name) {
+      return `Hey ${name}! 👋 Great to meet you. I'm here to help you fill out this form faster — just chat with me naturally and I'll gather everything we need. So tell me, what does your business do and who are your ideal customers?`;
+    }
+    return "Hey! 👋 I'm here to help you fill out this form faster. Just chat with me naturally and I'll gather all the info we need. What's your name and what kind of project are you working on?";
+  };
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hey! 👋 I'm here to help you fill out this form faster. Just chat with me naturally and I'll gather all the info we need. What's your name and what kind of project are you working on?",
+      content: getInitialMessage(),
     },
   ]);
   const [input, setInput] = useState("");
