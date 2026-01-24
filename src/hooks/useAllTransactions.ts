@@ -126,57 +126,19 @@ export function useAllTransactions() {
     return transactions.filter(t => !isInternalCredit(t));
   }, [transactions]);
 
-  // Calculate global metrics
-  const metrics = useMemo(() => {
+  // Get pending invoices (sent but not paid, and due)
+  const pendingInvoicesList = useMemo(() => {
     const today = startOfDay(new Date());
-    
-    // Filter out void transactions
-    const activeTransactions = transactions.filter(t => 
-      !t.item.startsWith('VOID:') && 
-      !t.notes?.includes('[VOIDED:') &&
-      t.status !== 'void'
-    );
-
-    let totalRevenue = 0;
-    let totalOutstanding = 0;
-    let pendingInvoices = 0;
-    let overdueAmount = 0;
-
-    activeTransactions.forEach(t => {
+    return transactions.filter(t => {
+      if (t.item.startsWith('VOID:') || t.notes?.includes('[VOIDED:') || t.status === 'void') return false;
+      if (Number(t.debit) <= 0) return false;
       const transactionDate = startOfDay(new Date(t.transaction_date));
       const isDue = !isAfter(transactionDate, today);
-
-      // Total revenue = ONLY real payments (Stripe paid + manual payments like cash/bank)
-      // Excludes internal credits
-      if (isRealPayment(t)) {
-        totalRevenue += Number(t.credit);
-      }
-
-      // Outstanding = due debits that aren't paid
-      if (isDue && Number(t.debit) > 0 && t.invoice_status !== 'paid') {
-        totalOutstanding += Number(t.debit);
-        
-        // Pending invoices = sent but not paid
-        if (t.invoice_status === 'sent' || t.invoice_status === 'processing') {
-          pendingInvoices += 1;
-        }
-      }
+      return isDue && (t.invoice_status === 'sent' || t.invoice_status === 'processing');
     });
+  }, [transactions]);
 
-    // Calculate overdue (subtract ALL credits from outstanding for balance purposes)
-    const totalCredits = activeTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
-    overdueAmount = Math.max(0, totalOutstanding - totalCredits);
-
-    return {
-      totalRevenue,
-      totalOutstanding,
-      pendingInvoices,
-      overdueAmount,
-      totalTransactions: displayTransactions.length,
-    };
-  }, [transactions, displayTransactions]);
-
-  // Calculate per-account summaries
+  // Calculate per-account summaries (moved before metrics since metrics depends on it)
   const accountSummaries = useMemo((): AccountSummary[] => {
     const today = startOfDay(new Date());
     const summaries: Record<string, AccountSummary> = {};
@@ -205,12 +167,13 @@ export function useAllTransactions() {
       const transactionDate = startOfDay(new Date(t.transaction_date));
       const isDue = !isAfter(transactionDate, today);
 
+      // Only count due transactions towards balance
       if (isDue) {
         summaries[t.lead_id].totalDebit += Number(t.debit);
         summaries[t.lead_id].totalCredit += Number(t.credit);
       }
 
-      if (isDue && Number(t.debit) > 0 && t.invoice_status === 'sent') {
+      if (isDue && Number(t.debit) > 0 && (t.invoice_status === 'sent' || t.invoice_status === 'processing')) {
         summaries[t.lead_id].outstandingInvoices += 1;
       }
 
@@ -226,6 +189,42 @@ export function useAllTransactions() {
 
     return Object.values(summaries).sort((a, b) => b.balance - a.balance);
   }, [transactions, leads]);
+
+  // Calculate global metrics
+  const metrics = useMemo(() => {
+    // Filter out void transactions
+    const activeTransactions = transactions.filter(t => 
+      !t.item.startsWith('VOID:') && 
+      !t.notes?.includes('[VOIDED:') &&
+      t.status !== 'void'
+    );
+
+    let totalRevenue = 0;
+
+    activeTransactions.forEach(t => {
+      // Total revenue = ONLY real payments (Stripe paid + manual payments like cash/bank)
+      // Excludes internal credits
+      if (isRealPayment(t)) {
+        totalRevenue += Number(t.credit);
+      }
+    });
+
+    // Total Outstanding = sum of all positive account balances
+    // Account balances already exclude future charges
+    const totalOutstanding = accountSummaries.reduce((sum, account) => {
+      return sum + Math.max(0, account.balance);
+    }, 0);
+
+    // Pending invoices count
+    const pendingInvoices = pendingInvoicesList.length;
+
+    return {
+      totalRevenue,
+      totalOutstanding,
+      pendingInvoices,
+      totalTransactions: displayTransactions.length,
+    };
+  }, [transactions, displayTransactions, accountSummaries, pendingInvoicesList]);
 
   // Zero out an account (admin only)
   const zeroAccount = async (leadId: string, reason: string) => {
@@ -323,6 +322,7 @@ export function useAllTransactions() {
   return {
     transactions: displayTransactions,
     allTransactions: transactions,
+    pendingInvoices: pendingInvoicesList,
     loading,
     metrics,
     accountSummaries,
