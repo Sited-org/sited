@@ -60,7 +60,7 @@ function getStatusBadge(tx: GlobalTransaction) {
 }
 
 export default function AdminFinancial() {
-  const { transactions, loading, metrics, accountSummaries, zeroAccount, voidAllOutstanding, refetch } = useAllTransactions();
+  const { transactions, pendingInvoices: pendingInvoicesList, loading, metrics, accountSummaries, zeroAccount, voidAllOutstanding, refetch } = useAllTransactions();
   const { userRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -68,6 +68,7 @@ export default function AdminFinancial() {
   const [voidDialog, setVoidDialog] = useState<AccountSummary | null>(null);
   const [reason, setReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [showPendingInvoices, setShowPendingInvoices] = useState(false);
 
   const isAdmin = userRole?.role === 'owner' || userRole?.role === 'admin';
 
@@ -163,13 +164,19 @@ export default function AdminFinancial() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setShowPendingInvoices(true)}
+        >
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Clock className="h-4 w-4" />
               Pending Invoices
             </div>
             <p className="text-2xl font-bold">{metrics.pendingInvoices}</p>
+            {metrics.pendingInvoices > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">Click to view</p>
+            )}
           </CardContent>
         </Card>
 
@@ -537,6 +544,74 @@ export default function AdminFinancial() {
               disabled={!reason.trim() || processing}
             >
               {processing ? 'Processing...' : 'Void All Invoices'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pending Invoices Dialog */}
+      <Dialog open={showPendingInvoices} onOpenChange={setShowPendingInvoices}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              Pending Invoices ({pendingInvoicesList.length})
+            </DialogTitle>
+            <DialogDescription>
+              Invoices that have been sent but not yet paid
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-auto flex-1">
+            {pendingInvoicesList.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <CheckCircle2 className="h-12 w-12 text-green-500 mb-2" />
+                <p>No pending invoices</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pendingInvoicesList.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(new Date(tx.transaction_date), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {tx.lead?.business_name || tx.lead?.name || 'Unknown'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{tx.lead?.email}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{tx.item}</TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        ${Number(tx.debit).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        <Link to={`/admin/leads/${tx.lead_id}`}>
+                          <Button variant="ghost" size="sm">
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPendingInvoices(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
