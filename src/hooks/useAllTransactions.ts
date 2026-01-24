@@ -127,10 +127,15 @@ export function useAllTransactions() {
   }, [transactions]);
 
   // Get pending invoices (sent but not paid, and due)
+  // CRITICAL: Also check invoice_status !== 'void' to catch voided invoices
   const pendingInvoicesList = useMemo(() => {
     const today = startOfDay(new Date());
     return transactions.filter(t => {
-      if (t.item.startsWith('VOID:') || t.notes?.includes('[VOIDED:') || t.status === 'void') return false;
+      // Exclude void entries and voided transactions
+      if (t.item.startsWith('VOID:')) return false;
+      if (t.notes?.includes('[VOIDED:')) return false;
+      if (t.status === 'void') return false;
+      if (t.invoice_status === 'void') return false; // Explicitly check invoice_status is not void
       if (Number(t.debit) <= 0) return false;
       const transactionDate = startOfDay(new Date(t.transaction_date));
       const isDue = !isAfter(transactionDate, today);
