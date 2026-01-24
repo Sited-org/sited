@@ -14,12 +14,13 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-import { Target, ClipboardList } from 'lucide-react';
+import { Target, ClipboardList, Wallet } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
   { name: 'Requests', href: '/admin/requests', icon: ClipboardList },
+  { name: 'Financial', href: '/admin/financial', icon: Wallet, paymentsOnly: true },
   { name: 'New Sale', href: '/admin/new-sale', icon: Target, salesOnly: true },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -98,6 +99,11 @@ export default function AdminLayout() {
               
               // New Sale visible to sales and admins/owners
               if ((item as any).salesOnly && userRole?.role !== 'sales' && userRole?.role !== 'owner' && userRole?.role !== 'admin') {
+                return null;
+              }
+              
+              // Financial page visible only to those who can view payments
+              if ((item as any).paymentsOnly && !userRole?.can_view_payments) {
                 return null;
               }
               
