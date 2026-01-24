@@ -41,19 +41,61 @@ export const GlobalChatButton = () => {
   const extractInfo = (text: string) => {
     const updated = { ...collectedInfo };
     
+    // Extract email
     const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
     if (emailMatch) updated.email = emailMatch[0];
     
+    // Extract phone
     const phoneMatch = text.match(/(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/);
     if (phoneMatch) updated.phone = phoneMatch[0];
     
-    const nameMatch = text.match(/(?:i'm|i am|my name is|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+    // Extract name
+    const nameMatch = text.match(/(?:i'm|i am|my name is|this is|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
     if (nameMatch) updated.name = nameMatch[1];
     
-    const businessMatch = text.match(/(?:company|business|we're|we are|our company is|at)\s+([A-Z][A-Za-z0-9\s&]+?)(?:\s*[,.]|\s+and|\s+is|\s+we|$)/i);
+    // Extract business name
+    const businessMatch = text.match(/(?:company|business|we're|we are|our company is|at|called|named|run)\s+([A-Z][A-Za-z0-9\s&']+?)(?:\s*[,.]|\s+and|\s+is|\s+we|\s+which|\s+that|$)/i);
     if (businessMatch) updated.businessName = businessMatch[1].trim();
     
+    // Extract industry hints
     const lowerText = text.toLowerCase();
+    if (lowerText.includes("bakery") || lowerText.includes("restaurant") || lowerText.includes("cafe") || lowerText.includes("food")) {
+      updated.industry = "hospitality";
+    } else if (lowerText.includes("law") || lowerText.includes("legal") || lowerText.includes("attorney")) {
+      updated.industry = "professional";
+    } else if (lowerText.includes("doctor") || lowerText.includes("clinic") || lowerText.includes("health") || lowerText.includes("fitness") || lowerText.includes("weight")) {
+      updated.industry = "healthcare";
+    } else if (lowerText.includes("shop") || lowerText.includes("store") || lowerText.includes("ecommerce") || lowerText.includes("sell")) {
+      updated.industry = "retail";
+    } else if (lowerText.includes("real estate") || lowerText.includes("property") || lowerText.includes("homes")) {
+      updated.industry = "realestate";
+    }
+    
+    // Extract budget hints
+    if (lowerText.includes("$500") || lowerText.includes("500 dollars")) {
+      updated.budget = "500-1000";
+    } else if (lowerText.includes("$1000") || lowerText.includes("$1,000") || lowerText.includes("1000 dollars") || lowerText.includes("thousand")) {
+      updated.budget = "1000-2500";
+    } else if (lowerText.includes("$2000") || lowerText.includes("$2,000") || lowerText.includes("$2500") || lowerText.includes("$2,500")) {
+      updated.budget = "2500+";
+    }
+    
+    // Extract timeline hints  
+    if (lowerText.includes("asap") || lowerText.includes("urgent") || lowerText.includes("right away") || lowerText.includes("immediately")) {
+      updated.timeline = "asap";
+    } else if (lowerText.includes("1 week") || lowerText.includes("one week") || lowerText.includes("2 weeks") || lowerText.includes("two weeks")) {
+      updated.timeline = "1-2-weeks";
+    } else if (lowerText.includes("month") || lowerText.includes("4 weeks") || lowerText.includes("few weeks")) {
+      updated.timeline = "2-4-weeks";
+    } else if (lowerText.includes("flexible") || lowerText.includes("no rush") || lowerText.includes("whenever")) {
+      updated.timeline = "flexible";
+    }
+    
+    // Extract description/project info
+    const descMatch = text.match(/(?:we|i|our business|my business)\s+(?:help|sell|provide|offer|make|create|do|build)\s+(.+?)(?:\.|$)/i);
+    if (descMatch) updated.description = descMatch[1].trim();
+    
+    // Extract project type
     if (lowerText.includes("website") || lowerText.includes("web site") || lowerText.includes("landing page")) {
       updated.projectType = "website";
     } else if (lowerText.includes("app") || lowerText.includes("mobile") || lowerText.includes("ios") || lowerText.includes("android")) {
