@@ -357,7 +357,7 @@ export default function AdminFinancial() {
                           ${account.totalDebit.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right font-mono text-green-600">
-                          ${account.totalCredit.toLocaleString()}
+                          ${account.totalPaid.toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right font-mono font-bold text-amber-600">
                           ${account.balance.toLocaleString()}
@@ -450,7 +450,7 @@ export default function AdminFinancial() {
                         ${account.totalDebit.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-green-600">
-                        ${account.totalCredit.toLocaleString()}
+                        ${account.totalPaid.toLocaleString()}
                       </TableCell>
                       <TableCell className={`text-right font-mono font-bold ${
                         account.balance > 0 ? 'text-amber-600' : 

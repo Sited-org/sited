@@ -36,7 +36,8 @@ export interface AccountSummary {
   name: string | null;
   email: string;
   totalDebit: number;
-  totalCredit: number;
+  totalCredit: number; // All credits (for balance calculation)
+  totalPaid: number; // Only real money received (excludes internal credits)
   balance: number;
   outstandingInvoices: number;
   pendingCharges: number;
@@ -100,6 +101,7 @@ export function useAllTransactions() {
     if (t.payment_method === 'credit') return false;
     if (t.item.toLowerCase().includes('credit added') || t.item.toLowerCase().includes('account credit')) return false;
     if (t.item.toLowerCase().includes('write-off') || t.item.toLowerCase().includes('credit removal')) return false;
+    if (t.item.toLowerCase().includes('referral')) return false;
     // Real payments: Stripe paid, cash, bank_transfer, or manual "other" payments
     return (
       t.invoice_status === 'paid' || 
@@ -158,6 +160,7 @@ export function useAllTransactions() {
           email: lead?.email || 'Unknown',
           totalDebit: 0,
           totalCredit: 0,
+          totalPaid: 0,
           balance: 0,
           outstandingInvoices: 0,
           pendingCharges: 0,
@@ -176,6 +179,10 @@ export function useAllTransactions() {
       if (isDue) {
         summaries[t.lead_id].totalDebit += Number(t.debit);
         summaries[t.lead_id].totalCredit += Number(t.credit);
+        // Only count real payments towards totalPaid
+        if (isRealPayment(t)) {
+          summaries[t.lead_id].totalPaid += Number(t.credit);
+        }
       }
 
       if (isDue && Number(t.debit) > 0 && (t.invoice_status === 'sent' || t.invoice_status === 'processing')) {
