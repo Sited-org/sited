@@ -98,13 +98,13 @@ const handler = async (req: Request): Promise<Response> => {
         customerId = customers.data[0].id;
         console.log("[SEND-INVOICE] Found customer by email:", customerId, "currency:", customerCurrency);
       } else {
-        // Create new customer
+      // Create new customer - use business name for invoicing
         const customer = await stripe.customers.create({
           email: clientEmail,
-          name: clientName,
+          name: businessName || clientName,
           metadata: {
             lead_id: leadId,
-            business_name: businessName || '',
+            contact_name: clientName,
           },
         });
         customerId = customer.id;
