@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLeads } from '@/hooks/useLeads';
 import { useFormSessions } from '@/hooks/useFormSessions';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,16 +6,16 @@ import { useDashboardMetrics } from '@/hooks/useDashboardMetrics';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { LeadsChart } from '@/components/admin/LeadsChart';
 import { ConversionFunnel } from '@/components/admin/ConversionFunnel';
-import { SourceBreakdown } from '@/components/admin/SourceBreakdown';
 import { LiveSessionCard } from '@/components/admin/LiveSessionCard';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { 
   Users, TrendingUp, Activity, DollarSign, 
   Receipt, Clock, Target, Wallet,
-  ArrowUpRight, ArrowDownRight
+  ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, subMonths, addMonths, isSameMonth } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import DeveloperDashboard from '@/components/admin/dashboards/DeveloperDashboard';
 import SalesDashboard from '@/components/admin/dashboards/SalesDashboard';
 
@@ -23,7 +23,14 @@ export default function AdminDashboard() {
   const { leads, loading } = useLeads();
   const { activeSessions } = useFormSessions();
   const { isDeveloper, isSales } = useAuth();
-  const metrics = useDashboardMetrics(leads);
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const metrics = useDashboardMetrics(leads, selectedMonth);
+
+  const recentProjects = useMemo(() => {
+    return [...leads]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 6);
+  }, [leads]);
 
   // Show role-specific dashboard
   if (isDeveloper) {
@@ -34,18 +41,14 @@ export default function AdminDashboard() {
     return <SalesDashboard />;
   }
 
-  const recentProjects = useMemo(() => {
-    return [...leads]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 6);
-  }, [leads]);
-
   if (loading) {
     return <div className="animate-pulse text-muted-foreground">Loading dashboard...</div>;
   }
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+
+  const isCurrentMonth = isSameMonth(selectedMonth, new Date());
 
   return (
     <div className="space-y-8">
@@ -69,7 +72,26 @@ export default function AdminDashboard() {
           
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground">This Month</span>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                </Button>
+                <span className="text-sm text-muted-foreground">{format(selectedMonth, 'MMM yyyy')}</span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6"
+                  onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}
+                  disabled={isCurrentMonth}
+                >
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
               <TrendingUp className="h-4 w-4 text-primary" />
             </div>
             <p className="text-2xl font-bold">{formatCurrency(metrics.monthRevenue)}</p>
@@ -80,7 +102,7 @@ export default function AdminDashboard() {
                 <ArrowDownRight className="h-3 w-3 text-red-500" />
               )}
               <span className={`text-xs ${metrics.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {metrics.revenueGrowth}% vs last month
+                {metrics.revenueGrowth}% vs prev month
               </span>
             </div>
           </div>
@@ -179,27 +201,23 @@ export default function AdminDashboard() {
           <LeadsChart leads={leads} days={30} />
         </div>
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Project Types</h3>
-          <SourceBreakdown leads={leads} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-4">Conversion Funnel</h3>
           <ConversionFunnel leads={leads} />
         </div>
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Live Activity</h3>
-            <span className="text-xs text-muted-foreground">{activeSessions.length} active</span>
-          </div>
-          {activeSessions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No active form sessions</p>
-          ) : (
-            <div className="space-y-3">{activeSessions.slice(0, 3).map(s => <LiveSessionCard key={s.id} session={s} />)}</div>
-          )}
+      </div>
+
+      <div className="bg-card border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Live Activity</h3>
+          <span className="text-xs text-muted-foreground">{activeSessions.length} active</span>
         </div>
+        {activeSessions.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No active form sessions</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {activeSessions.slice(0, 6).map(s => <LiveSessionCard key={s.id} session={s} />)}
+          </div>
+        )}
       </div>
     </div>
   );
