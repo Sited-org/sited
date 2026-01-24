@@ -226,7 +226,7 @@ export function useAllTransactions() {
     };
   }, [transactions, displayTransactions, accountSummaries, pendingInvoicesList]);
 
-  // Zero out an account (admin only)
+  // Zero out an account (admin only) - also marks all pending invoices as void
   const zeroAccount = async (leadId: string, reason: string) => {
     const { data: userData } = await supabase.auth.getUser();
     
@@ -242,6 +242,26 @@ export function useAllTransactions() {
     if (balance === 0) {
       toast({ title: 'Account already at zero' });
       return { error: null };
+    }
+
+    // First, mark all pending/sent invoices for this account as void
+    // This prevents "pending invoices" from showing after account is zeroed
+    const pendingInvoicesForAccount = transactions.filter(t => 
+      t.lead_id === leadId &&
+      Number(t.debit) > 0 &&
+      (t.invoice_status === 'sent' || t.invoice_status === 'processing') &&
+      !t.item.startsWith('VOID:') &&
+      !t.notes?.includes('[VOIDED:') &&
+      t.status !== 'void'
+    );
+
+    // Update all pending invoices to void status
+    for (const tx of pendingInvoicesForAccount) {
+      await supabase.from('transactions').update({
+        invoice_status: 'void',
+        status: 'void',
+        notes: `${tx.notes ? tx.notes + ' | ' : ''}[VOIDED: Account zeroed - ${reason}]`,
+      }).eq('id', tx.id);
     }
 
     // Create a write-off transaction
@@ -266,7 +286,11 @@ export function useAllTransactions() {
       return { error };
     }
 
-    toast({ title: 'Account zeroed successfully' });
+    const voidedCount = pendingInvoicesForAccount.length;
+    const message = voidedCount > 0 
+      ? `Account zeroed & ${voidedCount} pending invoice(s) voided`
+      : 'Account zeroed successfully';
+    toast({ title: message });
     fetchTransactions();
     return { error: null };
   };
