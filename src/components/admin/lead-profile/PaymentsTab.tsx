@@ -30,7 +30,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     transactions, 
     rawTransactions,
     loading, 
-    totalCredit, 
+    totalCredit,
+    totalPaid, 
     totalDebit, 
     currentBalance, 
     addTransaction, 
@@ -674,7 +675,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
               <TrendingDown className="h-4 w-4" />
               Total Paid
             </div>
-            <p className="text-2xl font-bold text-green-600">${totalCredit.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</p>
           </CardContent>
         </Card>
         

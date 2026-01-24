@@ -71,6 +71,18 @@ function generatePDFContent(transactions: Transaction[], leadName: string, start
 
   const totalDebit = filteredTransactions.reduce((sum, t) => sum + Number(t.debit), 0);
   const totalCredit = filteredTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
+  // Total paid = only real money received (excludes internal credits)
+  const totalPaid = filteredTransactions.reduce((sum, t) => {
+    const credit = Number(t.credit);
+    if (credit <= 0) return sum;
+    const paymentMethod = t.payment_method;
+    const item = t.item.toLowerCase();
+    if (paymentMethod === 'credit') return sum;
+    if (item.includes('credit added') || item.includes('account credit')) return sum;
+    if (item.includes('write-off') || item.includes('credit removal')) return sum;
+    if (item.includes('referral')) return sum;
+    return sum + credit;
+  }, 0);
 
   let html = `
     <!DOCTYPE html>
@@ -129,7 +141,7 @@ function generatePDFContent(transactions: Transaction[], leadName: string, start
         </div>
         <div class="summary-row">
           <span>Total Payments:</span>
-          <span class="credit">$${totalCredit.toFixed(2)}</span>
+          <span class="credit">$${totalPaid.toFixed(2)}</span>
         </div>
         <div class="summary-row total">
           <span>Balance:</span>
@@ -156,6 +168,19 @@ export function ClientTransactionsTab({ transactions, leadName }: ClientTransact
   const totalDebit = transactions.reduce((sum, t) => sum + Number(t.debit), 0);
   // Total credit for balance purposes (includes all credits)
   const totalCredit = transactions.reduce((sum, t) => sum + Number(t.credit), 0);
+  // Total paid = only real money received (excludes internal credits like referrals)
+  const totalPaid = transactions.reduce((sum, t) => {
+    const credit = Number(t.credit);
+    if (credit <= 0) return sum;
+    // Exclude internal credits from "paid" total
+    const paymentMethod = t.payment_method;
+    const item = t.item.toLowerCase();
+    if (paymentMethod === 'credit') return sum;
+    if (item.includes('credit added') || item.includes('account credit')) return sum;
+    if (item.includes('write-off') || item.includes('credit removal')) return sum;
+    if (item.includes('referral')) return sum;
+    return sum + credit;
+  }, 0);
   const currentBalance = totalDebit - totalCredit;
 
   const handleDownloadPDF = () => {
@@ -196,7 +221,7 @@ export function ClientTransactionsTab({ transactions, leadName }: ClientTransact
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Payments</p>
-                <p className="text-2xl font-bold">${totalCredit.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p>
               </div>
             </div>
           </CardContent>

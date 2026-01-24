@@ -70,10 +70,28 @@ function generateFutureTransactions(
   return futures;
 }
 
+// Helper to determine if a transaction is a real payment (vs internal credit)
+function isRealPayment(t: { credit: number; payment_method: string | null; item: string }): boolean {
+  if (Number(t.credit) <= 0) return false;
+  // Credit additions are internal credits, not real payments
+  if (t.payment_method === 'credit') return false;
+  if (t.item.toLowerCase().includes('credit added') || t.item.toLowerCase().includes('account credit')) return false;
+  if (t.item.toLowerCase().includes('write-off') || t.item.toLowerCase().includes('credit removal')) return false;
+  if (t.item.toLowerCase().includes('referral')) return false;
+  // Real payments: Stripe paid, cash, bank_transfer, or manual "other" payments
+  return (
+    t.payment_method === 'stripe' || 
+    t.payment_method === 'cash' || 
+    t.payment_method === 'bank_transfer' ||
+    (t.payment_method === 'other' && !t.item.toLowerCase().includes('credit'))
+  );
+}
+
 export function useTransactions(leadId: string | undefined) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalCredit, setTotalCredit] = useState(0);
+  const [totalCredit, setTotalCredit] = useState(0); // All credits (for balance calculation)
+  const [totalPaid, setTotalPaid] = useState(0); // Only real money received
   const [totalDebit, setTotalDebit] = useState(0);
   const { toast } = useToast();
 
@@ -103,6 +121,13 @@ export function useTransactions(leadId: string | undefined) {
       // Total credit includes ALL credits (for balance calculation purposes)
       // This includes both real payments AND internal credits
       setTotalCredit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.credit), 0));
+      // Total paid = only real money received (Stripe, cash, bank transfer) - NOT internal credits
+      setTotalPaid(nonVoidedTransactions.reduce((sum, t) => {
+        if (isRealPayment(t)) {
+          return sum + Number(t.credit);
+        }
+        return sum;
+      }, 0));
       // Only include debits that are due (transaction_date <= today)
       setTotalDebit(nonVoidedTransactions.reduce((sum, t) => {
         const transactionDate = startOfDay(new Date(t.transaction_date));
@@ -380,6 +405,7 @@ export function useTransactions(leadId: string | undefined) {
     rawTransactions: transactions,
     loading,
     totalCredit,
+    totalPaid, // Real money received (excludes internal credits)
     totalDebit,
     currentBalance: totalDebit - totalCredit,
     addTransaction,
