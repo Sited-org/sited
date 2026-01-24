@@ -161,7 +161,7 @@ serve(async (req) => {
     // Verify lead access and get lead details
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("id, name, email, stripe_customer_id")
+      .select("id, name, email, business_name, stripe_customer_id")
       .eq("id", lead_id)
       .eq("email", email.toLowerCase().trim())
       .single();
@@ -170,17 +170,23 @@ serve(async (req) => {
       throw new Error("Access denied - invalid credentials");
     }
 
-    logStep("Lead verified", { leadId: lead.id, name: lead.name });
+    logStep("Lead verified", { leadId: lead.id, name: lead.name, businessName: lead.business_name });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Use business name for Stripe customer (fall back to personal name)
+    const customerName = lead.business_name || lead.name || undefined;
 
     // Create or get Stripe customer
     let customerId = lead.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: lead.email,
-        name: lead.name || undefined,
-        metadata: { lead_id: lead.id },
+        name: customerName,
+        metadata: { 
+          lead_id: lead.id,
+          contact_name: lead.name || '',
+        },
       });
       customerId = customer.id;
 

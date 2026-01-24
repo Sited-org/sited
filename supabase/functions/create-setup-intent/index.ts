@@ -44,25 +44,31 @@ serve(async (req) => {
     // Fetch lead details
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("id, name, email, phone, stripe_customer_id")
+      .select("id, name, email, phone, business_name, stripe_customer_id")
       .eq("id", lead_id)
       .single();
 
     if (leadError || !lead) throw new Error("Lead not found");
-    logStep("Lead found", { leadId: lead.id, email: lead.email });
+    logStep("Lead found", { leadId: lead.id, email: lead.email, businessName: lead.business_name });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     let customerId = lead.stripe_customer_id;
 
+    // Use business name for Stripe customer (fall back to personal name)
+    const customerName = lead.business_name || lead.name || undefined;
+
     // Create Stripe customer if doesn't exist
     if (!customerId) {
-      logStep("Creating new Stripe customer");
+      logStep("Creating new Stripe customer with business name");
       const customer = await stripe.customers.create({
         email: lead.email,
-        name: lead.name || undefined,
+        name: customerName,
         phone: lead.phone || undefined,
-        metadata: { lead_id: lead.id },
+        metadata: { 
+          lead_id: lead.id,
+          contact_name: lead.name || '',
+        },
       });
       customerId = customer.id;
 
