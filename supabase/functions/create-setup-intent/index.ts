@@ -55,19 +55,18 @@ serve(async (req) => {
 
     let customerId = lead.stripe_customer_id;
 
-    // Use business name for Stripe customer (fall back to personal name)
-    const customerName = lead.business_name || lead.name || undefined;
+    // Use ONLY business name for Stripe customer (no fallback to personal name - invoices should only show business)
+    const customerName = lead.business_name || undefined;
 
     // Create Stripe customer if doesn't exist
     if (!customerId) {
-      logStep("Creating new Stripe customer with business name");
+      logStep("Creating new Stripe customer with business name only");
       const customer = await stripe.customers.create({
         email: lead.email,
-        name: customerName,
+        name: customerName, // Only business name - never personal name on invoices
         phone: lead.phone || undefined,
         metadata: { 
           lead_id: lead.id,
-          contact_name: lead.name || '',
         },
       });
       customerId = customer.id;

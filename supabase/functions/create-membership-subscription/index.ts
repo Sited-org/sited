@@ -75,17 +75,16 @@ serve(async (req) => {
         customerId = customers.data[0].id;
         logStep("Found existing Stripe customer", { customerId });
       } else {
-        // Create new customer - use business name for invoicing
+        // Create new customer - use ONLY business name for invoicing (no fallback to personal name)
         const customer = await stripe.customers.create({
           email: lead.email,
-          name: lead.business_name || lead.name || undefined,
+          name: lead.business_name || undefined, // Only business name - never personal name on invoices
           metadata: {
             lead_id: lead.id,
-            contact_name: lead.name || '',
           },
         });
         customerId = customer.id;
-        logStep("Created new Stripe customer with business name", { customerId, businessName: lead.business_name });
+        logStep("Created new Stripe customer with business name only", { customerId, businessName: lead.business_name });
       }
       
       // Save customer ID to lead

@@ -90,6 +90,14 @@ const handler = async (req: Request): Promise<Response> => {
     if (lead?.stripe_customer_id) {
       customerId = lead.stripe_customer_id;
       console.log("[SEND-INVOICE] Using existing customer:", customerId, "currency:", customerCurrency);
+      
+      // Update existing customer's name to business name (if provided) to ensure invoices show correct name
+      if (businessName) {
+        await stripe.customers.update(customerId, {
+          name: businessName,
+        });
+        console.log("[SEND-INVOICE] Updated existing customer name to business name:", businessName);
+      }
     } else {
       // Check if customer exists by email
       const customers = await stripe.customers.list({ email: clientEmail, limit: 1 });
@@ -97,14 +105,21 @@ const handler = async (req: Request): Promise<Response> => {
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
         console.log("[SEND-INVOICE] Found customer by email:", customerId, "currency:", customerCurrency);
+        
+        // Update found customer's name to business name (if provided)
+        if (businessName) {
+          await stripe.customers.update(customerId, {
+            name: businessName,
+          });
+          console.log("[SEND-INVOICE] Updated found customer name to business name:", businessName);
+        }
       } else {
-      // Create new customer - use business name for invoicing
+        // Create new customer - use ONLY business name for invoicing (no fallback to personal name)
         const customer = await stripe.customers.create({
           email: clientEmail,
-          name: businessName || clientName,
+          name: businessName || undefined, // Only use business name - never personal name on invoices
           metadata: {
             lead_id: leadId,
-            contact_name: clientName,
           },
         });
         customerId = customer.id;
