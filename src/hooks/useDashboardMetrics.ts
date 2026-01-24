@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { subDays, startOfMonth, startOfWeek, differenceInDays } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfWeek, differenceInDays, startOfDay, isAfter } from 'date-fns';
 
 interface DashboardMetrics {
   // Revenue
@@ -45,16 +45,46 @@ interface Transaction {
   transaction_date: string;
   stripe_invoice_id: string | null;
   payment_method: string | null;
+  status: string | null;
+  item: string;
+  notes: string | null;
 }
 
-export function useDashboardMetrics(leads: Lead[]) {
+// Helper to check if a transaction is a real payment (not internal credit)
+const isRealPayment = (t: Transaction): boolean => {
+  if (Number(t.credit) <= 0) return false;
+  // Credit additions are internal credits, not real payments
+  if (t.payment_method === 'credit') return false;
+  if (t.item.toLowerCase().includes('credit added') || t.item.toLowerCase().includes('account credit')) return false;
+  if (t.item.toLowerCase().includes('write-off') || t.item.toLowerCase().includes('credit removal')) return false;
+  if (t.item.toLowerCase().includes('referral')) return false;
+  // Real payments: Stripe paid + manual payments like cash/bank
+  return (
+    t.invoice_status === 'paid' || 
+    t.payment_method === 'cash' || 
+    t.payment_method === 'bank_transfer' ||
+    (t.payment_method === 'other' && !t.item.toLowerCase().includes('credit'))
+  );
+};
+
+// Helper to check if transaction is voided
+const isVoided = (t: Transaction): boolean => {
+  return (
+    t.item.startsWith('VOID:') ||
+    t.notes?.includes('[VOIDED:') ||
+    t.status === 'void' ||
+    t.invoice_status === 'void'
+  );
+};
+
+export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
   // Fetch all transactions for metrics
   const { data: allTransactions = [] } = useQuery({
     queryKey: ['all-transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id, payment_method');
+        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id, payment_method, status, item, notes');
       if (error) throw error;
       return data as Transaction[];
     }
@@ -62,56 +92,72 @@ export function useDashboardMetrics(leads: Lead[]) {
 
   const metrics = useMemo<DashboardMetrics>(() => {
     const now = new Date();
-    const monthStart = startOfMonth(now);
+    const targetMonth = selectedMonth || now;
+    const monthStart = startOfMonth(targetMonth);
+    const monthEnd = endOfMonth(targetMonth);
     const weekStart = startOfWeek(now);
-    const lastMonthStart = startOfMonth(subDays(monthStart, 1));
+    const lastMonthStart = startOfMonth(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1));
+    const lastMonthEnd = endOfMonth(lastMonthStart);
+    const today = startOfDay(now);
 
-    // Stripe-processed transactions (have stripe_invoice_id)
-    const stripeTransactions = allTransactions.filter(t => t.stripe_invoice_id);
+    // Filter out voided transactions
+    const activeTransactions = allTransactions.filter(t => !isVoided(t));
     
-    // Manual payments (cash, bank_transfer, other - no stripe_invoice_id but have credit and specific payment_method)
-    const manualPayments = allTransactions.filter(t => 
-      !t.stripe_invoice_id && 
-      Number(t.credit) > 0 && 
-      t.payment_method && 
-      ['cash', 'bank_transfer', 'other'].includes(t.payment_method)
-    );
+    // Real payments only (Stripe paid + manual payments)
+    const realPayments = activeTransactions.filter(t => isRealPayment(t));
     
-    // Revenue = PAID Stripe transactions + manual payments
-    const paidStripeTransactions = stripeTransactions.filter(t => t.invoice_status === 'paid');
-    const allPaidTransactions = [...paidStripeTransactions, ...manualPayments];
+    // Total revenue = all time real payments
+    const totalRevenue = realPayments.reduce((sum, t) => sum + Number(t.credit || 0), 0);
     
-    const totalRevenue = allPaidTransactions.reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const monthRevenue = allPaidTransactions
-      .filter(t => new Date(t.transaction_date) >= monthStart)
+    // Month revenue = real payments in selected month
+    const monthRevenue = realPayments
+      .filter(t => {
+        const date = new Date(t.transaction_date);
+        return date >= monthStart && date <= monthEnd;
+      })
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const weekRevenue = allPaidTransactions
+    
+    // Week revenue = real payments this week
+    const weekRevenue = realPayments
       .filter(t => new Date(t.transaction_date) >= weekStart)
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
     
     // Last month revenue for growth calculation
-    const lastMonthRevenue = allPaidTransactions
+    const lastMonthRevenue = realPayments
       .filter(t => {
         const date = new Date(t.transaction_date);
-        return date >= lastMonthStart && date < monthStart;
+        return date >= lastMonthStart && date <= lastMonthEnd;
       })
       .reduce((sum, t) => sum + Number(t.credit || 0), 0);
+    
     const revenueGrowth = lastMonthRevenue > 0 
       ? Math.round(((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
       : 0;
 
-    // Outstanding = Stripe invoices that are 'sent' (not yet paid)
-    const sentInvoices = stripeTransactions.filter(t => t.invoice_status === 'sent');
-    const totalOutstanding = sentInvoices.reduce((sum, t) => sum + Number(t.debit || 0), 0);
+    // Pending invoices = sent invoices that are due and NOT voided
+    const pendingInvoicesList = activeTransactions.filter(t => {
+      if (Number(t.debit) <= 0) return false;
+      const transactionDate = startOfDay(new Date(t.transaction_date));
+      const isDue = !isAfter(transactionDate, today);
+      return isDue && (t.invoice_status === 'sent' || t.invoice_status === 'processing');
+    });
     
-    // Invoice counts for collection rate (Stripe only - manual payments don't have invoices)
-    const paidInvoiceCount = paidStripeTransactions.length;
-    const sentInvoiceCount = sentInvoices.length;
-    const totalInvoicesSentOrPaid = paidInvoiceCount + sentInvoiceCount;
+    // Outstanding = sum of debit from pending invoices
+    const totalOutstanding = pendingInvoicesList.reduce((sum, t) => sum + Number(t.debit || 0), 0);
     
-    // Collection rate = paid invoices / (paid + sent invoices)
-    const collectionRate = totalInvoicesSentOrPaid > 0 
-      ? Math.round((paidInvoiceCount / totalInvoicesSentOrPaid) * 100) 
+    // Invoices sent (not voided) - for collection rate calculation
+    const invoicesSent = activeTransactions.filter(t => 
+      Number(t.debit) > 0 && 
+      t.stripe_invoice_id && 
+      (t.invoice_status === 'sent' || t.invoice_status === 'processing' || t.invoice_status === 'paid')
+    );
+    
+    const paidInvoiceCount = invoicesSent.filter(t => t.invoice_status === 'paid').length;
+    const totalInvoicesSent = invoicesSent.length;
+    
+    // Collection rate = paid invoices / total invoices sent (excluding voided)
+    const collectionRate = totalInvoicesSent > 0 
+      ? Math.round((paidInvoiceCount / totalInvoicesSent) * 100) 
       : 100;
 
     // Lead metrics
@@ -151,7 +197,7 @@ export function useDashboardMetrics(leads: Lead[]) {
       revenueGrowth,
       totalOutstanding,
       paidInvoices: paidInvoiceCount,
-      pendingInvoices: sentInvoiceCount,
+      pendingInvoices: pendingInvoicesList.length,
       collectionRate,
       totalLeads,
       newLeadsThisWeek,
@@ -162,7 +208,7 @@ export function useDashboardMetrics(leads: Lead[]) {
       pipelineValue,
       closedDeals: soldLeads.length,
     };
-  }, [leads, allTransactions]);
+  }, [leads, allTransactions, selectedMonth]);
 
   return metrics;
 }
