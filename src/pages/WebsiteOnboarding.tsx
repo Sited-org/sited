@@ -26,6 +26,7 @@ const steps = [
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { isSubmitting, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Contact Info
@@ -82,7 +83,7 @@ const WebsiteOnboarding = () => {
     howDidYouHear: "",
   });
 
-  // Pre-fill from chatbot data
+  // Pre-fill from chatbot data (Sited AI)
   useEffect(() => {
     const chatbotData = sessionStorage.getItem("chatbotInfo");
     if (chatbotData) {
@@ -94,6 +95,10 @@ const WebsiteOnboarding = () => {
           email: info.email || prev.email,
           phone: info.phone || prev.phone,
           businessName: info.businessName || prev.businessName,
+          industry: info.industry || prev.industry,
+          businessDescription: info.description || prev.businessDescription,
+          budget: info.budget || prev.budget,
+          timeline: info.timeline || prev.timeline,
         }));
         sessionStorage.removeItem("chatbotInfo");
       } catch (e) {
@@ -161,9 +166,62 @@ const WebsiteOnboarding = () => {
     });
 
     if (success) {
-      toast.success("Your website project request has been submitted! We'll be in touch within 24 hours.");
+      setIsSubmitted(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  // Show confirmation screen after submission
+  if (isSubmitted) {
+    return (
+      <Layout hideFooter>
+        <div className="min-h-screen bg-gradient-to-b from-surface-elevated to-background pt-24 pb-16">
+          <div className="container-tight">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card border border-border rounded-2xl p-8 md:p-12 text-center max-w-2xl mx-auto"
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                <Check size={32} className="text-primary" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold mb-4">
+                Project Request Submitted!
+              </h1>
+              <p className="text-muted-foreground text-lg mb-6">
+                Thanks {formData.fullName.split(' ')[0]}! We've received your project details and our team will be in touch within 24 hours.
+              </p>
+              <div className="bg-muted/50 rounded-xl p-4 mb-8 text-left">
+                <p className="text-sm text-muted-foreground mb-2">What happens next:</p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-medium">1.</span>
+                    <span>We'll review your project requirements</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-medium">2.</span>
+                    <span>A team member will reach out to schedule a discovery call</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary font-medium">3.</span>
+                    <span>We'll provide a custom proposal tailored to your needs</span>
+                  </li>
+                </ul>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button variant="outline" asChild>
+                  <Link to="/">Back to Home</Link>
+                </Button>
+                <Button variant="default" asChild>
+                  <Link to="/work">View Our Work</Link>
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout hideFooter>
