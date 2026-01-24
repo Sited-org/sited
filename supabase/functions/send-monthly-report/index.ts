@@ -24,9 +24,25 @@ function replaceTemplateVariables(template: string, variables: Record<string, st
 async function generateAIRecommendations(lead: any, transactions: any[], supabaseClient: any): Promise<{ metrics: string; recommendations: string }> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   
-  // Calculate metrics
+  // Helper to check if a transaction is a real payment (not internal credit)
+  const isRealPayment = (t: any): boolean => {
+    if (!t.credit || Number(t.credit) <= 0) return false;
+    // Credit additions are internal credits, not real payments
+    if (t.payment_method === 'credit') return false;
+    if (t.item?.toLowerCase().includes('credit added') || t.item?.toLowerCase().includes('account credit')) return false;
+    if (t.item?.toLowerCase().includes('write-off') || t.item?.toLowerCase().includes('credit removal')) return false;
+    // Real payments: Stripe paid, cash, bank_transfer
+    return (
+      t.invoice_status === 'paid' || 
+      t.payment_method === 'cash' || 
+      t.payment_method === 'bank_transfer' ||
+      (t.payment_method === 'other' && !t.item?.toLowerCase().includes('credit'))
+    );
+  };
+  
+  // Calculate metrics - Revenue = only real payments (Stripe + manual), NOT internal credits
   const totalRevenue = transactions
-    .filter(t => t.credit && t.status === 'completed')
+    .filter(t => t.status === 'completed' && isRealPayment(t))
     .reduce((sum, t) => sum + (t.credit || 0), 0);
   
   const totalExpenses = transactions
