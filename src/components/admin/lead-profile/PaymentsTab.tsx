@@ -205,16 +205,24 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   };
 
   // Get transactions that can be invoiced: unpaid charges that are not voided/void entries
+  // Note: Transactions with [VOIDED: in notes but null invoice_status were reset for re-invoicing
   const getInvoiceableTransactions = () => {
-    return transactions.filter(t => 
-      Number(t.debit) > 0 && 
-      !t.isFuture && 
-      t.invoice_status !== 'paid' && 
-      t.invoice_status !== 'sent' &&
-      t.invoice_status !== 'processing' &&
-      !t.item.startsWith('VOID:') && 
-      !t.notes?.includes('[VOIDED:')
-    );
+    return transactions.filter(t => {
+      // Must be a debit (charge)
+      if (Number(t.debit) <= 0) return false;
+      // Cannot be a future preview
+      if (t.isFuture) return false;
+      // Cannot be already paid, sent, or processing
+      if (t.invoice_status === 'paid' || t.invoice_status === 'sent' || t.invoice_status === 'processing') return false;
+      // Cannot be a VOID: entry itself
+      if (t.item.startsWith('VOID:')) return false;
+      // If voided with [VOIDED: in notes, only allow if invoice_status was reset (null) for re-invoicing
+      if (t.notes?.includes('[VOIDED:')) {
+        // Allow re-invoicing if status was explicitly reset to null
+        return t.invoice_status === null || t.invoice_status === undefined;
+      }
+      return true;
+    });
   };
 
   const getSelectedItems = () => {
