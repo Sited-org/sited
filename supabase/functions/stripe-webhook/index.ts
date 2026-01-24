@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import Stripe from "https://esm.sh/stripe@14.21.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2025-08-27.basil",
+  apiVersion: "2023-10-16",
 });
 
 const supabaseAdmin = createClient(
@@ -115,7 +115,7 @@ serve(async (req) => {
         console.log("[STRIPE-WEBHOOK] Invoice paid:", invoice.id);
         
         const transactionIds = invoice.metadata?.transaction_ids?.split(',') || [];
-        let leadId = invoice.metadata?.lead_id;
+        const leadId = invoice.metadata?.lead_id;
 
         // Check if this is a subscription invoice
         const isSubscriptionInvoice = !!invoice.subscription;
@@ -137,36 +137,6 @@ serve(async (req) => {
         }
 
         // Capture, attach, and save the payment method from the invoice payment
-        if ((!leadId || leadId === '') && invoice.customer) {
-          try {
-            const customerId = typeof invoice.customer === 'string'
-              ? invoice.customer
-              : invoice.customer.id;
-
-            // Preferred: use Stripe customer metadata
-            const customer = await stripe.customers.retrieve(customerId);
-            const metaLeadId = (customer as any)?.metadata?.lead_id;
-            if (metaLeadId) {
-              leadId = metaLeadId;
-              console.log("[STRIPE-WEBHOOK] Resolved lead_id from customer metadata:", leadId);
-            } else {
-              // Fallback: look up lead by stripe_customer_id
-              const { data: leadByCustomer, error: leadByCustomerError } = await supabaseAdmin
-                .from('leads')
-                .select('id')
-                .eq('stripe_customer_id', customerId)
-                .maybeSingle();
-
-              if (!leadByCustomerError && leadByCustomer?.id) {
-                leadId = leadByCustomer.id;
-                console.log("[STRIPE-WEBHOOK] Resolved lead_id from database by stripe_customer_id:", leadId);
-              }
-            }
-          } catch (resolveError: any) {
-            console.error("[STRIPE-WEBHOOK] Failed resolving lead_id for invoice:", resolveError?.message);
-          }
-        }
-
         if (leadId && invoice.payment_intent) {
           try {
             const paymentIntentId = typeof invoice.payment_intent === 'string' 

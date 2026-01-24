@@ -291,7 +291,6 @@ export function CardTab({ lead, canEdit }: CardTabProps) {
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [loadingPaymentMethod, setLoadingPaymentMethod] = useState(true);
   const [removingPaymentMethod, setRemovingPaymentMethod] = useState(false);
-  const [syncingPaymentMethod, setSyncingPaymentMethod] = useState(false);
 
   useEffect(() => {
     fetchSavedPaymentMethod();
@@ -339,25 +338,6 @@ export function CardTab({ lead, canEdit }: CardTabProps) {
       toast.error(error.message || 'Failed to remove payment method');
     } finally {
       setRemovingPaymentMethod(false);
-    }
-  };
-
-  const handleSyncFromLastInvoice = async () => {
-    setSyncingPaymentMethod(true);
-    try {
-      const { error } = await supabase.functions.invoke('sync-payment-method-from-invoice', {
-        body: { lead_id: lead.id },
-      });
-
-      if (error) throw error;
-
-      toast.success('Payment method synced from last payment');
-      await fetchSavedPaymentMethod();
-    } catch (error: any) {
-      console.error('Error syncing payment method:', error);
-      toast.error(error.message || 'Failed to sync payment method');
-    } finally {
-      setSyncingPaymentMethod(false);
     }
   };
 
@@ -455,33 +435,6 @@ export function CardTab({ lead, canEdit }: CardTabProps) {
           </CardContent>
         </Card>
       ) : null}
-
-      {/* Missing saved PM but customer exists: allow sync */}
-      {!loadingPaymentMethod && !savedPaymentMethod && canEdit && lead?.stripe_customer_id && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="text-sm">
-                <p className="font-medium">No saved payment method found</p>
-                <p className="text-muted-foreground">
-                  This can happen if the client paid an invoice but didn’t complete a “save card” flow.
-                  You can sync the payment method from their most recent paid invoice.
-                </p>
-              </div>
-              <Button onClick={handleSyncFromLastInvoice} disabled={syncingPaymentMethod}>
-                {syncingPaymentMethod ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  'Sync'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Payment Method Form with Tabs */}
       {canEdit && (
