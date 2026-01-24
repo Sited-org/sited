@@ -244,6 +244,9 @@ export function useTransactions(leadId: string | undefined) {
     const voidAmount = Number(transaction.debit) > 0 ? Number(transaction.debit) : Number(transaction.credit);
     const isDebit = Number(transaction.debit) > 0;
     
+    // Check if this is voiding a "sent" invoice that wasn't paid - allow re-invoicing
+    const wasInvoiceSentButNotPaid = transaction.invoice_status === 'sent' || transaction.invoice_status === 'processing';
+    
     // Create a void transaction (reverses the original)
     const { error: insertError } = await supabase
       .from('transactions')
@@ -258,7 +261,7 @@ export function useTransactions(leadId: string | undefined) {
         recurring_interval: null,
         recurring_end_date: null,
         status: 'completed',
-        invoice_status: 'paid', // Mark as paid so it can't be invoiced
+        invoice_status: 'paid', // Mark void entry as paid so it can't be invoiced
         parent_transaction_id: transactionId,
         created_by: userData.user?.id,
       });
@@ -269,12 +272,23 @@ export function useTransactions(leadId: string | undefined) {
     }
     
     // Update original transaction to mark it as voided
+    // If invoice was sent but not paid, reset invoice_status to allow re-invoicing
+    const updateData: Record<string, unknown> = {
+      notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
+    };
+    
+    if (wasInvoiceSentButNotPaid) {
+      // Reset to allow re-invoicing after edits - clear the old invoice reference
+      updateData.invoice_status = null;
+      updateData.stripe_invoice_id = null;
+    } else {
+      // For paid invoices or never-sent charges, mark as paid to prevent invoicing
+      updateData.invoice_status = 'paid';
+    }
+    
     const { error: updateError } = await supabase
       .from('transactions')
-      .update({ 
-        notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
-        invoice_status: 'paid' // Prevent further invoicing
-      })
+      .update(updateData)
       .eq('id', transactionId);
     
     if (updateError) {
@@ -282,7 +296,10 @@ export function useTransactions(leadId: string | undefined) {
       return { error: updateError };
     }
     
-    toast({ title: 'Transaction voided successfully' });
+    const successMessage = wasInvoiceSentButNotPaid 
+      ? 'Invoice voided - charge can now be re-invoiced' 
+      : 'Transaction voided successfully';
+    toast({ title: successMessage });
     fetchTransactions();
     return { error: null };
   };
