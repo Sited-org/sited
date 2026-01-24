@@ -16,6 +16,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ActiveSubscriptions } from './ActiveSubscriptions';
 
 interface PaymentsTabProps {
   lead: any;
@@ -1074,6 +1075,9 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           </CardContent>
         </Card>
       </div>
+
+      {/* Active Memberships/Subscriptions */}
+      <ActiveSubscriptions leadId={lead.id} canEdit={canEdit} />
 
       {/* Send Invoice Button */}
       {canEdit && (
