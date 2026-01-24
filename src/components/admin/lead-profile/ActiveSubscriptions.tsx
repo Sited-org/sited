@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { RefreshCw, XCircle, AlertTriangle, CreditCard, Loader2 } from 'lucide-react';
+import { XCircle, AlertTriangle, CreditCard, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -134,7 +134,7 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <RefreshCw className="h-5 w-5" />
+            <CreditCard className="h-5 w-5" />
             Active Memberships
           </CardTitle>
         </CardHeader>
@@ -155,14 +155,11 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
             Active Memberships
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={fetchSubscriptions}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
