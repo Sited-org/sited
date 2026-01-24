@@ -39,6 +39,7 @@ interface Lead {
 
 interface Transaction {
   id: string;
+  lead_id: string;
   credit: number;
   debit: number;
   invoice_status: string | null;
@@ -53,12 +54,10 @@ interface Transaction {
 // Helper to check if a transaction is a real payment (not internal credit)
 const isRealPayment = (t: Transaction): boolean => {
   if (Number(t.credit) <= 0) return false;
-  // Credit additions are internal credits, not real payments
   if (t.payment_method === 'credit') return false;
   if (t.item.toLowerCase().includes('credit added') || t.item.toLowerCase().includes('account credit')) return false;
   if (t.item.toLowerCase().includes('write-off') || t.item.toLowerCase().includes('credit removal')) return false;
   if (t.item.toLowerCase().includes('referral')) return false;
-  // Real payments: Stripe paid + manual payments like cash/bank
   return (
     t.invoice_status === 'paid' || 
     t.payment_method === 'cash' || 
@@ -78,13 +77,12 @@ const isVoided = (t: Transaction): boolean => {
 };
 
 export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
-  // Fetch all transactions for metrics
   const { data: allTransactions = [] } = useQuery({
     queryKey: ['all-transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, credit, debit, invoice_status, transaction_date, lead_id, stripe_invoice_id, payment_method, status, item, notes');
+        .select('id, lead_id, credit, debit, invoice_status, transaction_date, stripe_invoice_id, payment_method, status, item, notes');
       if (error) throw error;
       return data as Transaction[];
     }
@@ -134,6 +132,27 @@ export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
       ? Math.round(((monthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
       : 0;
 
+    // Calculate account balances (same logic as useAllTransactions)
+    const accountBalances: Record<string, { debit: number; credit: number }> = {};
+    activeTransactions.forEach(t => {
+      const transactionDate = startOfDay(new Date(t.transaction_date));
+      const isDue = !isAfter(transactionDate, today);
+      
+      if (isDue) {
+        if (!accountBalances[t.lead_id]) {
+          accountBalances[t.lead_id] = { debit: 0, credit: 0 };
+        }
+        accountBalances[t.lead_id].debit += Number(t.debit);
+        accountBalances[t.lead_id].credit += Number(t.credit);
+      }
+    });
+
+    // Total Outstanding = sum of all POSITIVE account balances (same as Financial page)
+    const totalOutstanding = Object.values(accountBalances).reduce((sum, account) => {
+      const balance = account.debit - account.credit;
+      return sum + Math.max(0, balance);
+    }, 0);
+
     // Pending invoices = sent invoices that are due and NOT voided
     const pendingInvoicesList = activeTransactions.filter(t => {
       if (Number(t.debit) <= 0) return false;
@@ -141,9 +160,6 @@ export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
       const isDue = !isAfter(transactionDate, today);
       return isDue && (t.invoice_status === 'sent' || t.invoice_status === 'processing');
     });
-    
-    // Outstanding = sum of debit from pending invoices
-    const totalOutstanding = pendingInvoicesList.reduce((sum, t) => sum + Number(t.debit || 0), 0);
     
     // Invoices sent (not voided) - for collection rate calculation
     const invoicesSent = activeTransactions.filter(t => 
