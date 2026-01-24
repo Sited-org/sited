@@ -34,6 +34,7 @@ interface Transaction {
   status: string;
   is_recurring: boolean;
   recurring_interval: string | null;
+  payment_method?: string | null;
 }
 
 interface PaymentsTabProps {
@@ -208,6 +209,7 @@ export function PaymentsTab({ lead, email, sessionToken, transactions, savedPaym
   const upcomingCharges = useMemo(() => generateUpcomingCharges(transactions), [transactions]);
   
   const totalDebit = transactions.reduce((sum, t) => sum + Number(t.debit), 0);
+  // Total credit for balance purposes (includes all credits - both payments and account credits)
   const totalCredit = transactions.reduce((sum, t) => sum + Number(t.credit), 0);
   const currentBalance = totalDebit - totalCredit;
 

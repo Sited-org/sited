@@ -20,7 +20,7 @@ export interface Transaction {
   status: 'completed' | 'pending' | 'scheduled' | 'void';
   invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | 'void' | null;
   stripe_invoice_id: string | null;
-  payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'other' | null;
+  payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'credit' | 'other' | null;
 }
 
 export interface TransactionWithBalance extends Transaction {
@@ -100,6 +100,8 @@ export function useTransactions(leadId: string | undefined) {
       const nonVoidedTransactions = (data || []).filter(t => 
         !t.item.startsWith('VOID:') && !t.notes?.includes('[VOIDED:')
       );
+      // Total credit includes ALL credits (for balance calculation purposes)
+      // This includes both real payments AND internal credits
       setTotalCredit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.credit), 0));
       // Only include debits that are due (transaction_date <= today)
       setTotalDebit(nonVoidedTransactions.reduce((sum, t) => {

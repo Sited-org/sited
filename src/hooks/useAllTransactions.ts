@@ -20,7 +20,7 @@ export interface GlobalTransaction {
   status: 'completed' | 'pending' | 'scheduled' | 'void';
   invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | 'void' | null;
   stripe_invoice_id: string | null;
-  payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'other' | null;
+  payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'credit' | 'other' | null;
   // Joined lead data
   lead?: {
     id: string;
@@ -93,6 +93,39 @@ export function useAllTransactions() {
     fetchTransactions();
   }, [fetchTransactions]);
 
+  // Helper to check if a transaction is a real payment (not internal credit)
+  const isRealPayment = (t: GlobalTransaction): boolean => {
+    if (Number(t.credit) <= 0) return false;
+    // Credit additions are internal credits, not real payments
+    if (t.payment_method === 'credit') return false;
+    if (t.item.toLowerCase().includes('credit added') || t.item.toLowerCase().includes('account credit')) return false;
+    if (t.item.toLowerCase().includes('write-off') || t.item.toLowerCase().includes('credit removal')) return false;
+    // Real payments: Stripe paid, cash, bank_transfer, or manual "other" payments
+    return (
+      t.invoice_status === 'paid' || 
+      t.payment_method === 'cash' || 
+      t.payment_method === 'bank_transfer' ||
+      (t.payment_method === 'other' && !t.item.toLowerCase().includes('credit'))
+    );
+  };
+
+  // Helper to check if transaction is internal credit (should be hidden from financial page)
+  const isInternalCredit = (t: GlobalTransaction): boolean => {
+    if (Number(t.credit) <= 0) return false;
+    return (
+      t.payment_method === 'credit' ||
+      t.item.toLowerCase().includes('credit added') ||
+      t.item.toLowerCase().includes('account credit') ||
+      t.item.toLowerCase().includes('write-off') ||
+      t.item.toLowerCase().includes('credit removal')
+    );
+  };
+
+  // Filter transactions for display (hide internal credits)
+  const displayTransactions = useMemo(() => {
+    return transactions.filter(t => !isInternalCredit(t));
+  }, [transactions]);
+
   // Calculate global metrics
   const metrics = useMemo(() => {
     const today = startOfDay(new Date());
@@ -113,8 +146,9 @@ export function useAllTransactions() {
       const transactionDate = startOfDay(new Date(t.transaction_date));
       const isDue = !isAfter(transactionDate, today);
 
-      // Total revenue = all credits (payments received)
-      if (t.invoice_status === 'paid' || Number(t.credit) > 0) {
+      // Total revenue = ONLY real payments (Stripe paid + manual payments like cash/bank)
+      // Excludes internal credits
+      if (isRealPayment(t)) {
         totalRevenue += Number(t.credit);
       }
 
@@ -129,7 +163,7 @@ export function useAllTransactions() {
       }
     });
 
-    // Calculate overdue (subtract credits from outstanding)
+    // Calculate overdue (subtract ALL credits from outstanding for balance purposes)
     const totalCredits = activeTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
     overdueAmount = Math.max(0, totalOutstanding - totalCredits);
 
@@ -138,9 +172,9 @@ export function useAllTransactions() {
       totalOutstanding,
       pendingInvoices,
       overdueAmount,
-      totalTransactions: transactions.length,
+      totalTransactions: displayTransactions.length,
     };
-  }, [transactions]);
+  }, [transactions, displayTransactions]);
 
   // Calculate per-account summaries
   const accountSummaries = useMemo((): AccountSummary[] => {
@@ -287,7 +321,8 @@ export function useAllTransactions() {
   };
 
   return {
-    transactions,
+    transactions: displayTransactions,
+    allTransactions: transactions,
     loading,
     metrics,
     accountSummaries,
