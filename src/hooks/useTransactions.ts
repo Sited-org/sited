@@ -17,8 +17,8 @@ export interface Transaction {
   recurring_interval: 'weekly' | 'monthly' | 'quarterly' | 'yearly' | null;
   recurring_end_date: string | null;
   parent_transaction_id: string | null;
-  status: 'completed' | 'pending' | 'scheduled';
-  invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | null;
+  status: 'completed' | 'pending' | 'scheduled' | 'void';
+  invoice_status: 'not_sent' | 'sent' | 'processing' | 'paid' | 'void' | null;
   stripe_invoice_id: string | null;
   payment_method: 'stripe' | 'cash' | 'bank_transfer' | 'other' | null;
 }
@@ -260,8 +260,8 @@ export function useTransactions(leadId: string | undefined) {
         is_recurring: false,
         recurring_interval: null,
         recurring_end_date: null,
-        status: 'completed',
-        invoice_status: 'paid', // Mark void entry as paid so it can't be invoiced
+        status: 'void',
+        invoice_status: 'void', // Mark void entry so it can't be invoiced
         parent_transaction_id: transactionId,
         created_by: userData.user?.id,
       });
@@ -281,9 +281,11 @@ export function useTransactions(leadId: string | undefined) {
       // Reset to allow re-invoicing after edits - clear the old invoice reference
       updateData.invoice_status = null;
       updateData.stripe_invoice_id = null;
+      updateData.status = 'void'; // Mark as void so it shows correctly in history
     } else {
-      // For paid invoices or never-sent charges, mark as paid to prevent invoicing
-      updateData.invoice_status = 'paid';
+      // For paid invoices or never-sent charges, mark as void to prevent invoicing
+      updateData.invoice_status = 'void';
+      updateData.status = 'void';
     }
     
     const { error: updateError } = await supabase

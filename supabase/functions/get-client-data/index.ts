@@ -172,16 +172,38 @@ serve(async (req) => {
       throw new Error("Access denied");
     }
 
-    // Fetch transactions
-    const { data: transactions, error: txError } = await supabaseClient
+    // Fetch transactions - exclude voided items and void entries from client view
+    const { data: allTransactions, error: txError } = await supabaseClient
       .from("transactions")
-      .select("id, item, credit, debit, status, transaction_date, invoice_status, stripe_invoice_id, is_recurring, recurring_interval, created_at")
+      .select("id, item, credit, debit, status, transaction_date, invoice_status, stripe_invoice_id, is_recurring, recurring_interval, created_at, notes")
       .eq("lead_id", lead_id)
       .order("transaction_date", { ascending: false });
 
     if (txError) {
       logStep("Error fetching transactions", { error: txError.message });
     }
+
+    // Filter out voided transactions and void reversal entries for client view
+    // Clients should only see non-voided, real transactions
+    const transactions = (allTransactions || []).filter(t => {
+      // Exclude void reversal entries (items starting with "VOID:")
+      if (t.item.startsWith('VOID:')) return false;
+      // Exclude transactions that have been voided
+      if (t.status === 'void') return false;
+      if (t.notes?.includes('[VOIDED:')) return false;
+      return true;
+    }).map(t => ({
+      id: t.id,
+      item: t.item,
+      credit: t.credit,
+      debit: t.debit,
+      status: t.status,
+      transaction_date: t.transaction_date,
+      invoice_status: t.invoice_status,
+      is_recurring: t.is_recurring,
+      recurring_interval: t.recurring_interval,
+      created_at: t.created_at,
+    }));
 
     // Fetch project updates
     const { data: projectUpdates, error: updateError } = await supabaseClient

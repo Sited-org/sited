@@ -212,10 +212,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       if (Number(t.debit) <= 0) return false;
       // Cannot be a future preview
       if (t.isFuture) return false;
-      // Cannot be already paid, sent, or processing
-      if (t.invoice_status === 'paid' || t.invoice_status === 'sent' || t.invoice_status === 'processing') return false;
+      // Cannot be already paid, sent, processing, or void
+      if (t.invoice_status === 'paid' || t.invoice_status === 'sent' || t.invoice_status === 'processing' || t.invoice_status === 'void') return false;
       // Cannot be a VOID: entry itself
       if (t.item.startsWith('VOID:')) return false;
+      // If status is void, exclude completely
+      if (t.status === 'void') return false;
       // If voided with [VOIDED: in notes, only allow if invoice_status was reset (null) for re-invoicing
       if (t.notes?.includes('[VOIDED:')) {
         // Allow re-invoicing if status was explicitly reset to null
@@ -590,12 +592,17 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     if (transaction.isFuture) {
       return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Scheduled</Badge>;
     }
+
+    // Check if transaction is voided (either by status or invoice_status)
+    if (transaction.status === 'void' || transaction.invoice_status === 'void') {
+      return <Badge variant="outline" className="text-destructive border-destructive/30">Void</Badge>;
+    }
     
     // For debit transactions (charges), show invoice status
     if (Number(transaction.debit) > 0) {
       switch (transaction.invoice_status) {
         case 'not_sent':
-          return <Badge variant="outline" className="text-slate-500 border-slate-500/30">Not Sent</Badge>;
+          return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Not Sent</Badge>;
         case 'sent':
           return <Badge variant="outline" className="text-blue-600 border-blue-600/30">Sent</Badge>;
         case 'processing':
@@ -603,7 +610,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         case 'paid':
           return <Badge variant="default" className="bg-green-600">Paid</Badge>;
         default:
-          return <Badge variant="outline" className="text-slate-500 border-slate-500/30">Not Sent</Badge>;
+          return <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">Not Sent</Badge>;
       }
     }
     
