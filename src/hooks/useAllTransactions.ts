@@ -271,17 +271,88 @@ export function useAllTransactions() {
     return { error: null };
   };
 
-  // Void all outstanding invoices for an account
-  const voidAllOutstanding = async (leadId: string, reason: string) => {
-    const { data: userData } = await supabase.auth.getUser();
+  // Void a single transaction (matches useTransactions logic exactly)
+  const voidTransaction = async (transactionId: string, reason: string) => {
+    const transaction = transactions.find(t => t.id === transactionId);
+    if (!transaction) {
+      toast({ title: 'Transaction not found', variant: 'destructive' });
+      return { error: new Error('Transaction not found') };
+    }
     
+    const { data: userData } = await supabase.auth.getUser();
+    const voidAmount = Number(transaction.debit) > 0 ? Number(transaction.debit) : Number(transaction.credit);
+    const isDebit = Number(transaction.debit) > 0;
+    
+    // Check if this is voiding a "sent" invoice that wasn't paid - allow re-invoicing
+    const wasInvoiceSentButNotPaid = transaction.invoice_status === 'sent' || transaction.invoice_status === 'processing';
+    
+    // Create a void transaction (reverses the original)
+    const { error: insertError } = await supabase
+      .from('transactions')
+      .insert({
+        lead_id: transaction.lead_id,
+        item: `VOID: ${transaction.item}`,
+        credit: isDebit ? voidAmount : 0, // If original was debit, void as credit
+        debit: isDebit ? 0 : voidAmount, // If original was credit, void as debit
+        notes: `Reason: ${reason}`,
+        transaction_date: new Date().toISOString(),
+        is_recurring: false,
+        status: 'void',
+        invoice_status: 'void', // Mark void entry so it can't be invoiced
+        parent_transaction_id: transactionId,
+        created_by: userData.user?.id,
+      });
+    
+    if (insertError) {
+      toast({ title: 'Error voiding transaction', description: insertError.message, variant: 'destructive' });
+      return { error: insertError };
+    }
+    
+    // Update original transaction to mark it as voided
+    // If invoice was sent but not paid, reset invoice_status to allow re-invoicing
+    const updateData: Record<string, unknown> = {
+      notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
+    };
+    
+    if (wasInvoiceSentButNotPaid) {
+      // Reset to allow re-invoicing after edits - clear the old invoice reference
+      updateData.invoice_status = null;
+      updateData.stripe_invoice_id = null;
+      updateData.status = 'void'; // Mark as void so it shows correctly in history
+    } else {
+      // For paid invoices or never-sent charges, mark as void to prevent invoicing
+      updateData.invoice_status = 'void';
+      updateData.status = 'void';
+    }
+    
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update(updateData)
+      .eq('id', transactionId);
+    
+    if (updateError) {
+      toast({ title: 'Error updating voided transaction', description: updateError.message, variant: 'destructive' });
+      return { error: updateError };
+    }
+    
+    const successMessage = wasInvoiceSentButNotPaid 
+      ? 'Invoice voided - charge can now be re-invoiced' 
+      : 'Transaction voided successfully';
+    toast({ title: successMessage });
+    fetchTransactions();
+    return { error: null };
+  };
+
+  // Void all outstanding invoices for an account (uses same logic as single void)
+  const voidAllOutstanding = async (leadId: string, reason: string) => {
     // Get all outstanding invoices for this lead
     const outstanding = transactions.filter(t => 
       t.lead_id === leadId &&
       Number(t.debit) > 0 &&
       (t.invoice_status === 'sent' || t.invoice_status === 'processing') &&
       !t.item.startsWith('VOID:') &&
-      !t.notes?.includes('[VOIDED:')
+      !t.notes?.includes('[VOIDED:') &&
+      t.status !== 'void'
     );
 
     if (outstanding.length === 0) {
@@ -289,33 +360,18 @@ export function useAllTransactions() {
       return { error: null };
     }
 
-    // Void each invoice
+    // Void each invoice using the same single void logic
+    let successCount = 0;
     for (const tx of outstanding) {
-      // Create void entry
-      await supabase.from('transactions').insert({
-        lead_id: tx.lead_id,
-        item: `VOID: ${tx.item}`,
-        credit: Number(tx.debit),
-        debit: 0,
-        notes: `Admin bulk void: ${reason}`,
-        transaction_date: new Date().toISOString(),
-        is_recurring: false,
-        status: 'void',
-        invoice_status: 'void',
-        parent_transaction_id: tx.id,
-        created_by: userData.user?.id,
-      });
-
-      // Mark original as voided
-      await supabase.from('transactions').update({
-        notes: `${tx.notes ? tx.notes + ' | ' : ''}[VOIDED: ${reason}]`,
-        invoice_status: 'void',
-        status: 'void',
-      }).eq('id', tx.id);
+      const result = await voidTransaction(tx.id, `Bulk void: ${reason}`);
+      if (!result.error) {
+        successCount++;
+      }
     }
 
-    toast({ title: `${outstanding.length} invoice(s) voided` });
-    fetchTransactions();
+    if (successCount > 0) {
+      toast({ title: `${successCount} invoice(s) voided - charges can be re-invoiced` });
+    }
     return { error: null };
   };
 
@@ -327,6 +383,7 @@ export function useAllTransactions() {
     metrics,
     accountSummaries,
     zeroAccount,
+    voidTransaction,
     voidAllOutstanding,
     refetch: fetchTransactions,
   };
