@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Json } from '@/integrations/supabase/types';
 
 interface LeadSubmissionData {
   name: string;
@@ -31,7 +30,7 @@ export function useSecureLeadSubmission() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const partialLeadIdRef = useRef<string | null>(null);
 
-  // Save partial lead after contact info step
+  // Save partial lead after contact info step via edge function
   const savePartialLead = useCallback(async (data: PartialLeadData): Promise<boolean> => {
     // Don't create duplicate partial leads in this session
     if (partialLeadIdRef.current) {
@@ -39,45 +38,31 @@ export function useSecureLeadSubmission() {
     }
 
     try {
-      // First, check if a recent partial lead exists for this email/project_type
-      // to prevent duplicates from page refreshes or re-submissions
-      const { data: existingLead } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('email', data.email)
-        .eq('project_type', data.project_type)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) // Within last 24 hours
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingLead) {
-        // Use existing lead instead of creating a new one
-        partialLeadIdRef.current = existingLead.id;
-        console.log('Found existing partial lead:', existingLead.id);
-        return true;
-      }
-
-      const { data: result, error } = await supabase
-        .from('leads')
-        .insert({
+      const { data: response, error } = await supabase.functions.invoke('save-partial-lead', {
+        body: {
           name: data.name,
           email: data.email,
           phone: data.phone || null,
           project_type: data.project_type,
-          form_data: { partial: true, contactInfoOnly: true },
-          status: 'new',
-        })
-        .select('id')
-        .single();
+          form_data: { contactInfoOnly: true },
+        },
+      });
 
       if (error) {
         console.error('Error saving partial lead:', error);
         return false;
       }
 
-      partialLeadIdRef.current = result.id;
-      console.log('Created new partial lead:', result.id);
+      if (response?.error) {
+        console.error('Edge function error:', response.error);
+        return false;
+      }
+
+      if (response?.lead_id) {
+        partialLeadIdRef.current = response.lead_id;
+        console.log('Partial lead saved:', response.lead_id, response.existing ? '(existing)' : '(new)');
+      }
+
       return true;
     } catch (err) {
       console.error('Unexpected error saving partial lead:', err);
@@ -85,7 +70,7 @@ export function useSecureLeadSubmission() {
     }
   }, []);
 
-  // Update partial lead with new form data at each step
+  // Update partial lead with new form data at each step via edge function
   const updatePartialLead = useCallback(async (data: PartialLeadUpdateData): Promise<boolean> => {
     // Only update if we have a partial lead
     if (!partialLeadIdRef.current) {
@@ -93,19 +78,25 @@ export function useSecureLeadSubmission() {
     }
 
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({
+      const { data: response, error } = await supabase.functions.invoke('save-partial-lead', {
+        body: {
+          lead_id: partialLeadIdRef.current,
           name: data.name,
           email: data.email,
           phone: data.phone || null,
           business_name: data.business_name || null,
-          form_data: { ...data.form_data, partial: true } as Json,
-        })
-        .eq('id', partialLeadIdRef.current);
+          project_type: 'website', // Default, will be overwritten if needed
+          form_data: data.form_data,
+        },
+      });
 
       if (error) {
         console.error('Error updating partial lead:', error);
+        return false;
+      }
+
+      if (response?.error) {
+        console.error('Edge function error:', response.error);
         return false;
       }
 
@@ -120,31 +111,55 @@ export function useSecureLeadSubmission() {
     setIsSubmitting(true);
     
     try {
-      // If we have a partial lead, update it instead of creating new
+      // If we have a partial lead, finalize it via edge function
       if (partialLeadIdRef.current) {
-        const { error: updateError } = await supabase
-          .from('leads')
-          .update({
+        const { data: response, error } = await supabase.functions.invoke('save-partial-lead', {
+          body: {
+            lead_id: partialLeadIdRef.current,
             name: data.name,
             email: data.email,
             phone: data.phone || null,
             business_name: data.business_name || null,
-            form_data: data.form_data as Json,
-          })
-          .eq('id', partialLeadIdRef.current);
+            project_type: data.project_type,
+            form_data: { ...data.form_data, partial: false }, // Mark as complete
+          },
+        });
 
-        if (updateError) {
-          console.error('Error updating partial lead:', updateError);
+        if (error) {
+          console.error('Error finalizing lead:', error);
           toast.error('Failed to submit form. Please try again.');
           return false;
         }
+
+        if (response?.error) {
+          toast.error(response.error);
+          return false;
+        }
         
-        console.log('Updated existing partial lead:', partialLeadIdRef.current);
+        console.log('Finalized existing partial lead:', partialLeadIdRef.current);
+        
+        // Send notification for the finalized lead
+        try {
+          await supabase.functions.invoke('send-lead-notification', {
+            body: {
+              name: data.name,
+              email: data.email,
+              phone: data.phone || null,
+              business_name: data.business_name || null,
+              project_type: data.project_type,
+              form_data: data.form_data,
+            },
+          });
+        } catch (notifyErr) {
+          console.error('Error sending notification:', notifyErr);
+          // Don't fail the submission if notification fails
+        }
+
         partialLeadIdRef.current = null;
         return true;
       }
 
-      // Only call edge function if no partial lead exists (fallback path)
+      // Only call submit-lead edge function if no partial lead exists (fallback path)
       const { data: response, error } = await supabase.functions.invoke('submit-lead', {
         body: {
           name: data.name,

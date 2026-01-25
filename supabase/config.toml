@@ -89,3 +89,9 @@ verify_jwt = false
 
 [functions.onboarding-assistant]
 verify_jwt = false
+
+[functions.save-partial-lead]
+verify_jwt = false
+
+[functions.track-form-session]
+verify_jwt = false
