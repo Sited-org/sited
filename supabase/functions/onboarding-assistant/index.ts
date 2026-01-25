@@ -88,19 +88,55 @@ serve(async (req) => {
     const validatedBody = requestSchema.parse(body);
     const { messages, currentFormData, collectedData, projectType } = validatedBody;
 
-    // Build context about what's already collected
+    // Build context about what's already collected - show actual values so AI can reference them naturally
     let contextPrompt = SYSTEM_PROMPT;
     
-    if (collectedData && Object.keys(collectedData).length > 0) {
-      contextPrompt += `\n\n**Already collected:**\n${JSON.stringify(collectedData, null, 2)}`;
-    }
+    // Combine collectedData (from chat) and currentFormData (from form fields) into unified context
+    const allKnownData: Record<string, any> = { ...collectedData, ...currentFormData };
     
-    if (currentFormData && Object.keys(currentFormData).length > 0) {
-      const filledFields = Object.entries(currentFormData)
-        .filter(([_, v]) => v && (typeof v !== 'object' || (Array.isArray(v) && v.length > 0)))
-        .map(([k]) => k);
-      if (filledFields.length > 0) {
-        contextPrompt += `\n\n**Form fields already filled:** ${filledFields.join(', ')}`;
+    // Filter to only meaningful values
+    const meaningfulData = Object.entries(allKnownData)
+      .filter(([_, v]) => {
+        if (!v) return false;
+        if (typeof v === 'string' && v.trim() === '') return false;
+        if (Array.isArray(v) && v.length === 0) return false;
+        return true;
+      })
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {} as Record<string, any>);
+    
+    if (Object.keys(meaningfulData).length > 0) {
+      // Format the data in a way the AI can naturally use
+      const dataLines: string[] = [];
+      
+      if (meaningfulData.fullName) dataLines.push(`- Client name: ${meaningfulData.fullName}`);
+      if (meaningfulData.email) dataLines.push(`- Email: ${meaningfulData.email}`);
+      if (meaningfulData.phone) dataLines.push(`- Phone: ${meaningfulData.phone}`);
+      if (meaningfulData.businessName) dataLines.push(`- Business: ${meaningfulData.businessName}`);
+      if (meaningfulData.industry) dataLines.push(`- Industry: ${meaningfulData.industry}`);
+      if (meaningfulData.businessDescription) dataLines.push(`- What they do: ${meaningfulData.businessDescription}`);
+      if (meaningfulData.targetAudience) dataLines.push(`- Target audience: ${meaningfulData.targetAudience}`);
+      if (meaningfulData.primaryGoal) dataLines.push(`- Primary goal: ${meaningfulData.primaryGoal}`);
+      if (meaningfulData.budget) dataLines.push(`- Budget: ${meaningfulData.budget}`);
+      if (meaningfulData.timeline) dataLines.push(`- Timeline: ${meaningfulData.timeline}`);
+      if (meaningfulData.designStyle) dataLines.push(`- Design preference: ${meaningfulData.designStyle}`);
+      if (meaningfulData.currentWebsite) dataLines.push(`- Current website: ${meaningfulData.currentWebsite}`);
+      if (meaningfulData.requiredPages?.length) dataLines.push(`- Pages needed: ${meaningfulData.requiredPages.join(', ')}`);
+      if (meaningfulData.features?.length) dataLines.push(`- Features: ${meaningfulData.features.join(', ')}`);
+      if (meaningfulData.integrations?.length) dataLines.push(`- Integrations: ${meaningfulData.integrations.join(', ')}`);
+      
+      // Add any other filled fields not explicitly listed
+      const listedKeys = ['fullName', 'email', 'phone', 'businessName', 'industry', 'businessDescription', 
+        'targetAudience', 'primaryGoal', 'budget', 'timeline', 'designStyle', 'currentWebsite', 
+        'requiredPages', 'features', 'integrations'];
+      
+      Object.entries(meaningfulData).forEach(([k, v]) => {
+        if (!listedKeys.includes(k) && v) {
+          dataLines.push(`- ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+        }
+      });
+      
+      if (dataLines.length > 0) {
+        contextPrompt += `\n\n**INFO WE ALREADY HAVE (use naturally in conversation, never ask for these again):**\n${dataLines.join('\n')}`;
       }
     }
 

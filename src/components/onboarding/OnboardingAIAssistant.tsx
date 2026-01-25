@@ -33,8 +33,17 @@ export function OnboardingAIAssistant({
   // Generate personalized initial message based on collected form data
   const getInitialMessage = (): string => {
     const name = currentFormData?.fullName?.split(' ')[0]; // Get first name
+    const businessName = currentFormData?.businessName;
+    const industry = currentFormData?.industry;
+    
+    if (name && businessName) {
+      return `Hey ${name}! 👋 I see you're working on ${businessName}'s website. What's the main goal for the site — more leads, online sales, bookings, or something else?`;
+    }
+    if (name && industry) {
+      return `Hey ${name}! 👋 Great to meet you. Looks like you're in the ${industry} space — what's the main goal for your new website?`;
+    }
     if (name) {
-      return `Hey ${name}! 👋 Great to meet you. I'm here to help you fill out this form faster — just chat with me naturally and I'll gather everything we need. So tell me, what does your business do and who are your ideal customers?`;
+      return `Hey ${name}! 👋 Great to meet you. I'm here to help you fill out this form faster — just chat with me naturally. So tell me, what does your business do and who are your ideal customers?`;
     }
     return "Hey! 👋 I'm here to help you fill out this form faster. Just chat with me naturally and I'll gather all the info we need. What's your name and what kind of project are you working on?";
   };
@@ -53,7 +62,7 @@ export function OnboardingAIAssistant({
       setCollectedData({});
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, currentFormData?.fullName]);
+  }, [isOpen, currentFormData?.fullName, currentFormData?.businessName, currentFormData?.industry]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
