@@ -59,10 +59,9 @@ serve(async (req) => {
 
     logStep("Lead found", { email: lead.email, name: lead.name });
 
-    // Check if lead has a saved payment method
-    if (!lead.stripe_payment_method_id) {
-      throw new Error("No payment method on file. Please add a card first before creating a subscription.");
-    }
+    // Check if lead has a saved payment method - if not, we'll use invoice-based collection
+    const hasPaymentMethod = !!lead.stripe_payment_method_id;
+    logStep("Payment method status", { hasPaymentMethod });
 
     // Get or create Stripe customer
     let customerId = lead.stripe_customer_id;
@@ -94,26 +93,30 @@ serve(async (req) => {
         .eq('id', lead.id);
     }
 
-    // Attach payment method to customer if not already attached
-    try {
-      await stripe.paymentMethods.attach(lead.stripe_payment_method_id, {
-        customer: customerId,
-      });
-      logStep("Attached payment method to customer");
-    } catch (attachError: any) {
-      // Payment method might already be attached
-      if (!attachError.message?.includes('already been attached')) {
-        logStep("Payment method attachment note", { message: attachError.message });
+    // If payment method exists, attach it and set as default
+    if (hasPaymentMethod) {
+      try {
+        await stripe.paymentMethods.attach(lead.stripe_payment_method_id, {
+          customer: customerId,
+        });
+        logStep("Attached payment method to customer");
+      } catch (attachError: any) {
+        // Payment method might already be attached
+        if (!attachError.message?.includes('already been attached')) {
+          logStep("Payment method attachment note", { message: attachError.message });
+        }
       }
-    }
 
-    // Set as default payment method
-    await stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: lead.stripe_payment_method_id,
-      },
-    });
-    logStep("Set default payment method");
+      // Set as default payment method
+      await stripe.customers.update(customerId, {
+        invoice_settings: {
+          default_payment_method: lead.stripe_payment_method_id,
+        },
+      });
+      logStep("Set default payment method");
+    } else {
+      logStep("No payment method - subscription will use invoice collection");
+    }
 
     // Convert billing interval to Stripe interval
     const intervalMap: Record<string, Stripe.PriceCreateParams.Recurring.Interval> = {
@@ -169,17 +172,27 @@ serve(async (req) => {
     const startDateTime = start_date ? new Date(start_date) : now;
     const isFutureStart = startDateTime > now;
     
-    // Create the subscription
+    // Create the subscription - use invoice collection if no payment method
     const subscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: customerId,
       items: [{ price: price.id }],
-      default_payment_method: lead.stripe_payment_method_id,
       metadata: {
         lead_id: lead.id,
         membership_name: membership_name,
       },
-      payment_behavior: 'error_if_incomplete',
     };
+
+    if (hasPaymentMethod) {
+      // Auto-charge with saved payment method
+      subscriptionParams.default_payment_method = lead.stripe_payment_method_id;
+      subscriptionParams.payment_behavior = 'error_if_incomplete';
+      logStep("Using auto-charge mode with saved payment method");
+    } else {
+      // Send invoices for manual payment - payment method will be saved on first payment
+      subscriptionParams.collection_method = 'send_invoice';
+      subscriptionParams.days_until_due = 7; // Give 7 days to pay
+      logStep("Using invoice collection mode - client will receive invoice emails");
+    }
 
     // If start date is in the future, use billing_cycle_anchor
     if (isFutureStart) {
