@@ -361,25 +361,25 @@ export function OnboardingAIAssistant({
 
         {/* Input */}
         <div className="p-4 border-t border-border bg-background">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage();
-            }}
-            className="flex gap-2"
-          >
+          <div className="flex gap-2">
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell me about your project..."
+              placeholder="Tell me about your project... (Enter for new line)"
               className="flex-1 h-11"
               disabled={isLoading}
             />
-            <Button type="submit" size="icon" className="h-11 w-11" disabled={isLoading || !input.trim()}>
+            <Button 
+              type="button" 
+              size="icon" 
+              className="h-11 w-11" 
+              disabled={isLoading || !input.trim()}
+              onClick={sendMessage}
+            >
               <Send size={18} />
             </Button>
-          </form>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
