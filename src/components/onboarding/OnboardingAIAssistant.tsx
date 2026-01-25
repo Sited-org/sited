@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles, Check } from "lucide-react";
+import { X, Send, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiriOrb } from "@/components/SiriOrb";
@@ -19,7 +19,10 @@ interface OnboardingAIAssistantProps {
   isOpen: boolean;
   onClose: () => void;
   onDataCollected: (data: Record<string, any>) => void;
+  onStepComplete?: (step: number) => void;
+  onFormComplete?: () => void;
   currentFormData: Record<string, any>;
+  currentStep?: number;
   projectType: "website" | "app" | "ai";
 }
 
@@ -27,18 +30,20 @@ export function OnboardingAIAssistant({
   isOpen,
   onClose,
   onDataCollected,
+  onStepComplete,
+  onFormComplete,
   currentFormData,
+  currentStep = 1,
   projectType,
 }: OnboardingAIAssistantProps) {
   // Build a context-aware greeting based on ALL known form data
-  const getInitialMessage = (): string => {
+  const getInitialMessage = useCallback((): string => {
     const name = currentFormData?.fullName?.split(' ')[0];
     const businessName = currentFormData?.businessName;
     const industry = currentFormData?.industry;
     const budget = currentFormData?.budget;
     const timeline = currentFormData?.timeline;
     const primaryGoal = currentFormData?.primaryGoal;
-    const businessDescription = currentFormData?.businessDescription;
     
     // Build acknowledgment of what we know
     const knownBits: string[] = [];
@@ -46,77 +51,126 @@ export function OnboardingAIAssistant({
     if (businessName) knownBits.push(`working on ${businessName}'s website`);
     else if (industry) knownBits.push(`in the ${industry} space`);
     
-    if (primaryGoal) knownBits.push(`focused on ${primaryGoal.toLowerCase().replace(/_/g, ' ')}`);
-    if (budget) knownBits.push(`with a ${budget.replace(/_/g, ' ')} budget`);
-    if (timeline) knownBits.push(`looking at a ${timeline.replace(/_/g, ' ')} timeline`);
+    if (primaryGoal) knownBits.push(`focused on ${primaryGoal.toLowerCase().replace(/_/g, ' ').replace(/-/g, ' ')}`);
+    if (budget) knownBits.push(`with a ${budget.replace(/_/g, ' ').replace(/-/g, ' ')} budget`);
+    if (timeline) knownBits.push(`looking at a ${timeline.replace(/_/g, ' ').replace(/-/g, ' ')} timeline`);
     
-    // Determine what to ask next based on what's missing
-    const missingFields: string[] = [];
-    if (!businessName && !industry) missingFields.push('business');
-    if (!primaryGoal) missingFields.push('goals');
-    if (!budget) missingFields.push('budget');
-    if (!timeline) missingFields.push('timeline');
-    
+    // Determine what to ask next based on current step
     let greeting = name ? `Hey ${name}! 👋` : "Hey there! 👋";
     
     if (knownBits.length > 0) {
       greeting += ` I see you're ${knownBits.slice(0, 2).join(' and ')}.`;
-      
-      // Ask about what's missing
-      if (missingFields.length === 0) {
-        greeting += " Looks like you've got the basics covered — anything else you'd like to add or clarify?";
-      } else if (missingFields.includes('goals')) {
-        greeting += " What's the main goal for the site — leads, sales, bookings?";
-      } else if (missingFields.includes('budget')) {
-        greeting += " What kind of budget are you working with?";
-      } else if (missingFields.includes('timeline')) {
-        greeting += " What's your timeline looking like?";
-      } else {
-        greeting += " What else can I help you with?";
-      }
-    } else if (name) {
-      greeting += " I'm here to help fill this out. What does your business do?";
-    } else {
-      greeting += " I'm here to help. What's your name and what kind of project are you working on?";
+    }
+    
+    // Step-specific prompts
+    switch (currentStep) {
+      case 1:
+        if (!currentFormData?.email) {
+          greeting += " What's your email so we can keep you updated?";
+        } else {
+          greeting += " I've got your contact info — let's move on to your business!";
+        }
+        break;
+      case 2:
+        if (!businessName) {
+          greeting += " Tell me about your business — what's it called and what do you do?";
+        } else if (!currentFormData?.targetAudience) {
+          greeting += " Who are your ideal customers?";
+        } else {
+          greeting += " Great business details! What's the main goal for your website?";
+        }
+        break;
+      case 3:
+        if (!primaryGoal) {
+          greeting += " What's the main goal for the website — leads, sales, bookings?";
+        } else {
+          greeting += " Perfect goals! Any design preferences in mind?";
+        }
+        break;
+      case 4:
+        if (!currentFormData?.designStyle) {
+          greeting += " What design style are you going for — modern, bold, elegant?";
+        } else {
+          greeting += " Love the design direction! Do you have a current website or domain?";
+        }
+        break;
+      case 5:
+        if (!currentFormData?.domainOwned) {
+          greeting += " Do you already own a domain name?";
+        } else {
+          greeting += " Great! Last couple of questions — timeline and budget?";
+        }
+        break;
+      case 6:
+        if (!timeline) {
+          greeting += " What's your timeline looking like?";
+        } else if (!budget) {
+          greeting += " And what budget are you working with?";
+        } else {
+          greeting += " We're all set! Submit the form when ready, and we'll be in touch within 24 hours. 🚀";
+        }
+        break;
+      default:
+        greeting += " How can I help you with the form?";
     }
     
     return greeting;
-  };
-
-  // Create a stable key from form data to detect meaningful changes
-  const formDataKey = JSON.stringify({
-    name: currentFormData?.fullName,
-    business: currentFormData?.businessName,
-    industry: currentFormData?.industry,
-    goal: currentFormData?.primaryGoal,
-    budget: currentFormData?.budget,
-    timeline: currentFormData?.timeline,
-  });
+  }, [currentFormData, currentStep]);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
-  const [lastFormDataKey, setLastFormDataKey] = useState("");
+  const [appliedFields, setAppliedFields] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset messages with personalized greeting when dialog opens OR when form data changes significantly
+  // Reset messages with personalized greeting when dialog opens or step changes
   useEffect(() => {
     if (isOpen) {
-      // Only regenerate greeting if this is first open or form data changed
-      if (messages.length === 0 || lastFormDataKey !== formDataKey) {
-        setMessages([{ role: "assistant", content: getInitialMessage() }]);
-        setLastFormDataKey(formDataKey);
-      }
+      setMessages([{ role: "assistant", content: getInitialMessage() }]);
       setCollectedData({});
+      setAppliedFields([]);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, formDataKey]);
+  }, [isOpen, currentStep, getInitialMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-apply collected data to form immediately
+  const applyExtractedData = useCallback((data: Record<string, any>) => {
+    const { stepComplete, formComplete, ...formFields } = data;
+    
+    // Filter out empty values
+    const validFields = Object.entries(formFields)
+      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {} as Record<string, any>);
+    
+    if (Object.keys(validFields).length > 0) {
+      // Update local tracking
+      setCollectedData(prev => ({ ...prev, ...validFields }));
+      setAppliedFields(prev => [...new Set([...prev, ...Object.keys(validFields)])]);
+      
+      // Apply to parent form immediately
+      onDataCollected(validFields);
+    }
+    
+    // Handle step completion
+    if (stepComplete && onStepComplete) {
+      setTimeout(() => {
+        onStepComplete(stepComplete);
+      }, 1000); // Small delay so user sees the response first
+    }
+    
+    // Handle form completion
+    if (formComplete && onFormComplete) {
+      setTimeout(() => {
+        onFormComplete();
+      }, 1500);
+    }
+  }, [onDataCollected, onStepComplete, onFormComplete]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -137,9 +191,10 @@ export function OnboardingAIAssistant({
         },
         body: JSON.stringify({
           messages: [...messages, { role: "user", content: userMessage }],
-          currentFormData,
+          currentFormData: { ...currentFormData, ...collectedData },
           collectedData,
           projectType,
+          currentStep,
         }),
       });
 
@@ -172,9 +227,9 @@ export function OnboardingAIAssistant({
           try {
             const parsed = JSON.parse(jsonStr);
             
-            // Check for extracted data in tool calls
+            // Check for extracted data from tool calls
             if (parsed.extracted_data) {
-              setCollectedData((prev) => ({ ...prev, ...parsed.extracted_data }));
+              applyExtractedData(parsed.extracted_data);
             }
             
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
@@ -198,14 +253,13 @@ export function OnboardingAIAssistant({
         }
       }
 
-      // Check for complete marker in the final response
-      if (assistantContent.includes("[FORM_COMPLETE]")) {
-        // Extract the JSON data
+      // Fallback: Parse message for legacy markers
+      if (assistantContent.includes("[FORM_DATA]")) {
         const match = assistantContent.match(/\[FORM_DATA\]([\s\S]*?)\[\/FORM_DATA\]/);
         if (match) {
           try {
             const extractedData = JSON.parse(match[1]);
-            setCollectedData((prev) => ({ ...prev, ...extractedData }));
+            applyExtractedData(extractedData);
           } catch (e) {
             console.error("Failed to parse extracted data", e);
           }
@@ -225,12 +279,7 @@ export function OnboardingAIAssistant({
     }
   };
 
-  const handleApplyData = () => {
-    onDataCollected(collectedData);
-    onClose();
-  };
-
-  const hasCollectedData = Object.keys(collectedData).length > 0;
+  const hasAppliedFields = appliedFields.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -242,7 +291,9 @@ export function OnboardingAIAssistant({
           <div className="flex-1">
             <DialogTitle className="text-base">Sited AI Assistant</DialogTitle>
             <p className="text-xs text-muted-foreground">
-              Let's fill this out together
+              {hasAppliedFields 
+                ? `Filling out your form (${appliedFields.length} fields added)` 
+                : "Let's fill this out together"}
             </p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -291,20 +342,22 @@ export function OnboardingAIAssistant({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Collected Data Preview */}
-        {hasCollectedData && (
-          <div className="px-4 py-2 border-t border-border bg-green-500/5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                <Check size={14} className="inline mr-1 text-green-500" />
-                {Object.keys(collectedData).length} fields collected
-              </span>
-              <Button size="sm" variant="default" onClick={handleApplyData}>
-                Apply to Form
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Applied Fields Indicator */}
+        <AnimatePresence>
+          {hasAppliedFields && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-4 py-2 border-t border-border bg-green-500/5"
+            >
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Check size={14} className="text-green-500" />
+                <span>Auto-filled: {appliedFields.slice(0, 3).join(', ')}{appliedFields.length > 3 ? ` +${appliedFields.length - 3} more` : ''}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Input */}
         <div className="p-4 border-t border-border bg-background">

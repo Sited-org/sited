@@ -1222,9 +1222,20 @@ const WebsiteOnboarding = () => {
         onClose={() => setShowAIAssistant(false)}
         onDataCollected={(data) => {
           setFormData(prev => ({ ...prev, ...data }));
-          toast.success("Form updated with collected information!");
+        }}
+        onStepComplete={(step) => {
+          // Advance to next step when AI has collected all info for current step
+          if (step === currentStep && currentStep < steps.length) {
+            toast.success(`Step ${step} complete! Moving to next step...`);
+            nextStep();
+          }
+        }}
+        onFormComplete={() => {
+          toast.success("All information collected! Review and submit when ready.");
+          setShowAIAssistant(false);
         }}
         currentFormData={formData}
+        currentStep={currentStep}
         projectType="website"
       />
     </Layout>
