@@ -30,39 +30,89 @@ export function OnboardingAIAssistant({
   currentFormData,
   projectType,
 }: OnboardingAIAssistantProps) {
-  // Generate personalized initial message based on collected form data
+  // Build a context-aware greeting based on ALL known form data
   const getInitialMessage = (): string => {
-    const name = currentFormData?.fullName?.split(' ')[0]; // Get first name
+    const name = currentFormData?.fullName?.split(' ')[0];
     const businessName = currentFormData?.businessName;
     const industry = currentFormData?.industry;
+    const budget = currentFormData?.budget;
+    const timeline = currentFormData?.timeline;
+    const primaryGoal = currentFormData?.primaryGoal;
+    const businessDescription = currentFormData?.businessDescription;
     
-    if (name && businessName) {
-      return `Hey ${name}! 👋 I see you're working on ${businessName}'s website. What's the main goal for the site — more leads, online sales, bookings, or something else?`;
+    // Build acknowledgment of what we know
+    const knownBits: string[] = [];
+    
+    if (businessName) knownBits.push(`working on ${businessName}'s website`);
+    else if (industry) knownBits.push(`in the ${industry} space`);
+    
+    if (primaryGoal) knownBits.push(`focused on ${primaryGoal.toLowerCase().replace(/_/g, ' ')}`);
+    if (budget) knownBits.push(`with a ${budget.replace(/_/g, ' ')} budget`);
+    if (timeline) knownBits.push(`looking at a ${timeline.replace(/_/g, ' ')} timeline`);
+    
+    // Determine what to ask next based on what's missing
+    const missingFields: string[] = [];
+    if (!businessName && !industry) missingFields.push('business');
+    if (!primaryGoal) missingFields.push('goals');
+    if (!budget) missingFields.push('budget');
+    if (!timeline) missingFields.push('timeline');
+    
+    let greeting = name ? `Hey ${name}! 👋` : "Hey there! 👋";
+    
+    if (knownBits.length > 0) {
+      greeting += ` I see you're ${knownBits.slice(0, 2).join(' and ')}.`;
+      
+      // Ask about what's missing
+      if (missingFields.length === 0) {
+        greeting += " Looks like you've got the basics covered — anything else you'd like to add or clarify?";
+      } else if (missingFields.includes('goals')) {
+        greeting += " What's the main goal for the site — leads, sales, bookings?";
+      } else if (missingFields.includes('budget')) {
+        greeting += " What kind of budget are you working with?";
+      } else if (missingFields.includes('timeline')) {
+        greeting += " What's your timeline looking like?";
+      } else {
+        greeting += " What else can I help you with?";
+      }
+    } else if (name) {
+      greeting += " I'm here to help fill this out. What does your business do?";
+    } else {
+      greeting += " I'm here to help. What's your name and what kind of project are you working on?";
     }
-    if (name && industry) {
-      return `Hey ${name}! 👋 Great to meet you. Looks like you're in the ${industry} space — what's the main goal for your new website?`;
-    }
-    if (name) {
-      return `Hey ${name}! 👋 Great to meet you. I'm here to help you fill out this form faster — just chat with me naturally. So tell me, what does your business do and who are your ideal customers?`;
-    }
-    return "Hey! 👋 I'm here to help you fill out this form faster. Just chat with me naturally and I'll gather all the info we need. What's your name and what kind of project are you working on?";
+    
+    return greeting;
   };
+
+  // Create a stable key from form data to detect meaningful changes
+  const formDataKey = JSON.stringify({
+    name: currentFormData?.fullName,
+    business: currentFormData?.businessName,
+    industry: currentFormData?.industry,
+    goal: currentFormData?.primaryGoal,
+    budget: currentFormData?.budget,
+    timeline: currentFormData?.timeline,
+  });
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
+  const [lastFormDataKey, setLastFormDataKey] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset messages with personalized greeting when dialog opens
+  // Reset messages with personalized greeting when dialog opens OR when form data changes significantly
   useEffect(() => {
     if (isOpen) {
-      setMessages([{ role: "assistant", content: getInitialMessage() }]);
+      // Only regenerate greeting if this is first open or form data changed
+      if (messages.length === 0 || lastFormDataKey !== formDataKey) {
+        setMessages([{ role: "assistant", content: getInitialMessage() }]);
+        setLastFormDataKey(formDataKey);
+      }
       setCollectedData({});
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, currentFormData?.fullName, currentFormData?.businessName, currentFormData?.industry]);
+  }, [isOpen, formDataKey]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
