@@ -36,7 +36,24 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const adminUserId = userData.user?.id;
+    if (!adminUserId) throw new Error("User not found");
     logStep("User authenticated", { userId: adminUserId });
+
+    // Check if user has permission to charge cards
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('can_charge_cards')
+      .eq('user_id', adminUserId)
+      .single();
+
+    if (roleError || !userRole?.can_charge_cards) {
+      logStep("Permission denied", { userId: adminUserId, requiredPermission: 'can_charge_cards' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot charge cards' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_charge_cards' });
 
     const { lead_id, amount, description, transaction_ids, item_description } = await req.json();
     if (!lead_id) throw new Error("lead_id is required");

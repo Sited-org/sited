@@ -43,6 +43,22 @@ serve(async (req) => {
     if (userError || !userData.user) throw new Error("Unauthorized");
     logStep("User authenticated", { userId: userData.user.id });
 
+    // Check if user has permission to manage products (requires can_edit_leads)
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('can_edit_leads')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (roleError || !userRole?.can_edit_leads) {
+      logStep("Permission denied", { userId: userData.user.id, requiredPermission: 'can_edit_leads' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot manage products' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_edit_leads' });
+
     const { product_id, name, description, price, is_active } = await req.json();
     logStep("Received request", { product_id, name, price, is_active });
 

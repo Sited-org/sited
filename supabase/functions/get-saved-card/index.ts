@@ -35,7 +35,25 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    logStep("User authenticated", { userId: userData.user?.id });
+    const adminUserId = userData.user?.id;
+    if (!adminUserId) throw new Error("User not found");
+    logStep("User authenticated", { userId: adminUserId });
+
+    // Check if user has permission to view payment methods (requires can_view_payments)
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('can_view_payments')
+      .eq('user_id', adminUserId)
+      .single();
+
+    if (roleError || !userRole?.can_view_payments) {
+      logStep("Permission denied", { userId: adminUserId, requiredPermission: 'can_view_payments' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot view payment methods' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_view_payments' });
 
     const { lead_id } = await req.json();
     if (!lead_id) throw new Error("lead_id is required");

@@ -43,6 +43,22 @@ serve(async (req) => {
     if (userError || !userData.user) throw new Error("Unauthorized");
     logStep("User authenticated", { userId: userData.user.id });
 
+    // Check if user has permission to manage payment methods (requires can_charge_cards)
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('can_charge_cards')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (roleError || !userRole?.can_charge_cards) {
+      logStep("Permission denied", { userId: userData.user.id, requiredPermission: 'can_charge_cards' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot manage payment methods' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_charge_cards' });
+
     const { lead_id } = await req.json();
     logStep("Received request", { lead_id });
 
