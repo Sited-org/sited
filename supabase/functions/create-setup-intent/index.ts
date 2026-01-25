@@ -35,7 +35,25 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    logStep("User authenticated", { userId: userData.user?.id });
+    const adminUserId = userData.user?.id;
+    if (!adminUserId) throw new Error("User not found");
+    logStep("User authenticated", { userId: adminUserId });
+
+    // Check if user has permission to manage leads (requires can_edit_leads)
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('can_edit_leads')
+      .eq('user_id', adminUserId)
+      .single();
+
+    if (roleError || !userRole?.can_edit_leads) {
+      logStep("Permission denied", { userId: adminUserId, requiredPermission: 'can_edit_leads' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot manage payment methods' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_edit_leads' });
 
     const { lead_id, payment_method_type } = await req.json();
     if (!lead_id) throw new Error("lead_id is required");

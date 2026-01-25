@@ -66,6 +66,22 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check if user has permission to send invoices (requires can_charge_cards)
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('can_charge_cards')
+      .eq('user_id', user.id)
+      .single();
+
+    if (roleError || !userRole?.can_charge_cards) {
+      console.log("[SEND-INVOICE] Permission denied", { userId: user.id, requiredPermission: 'can_charge_cards' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot send invoices' }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    console.log("[SEND-INVOICE] Permission validated", { permission: 'can_charge_cards' });
+
     const body: SendInvoiceRequest = await req.json();
     console.log("[SEND-INVOICE] Request for:", body.clientEmail, "Items:", body.items.length);
 

@@ -30,6 +30,35 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Verify user auth
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("No authorization header");
+    
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    if (userError || !userData.user) throw new Error("Unauthorized");
+    logStep("User authenticated", { userId: userData.user.id });
+
+    // Check if user has permission to manage subscriptions (requires can_charge_cards)
+    const { data: userRole, error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('can_charge_cards')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    if (roleError || !userRole?.can_charge_cards) {
+      logStep("Permission denied", { userId: userData.user.id, requiredPermission: 'can_charge_cards' });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions: cannot manage subscriptions' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    logStep("Permission validated", { permission: 'can_charge_cards' });
+
     const body = await req.json();
     const { 
       lead_id, 
