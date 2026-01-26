@@ -29,7 +29,7 @@ const CalendarMockup = () => {
           >
             <ChevronLeft size={20} className="text-muted-foreground" />
           </motion.button>
-          <h3 className="text-lg font-semibold">January 2026</h3>
+          <h3 className="text-lg font-semibold">January 2025</h3>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}

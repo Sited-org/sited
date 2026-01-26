@@ -8,13 +8,14 @@ interface Contact {
   email: string;
   company: string;
   status: "lead" | "prospect" | "customer";
-  location: string;
+  value: string;
 }
 
 const contacts: Contact[] = [
-  { id: 1, name: "John Appleseed", email: "john@appleseedplumbing.com.au", company: "Appleseed Plumbing", status: "customer", location: "Geelong, VIC" },
-  { id: 2, name: "Katie Morrison", email: "katie@katieshandmade.com.au", company: "Katie's Handmade", status: "prospect", location: "Byron Bay, NSW" },
-  { id: 3, name: "Gil Santos", email: "gil@thecornercafe.com.au", company: "The Corner Cafe", status: "customer", location: "Fremantle, WA" },
+  { id: 1, name: "Sarah Chen", email: "sarah@techcorp.io", company: "TechCorp", status: "customer", value: "$12,500" },
+  { id: 2, name: "Marcus Rodriguez", email: "marcus@innovate.co", company: "Innovate Co", status: "prospect", value: "$8,200" },
+  { id: 3, name: "Emma Thompson", email: "emma@startuplab.com", company: "StartupLab", status: "lead", value: "$5,000" },
+  { id: 4, name: "James Wilson", email: "james@enterprise.io", company: "Enterprise Inc", status: "customer", value: "$24,000" },
 ];
 
 const statusColors = {
@@ -71,7 +72,7 @@ const CRMMockup = () => {
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Name</th>
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Company</th>
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Status</th>
-                <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Location</th>
+                <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Value</th>
               </tr>
             </thead>
             <tbody>
@@ -105,7 +106,7 @@ const CRMMockup = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-sm text-muted-foreground">{contact.location}</span>
+                    <span className="text-sm font-semibold">{contact.value}</span>
                   </td>
                 </motion.tr>
               ))}
@@ -127,7 +128,7 @@ const CRMMockup = () => {
                     <p className="text-xs text-muted-foreground">{contact.company}</p>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground">{contact.location}</span>
+                <span className="text-sm font-semibold">{contact.value}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[contact.status]}`}>
