@@ -3,15 +3,15 @@ import { User, Mail, Phone, MapPin, Calendar, TrendingUp, FileText, DollarSign }
 
 const ClientProfileMockup = () => {
   const stats = [
-    { label: "Total Spent", value: "$24,500", icon: DollarSign },
+    { label: "Total Spent", value: "$1,730", icon: DollarSign },
     { label: "Projects", value: "3", icon: FileText },
-    { label: "Since", value: "Jan 2024", icon: Calendar },
+    { label: "Since", value: "Jul 2024", icon: Calendar },
   ];
 
-  const activities = [
-    { action: "Invoice paid", date: "2 days ago", amount: "$2,400" },
-    { action: "Project completed", date: "1 week ago", amount: null },
-    { action: "Meeting scheduled", date: "2 weeks ago", amount: null },
+  const communications = [
+    { type: "Problem", detail: "Website contact form not sending", date: "2 days ago" },
+    { type: "Action", detail: "Fixed email configuration issue", date: "1 day ago" },
+    { type: "Resolved", detail: "Client confirmed working", date: "Today" },
   ];
 
   return (
@@ -84,15 +84,15 @@ const ClientProfileMockup = () => {
           ))}
         </div>
 
-        {/* Activity Timeline */}
+        {/* Communication Timeline */}
         <div className="p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={16} className="text-muted-foreground" />
-            <h4 className="text-sm font-medium">Recent Activity</h4>
+            <h4 className="text-sm font-medium">Recent Communication</h4>
           </div>
           
           <div className="space-y-3">
-            {activities.map((activity, index) => (
+            {communications.map((comm, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
@@ -102,15 +102,17 @@ const ClientProfileMockup = () => {
                 className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-foreground/60" />
+                  <div className={`w-2 h-2 rounded-full ${
+                    comm.type === "Problem" ? "bg-destructive/60" : 
+                    comm.type === "Action" ? "bg-amber-500/60" : 
+                    "bg-green-500/60"
+                  }`} />
                   <div>
-                    <p className="text-sm font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.date}</p>
+                    <p className="text-sm font-medium">{comm.type}</p>
+                    <p className="text-xs text-muted-foreground">{comm.detail}</p>
                   </div>
                 </div>
-                {activity.amount && (
-                  <span className="text-sm font-semibold">{activity.amount}</span>
-                )}
+                <span className="text-xs text-muted-foreground">{comm.date}</span>
               </motion.div>
             ))}
           </div>
