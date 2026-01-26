@@ -142,13 +142,13 @@ HeroVideo.displayName = 'HeroVideo';
 const services = [
   {
     icon: Globe,
-    title: "Website Design & Development",
-    description: "Custom-designed, responsive websites that capture your brand and convert visitors into customers.",
+    title: "Custom Website Design",
+    description: "Stunning, responsive websites that capture your brand and convert visitors into customers.",
   },
   {
     icon: Zap,
-    title: "AI Integrations",
-    description: "Smart automation and AI features that give your business a competitive edge.",
+    title: "High-Performance Development",
+    description: "Lightning-fast, SEO-optimized websites built with cutting-edge technology.",
   },
 ];
 
@@ -233,16 +233,16 @@ const fallbackProjects = [
     image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&q=75&fit=crop",
   },
   {
-    company: "FitTrack Pro",
-    category: "App Development", 
-    result: "50k+ Active Users",
+    company: "Urban Fitness",
+    category: "Website Design", 
+    result: "200% More Leads",
     image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=75&fit=crop",
   },
   {
-    company: "MediCare Connect",
-    category: "AI Integration",
-    result: "60% Automation",
-    image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=75&fit=crop",
+    company: "Coastal Realty",
+    category: "Website Design",
+    result: "4x Online Sales",
+    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=75&fit=crop",
   },
 ];
 
@@ -345,13 +345,13 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                We're a boutique digital agency that combines AI precision with creative excellence. 
-                Our focused team delivers websites and AI integrations that actually drive results.
+                We're a boutique web design agency that combines AI precision with creative excellence. 
+                Our focused team delivers stunning websites that actually drive results.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
-                No fluff. No endless meetings. Just beautiful, high-converting digital products 
+                No fluff. No endless meetings. Just beautiful, high-converting websites 
                 delivered in weeks, not months.
               </p>
             </ScrollReveal>
@@ -441,7 +441,7 @@ const CTA = () => {
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-            Your next website, app, or AI integration is just a conversation away.
+            Your next website is just a conversation away.
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>

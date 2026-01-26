@@ -14,7 +14,7 @@ import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home } from 'l
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
+const PROJECT_TYPES = ['Website Design'];
 
 const emptyForm: TestimonialInsert = {
   project_type: 'Website Design',

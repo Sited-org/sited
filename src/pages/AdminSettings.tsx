@@ -22,7 +22,7 @@ import { ProductsSettingsTab } from '@/components/admin/settings/ProductsSetting
 import SecuritySettingsTab from '@/components/admin/settings/SecuritySettingsTab';
 // FormFieldsSettingsTab import removed - form editing disabled
 
-const PROJECT_TYPES = ['Website Design', 'App Development', 'AI Integration'];
+const PROJECT_TYPES = ['Website Design'];
 
 const emptyTestimonialForm: TestimonialInsert = {
   project_type: 'Website Design',
