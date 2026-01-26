@@ -8,14 +8,13 @@ interface Contact {
   email: string;
   company: string;
   status: "lead" | "prospect" | "customer";
-  value: string;
+  value: string; // Now represents location instead of monetary value
 }
 
 const contacts: Contact[] = [
-  { id: 1, name: "Sarah Chen", email: "sarah@techcorp.io", company: "TechCorp", status: "customer", value: "$12,500" },
-  { id: 2, name: "Marcus Rodriguez", email: "marcus@innovate.co", company: "Innovate Co", status: "prospect", value: "$8,200" },
-  { id: 3, name: "Emma Thompson", email: "emma@startuplab.com", company: "StartupLab", status: "lead", value: "$5,000" },
-  { id: 4, name: "James Wilson", email: "james@enterprise.io", company: "Enterprise Inc", status: "customer", value: "$24,000" },
+  { id: 1, name: "Sarah Scott", email: "sarah@scottdesigns.com.au", company: "Scott Designs", status: "customer", value: "Geelong, VIC" },
+  { id: 2, name: "Mark Ruby", email: "mark@rubytech.com.au", company: "Ruby Tech", status: "prospect", value: "Ballarat, VIC" },
+  { id: 3, name: "Tristan Till", email: "tristan@tillco.com.au", company: "Till & Co", status: "lead", value: "Torquay, VIC" },
 ];
 
 const statusColors = {
@@ -27,8 +26,7 @@ const statusColors = {
 const CRMMockup = () => {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
-  // Only show first 3 contacts on mobile for cleaner display
-  const displayContacts = contacts.slice(0, 3);
+  const displayContacts = contacts;
 
   return (
     <motion.div

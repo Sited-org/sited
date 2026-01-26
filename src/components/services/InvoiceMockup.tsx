@@ -7,9 +7,9 @@ const InvoiceMockup = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const lineItems = [
-    { description: "Website Design & Development", quantity: 1, price: 4500 },
-    { description: "Custom CRM Integration", quantity: 1, price: 2000 },
-    { description: "Monthly Maintenance", quantity: 3, price: 150 },
+    { description: "Call out fee", quantity: 1, price: 120 },
+    { description: "Materials", quantity: 1, price: 800 },
+    { description: "Installation", quantity: 1, price: 650 },
   ];
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
@@ -45,13 +45,13 @@ const InvoiceMockup = () => {
           <div className="grid grid-cols-2 gap-6 text-sm">
             <div>
               <p className="text-muted-foreground mb-1">From</p>
-              <p className="font-medium">Your Agency</p>
-              <p className="text-muted-foreground">hello@youragency.com</p>
+              <p className="font-medium">Your Business</p>
+              <p className="text-muted-foreground">hi@appleseed.com</p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Bill To</p>
-              <p className="font-medium">TechCorp Inc.</p>
-              <p className="text-muted-foreground">billing@techcorp.io</p>
+              <p className="font-medium">Linda Carmine</p>
+              <p className="text-muted-foreground">lincar.32@gmail.com</p>
             </div>
           </div>
         </div>

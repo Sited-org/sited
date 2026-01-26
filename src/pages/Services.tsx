@@ -46,7 +46,7 @@ const ShowcaseSection = ({
             </p>
             <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
               <Link to="/onboarding/website" className="gap-2">
-                Learn More
+                Build Today
                 <ArrowRight size={18} />
               </Link>
             </Button>
