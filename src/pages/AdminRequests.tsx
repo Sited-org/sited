@@ -27,8 +27,20 @@ import {
   FileText,
   Image,
   Paperclip,
-  XCircle
+  XCircle,
+  Trash2
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 
 type RequestStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
@@ -219,6 +231,36 @@ export default function AdminRequests() {
     },
     onError: (error: any) => {
       toast({ title: 'Error updating request', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      // First delete attachments from storage
+      const { data: attachmentsData } = await supabase
+        .from('request_attachments')
+        .select('file_path')
+        .eq('request_id', id);
+      
+      if (attachmentsData && attachmentsData.length > 0) {
+        const filePaths = attachmentsData.map(a => a.file_path);
+        await supabase.storage.from('request-attachments').remove(filePaths);
+      }
+
+      // Delete attachment records
+      await supabase.from('request_attachments').delete().eq('request_id', id);
+
+      // Delete the request
+      const { error } = await supabase.from('client_requests').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-requests'] });
+      toast({ title: 'Request deleted' });
+      setSelectedRequest(null);
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error deleting request', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -699,14 +741,41 @@ export default function AdminRequests() {
                     </p>
                   </div>
 
-                  {/* Save Button */}
-                  <Button 
-                    onClick={handleSaveRequest} 
-                    className="w-full"
-                    disabled={updateRequestMutation.isPending}
-                  >
-                    {updateRequestMutation.isPending ? 'Saving...' : 'Save Changes'}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={handleSaveRequest} 
+                      className="flex-1"
+                      disabled={updateRequestMutation.isPending}
+                    >
+                      {updateRequestMutation.isPending ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Request</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this request? This action cannot be undone and will also remove all attached files.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteRequestMutation.mutate(selectedRequest.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteRequestMutation.isPending ? 'Deleting...' : 'Delete'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </ScrollArea>
             </>
