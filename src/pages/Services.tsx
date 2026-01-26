@@ -180,8 +180,8 @@ const Services = () => {
       {/* Calendar Booking Showcase */}
       <ShowcaseSection
         label="Scheduling"
-        title="Let clients book themselves"
-        description="No more back-and-forth emails. Your website becomes a 24/7 booking assistant that syncs with your calendar and sends automatic reminders."
+        title="Customer Bookings. Integrated."
+        description="No more juggling between systems. All in one place, for your convenience, or integrate it with your existing system."
       >
         <CalendarMockup />
       </ShowcaseSection>
