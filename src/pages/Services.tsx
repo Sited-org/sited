@@ -1,9 +1,9 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring } from "framer-motion";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { ArrowRight, Globe, Play, Check, Sparkles, Zap, Palette, Code, Shield, Rocket, MousePointer } from "lucide-react";
+import { ArrowRight, Globe, Play, Check, Sparkles, Zap, Palette, Code, Shield, Rocket } from "lucide-react";
 
 // Floating glass card component
 const GlassCard = ({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => {
@@ -18,36 +18,9 @@ const GlassCard = ({ children, className = "", delay = 0 }: { children: React.Re
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`relative backdrop-blur-xl bg-card/60 border border-border/50 rounded-3xl overflow-hidden ${className}`}
     >
-      {/* Glass reflection effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none" />
       {children}
     </motion.div>
-  );
-};
-
-// Interactive mouse-following gradient
-const InteractiveGradient = () => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  return (
-    <motion.div
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{
-        background: `radial-gradient(600px circle at ${springX}px ${springY}px, hsl(var(--accent) / 0.15), transparent 40%)`,
-      }}
-    />
   );
 };
 
@@ -86,31 +59,62 @@ const AnimatedCounter = ({ value, suffix = "" }: { value: string; suffix?: strin
   );
 };
 
-// Rolling text animation
-const RollingText = ({ words }: { words: string[] }) => {
-  const [index, setIndex] = useState(0);
+// Parallax showcase section with glass overlay
+const ParallaxShowcase = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"],
+  });
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((prev) => (prev + 1) % words.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [words.length]);
+  const y = useTransform(scrollYProgress, [0, 1], [-150, 150]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1.1, 1, 1.1]);
 
   return (
-    <span className="relative inline-block h-[1.2em] overflow-hidden align-bottom">
-      {words.map((word, i) => (
-        <motion.span
-          key={word}
-          className="absolute left-0"
-          initial={{ y: "100%" }}
-          animate={{ y: i === index ? "0%" : i === (index - 1 + words.length) % words.length ? "-100%" : "100%" }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {word}
-        </motion.span>
-      ))}
-    </span>
+    <section ref={containerRef} className="py-24 sm:py-32 relative overflow-hidden">
+      <div className="container-tight relative">
+        {/* Glass card with parallax background */}
+        <div className="relative rounded-3xl overflow-hidden">
+          {/* Parallax background image */}
+          <motion.div
+            style={{ y, scale }}
+            className="absolute inset-0 -z-10"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1920&q=80"
+              alt="Website design showcase"
+              className="w-full h-[120%] object-cover"
+            />
+            <div className="absolute inset-0 bg-foreground/60" />
+          </motion.div>
+
+          {/* Glass content overlay */}
+          <div className="relative backdrop-blur-md bg-background/10 border border-white/20 p-8 sm:p-12 md:p-16 lg:p-20">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="max-w-2xl"
+            >
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white mb-6">
+                Websites that move people
+              </h2>
+              <p className="text-lg sm:text-xl text-white/80 mb-8 leading-relaxed">
+                We don't just build websites. We craft digital experiences that captivate, 
+                engage, and convert. Every pixel, every interaction, every moment—designed with purpose.
+              </p>
+              <Button size="lg" className="bg-white text-foreground hover:bg-white/90" asChild>
+                <Link to="/work" className="gap-2">
+                  See Our Work
+                  <ArrowRight size={18} />
+                </Link>
+              </Button>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
 
@@ -122,12 +126,25 @@ const FeatureShowcase = () => {
     { icon: Shield, title: "Secure & Fast", description: "Enterprise-grade security, blazing speed" },
     { icon: Rocket, title: "SEO Ready", description: "Built to rank, designed to convert" },
     { icon: Zap, title: "Lightning Fast", description: "Sub-second load times, optimized delivery" },
-    { icon: MousePointer, title: "Interactive", description: "Engaging experiences that captivate users" },
+    { icon: Globe, title: "Responsive", description: "Perfect on every device, every screen" },
   ];
 
   return (
     <section className="py-24 sm:py-32 relative overflow-hidden">
       <div className="container-tight">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">What We Deliver</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mt-4">
+            Built for results
+          </h2>
+        </motion.div>
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <GlassCard key={feature.title} delay={index * 0.1} className="p-8 group hover:bg-card/80 transition-colors duration-500">
@@ -142,48 +159,6 @@ const FeatureShowcase = () => {
             </GlassCard>
           ))}
         </div>
-      </div>
-    </section>
-  );
-};
-
-// Horizontal scrolling showcase
-const ShowcaseScroll = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  const x1 = useTransform(scrollYProgress, [0, 1], [0, -200]);
-  const x2 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-
-  const row1 = ["E-Commerce", "Landing Pages", "SaaS Platforms", "Portfolio Sites", "Web Applications"];
-  const row2 = ["Booking Systems", "Corporate Sites", "Blog Platforms", "Membership Sites", "Analytics Dashboards"];
-
-  return (
-    <section ref={containerRef} className="py-20 overflow-hidden">
-      <div className="space-y-4">
-        <motion.div style={{ x: x1 }} className="flex gap-4">
-          {[...row1, ...row1].map((item, i) => (
-            <div
-              key={i}
-              className="flex-shrink-0 px-8 py-4 rounded-full border border-border/50 bg-card/30 backdrop-blur-sm text-lg font-medium whitespace-nowrap"
-            >
-              {item}
-            </div>
-          ))}
-        </motion.div>
-        <motion.div style={{ x: x2 }} className="flex gap-4 -ml-40">
-          {[...row2, ...row2].map((item, i) => (
-            <div
-              key={i}
-              className="flex-shrink-0 px-8 py-4 rounded-full border border-accent/30 bg-accent/10 backdrop-blur-sm text-lg font-medium whitespace-nowrap"
-            >
-              {item}
-            </div>
-          ))}
-        </motion.div>
       </div>
     </section>
   );
@@ -215,7 +190,6 @@ const ProcessSection = () => {
         </motion.div>
 
         <div className="relative">
-          {/* Connection line */}
           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -345,7 +319,6 @@ const CTASection = () => {
 
   return (
     <section ref={ref} className="py-24 sm:py-32 relative overflow-hidden">
-      {/* Background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/30 rounded-full blur-3xl" />
@@ -399,30 +372,20 @@ const Services = () => {
 
   return (
     <Layout>
-      <InteractiveGradient />
-
       {/* Hero */}
       <section
         ref={heroRef}
         className="min-h-screen flex items-center justify-center relative overflow-hidden"
       >
-        {/* Animated background orbs */}
+        {/* Subtle animated background */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             animate={{ 
-              x: [0, 100, 0],
-              y: [0, -50, 0],
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.5, 0.3],
             }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-accent/10 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ 
-              x: [0, -80, 0],
-              y: [0, 80, 0],
-            }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/20 rounded-full blur-3xl"
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-accent/20 rounded-full blur-3xl"
           />
         </div>
 
@@ -446,10 +409,9 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.1]"
           >
-            One thing.
+            One thing
             <br />
-            <span className="text-muted-foreground">Done </span>
-            <RollingText words={["right.", "beautifully.", "perfectly."]} />
+            <span className="text-muted-foreground">done right.</span>
           </motion.h1>
 
           <motion.p
@@ -496,8 +458,8 @@ const Services = () => {
         </motion.div>
       </section>
 
-      {/* Horizontal scrolling showcase */}
-      <ShowcaseScroll />
+      {/* Parallax showcase */}
+      <ParallaxShowcase />
 
       {/* Features */}
       <FeatureShowcase />
