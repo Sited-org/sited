@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const CalendarMockup = () => {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
-  const [selectedDay, setSelectedDay] = useState<number | null>(15);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const dates = Array.from({ length: 35 }, (_, i) => i - 3); // -3 to 31

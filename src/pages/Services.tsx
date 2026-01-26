@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight, Calendar, Users, Receipt } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
+import ClientProfileMockup from "@/components/services/ClientProfileMockup";
 import InvoiceMockup from "@/components/services/InvoiceMockup";
 
 // Section wrapper with consistent spacing
@@ -25,9 +26,9 @@ const ShowcaseSection = ({
   const ref = useRef(null);
   
   return (
-    <section ref={ref} className="py-32 sm:py-40 relative">
-      <div className="container-tight">
-        <div className={`grid lg:grid-cols-2 gap-16 lg:gap-24 items-center ${reversed ? "lg:grid-flow-dense" : ""}`}>
+    <section ref={ref} className="py-20 sm:py-32 lg:py-40 relative">
+      <div className="container-tight px-4 sm:px-6">
+        <div className={`grid lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-20 items-center ${reversed ? "lg:grid-flow-dense" : ""}`}>
           {/* Text Content */}
           <motion.div
             initial={{ opacity: 0, x: reversed ? 40 : -40 }}
@@ -37,13 +38,13 @@ const ShowcaseSection = ({
             className={reversed ? "lg:col-start-2" : ""}
           >
             <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mt-4 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
               {title}
             </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed mb-8">
+            <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6 sm:mb-8">
               {description}
             </p>
-            <Button variant="outline" size="lg" asChild>
+            <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
               <Link to="/onboarding/website" className="gap-2">
                 Learn More
                 <ArrowRight size={18} />
@@ -64,13 +65,13 @@ const ShowcaseSection = ({
 // Final CTA section
 const CTASection = () => {
   return (
-    <section className="py-32 sm:py-40 relative overflow-hidden">
+    <section className="py-20 sm:py-32 lg:py-40 relative overflow-hidden">
       <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 sm:w-64 h-48 sm:h-64 bg-accent/20 rounded-full blur-3xl" />
       </div>
 
-      <div className="container-tight relative z-10">
+      <div className="container-tight relative z-10 px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -78,22 +79,22 @@ const CTASection = () => {
           transition={{ duration: 0.8 }}
           className="text-center max-w-3xl mx-auto"
         >
-          <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight mb-8">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight mb-6 sm:mb-8">
             Ready to build
             <br />
             <span className="text-muted-foreground">something real?</span>
           </h2>
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto mb-12">
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-8 sm:mb-12">
             Your website should work as hard as you do. Let's create something that actually moves the needle.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="xl" variant="hero" asChild>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Button size="xl" variant="hero" asChild className="w-full sm:w-auto">
               <Link to="/onboarding/website" className="gap-2">
                 Start Your Project
                 <ArrowRight size={20} />
               </Link>
             </Button>
-            <Button size="xl" variant="ghost" asChild>
+            <Button size="xl" variant="ghost" asChild className="w-full sm:w-auto">
               <Link to="/work">See Our Work</Link>
             </Button>
           </div>
@@ -176,36 +177,6 @@ const Services = () => {
         </motion.div>
       </section>
 
-      {/* Feature Icons */}
-      <section className="py-20 border-y border-border/50 bg-surface-elevated">
-        <div className="container-tight">
-          <div className="grid grid-cols-3 gap-8 sm:gap-12">
-            {[
-              { icon: Calendar, label: "Booking Systems" },
-              { icon: Users, label: "Customer Management" },
-              { icon: Receipt, label: "Invoicing & Payments" },
-            ].map((item, index) => (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="w-14 h-14 mx-auto rounded-2xl bg-muted flex items-center justify-center mb-4"
-                >
-                  <item.icon size={24} className="text-foreground" />
-                </motion.div>
-                <p className="text-sm font-medium">{item.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Calendar Booking Showcase */}
       <ShowcaseSection
         label="Scheduling"
@@ -216,7 +187,7 @@ const Services = () => {
       </ShowcaseSection>
 
       {/* Divider */}
-      <div className="container-tight">
+      <div className="container-tight px-4 sm:px-6">
         <div className="h-px bg-border/50" />
       </div>
 
@@ -231,7 +202,21 @@ const Services = () => {
       </ShowcaseSection>
 
       {/* Divider */}
-      <div className="container-tight">
+      <div className="container-tight px-4 sm:px-6">
+        <div className="h-px bg-border/50" />
+      </div>
+
+      {/* Client Profile Showcase */}
+      <ShowcaseSection
+        label="Client Profiles"
+        title="Every detail at your fingertips"
+        description="Store contact information, track spending history, and see every interaction at a glance. Build deeper relationships with personalized service."
+      >
+        <ClientProfileMockup />
+      </ShowcaseSection>
+
+      {/* Divider */}
+      <div className="container-tight px-4 sm:px-6">
         <div className="h-px bg-border/50" />
       </div>
 
@@ -240,6 +225,7 @@ const Services = () => {
         label="Payments"
         title="Get paid faster"
         description="Send professional invoices, accept payments online, and track everything in one place. Your website becomes your billing department."
+        reversed
       >
         <InvoiceMockup />
       </ShowcaseSection>
