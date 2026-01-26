@@ -9,9 +9,9 @@ const ClientProfileMockup = () => {
   ];
 
   const activities = [
-    { action: "Invoice paid", date: "2 days ago", amount: "$2,400" },
-    { action: "Project completed", date: "1 week ago", amount: null },
-    { action: "Meeting scheduled", date: "2 weeks ago", amount: null },
+    { action: "Blocked drain reported", date: "2 days ago", detail: "Problem" },
+    { action: "Emergency callout dispatched", date: "2 days ago", detail: "Action" },
+    { action: "Issue fixed, customer satisfied", date: "1 day ago", detail: "Resolved" },
   ];
 
   return (
@@ -38,8 +38,8 @@ const ClientProfileMockup = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-semibold">Sarah Chen</h3>
-                  <p className="text-sm text-muted-foreground">TechCorp Industries</p>
+                  <h3 className="text-lg sm:text-xl font-semibold">John Appleseed</h3>
+                  <p className="text-sm text-muted-foreground">Residential Customer</p>
                 </div>
                 <span className="inline-flex self-start px-3 py-1 rounded-full text-xs font-medium bg-foreground text-background">
                   Active Client
@@ -49,15 +49,15 @@ const ClientProfileMockup = () => {
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Mail size={14} />
-                  sarah@techcorp.io
+                  john.a@email.com.au
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Phone size={14} />
-                  (555) 123-4567
+                  0412 345 678
                 </span>
                 <span className="flex items-center gap-1.5 hidden sm:flex">
                   <MapPin size={14} />
-                  San Francisco, CA
+                  Geelong, VIC
                 </span>
               </div>
             </div>
@@ -86,9 +86,12 @@ const ClientProfileMockup = () => {
 
         {/* Activity Timeline */}
         <div className="p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={16} className="text-muted-foreground" />
-            <h4 className="text-sm font-medium">Recent Activity</h4>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} className="text-muted-foreground" />
+              <h4 className="text-sm font-medium">Recent Communication</h4>
+            </div>
+            <span className="text-xs text-muted-foreground">Every detail at your fingertips</span>
           </div>
           
           <div className="space-y-3">
@@ -108,9 +111,13 @@ const ClientProfileMockup = () => {
                     <p className="text-xs text-muted-foreground">{activity.date}</p>
                   </div>
                 </div>
-                {activity.amount && (
-                  <span className="text-sm font-semibold">{activity.amount}</span>
-                )}
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  activity.detail === "Problem" ? "bg-red-500/20 text-red-600" :
+                  activity.detail === "Action" ? "bg-amber-500/20 text-amber-600" :
+                  "bg-green-500/20 text-green-600"
+                }`}>
+                  {activity.detail}
+                </span>
               </motion.div>
             ))}
           </div>

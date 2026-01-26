@@ -7,9 +7,9 @@ const InvoiceMockup = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const lineItems = [
-    { description: "Website Design & Development", quantity: 1, price: 4500 },
-    { description: "Custom CRM Integration", quantity: 1, price: 2000 },
-    { description: "Monthly Maintenance", quantity: 3, price: 150 },
+    { description: "Emergency Plumbing Callout - John Appleseed", quantity: 1, price: 280 },
+    { description: "Handmade Candle Set (x12) - Katie's Handmade", quantity: 1, price: 156 },
+    { description: "Weekly Coffee Supply - The Corner Cafe", quantity: 4, price: 85 },
   ];
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
@@ -45,13 +45,13 @@ const InvoiceMockup = () => {
           <div className="grid grid-cols-2 gap-6 text-sm">
             <div>
               <p className="text-muted-foreground mb-1">From</p>
-              <p className="font-medium">Your Agency</p>
-              <p className="text-muted-foreground">hello@youragency.com</p>
+              <p className="font-medium">Your Business</p>
+              <p className="text-muted-foreground">hello@yourbusiness.com.au</p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Bill To</p>
-              <p className="font-medium">TechCorp Inc.</p>
-              <p className="text-muted-foreground">billing@techcorp.io</p>
+              <p className="font-medium">Gil Santos</p>
+              <p className="text-muted-foreground">gil@thecornercafe.com.au</p>
             </div>
           </div>
         </div>
