@@ -77,11 +77,11 @@ interface ClientRequest {
   };
 }
 
-const statusConfig: Record<RequestStatus, { label: string; color: string; icon: typeof Clock }> = {
+const statusConfig: Record<RequestStatus, { label: string; color: string; icon: typeof Clock; cardBg?: string }> = {
   pending: { label: 'Pending', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20', icon: Clock },
   in_progress: { label: 'In Progress', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20', icon: AlertCircle },
   completed: { label: 'Completed', color: 'bg-green-500/10 text-green-500 border-green-500/20', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', color: 'bg-muted text-muted-foreground border-border', icon: Clock },
+  cancelled: { label: 'Cancelled', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: XCircle, cardBg: 'bg-red-500/5' },
 };
 
 const priorityConfig: Record<RequestPriority, { label: string; color: string }> = {
@@ -96,58 +96,93 @@ const priorityConfig: Record<RequestPriority, { label: string; color: string }> 
 function RequestCard({ 
   request, 
   onOpen, 
+  onFilterCompany,
   showETA = false, 
   showCompletion = false 
 }: { 
   request: ClientRequest; 
   onOpen: (request: ClientRequest) => void;
+  onFilterCompany: (leadId: string) => void;
   showETA?: boolean;
   showCompletion?: boolean;
 }) {
   const priorityInfo = priorityConfig[request.priority as RequestPriority] || priorityConfig.normal;
+  const statusInfo = statusConfig[request.status as RequestStatus] || statusConfig.pending;
+  const companyInitial = (request.leads?.business_name || request.leads?.name || request.leads?.email || '?')[0].toUpperCase();
   
   return (
     <div
-      className="p-4 bg-card rounded-lg border hover:border-primary/30 transition-colors cursor-pointer"
+      className={`p-4 rounded-lg border hover:border-primary/30 transition-colors cursor-pointer ${statusInfo.cardBg || 'bg-card'}`}
       onClick={() => onOpen(request)}
     >
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      {/* Top Row: Profile, Time, Title, Urgency */}
+      <div className="flex items-start gap-3">
+        {/* Company Profile Photo */}
+        <div className="shrink-0">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+            {companyInitial}
+          </div>
+        </div>
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
+          {/* Title and Priority on same line */}
+          <div className="flex items-center gap-2 flex-wrap">
             <h4 className="font-medium truncate">{request.title}</h4>
             <Badge variant="outline" className={priorityInfo.color}>
               {priorityInfo.label}
             </Badge>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-            <User className="h-3 w-3" />
-            <span className="truncate">
-              {request.leads?.name || request.leads?.email}
+          
+          {/* Company name and submission time */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+            <span className="truncate font-medium">
+              {request.leads?.business_name || request.leads?.name || request.leads?.email}
               {request.leads?.lead_number && ` (#${request.leads.lead_number})`}
             </span>
-          </div>
-          {request.description && (
-            <p className="text-sm text-muted-foreground line-clamp-1">{request.description}</p>
-          )}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              {format(new Date(request.created_at), 'MMM d, yyyy')}
+            <span className="text-muted-foreground/50">•</span>
+            <span className="flex items-center gap-1 shrink-0">
+              <Clock className="h-3 w-3" />
+              {format(new Date(request.created_at), 'MMM d, h:mm a')}
             </span>
-            {showETA && request.estimated_completion && (
-              <span className="flex items-center gap-1 text-blue-600">
-                <Clock className="h-3 w-3" />
-                ETA: {format(new Date(request.estimated_completion), 'MMM d')}
-              </span>
-            )}
-            {showCompletion && request.completed_at && (
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="h-3 w-3" />
-                Completed {format(new Date(request.completed_at), 'MMM d')}
-              </span>
-            )}
           </div>
         </div>
+      </div>
+      
+      {/* Filter Button - beneath profile */}
+      <div className="mt-3 ml-13 pl-13">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={(e) => {
+            e.stopPropagation();
+            onFilterCompany(request.lead_id);
+          }}
+        >
+          <Filter className="h-3 w-3 mr-1" />
+          Filter this company
+        </Button>
+      </div>
+      
+      {/* Request Preview */}
+      {request.description && (
+        <p className="text-sm text-muted-foreground line-clamp-2 mt-3 ml-13 pl-13">{request.description}</p>
+      )}
+      
+      {/* Additional Info */}
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-3 ml-13 pl-13">
+        {showETA && request.estimated_completion && (
+          <span className="flex items-center gap-1 text-blue-600">
+            <Calendar className="h-3 w-3" />
+            ETA: {format(new Date(request.estimated_completion), 'MMM d')}
+          </span>
+        )}
+        {showCompletion && request.completed_at && (
+          <span className="flex items-center gap-1 text-green-600">
+            <CheckCircle2 className="h-3 w-3" />
+            Completed {format(new Date(request.completed_at), 'MMM d')}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -160,6 +195,7 @@ export default function AdminRequests() {
   const [selectedRequest, setSelectedRequest] = useState<ClientRequest | null>(null);
   const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [clientFilter, setClientFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
@@ -280,14 +316,25 @@ export default function AdminRequests() {
     low: 3,
   };
 
+  // Get unique clients for filter dropdown
+  const uniqueClients = [...new Map(requests.map(r => [
+    r.lead_id, 
+    { 
+      id: r.lead_id, 
+      name: r.leads?.business_name || r.leads?.name || r.leads?.email || 'Unknown' 
+    }
+  ])).values()];
+
   const filteredRequests = requests
     .filter((request) => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+      const matchesClient = clientFilter === 'all' || request.lead_id === clientFilter;
       const matchesSearch = 
         request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesSearch;
+        request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        request.leads?.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesStatus && matchesClient && matchesSearch;
     })
     .sort((a, b) => {
       // First sort by status
@@ -302,7 +349,14 @@ export default function AdminRequests() {
     pending: requests.filter((r) => r.status === 'pending').length,
     in_progress: requests.filter((r) => r.status === 'in_progress').length,
     completed: requests.filter((r) => r.status === 'completed').length,
+    cancelled: requests.filter((r) => r.status === 'cancelled').length,
     total: requests.length,
+  };
+
+  // Handler for "Filter this company" button - filters to non-completed requests from this company
+  const handleFilterCompany = (leadId: string) => {
+    setClientFilter(leadId);
+    setStatusFilter('all'); // Show all non-completed statuses from this company
   };
 
   const handleOpenRequest = async (request: ClientRequest) => {
@@ -462,6 +516,30 @@ export default function AdminRequests() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={clientFilter} onValueChange={setClientFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <User className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Filter by client" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            {uniqueClients.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {clientFilter !== 'all' && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setClientFilter('all')}
+            className="shrink-0"
+          >
+            Clear client filter
+          </Button>
+        )}
       </div>
 
       {/* Categorized Requests */}
@@ -494,7 +572,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {pending.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} />
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
@@ -520,7 +598,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {inProgress.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} showETA />
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} showETA />
                     ))}
                   </div>
                 </CardContent>
@@ -546,7 +624,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {completed.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} showCompletion />
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} showCompletion />
                     ))}
                   </div>
                 </CardContent>
@@ -559,20 +637,20 @@ export default function AdminRequests() {
             const cancelled = filteredRequests.filter(r => r.status === 'cancelled');
             if (cancelled.length === 0) return null;
             return (
-              <Card className="opacity-75">
+              <Card className="bg-red-500/5 border-red-500/20">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2 text-muted-foreground">
-                    <div className="p-1.5 bg-muted rounded-lg">
-                      <XCircle className="h-5 w-5" />
+                  <CardTitle className="text-lg flex items-center gap-2 text-red-600">
+                    <div className="p-1.5 bg-red-500/10 rounded-lg">
+                      <XCircle className="h-5 w-5 text-red-500" />
                     </div>
                     Cancelled
-                    <Badge variant="secondary" className="ml-auto">{cancelled.length}</Badge>
+                    <Badge variant="secondary" className="ml-auto bg-red-500/10 text-red-600">{cancelled.length}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {cancelled.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} />
+                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
