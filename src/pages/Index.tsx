@@ -462,6 +462,19 @@ const CTA = () => {
   );
 };
 
+const LegalLink = () => {
+  return (
+    <div className="py-4 text-center">
+      <Link 
+        to="/policies" 
+        className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+      >
+        Privacy Policy & Terms
+      </Link>
+    </div>
+  );
+};
+
 const Index = () => {
   return (
     <Layout>
@@ -474,6 +487,7 @@ const Index = () => {
       <MidCTA />
       <Process />
       <CTA />
+      <LegalLink />
     </Layout>
   );
 };
