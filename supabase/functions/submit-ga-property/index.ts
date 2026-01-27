@@ -102,6 +102,15 @@ serve(async (req) => {
       throw new Error("Lead ID and GA Property ID are required");
     }
 
+    // Validate GA Property ID format (G-XXXXXXXXXX or UA-XXXXXXXX-X)
+    const gaPattern = /^(G-[A-Z0-9]+|UA-\d+-\d+)$/i;
+    if (!gaPattern.test(ga_property_id.trim())) {
+      return new Response(
+        JSON.stringify({ error: "Invalid Property ID format. Expected format: G-XXXXXXXXXX" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     // Validate session token
     if (!session_token) {
       return new Response(
@@ -131,7 +140,7 @@ serve(async (req) => {
     // Get the lead details for creating the request
     const { data: lead, error: leadError } = await supabaseClient
       .from("leads")
-      .select("name, email, business_name")
+      .select("name, email, business_name, website_url")
       .eq("id", lead_id)
       .single();
 
@@ -143,7 +152,7 @@ serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from("leads")
       .update({ 
-        ga_property_id: ga_property_id,
+        ga_property_id: ga_property_id.trim().toUpperCase(),
         ga_status: 'pending'
       })
       .eq("id", lead_id);
@@ -155,12 +164,23 @@ serve(async (req) => {
 
     // Create a client request for the admin to action
     const clientName = lead.name || lead.business_name || lead.email;
+    const websiteDisplay = lead.website_url || 'Not specified';
+    
     const { error: requestError } = await supabaseClient
       .from("client_requests")
       .insert({
         lead_id: lead_id,
         title: "Connect Google Analytics",
-        description: `${clientName} has submitted their Google Analytics Property ID: ${ga_property_id}. Please add the tracking code to their website and mark this task as complete.`,
+        description: `${clientName} has submitted their Google Analytics Property ID for connection.
+
+**Property ID:** ${ga_property_id.trim().toUpperCase()}
+**Website:** ${websiteDisplay}
+
+**Instructions:**
+1. Go to Google Analytics → Admin → Property Settings
+2. Add the Sited team as a viewer/editor
+3. Verify the Property ID matches the website
+4. Mark this request as complete once verified`,
         priority: "normal",
         status: "pending",
       });

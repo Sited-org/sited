@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Eye, Users, Timer, Zap, Globe, Monitor, ArrowUpRight, RefreshCw, Sparkles, Copy, Check, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Clock, Pencil, Save, BarChart3, Globe, Sparkles, Copy, Check, CheckCircle2, AlertCircle, ExternalLink, Link2 } from 'lucide-react';
 import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
 import { MilestoneTimeline } from './MilestoneTimeline';
 import { FormResponsesDisplay } from './FormResponsesDisplay';
 
@@ -25,19 +24,6 @@ interface ProjectTabProps {
   onLeadUpdate?: (updatedLead: any) => void;
 }
 
-interface AnalyticsData {
-  totalVisits: number;
-  uniqueVisitors: number;
-  bounceRate: number;
-  avgTimeOnPage: number;
-  avgLoadTime: number;
-  topPages: { page: string; views: number; avgTime: number }[];
-  trafficSources: { source: string; visits: number; percentage: number }[];
-  devices: { device: string; count: number; percentage: number }[];
-  browsers: { browser: string; count: number; percentage: number }[];
-  lastUpdated: string | null;
-}
-
 export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const { updates, loading, addUpdate, deleteUpdate } = useProjectUpdates(lead.id);
   const [newUpdate, setNewUpdate] = useState('');
@@ -45,11 +31,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const [editedFormData, setEditedFormData] = useState<Record<string, any>>({ ...lead.form_data });
   const [isSavingForm, setIsSavingForm] = useState(false);
   const { toast } = useToast();
-
-  // Analytics state
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
-  const [trackingScriptCopied, setTrackingScriptCopied] = useState(false);
 
   // AI Prompt state
   const [promptContext, setPromptContext] = useState('');
@@ -59,119 +40,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [promptGeneratedAt, setPromptGeneratedAt] = useState<string | null>(lead.prompt_generated_at || null);
-
-  const fetchAnalytics = async () => {
-    if (lead.analytics_status !== 'active') return;
-    
-    setAnalyticsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('get-analytics', {
-        body: { lead_id: lead.id }
-      });
-      
-      if (error) throw error;
-      setAnalytics(data);
-    } catch (error: any) {
-      console.error('Error fetching analytics:', error);
-    } finally {
-      setAnalyticsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (lead.analytics_status === 'active') {
-      fetchAnalytics();
-    }
-  }, [lead.id, lead.analytics_status]);
-
-  const getTrackingScript = () => {
-    const trackingId = lead.tracking_id;
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    return `<script src="${supabaseUrl}/functions/v1/track-analytics?id=${trackingId}" defer></script>`;
-  };
-
-  const copyTrackingScript = async () => {
-    const script = `<!-- Sited Analytics -->
-<script>
-(function() {
-  var TRACKING_ID = '${lead.tracking_id}';
-  var ENDPOINT = '${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-analytics';
-  var sessionId = sessionStorage.getItem('_sa_sid');
-  if (!sessionId) {
-    sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2);
-    sessionStorage.setItem('_sa_sid', sessionId);
-  }
-  function trackPageView() {
-    var data = {
-      tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href,
-      page_title: document.title, referrer: document.referrer, user_agent: navigator.userAgent,
-      screen_width: window.screen.width, screen_height: window.screen.height,
-      viewport_width: window.innerWidth, viewport_height: window.innerHeight,
-      page_load_time: 0, event_type: 'page_view', language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      connection_type: navigator.connection ? navigator.connection.effectiveType : null,
-      color_depth: window.screen.colorDepth, pixel_ratio: window.devicePixelRatio
-    };
-    if (window.performance && window.performance.timing) {
-      var t = window.performance.timing;
-      data.page_load_time = t.loadEventEnd - t.navigationStart;
-      data.dom_content_loaded = t.domContentLoadedEventEnd - t.navigationStart;
-      data.first_byte_time = t.responseStart - t.navigationStart;
-    }
-    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {});
-  }
-  var pageLoadTime = Date.now(), maxScrollDepth = 0;
-  function trackScrollDepth() {
-    var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    var scrollPercent = docHeight > 0 ? Math.round((scrollTop / docHeight) * 100) : 0;
-    if (scrollPercent > maxScrollDepth) maxScrollDepth = scrollPercent;
-  }
-  window.addEventListener('scroll', trackScrollDepth, { passive: true });
-  function trackExit() {
-    var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
-    var data = { tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href, event_type: 'page_exit', time_on_page: timeOnPage, scroll_depth: maxScrollDepth };
-    if (navigator.sendBeacon) { navigator.sendBeacon(ENDPOINT, JSON.stringify(data)); }
-    else { fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {}); }
-  }
-  document.addEventListener('click', function(e) {
-    var target = e.target.closest('a, button, [data-track]');
-    if (!target) return;
-    var data = { tracking_id: TRACKING_ID, session_id: sessionId, page_url: window.location.href, event_type: 'click', element_tag: target.tagName, element_text: (target.innerText || '').substring(0, 100), element_href: target.href || null, element_id: target.id || null, element_class: target.className || null };
-    fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), keepalive: true }).catch(function() {});
-  });
-  document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') trackExit(); });
-  window.addEventListener('beforeunload', trackExit);
-  window.addEventListener('pagehide', trackExit);
-  if (document.readyState === 'complete') { trackPageView(); } else { window.addEventListener('load', trackPageView); }
-})();
-</script>`;
-    await navigator.clipboard.writeText(script);
-    setTrackingScriptCopied(true);
-    toast({ title: 'Tracking script copied to clipboard' });
-    setTimeout(() => setTrackingScriptCopied(false), 2000);
-  };
-
-  const handleActivateAnalytics = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('leads')
-        .update({ analytics_status: 'active' })
-        .eq('id', lead.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({ title: 'Analytics activated', description: 'The client can now see their website metrics.' });
-      
-      if (onLeadUpdate && data) {
-        onLeadUpdate(data);
-      }
-    } catch (error: any) {
-      toast({ title: 'Error activating analytics', description: error.message, variant: 'destructive' });
-    }
-  };
 
   const handleAddUpdate = async () => {
     if (!newUpdate.trim()) return;
@@ -259,184 +127,93 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
     setTimeout(() => setPromptCopied(false), 2000);
   };
 
+  const handleUpdateGAStatus = async (newStatus: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .update({ ga_status: newStatus })
+        .eq('id', lead.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({ title: 'Google Analytics status updated' });
+      
+      if (onLeadUpdate && data) {
+        onLeadUpdate(data);
+      }
+    } catch (error: any) {
+      toast({ title: 'Error updating status', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const gaStatus = lead.ga_status || 'not_connected';
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         {/* Project Milestones - Horizontal Timeline */}
         <MilestoneTimeline leadId={lead.id} lead={lead} canEdit={canEdit} />
         
-        {/* Tracking Script */}
-        {lead.tracking_id && (
+        {/* Google Analytics Status */}
+        {(lead.ga_property_id || gaStatus !== 'not_connected') && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                Website Tracking
+                Google Analytics
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Tracking Script Line */}
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg font-mono truncate">
-                  {`<!-- Sited Analytics: ${lead.tracking_id} -->`}
-                </code>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={copyTrackingScript}
-                  className="shrink-0"
-                >
-                  {trackingScriptCopied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              
-              {/* Status */}
               <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {gaStatus === 'connected' ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="text-sm font-medium">Connected</p>
+                        <p className="text-xs text-muted-foreground font-mono">{lead.ga_property_id}</p>
+                      </div>
+                    </>
+                  ) : gaStatus === 'pending' ? (
+                    <>
+                      <AlertCircle className="h-5 w-5 text-yellow-500" />
+                      <div>
+                        <p className="text-sm font-medium">Pending Setup</p>
+                        <p className="text-xs text-muted-foreground font-mono">{lead.ga_property_id}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Not Connected</p>
+                      </div>
+                    </>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
-                  {lead.analytics_status === 'active' ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-green-600">Tracking Active</span>
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Not Active</span>
-                    </>
+                  {gaStatus === 'pending' && canEdit && (
+                    <Button size="sm" onClick={() => handleUpdateGAStatus('connected')}>
+                      <CheckCircle2 className="h-4 w-4 mr-1" />
+                      Mark Connected
+                    </Button>
+                  )}
+                  {lead.ga_property_id && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a 
+                        href="https://analytics.google.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Open GA
+                      </a>
+                    </Button>
                   )}
                 </div>
-                {lead.analytics_status !== 'active' && canEdit && (
-                  <Button size="sm" variant="outline" onClick={handleActivateAnalytics}>
-                    Activate
-                  </Button>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Website Metrics - Only show when active */}
-        {lead.analytics_status === 'active' && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Eye className="h-5 w-5" />
-                  Website Metrics
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={fetchAnalytics} disabled={analyticsLoading}>
-                  <RefreshCw className={`h-4 w-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {analyticsLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map(i => (
-                    <Skeleton key={i} className="h-20 rounded-lg" />
-                  ))}
-                </div>
-              ) : analytics && analytics.totalVisits > 0 ? (
-                <>
-                  {/* Key Metrics Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Eye className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.totalVisits}</p>
-                      <p className="text-xs text-muted-foreground">Page Views</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Users className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.uniqueVisitors}</p>
-                      <p className="text-xs text-muted-foreground">Unique Visitors</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <ArrowUpRight className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.bounceRate}%</p>
-                      <p className="text-xs text-muted-foreground">Bounce Rate</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4 text-center">
-                      <Timer className="h-5 w-5 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{analytics.avgTimeOnPage}s</p>
-                      <p className="text-xs text-muted-foreground">Avg. Time on Page</p>
-                    </div>
-                  </div>
-
-                  {/* Top Pages */}
-                  {analytics.topPages.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                        <Globe className="h-4 w-4" /> Top Pages
-                      </h4>
-                      <div className="space-y-2">
-                        {analytics.topPages.map((page, i) => (
-                          <div key={i} className="flex items-center justify-between text-sm bg-muted/30 rounded px-3 py-2">
-                            <span className="truncate max-w-[200px]">{page.page}</span>
-                            <div className="flex items-center gap-4">
-                              <span className="text-muted-foreground">{page.avgTime}s avg</span>
-                              <Badge variant="secondary">{page.views} views</Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Traffic Sources & Devices */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {analytics.trafficSources.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Traffic Sources</h4>
-                        <div className="space-y-2">
-                          {analytics.trafficSources.map((source, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="truncate max-w-[150px]">{source.source}</span>
-                              <span className="text-muted-foreground">{source.percentage}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {analytics.devices.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                          <Monitor className="h-4 w-4" /> Devices
-                        </h4>
-                        <div className="space-y-2">
-                          {analytics.devices.map((device, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="capitalize">{device.device}</span>
-                              <span className="text-muted-foreground">{device.percentage}%</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Load Time */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Zap className="h-4 w-4" />
-                    <span>Avg. Load Time: {analytics.avgLoadTime}ms</span>
-                    {analytics.lastUpdated && (
-                      <>
-                        <span className="mx-2">•</span>
-                        <span>Last updated: {format(new Date(analytics.lastUpdated), 'PPp')}</span>
-                      </>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">
-                    No analytics data yet. Data will appear once visitors start browsing the website.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
