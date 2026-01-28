@@ -208,6 +208,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
 
   const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
   const completedRequests = requests.filter(r => r.status === 'completed');
+  const cancelledRequests = requests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
 
   return (
     <div className="space-y-4">
@@ -439,7 +440,30 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Cancelled Requests */}
+      {cancelledRequests.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <X className="h-4 w-4" />
+            Cancelled ({cancelledRequests.length})
+          </p>
+          {cancelledRequests.map((request) => (
+            <Card key={request.id} className="opacity-60">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm line-through">{request.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(request.created_at), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
       {requests.length === 0 && !showForm && (
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
