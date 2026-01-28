@@ -27,6 +27,7 @@ interface ClientSession {
   };
   token: string;
   email: string;
+  expiresAt?: string;
 }
 
 interface SavedPaymentMethod {
@@ -87,6 +88,14 @@ export default function ClientPortalDashboard() {
 
   const fetchClientData = useCallback(async (clientSession: ClientSession) => {
     try {
+      // Check if session has expired before making request
+      if (clientSession.expiresAt && new Date(clientSession.expiresAt) < new Date()) {
+        console.log('Session expired, redirecting to login');
+        sessionStorage.removeItem('clientPortalSession');
+        navigate('/client-portal');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('get-client-data', {
         body: { 
           lead_id: clientSession.lead.id, 
@@ -95,7 +104,30 @@ export default function ClientPortalDashboard() {
         },
       });
 
-      if (error) throw error;
+      // Handle authentication errors - redirect to login
+      if (error) {
+        const errorMessage = error.message?.toLowerCase() || '';
+        if (errorMessage.includes('expired') || errorMessage.includes('invalid') || errorMessage.includes('authentication') || errorMessage.includes('401')) {
+          console.log('Session error, redirecting to login:', error.message);
+          sessionStorage.removeItem('clientPortalSession');
+          toast.error('Session expired. Please log in again.');
+          navigate('/client-portal');
+          return;
+        }
+        throw error;
+      }
+
+      // Check for auth error in response data
+      if (data?.error) {
+        const dataError = data.error.toLowerCase();
+        if (dataError.includes('expired') || dataError.includes('invalid') || dataError.includes('authentication')) {
+          console.log('Session error in response, redirecting to login');
+          sessionStorage.removeItem('clientPortalSession');
+          toast.error('Session expired. Please log in again.');
+          navigate('/client-portal');
+          return;
+        }
+      }
 
       if (data.lead) {
         const updatedSession = {
@@ -111,13 +143,21 @@ export default function ClientPortalDashboard() {
       setProjectUpdates(data.projectUpdates || []);
       setProjectMilestones(data.projectMilestones || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching client data:', err);
+      // Check if it's an auth-related error
+      const errorMessage = err?.message?.toLowerCase() || '';
+      if (errorMessage.includes('expired') || errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+        sessionStorage.removeItem('clientPortalSession');
+        toast.error('Session expired. Please log in again.');
+        navigate('/client-portal');
+        return;
+      }
       toast.error('Failed to load your data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const storedSession = sessionStorage.getItem('clientPortalSession');
@@ -127,6 +167,16 @@ export default function ClientPortalDashboard() {
     }
 
     const parsedSession = JSON.parse(storedSession) as ClientSession;
+    
+    // Check if session has expired
+    if (parsedSession.expiresAt && new Date(parsedSession.expiresAt) < new Date()) {
+      console.log('Stored session expired, redirecting to login');
+      sessionStorage.removeItem('clientPortalSession');
+      toast.error('Session expired. Please log in again.');
+      navigate('/client-portal');
+      return;
+    }
+    
     setSession(parsedSession);
     
     // Only fetch once on mount using ref to survive strict mode
