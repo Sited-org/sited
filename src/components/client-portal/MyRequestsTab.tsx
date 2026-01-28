@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MessageSquarePlus, 
@@ -259,27 +260,30 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                 <Label htmlFor="description" className="text-sm">Description</Label>
                 <Textarea
                   id="description"
-                  placeholder="Explain what you need and why..."
+                  placeholder="Describe exactly what we are changing, on which area of your website"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 100) {
+                      setDescription(e.target.value);
+                    }
+                  }}
+                  maxLength={100}
                   disabled={submitting}
                   rows={2}
                 />
-                <p className="text-xs text-muted-foreground">Describe your request</p>
+                <p className="text-xs text-muted-foreground">{description.length}/100 characters</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="body" className="text-sm">Content to Upload</Label>
-                <Textarea
-                  id="body"
-                  placeholder="Paste text, code, or content that needs to be added..."
+                <RichTextEditor
                   value={body}
-                  onChange={(e) => setBody(e.target.value)}
+                  onChange={setBody}
+                  placeholder="Paste text, code, or content that needs to be added (formatting is preserved)..."
                   disabled={submitting}
                   rows={4}
-                  className="font-mono text-sm"
                 />
-                <p className="text-xs text-muted-foreground">Text or code that should be added to your site</p>
+                <p className="text-xs text-muted-foreground">Text or code that should be added to your site - formatting (bold, italics, etc.) is preserved</p>
               </div>
 
               <div className="space-y-2">
