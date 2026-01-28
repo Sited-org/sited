@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Dialog,
   DialogContent,
@@ -219,16 +220,14 @@ export function CreateRequestDialog({
 
           <div className="space-y-2">
             <Label htmlFor="body" className="text-sm">Content to Upload</Label>
-            <Textarea
-              id="body"
-              placeholder="Paste text, code, or content that needs to be added..."
+            <RichTextEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={setBody}
+              placeholder="Paste text, code, or content that needs to be added (formatting is preserved)..."
               disabled={submitting}
               rows={4}
-              className="font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground">Text or code that should be added to their site</p>
+            <p className="text-xs text-muted-foreground">Text or code that should be added to their site - formatting (bold, italics, etc.) is preserved</p>
           </div>
 
           <div className="space-y-2">
