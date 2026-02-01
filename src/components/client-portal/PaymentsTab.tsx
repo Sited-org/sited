@@ -207,10 +207,14 @@ function BankForm({ lead, email, sessionToken, onBankSaved }: { lead: any; email
 
 export function PaymentsTab({ lead, email, sessionToken, transactions, savedPaymentMethod, onPaymentMethodSaved }: PaymentsTabProps) {
   const upcomingCharges = useMemo(() => generateUpcomingCharges(transactions), [transactions]);
+
+  // IMPORTANT: `is_recurring=true` rows are membership schedule/definition rows.
+  // They should not be treated as real charges in balance calculations.
+  const balanceTransactions = useMemo(() => transactions.filter(t => !t.is_recurring), [transactions]);
   
-  const totalDebit = transactions.reduce((sum, t) => sum + Number(t.debit), 0);
+  const totalDebit = balanceTransactions.reduce((sum, t) => sum + Number(t.debit), 0);
   // Total credit for balance purposes (includes all credits - both payments and account credits)
-  const totalCredit = transactions.reduce((sum, t) => sum + Number(t.credit), 0);
+  const totalCredit = balanceTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
   const currentBalance = totalDebit - totalCredit;
 
   return (
@@ -314,12 +318,12 @@ export function PaymentsTab({ lead, email, sessionToken, transactions, savedPaym
       </Card>
 
       {/* Transaction History */}
-      {transactions.length > 0 && (
+      {balanceTransactions.length > 0 && (
         <Card>
           <CardContent className="p-4">
             <p className="text-sm font-medium mb-3">History</p>
             <div className="space-y-2">
-              {transactions.slice(0, 10).map((t) => (
+              {balanceTransactions.slice(0, 10).map((t) => (
                 <div key={t.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0">
                   <div>
                     <p>{t.item}</p>
