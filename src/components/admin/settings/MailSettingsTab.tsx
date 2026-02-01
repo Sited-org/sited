@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEmailTemplates, useEmailAutomations, useEmailLogs, EmailTemplate, EmailAutomation } from '@/hooks/useEmailSettings';
-import { Mail, Settings2, History, Pencil, Play, Clock, CheckCircle, XCircle, UserPlus, CreditCard, BarChart3 } from 'lucide-react';
+import { Mail, Settings2, History, Pencil, Play, Clock, CheckCircle, XCircle, UserPlus, CreditCard, BarChart3, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
@@ -28,6 +28,11 @@ const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; desc
     icon: <BarChart3 className="h-5 w-5" />,
     title: 'Monthly Report',
     description: 'AI-powered monthly business insights',
+  },
+  recurring_invoices: {
+    icon: <Receipt className="h-5 w-5" />,
+    title: 'Recurring Invoices',
+    description: 'Sends Stripe invoices to clients with active memberships',
   },
 };
 
@@ -259,7 +264,7 @@ export default function MailSettingsTab() {
                               onCheckedChange={() => handleToggleAutomation(automation)}
                             />
                           </div>
-                          {automation.automation_type === 'monthly_report' && (
+                          {(automation.automation_type === 'monthly_report' || automation.automation_type === 'recurring_invoices') && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -267,7 +272,7 @@ export default function MailSettingsTab() {
                               disabled={!automation.is_enabled}
                             >
                               <Play className="h-4 w-4 mr-1" />
-                              Run Now
+                              {automation.automation_type === 'recurring_invoices' ? 'Send Invoices Now' : 'Run Now'}
                             </Button>
                           )}
                         </div>

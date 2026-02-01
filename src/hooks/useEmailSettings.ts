@@ -118,11 +118,23 @@ export function useEmailAutomations() {
 
   const triggerAutomation = async (automationType: string, payload?: Record<string, any>) => {
     try {
-      const functionName = automationType === 'onboarding' 
-        ? 'send-onboarding-email' 
-        : automationType === 'payment_receipt'
-        ? 'send-payment-email'
-        : 'send-monthly-report';
+      let functionName: string;
+      let successMessage = 'Email(s) will be sent shortly.';
+      
+      switch (automationType) {
+        case 'onboarding':
+          functionName = 'send-onboarding-email';
+          break;
+        case 'payment_receipt':
+          functionName = 'send-payment-email';
+          break;
+        case 'recurring_invoices':
+          functionName = 'process-recurring-invoices';
+          successMessage = 'Recurring invoices are being processed and sent.';
+          break;
+        default:
+          functionName = 'send-monthly-report';
+      }
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: payload || {},
@@ -133,7 +145,21 @@ export function useEmailAutomations() {
         return false;
       }
 
-      toast({ title: 'Automation triggered', description: 'Email(s) will be sent shortly.' });
+      // For recurring invoices, show detailed results
+      if (automationType === 'recurring_invoices' && data) {
+        const resultData = data as { successful?: number; failed?: number; processed?: number };
+        if (resultData.processed === 0) {
+          toast({ title: 'No invoices to send', description: 'All memberships are up to date.' });
+        } else {
+          toast({ 
+            title: 'Recurring invoices processed', 
+            description: `${resultData.successful || 0} invoice(s) sent${resultData.failed ? `, ${resultData.failed} failed` : ''}.` 
+          });
+        }
+      } else {
+        toast({ title: 'Automation triggered', description: successMessage });
+      }
+      
       return true;
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
