@@ -63,11 +63,15 @@ function generateUpcomingCharges(transactions: Transaction[]): Transaction[] {
 }
 
 function generatePDFContent(transactions: Transaction[], leadName: string, startDate?: Date, endDate?: Date): string {
-  const filteredTransactions = transactions.filter(t => {
+  // IMPORTANT: `is_recurring=true` rows are membership schedule/definition rows.
+  // They should not be treated as real charges in balance calculations or PDFs.
+  const filteredTransactions = transactions
+    .filter(t => !t.is_recurring)
+    .filter(t => {
     if (!startDate || !endDate) return true;
     const txDate = new Date(t.transaction_date);
     return isWithinInterval(txDate, { start: startOfDay(startDate), end: endOfDay(endDate) });
-  });
+    });
 
   const totalDebit = filteredTransactions.reduce((sum, t) => sum + Number(t.debit), 0);
   const totalCredit = filteredTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
@@ -165,11 +169,16 @@ export function ClientTransactionsTab({ transactions, leadName }: ClientTransact
 
   const upcomingCharges = useMemo(() => generateUpcomingCharges(transactions), [transactions]);
 
-  const totalDebit = transactions.reduce((sum, t) => sum + Number(t.debit), 0);
+  const historyTransactions = useMemo(() => {
+    // Exclude membership schedule/definition rows from history totals to prevent double-counting
+    return transactions.filter(t => !t.is_recurring);
+  }, [transactions]);
+
+  const totalDebit = historyTransactions.reduce((sum, t) => sum + Number(t.debit), 0);
   // Total credit for balance purposes (includes all credits)
-  const totalCredit = transactions.reduce((sum, t) => sum + Number(t.credit), 0);
+  const totalCredit = historyTransactions.reduce((sum, t) => sum + Number(t.credit), 0);
   // Total paid = only real money received (excludes internal credits like referrals)
-  const totalPaid = transactions.reduce((sum, t) => {
+  const totalPaid = historyTransactions.reduce((sum, t) => {
     const credit = Number(t.credit);
     if (credit <= 0) return sum;
     // Exclude internal credits from "paid" total
@@ -184,7 +193,7 @@ export function ClientTransactionsTab({ transactions, leadName }: ClientTransact
   const currentBalance = totalDebit - totalCredit;
 
   const handleDownloadPDF = () => {
-    const htmlContent = generatePDFContent(transactions, leadName, startDate, endDate);
+    const htmlContent = generatePDFContent(historyTransactions, leadName, startDate, endDate);
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
@@ -340,7 +349,7 @@ export function ClientTransactionsTab({ transactions, leadName }: ClientTransact
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {transactions.map((t) => (
+                  {historyTransactions.map((t) => (
                     <TableRow key={t.id}>
                       <TableCell className="whitespace-nowrap">
                         {format(new Date(t.transaction_date), 'MMM d, yyyy')}

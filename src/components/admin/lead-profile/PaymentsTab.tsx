@@ -214,6 +214,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       if (Number(t.debit) <= 0) return false;
       // Cannot be a future preview
       if (t.isFuture) return false;
+      // Recurring membership schedule/definition rows are NOT invoiceable (they drive automated invoicing)
+      if (t.is_recurring) return false;
       // Cannot be already paid, sent, processing, or void
       if (t.invoice_status === 'paid' || t.invoice_status === 'sent' || t.invoice_status === 'processing' || t.invoice_status === 'void') return false;
       // Cannot be a VOID: entry itself
@@ -297,6 +299,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     return transactions.filter(t => 
       Number(t.debit) > 0 && 
       !t.isFuture && 
+      !t.is_recurring &&
       t.invoice_status !== 'paid' &&
       !t.item.startsWith('VOID:') && 
       !t.notes?.includes('[VOIDED:')

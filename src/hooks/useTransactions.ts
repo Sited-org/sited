@@ -118,6 +118,12 @@ export function useTransactions(leadId: string | undefined) {
       const nonVoidedTransactions = (data || []).filter(t => 
         !t.item.startsWith('VOID:') && !t.notes?.includes('[VOIDED:')
       );
+
+       // IMPORTANT:
+       // `is_recurring=true` rows represent a membership schedule/definition (used to generate future previews
+       // and to drive automated invoicing). They should NOT affect account balance directly, otherwise the
+       // balance is double-counted (one "schedule" row + one real billed invoice row).
+       const balanceAffectingTransactions = nonVoidedTransactions.filter(t => !t.is_recurring);
       // Total credit includes ALL credits (for balance calculation purposes)
       // This includes both real payments AND internal credits
       setTotalCredit(nonVoidedTransactions.reduce((sum, t) => sum + Number(t.credit), 0));
@@ -129,7 +135,7 @@ export function useTransactions(leadId: string | undefined) {
         return sum;
       }, 0));
       // Only include debits that are due (transaction_date <= today)
-      setTotalDebit(nonVoidedTransactions.reduce((sum, t) => {
+      setTotalDebit(balanceAffectingTransactions.reduce((sum, t) => {
         const transactionDate = startOfDay(new Date(t.transaction_date));
         const isDue = !isAfter(transactionDate, today);
         return sum + (isDue ? Number(t.debit) : 0);
@@ -172,12 +178,17 @@ export function useTransactions(leadId: string | undefined) {
     // Calculate running balance (only for due transactions - not future)
     let runningBalance = 0;
     const withBalance = allTransactions.map((t) => {
-      if (!t.isFuture) {
-        runningBalance += Number(t.debit) - Number(t.credit);
+      const delta = Number(t.debit) - Number(t.credit);
+
+      // Membership schedule/definition rows should NOT move the balance.
+      // Future preview rows *should* show projected balance changes.
+      const affectsCurrentBalance = !t.isFuture && !t.is_recurring;
+      if (affectsCurrentBalance) {
+        runningBalance += delta;
       }
       return { 
         ...t, 
-        balance: t.isFuture ? runningBalance + Number(t.debit) - Number(t.credit) : runningBalance 
+        balance: t.isFuture ? runningBalance + delta : runningBalance 
       };
     });
     

@@ -123,9 +123,15 @@ export function useAllTransactions() {
     );
   };
 
+  // IMPORTANT: `is_recurring=true` rows are membership schedules/definitions.
+  // They are NOT real charges and must NOT affect balances/outstanding metrics.
+  const isBalanceAffectingTransaction = (t: GlobalTransaction): boolean => {
+    return !t.is_recurring;
+  };
+
   // Filter transactions for display (hide internal credits)
   const displayTransactions = useMemo(() => {
-    return transactions.filter(t => !isInternalCredit(t));
+    return transactions.filter(t => !isInternalCredit(t) && isBalanceAffectingTransaction(t));
   }, [transactions]);
 
   // Get pending invoices (sent but not paid, and due)
@@ -133,6 +139,7 @@ export function useAllTransactions() {
   const pendingInvoicesList = useMemo(() => {
     const today = startOfDay(new Date());
     return transactions.filter(t => {
+      if (!isBalanceAffectingTransaction(t)) return false;
       // Exclude void entries and voided transactions
       if (t.item.startsWith('VOID:')) return false;
       if (t.notes?.includes('[VOIDED:')) return false;
@@ -169,6 +176,11 @@ export function useAllTransactions() {
 
       // Skip void transactions
       if (t.item.startsWith('VOID:') || t.notes?.includes('[VOIDED:') || t.status === 'void') {
+        return;
+      }
+
+      // Skip recurring membership schedule/definition rows (prevents double-counting)
+      if (!isBalanceAffectingTransaction(t)) {
         return;
       }
 
