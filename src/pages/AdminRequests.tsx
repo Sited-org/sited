@@ -28,7 +28,9 @@ import {
   Image,
   Paperclip,
   XCircle,
-  Trash2
+  Trash2,
+  Copy,
+  Sparkles
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -749,6 +751,41 @@ export default function AdminRequests() {
                       </div>
                     </div>
                   )}
+
+                  {/* Copy AI Prompt Button */}
+                  <div className="pt-2 border-t">
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2"
+                      onClick={() => {
+                        // Strip HTML tags from body for plain text prompt
+                        const plainBody = selectedRequest.body 
+                          ? selectedRequest.body.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+                          : '';
+                        
+                        const prompt = `Please implement the following client request for their website:
+
+**Request Title:** ${selectedRequest.title}
+
+${selectedRequest.description ? `**Description:** ${selectedRequest.description}\n` : ''}
+${plainBody ? `**Details:**\n${plainBody}\n` : ''}
+**Priority:** ${selectedRequest.priority}
+
+**Client:** ${selectedRequest.leads?.business_name || selectedRequest.leads?.name || 'Unknown'}
+
+Please implement this change carefully, ensuring it matches the existing design system and follows best practices. Test that the change works correctly before completing.`;
+
+                        navigator.clipboard.writeText(prompt);
+                        toast({
+                          title: "Copied!",
+                          description: "AI prompt copied to clipboard",
+                        });
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Copy AI Prompt
+                    </Button>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
