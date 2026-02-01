@@ -603,6 +603,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       return <Badge variant="outline" className="text-destructive border-destructive/30">Void</Badge>;
     }
     
+    // Membership schedule rows (is_recurring = true) are billing definitions,
+    // not actual charges to be invoiced - show no status badge
+    if (transaction.is_recurring) {
+      return null;
+    }
+    
     // For debit transactions (charges), show invoice status
     if (Number(transaction.debit) > 0) {
       switch (transaction.invoice_status) {
