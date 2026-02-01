@@ -1,144 +1,83 @@
 
 
-# Test Plan: Membership Invoicing System
+# Plan: Hide Invoice Status Badge for Membership Schedule Rows
 
-## Overview
+## Understanding the Current System
 
-This plan creates two test leads with specific configurations to verify the recurring invoicing system works correctly for:
-1. **Scenario A**: Clients with active memberships but NO saved payment method receive invoices via email
-2. **Scenario B**: Clients with available account credit have that credit applied before an invoice is generated
+Your understanding is correct:
 
----
+| Row Type | Purpose | Affects Balance? | Should Show Invoice Status? |
+|----------|---------|------------------|----------------------------|
+| **Membership Schedule** (`is_recurring = true`) | Billing definition - drives automated invoicing | No | No (blank) |
+| **Real Invoice/Charge** (`is_recurring = false`, debit > 0) | Actual charge to be paid | Yes | Yes ("Not Sent", "Sent", "Paid", etc.) |
+| **Payment** (credit > 0) | Money received | Yes | Yes ("Completed") |
 
-## Test Scenarios
+The membership schedule row is simply a **record that the client has an active membership** and stores the billing frequency. It is NOT a charge itself - the automated billing system reads these and generates real invoices on the 1st of each month.
 
-### Test Lead 1: Invoice Without Payment Details
-**Purpose**: Verify invoices are sent to clients regardless of saved payment method status
-
-| Field | Value |
-|-------|-------|
-| Name | Test Client - No Payment |
-| Email | test-invoice-nopayment@sited.com.au |
-| Business | Test Business Alpha |
-| Status | sold |
-| Stripe Customer ID | NULL (no payment method) |
-| Membership | Website Maintenance (50% Off) - $60/month |
-
-**Expected Result**: 
-- Invoice created and emailed via Stripe
-- `collection_method: 'send_invoice'` used (not auto-charge)
-- Client receives payment link in email
+Currently, these rows incorrectly show "Not Sent" which implies they need to be manually invoiced.
 
 ---
 
-### Test Lead 2: Credit Applied Before Invoice
-**Purpose**: Verify account credit is deducted from invoice total
+## What Will Change
 
-| Field | Value |
-|-------|-------|
-| Name | Test Client - With Credit |
-| Email | test-invoice-credit@sited.com.au |
-| Business | Test Business Beta |
-| Status | sold |
-| Stripe Customer ID | NULL |
-| Membership | Website Maintenance (50% Off) - $60/month |
-| Account Credit | $25.00 |
-
-**Expected Result**:
-- Invoice shows: Subtotal $60, Credit Applied -$25, Net Total $35
-- Negative line item "Account credit applied" appears on Stripe invoice
-- Credit consumption logged as transaction
+**Before**: Membership schedule rows display "Not Sent" badge
+**After**: Membership schedule rows display no badge (blank status column)
 
 ---
 
-## Implementation Steps
+## Technical Changes
 
-### Step 1: Create Test Leads
-Insert two new lead records:
-- `test-invoice-nopayment@sited.com.au` (no special setup)
-- `test-invoice-credit@sited.com.au` (will receive credit)
+### File: `src/components/admin/lead-profile/PaymentsTab.tsx`
 
-### Step 2: Add Recurring Membership Transactions
-For each test lead, create a recurring transaction:
-- Item: "Website Maintenance (50% Off)"
-- Debit: $60
-- `is_recurring: true`
-- `recurring_interval: 'daily'` (forces immediate billing for testing)
-- `recurring_end_date: null` (active membership)
+Modify the `getInvoiceStatusBadge` function to return `null` (no badge) for `is_recurring = true` rows:
 
-### Step 3: Add Credit Balance (Test Lead 2 only)
-Insert a credit transaction for the second test lead:
-- Item: "Test Credit Balance"
-- Credit: $25
-- Debit: $0
-- `is_recurring: false`
-- `invoice_status: 'paid'` (ensures credit is available)
+```typescript
+const getInvoiceStatusBadge = (transaction: TransactionWithBalance) => {
+  // Future preview transactions
+  if (transaction.isFuture) {
+    return <Badge variant="outline" className="...">Scheduled</Badge>;
+  }
 
-### Step 4: Trigger the Invoicing Function
-Call the `process-recurring-invoices` edge function with each test lead's ID to generate invoices immediately.
+  // Voided transactions
+  if (transaction.status === 'void' || transaction.invoice_status === 'void') {
+    return <Badge variant="outline" className="...">Void</Badge>;
+  }
+  
+  // NEW: Membership schedule rows (is_recurring = true) are billing definitions,
+  // not actual charges to be invoiced - show no status badge
+  if (transaction.is_recurring) {
+    return null;
+  }
 
-### Step 5: Verify Results
-Check:
-1. Stripe invoices created via API
-2. Edge function logs show correct credit calculation
-3. Transaction records updated with invoice IDs
-4. Email delivery confirmed in Stripe dashboard
-
----
-
-## Technical Details
-
-### Database Queries Required
-
-```text
--- Test Lead 1: No Payment Method
-INSERT INTO leads (name, email, business_name, project_type, status)
-VALUES ('Test Client - No Payment', 'test-invoice-nopayment@sited.com.au', 
-        'Test Business Alpha', 'website', 'sold');
-
--- Test Lead 2: With Credit
-INSERT INTO leads (name, email, business_name, project_type, status)
-VALUES ('Test Client - With Credit', 'test-invoice-credit@sited.com.au', 
-        'Test Business Beta', 'website', 'sold');
-
--- Recurring membership transaction (for each lead)
-INSERT INTO transactions (lead_id, item, debit, is_recurring, 
-                         recurring_interval, transaction_date)
-VALUES ('<lead_id>', 'Website Maintenance (50% Off)', 60, true, 
-        'daily', NOW());
-
--- Credit balance for Test Lead 2
-INSERT INTO transactions (lead_id, item, credit, debit, is_recurring, 
-                         invoice_status, transaction_date)
-VALUES ('<lead_id>', 'Test Credit Balance', 25, 0, false, 
-        'paid', NOW());
+  // For debit transactions (charges), show invoice status
+  if (Number(transaction.debit) > 0) {
+    switch (transaction.invoice_status) {
+      case 'not_sent':
+        return <Badge>Not Sent</Badge>;
+      // ... other cases
+    }
+  }
+  
+  // ... rest of function
+};
 ```
 
-### Edge Function Verification
+---
 
-The `process-recurring-invoices` function will:
-1. Find leads with `is_recurring = true` and `recurring_end_date IS NULL`
-2. Calculate available credit using the `getAvailableCredit()` helper
-3. Create Stripe invoice with `collection_method: 'send_invoice'`
-4. Apply credit as negative line item if available
-5. Finalize and send invoice via email
+## Visual Result
+
+| Item | Status Column (Before) | Status Column (After) |
+|------|------------------------|----------------------|
+| Website Maintenance (50% Off) - Monthly | "Not Sent" badge | *(blank)* |
+| Feb 1 Invoice for $60 | "Sent" badge | "Sent" badge |
+| Payment received $60 | "Completed" badge | "Completed" badge |
 
 ---
 
-## Cleanup After Testing
+## Summary
 
-After verification, the test leads and their transactions should be deleted:
-- Delete transactions where `lead_id` matches test leads
-- Delete leads with test email addresses
-
----
-
-## Success Criteria
-
-| Test | Pass Condition |
-|------|----------------|
-| Invoice Sent (No Payment) | Stripe invoice created, email sent, no auto-charge attempted |
-| Credit Applied | Invoice shows credit deduction, net amount is $35 instead of $60 |
-| Transaction Logging | New transaction records created with `stripe_invoice_id` populated |
-| Email Delivery | Invoice email received at test email addresses |
+This is a small change to one function that will:
+1. Recognize membership schedule rows by `is_recurring = true`
+2. Return no badge for these rows
+3. Leave all other transaction types unchanged
 
