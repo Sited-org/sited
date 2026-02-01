@@ -701,15 +701,14 @@ export default function AdminRequests() {
                     </div>
                   )}
 
-                  {/* Body Content - for detailed content like tracking scripts */}
+                  {/* Body Content - rendered with formatting */}
                   {selectedRequest.body && (
                     <div>
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">Content</h4>
-                      <div className="p-3 bg-muted rounded-lg">
-                        <pre className="text-xs font-mono whitespace-pre-wrap break-all overflow-x-auto">
-                          {selectedRequest.body}
-                        </pre>
-                      </div>
+                      <div 
+                        className="p-3 bg-muted rounded-lg prose prose-sm max-w-none dark:prose-invert [&_b]:font-bold [&_strong]:font-bold [&_i]:italic [&_em]:italic [&_u]:underline [&_h1]:text-xl [&_h1]:font-bold [&_h1]:my-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:my-1 [&_ul]:list-disc [&_ul]:ml-4 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:ml-4 [&_ol]:my-1 [&_p]:my-1"
+                        dangerouslySetInnerHTML={{ __html: selectedRequest.body }}
+                      />
                     </div>
                   )}
 
