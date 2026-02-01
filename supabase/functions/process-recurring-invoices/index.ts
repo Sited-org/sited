@@ -91,6 +91,9 @@ serve(async (req) => {
     // 2. recurring_end_date is null (not cancelled)
     // 3. The last billing cycle has completed (need to check if we need to bill this month)
     
+    // Find all active recurring transactions that are due for billing
+    // IMPORTANT: Exclude memberships that are managed by Stripe Subscriptions (auto-billed via webhooks)
+    // These are identified by having 'Stripe Subscription:' in the notes field
     let query = supabaseAdmin
       .from('transactions')
       .select(`
@@ -113,7 +116,9 @@ serve(async (req) => {
       `)
       .eq('is_recurring', true)
       .is('recurring_end_date', null)
-      .not('item', 'like', 'VOID:%');
+      .not('item', 'like', 'VOID:%')
+      // Exclude Stripe-managed subscriptions to prevent double-billing
+      .not('notes', 'like', '%Stripe Subscription:%');
 
     if (specificLeadId) {
       query = query.eq('lead_id', specificLeadId);
