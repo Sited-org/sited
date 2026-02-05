@@ -73,9 +73,9 @@ export const TestimonialCard = ({
       <div
         className={`
           relative overflow-hidden rounded-2xl sm:rounded-3xl
-          bg-card border border-border/50
+          bg-background/40 backdrop-blur-xl border border-white/20
           transition-all duration-500 ease-out
-          ${isHovered ? "shadow-elevated border-border" : "shadow-soft"}
+          ${isHovered ? "shadow-elevated border-white/40 bg-background/60" : "shadow-soft"}
         `}
       >
         {/* Gradient overlay on hover */}

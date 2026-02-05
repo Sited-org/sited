@@ -61,10 +61,10 @@ export default function AdminTestimonials() {
       return;
     }
 
-    // Validate file size (max 100MB)
-    const maxSize = 100 * 1024 * 1024;
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error('Video file must be less than 100MB');
+      toast.error('Video file must be less than 10MB');
       return;
     }
 
@@ -313,7 +313,7 @@ export default function AdminTestimonials() {
                       ) : (
                         <>
                           <Upload className="h-4 w-4 mr-2" />
-                          Upload Video (Device / Google Drive)
+                          Upload Video (Max 10MB)
                         </>
                       )}
                     </Button>
@@ -355,7 +355,7 @@ export default function AdminTestimonials() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Upload a video file directly or paste a URL from YouTube, Vimeo, or Google Drive
+                  Upload a video file (max 10MB) or paste a URL from YouTube, Vimeo, or Google Drive
                 </p>
               </div>
 
