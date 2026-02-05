@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
 import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
-import { useProjectUpdates } from '@/hooks/useProjectUpdates';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
+
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
 const allStatuses: LeadStatus[] = ['new', 'booked_call', 'sold', 'lost'];
@@ -62,10 +62,8 @@ export function ProfileTab({
   setNotes,
   canEdit,
 }: ProfileTabProps) {
-  const { updates } = useProjectUpdates(lead.id);
   const { rawTransactions } = useTransactions(lead.id);
   const { memberships } = useMemberships();
-  const recentUpdates = updates.slice(0, 3);
 
   // Find active membership from recurring transactions
   const activeMembershipTransaction = rawTransactions.find(t => t.is_recurring);
@@ -185,32 +183,6 @@ export function ProfileTab({
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Project Updates */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Recent Project Updates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentUpdates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No project updates yet. Add updates in the Project tab.</p>
-            ) : (
-              <div className="space-y-3">
-                {recentUpdates.map((update) => (
-                  <div key={update.id} className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-sm">{update.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(update.created_at), 'PPp')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
 

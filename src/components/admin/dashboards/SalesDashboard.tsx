@@ -80,13 +80,6 @@ export default function SalesDashboard() {
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
         <Link
-          to="/admin/new-sale"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-        >
-          <Target className="h-4 w-4" />
-          New Face-to-Face Sale
-        </Link>
-        <Link
           to="/admin/leads"
           className="inline-flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors font-medium"
         >
