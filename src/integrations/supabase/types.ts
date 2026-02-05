@@ -515,6 +515,7 @@ export type Database = {
           stripe_payment_method_id: string | null
           tracking_id: string | null
           website_url: string | null
+          workflow_data: Json | null
         }
         Insert: {
           analytics_status?: string | null
@@ -547,6 +548,7 @@ export type Database = {
           stripe_payment_method_id?: string | null
           tracking_id?: string | null
           website_url?: string | null
+          workflow_data?: Json | null
         }
         Update: {
           analytics_status?: string | null
@@ -579,6 +581,7 @@ export type Database = {
           stripe_payment_method_id?: string | null
           tracking_id?: string | null
           website_url?: string | null
+          workflow_data?: Json | null
         }
         Relationships: []
       }

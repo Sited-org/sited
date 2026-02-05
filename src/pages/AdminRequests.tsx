@@ -224,18 +224,33 @@ export default function AdminRequests() {
     },
   });
 
-  // Handle opening request from URL param
+  // Handle opening request from URL param - persist request ID in URL
   useEffect(() => {
     const openRequestId = searchParams.get('open');
-    if (openRequestId && requests.length > 0) {
+    if (openRequestId && requests.length > 0 && !selectedRequest) {
       const request = requests.find(r => r.id === openRequestId);
       if (request) {
         handleOpenRequest(request);
-        // Clear the param after opening
-        setSearchParams({});
       }
     }
   }, [searchParams, requests]);
+
+  // Update URL when request is opened/closed
+  const handleSheetOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelectedRequest(null);
+      // Remove 'open' param from URL when closing
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('open');
+      setSearchParams(newParams);
+    }
+  };
+
+  // Update URL when a request is opened
+  const openRequestWithUrl = async (request: ClientRequest) => {
+    await handleOpenRequest(request);
+    setSearchParams({ open: request.id });
+  };
 
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, status, admin_notes, estimated_completion }: { 
@@ -574,7 +589,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {pending.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
@@ -600,7 +615,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {inProgress.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} showETA />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} showETA />
                     ))}
                   </div>
                 </CardContent>
@@ -626,7 +641,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {completed.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} showCompletion />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} showCompletion />
                     ))}
                   </div>
                 </CardContent>
@@ -652,7 +667,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {cancelled.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={handleOpenRequest} onFilterCompany={handleFilterCompany} />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
@@ -663,7 +678,7 @@ export default function AdminRequests() {
       )}
 
       {/* Request Detail Sheet */}
-      <Sheet open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+      <Sheet open={!!selectedRequest} onOpenChange={handleSheetOpenChange}>
         <SheetContent className="sm:max-w-xl w-full overflow-hidden flex flex-col">
           {selectedRequest && (
             <>
