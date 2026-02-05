@@ -8,7 +8,6 @@ import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
 import ClientProfileMockup from "@/components/services/ClientProfileMockup";
 import InvoiceMockup from "@/components/services/InvoiceMockup";
-import DeviceShowcaseMockup from "@/components/services/DeviceShowcaseMockup";
 
 // Section wrapper with consistent spacing
 const ShowcaseSection = ({ 
@@ -179,20 +178,6 @@ const Services = () => {
           </motion.div>
         </motion.div>
       </section>
-
-      {/* Device Showcase - Websites Made for You */}
-      <ShowcaseSection
-        label="Responsive Design"
-        title="Websites made for you"
-        description="Your website, perfectly crafted for every screen. From desktop to mobile, we ensure a seamless experience that converts visitors into customers."
-      >
-        <DeviceShowcaseMockup />
-      </ShowcaseSection>
-
-      {/* Divider */}
-      <div className="container-tight px-4 sm:px-6">
-        <div className="h-px bg-border/50" />
-      </div>
 
       {/* Calendar Booking Showcase */}
       <ShowcaseSection
