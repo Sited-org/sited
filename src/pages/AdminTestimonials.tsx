@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Upload, Loader2 } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -47,6 +48,53 @@ export default function AdminTestimonials() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialInsert>(emptyForm);
+  const [isUploading, setIsUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVideoUpload = async (file: File) => {
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid video file (MP4, WebM, MOV, or AVI)');
+      return;
+    }
+
+    // Validate file size (max 100MB)
+    const maxSize = 100 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Video file must be less than 100MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      const { data, error } = await supabase.storage
+        .from('testimonial-videos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('testimonial-videos')
+        .getPublicUrl(data.path);
+
+      setForm(prev => ({ ...prev, video_url: urlData.publicUrl }));
+      toast.success('Video uploaded successfully');
+    } catch (error: any) {
+      console.error('Video upload error:', error);
+      toast.error(error.message || 'Failed to upload video');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Only owner and admin can access
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
@@ -269,14 +317,79 @@ export default function AdminTestimonials() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="video_url">Video URL</Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  placeholder="https://..."
-                  value={form.video_url || ''}
-                  onChange={(e) => updateField('video_url', e.target.value)}
-                />
+                <Label htmlFor="video_url">Testimonial Video</Label>
+                <div className="space-y-3">
+                  {/* File Upload */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleVideoUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="flex-1"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Video (Device / Google Drive)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* OR divider */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">OR</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  
+                  {/* URL Input */}
+                  <Input
+                    id="video_url"
+                    type="url"
+                    placeholder="Paste video URL (YouTube, Vimeo, etc.)"
+                    value={form.video_url || ''}
+                    onChange={(e) => updateField('video_url', e.target.value)}
+                  />
+                  
+                  {/* Preview if URL exists */}
+                  {form.video_url && (
+                    <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
+                      <Video className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground truncate flex-1">
+                        {form.video_url}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateField('video_url', '')}
+                        className="h-6 px-2"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload a video file directly or paste a URL from YouTube, Vimeo, or Google Drive
+                </p>
               </div>
 
               <div className="space-y-2">
