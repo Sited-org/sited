@@ -11,6 +11,7 @@ import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
 import { PaymentsTab } from '@/components/client-portal/PaymentsTab';
 import { ProfileTab } from '@/components/client-portal/ProfileTab';
 import { WebsiteTab } from '@/components/client-portal/WebsiteTab';
+
 interface ClientSession {
   lead: {
     id: string;
@@ -59,28 +60,11 @@ interface ClientRequest {
   estimated_completion: string | null;
 }
 
-interface ProjectUpdate {
-  id: string;
-  content: string;
-  created_at: string;
-}
-
-interface ProjectMilestone {
-  id: string;
-  category: 'frontend' | 'backend';
-  title: string;
-  description: string | null;
-  status: 'pending' | 'in_progress' | 'completed';
-  completed_at: string | null;
-}
-
 export default function ClientPortalDashboard() {
   const [session, setSession] = useState<ClientSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
-  const [projectUpdates, setProjectUpdates] = useState<ProjectUpdate[]>([]);
-  const [projectMilestones, setProjectMilestones] = useState<ProjectMilestone[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const hasFetchedRef = useRef(false);
@@ -140,8 +124,6 @@ export default function ClientPortalDashboard() {
 
       setTransactions(data.transactions || []);
       setRequests(data.clientRequests || []);
-      setProjectUpdates(data.projectUpdates || []);
-      setProjectMilestones(data.projectMilestones || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
     } catch (err: any) {
       console.error('Error fetching client data:', err);
@@ -266,8 +248,6 @@ export default function ClientPortalDashboard() {
                 lead={session.lead}
                 transactions={transactions}
                 requests={requests}
-                projectUpdates={projectUpdates}
-                projectMilestones={projectMilestones}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
               />
@@ -276,8 +256,6 @@ export default function ClientPortalDashboard() {
             <TabsContent value="project">
               <ClientProjectTab
                 lead={session.lead}
-                projectUpdates={projectUpdates}
-                projectMilestones={projectMilestones}
               />
             </TabsContent>
 
