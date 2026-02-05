@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key, Upload, Loader2 } from 'lucide-react';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
@@ -77,6 +77,53 @@ export default function AdminSettings() {
   const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
   const [editingTestimonialId, setEditingTestimonialId] = useState<string | null>(null);
   const [testimonialForm, setTestimonialForm] = useState<TestimonialInsert>(emptyTestimonialForm);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVideoUpload = async (file: File) => {
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: 'Invalid file type', description: 'Please upload MP4, WebM, MOV, or AVI', variant: 'destructive' });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: 'File too large', description: 'Video must be less than 10MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsVideoUploading(true);
+    try {
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      const { data, error } = await supabase.storage
+        .from('testimonial-videos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('testimonial-videos')
+        .getPublicUrl(data.path);
+
+      setTestimonialForm(prev => ({ ...prev, video_url: urlData.publicUrl }));
+      toast({ title: 'Video uploaded successfully' });
+    } catch (error: any) {
+      console.error('Video upload error:', error);
+      toast({ title: 'Upload failed', description: error.message || 'Failed to upload video', variant: 'destructive' });
+    } finally {
+      setIsVideoUploading(false);
+    }
+  };
 
   const canManageTestimonials = userRole && ['owner', 'admin'].includes(userRole.role);
 
@@ -504,39 +551,6 @@ export default function AdminSettings() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Metric 1 (e.g., "3x" / "Conversion Rate")</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Value"
-                          value={testimonialForm.metric_1_value || ''}
-                          onChange={(e) => updateTestimonialField('metric_1_value', e.target.value)}
-                        />
-                        <Input
-                          placeholder="Label"
-                          value={testimonialForm.metric_1_label || ''}
-                          onChange={(e) => updateTestimonialField('metric_1_label', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Metric 2 (e.g., "50k+" / "Users")</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Value"
-                          value={testimonialForm.metric_2_value || ''}
-                          onChange={(e) => updateTestimonialField('metric_2_value', e.target.value)}
-                        />
-                        <Input
-                          placeholder="Label"
-                          value={testimonialForm.metric_2_label || ''}
-                          onChange={(e) => updateTestimonialField('metric_2_label', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="delivery_time">Delivery Time</Label>
                     <Input
@@ -581,14 +595,79 @@ export default function AdminSettings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="video_url">Video URL</Label>
-                    <Input
-                      id="video_url"
-                      type="url"
-                      placeholder="https://..."
-                      value={testimonialForm.video_url || ''}
-                      onChange={(e) => updateTestimonialField('video_url', e.target.value)}
-                    />
+                    <Label htmlFor="video_url">Testimonial Video</Label>
+                    <div className="space-y-3">
+                      {/* File Upload */}
+                      <div className="flex items-center gap-3">
+                        <input
+                          ref={videoInputRef}
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleVideoUpload(file);
+                          }}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={isVideoUploading}
+                          className="flex-1"
+                        >
+                          {isVideoUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Video (Max 10MB)
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* OR divider */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground">OR</span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      
+                      {/* URL Input */}
+                      <Input
+                        id="video_url"
+                        type="url"
+                        placeholder="Paste video URL (YouTube, Vimeo, etc.)"
+                        value={testimonialForm.video_url || ''}
+                        onChange={(e) => updateTestimonialField('video_url', e.target.value)}
+                      />
+                      
+                      {/* Preview if URL exists */}
+                      {testimonialForm.video_url && (
+                        <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
+                          <Video className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground truncate flex-1">
+                            {testimonialForm.video_url}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateTestimonialField('video_url', '')}
+                            className="h-6 px-2"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Upload a video file (max 10MB) or paste a URL from YouTube, Vimeo, or Google Drive
+                    </p>
                   </div>
 
                   <div className="space-y-2">
