@@ -6,15 +6,14 @@ interface Contact {
   id: number;
   name: string;
   phone: string;
-  company: string;
   status: "lead" | "prospect" | "customer";
-  value: string; // Now represents location instead of monetary value
+  location: string;
 }
 
 const contacts: Contact[] = [
-  { id: 1, name: "Sarah Scott", phone: "+61 498 765 432", company: "Scott Designs", status: "customer", value: "Geelong, VIC" },
-  { id: 2, name: "Mark Ruby", phone: "+61 412 345 678", company: "Ruby Tech", status: "prospect", value: "Ballarat, VIC" },
-  { id: 3, name: "Tristan Till", phone: "+61 456 789 123", company: "Till & Co", status: "lead", value: "Torquay, VIC" },
+  { id: 1, name: "Sarah Scott", phone: "+61 498 765 432", status: "customer", location: "Noosa, QLD" },
+  { id: 2, name: "Mark Ruby", phone: "+61 412 345 678", status: "prospect", location: "Brunswick Heads, NSW" },
+  { id: 3, name: "Tristan Till", phone: "+61 456 789 123", status: "lead", location: "Brisbane, QLD" },
 ];
 
 const statusColors = {
@@ -70,7 +69,7 @@ const CRMMockup = () => {
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Name</th>
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Contact</th>
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Status</th>
-                <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Value</th>
+                <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Location</th>
               </tr>
             </thead>
             <tbody>
@@ -89,10 +88,7 @@ const CRMMockup = () => {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center text-sm font-semibold shrink-0">
                         {contact.name.split(" ").map(n => n[0]).join("")}
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{contact.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
-                      </div>
+                      <p className="font-medium text-sm truncate">{contact.name}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -104,7 +100,7 @@ const CRMMockup = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-sm font-semibold">{contact.value}</span>
+                    <span className="text-sm font-semibold">{contact.location}</span>
                   </td>
                 </motion.tr>
               ))}
@@ -121,17 +117,15 @@ const CRMMockup = () => {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 flex items-center justify-center text-xs font-semibold shrink-0">
                     {contact.name.split(" ").map(n => n[0]).join("")}
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm">{contact.name}</p>
-                    <p className="text-xs text-muted-foreground">{contact.phone}</p>
-                  </div>
+                  <p className="font-medium text-sm">{contact.name}</p>
                 </div>
-                <span className="text-sm font-semibold">{contact.value}</span>
+                <span className="text-sm font-semibold">{contact.location}</span>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[contact.status]}`}>
                   {contact.status}
                 </span>
+                <span className="text-xs text-muted-foreground">{contact.phone}</span>
               </div>
             </div>
           ))}
