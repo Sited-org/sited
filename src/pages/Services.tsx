@@ -116,6 +116,8 @@ const Services = () => {
 
   return (
     <Layout>
+      {/* Prevent horizontal scroll */}
+      <div className="overflow-x-hidden w-full">
       {/* Hero */}
       <section
         ref={heroRef}
@@ -232,6 +234,7 @@ const Services = () => {
 
       {/* CTA */}
       <CTASection />
+      </div>
     </Layout>
   );
 };

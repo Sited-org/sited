@@ -1,15 +1,28 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 
 const CalendarMockup = () => {
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isBooked, setIsBooked] = useState(false);
   
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const dates = Array.from({ length: 35 }, (_, i) => i - 3); // -3 to 31
 
   const timeSlots = ["9:00 AM", "10:30 AM", "2:00 PM", "3:30 PM"];
+
+  const handleTimeSelect = (time: string) => {
+    setSelectedTime(time);
+    setIsBooked(true);
+    // Reset after 2 seconds to allow re-interaction
+    setTimeout(() => {
+      setIsBooked(false);
+      setSelectedTime(null);
+      setSelectedDay(null);
+    }, 2500);
+  };
   
   return (
     <motion.div
@@ -85,7 +98,7 @@ const CalendarMockup = () => {
         {/* Time Slots - appears when day is selected */}
         <motion.div
           initial={false}
-          animate={{ height: selectedDay ? "auto" : 0, opacity: selectedDay ? 1 : 0 }}
+          animate={{ height: selectedDay && !isBooked ? "auto" : 0, opacity: selectedDay && !isBooked ? 1 : 0 }}
           transition={{ duration: 0.3 }}
           className="overflow-hidden"
         >
@@ -100,12 +113,62 @@ const CalendarMockup = () => {
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.02, backgroundColor: "hsl(var(--muted))" }}
                   whileTap={{ scale: 0.98 }}
-                  className="py-3 px-4 rounded-xl border border-border/50 text-sm font-medium transition-colors hover:border-foreground/20"
+                  onClick={() => handleTimeSelect(time)}
+                  className={`py-3 px-4 rounded-xl border text-sm font-medium transition-colors ${
+                    selectedTime === time 
+                      ? "border-green-500 bg-green-500/10" 
+                      : "border-border/50 hover:border-foreground/20"
+                  }`}
                 >
                   {time}
                 </motion.button>
               ))}
             </div>
+          </div>
+        </motion.div>
+
+        {/* Booked Confirmation */}
+        <motion.div
+          initial={false}
+          animate={{ 
+            height: isBooked ? "auto" : 0, 
+            opacity: isBooked ? 1 : 0 
+          }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          <div className="pt-8 border-t border-border/50 mt-8">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col items-center justify-center py-6"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 15 }}
+                className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4"
+              >
+                <Check className="w-8 h-8 text-green-500" />
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-lg font-semibold text-green-500"
+              >
+                Booked
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-sm text-muted-foreground mt-1"
+              >
+                {selectedDay && `January ${selectedDay}, 2025 at ${selectedTime}`}
+              </motion.p>
+            </motion.div>
           </div>
         </motion.div>
       </div>

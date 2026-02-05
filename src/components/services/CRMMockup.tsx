@@ -5,16 +5,16 @@ import { Search, Plus } from "lucide-react";
 interface Contact {
   id: number;
   name: string;
-  email: string;
+  phone: string;
   company: string;
   status: "lead" | "prospect" | "customer";
   value: string; // Now represents location instead of monetary value
 }
 
 const contacts: Contact[] = [
-  { id: 1, name: "Sarah Scott", email: "sarah@scottdesigns.com.au", company: "Scott Designs", status: "customer", value: "Geelong, VIC" },
-  { id: 2, name: "Mark Ruby", email: "mark@rubytech.com.au", company: "Ruby Tech", status: "prospect", value: "Ballarat, VIC" },
-  { id: 3, name: "Tristan Till", email: "tristan@tillco.com.au", company: "Till & Co", status: "lead", value: "Torquay, VIC" },
+  { id: 1, name: "Sarah Scott", phone: "+61 498 765 432", company: "Scott Designs", status: "customer", value: "Geelong, VIC" },
+  { id: 2, name: "Mark Ruby", phone: "+61 412 345 678", company: "Ruby Tech", status: "prospect", value: "Ballarat, VIC" },
+  { id: 3, name: "Tristan Till", phone: "+61 456 789 123", company: "Till & Co", status: "lead", value: "Torquay, VIC" },
 ];
 
 const statusColors = {
@@ -68,7 +68,7 @@ const CRMMockup = () => {
             <thead>
               <tr className="border-b border-border/50">
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Name</th>
-                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Company</th>
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Contact</th>
                 <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Status</th>
                 <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wider px-6 py-4">Value</th>
               </tr>
@@ -91,12 +91,12 @@ const CRMMockup = () => {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{contact.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm">{contact.company}</span>
+                    <span className="text-sm">{contact.phone}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColors[contact.status]}`}>
@@ -123,7 +123,7 @@ const CRMMockup = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-sm">{contact.name}</p>
-                    <p className="text-xs text-muted-foreground">{contact.company}</p>
+                    <p className="text-xs text-muted-foreground">{contact.phone}</p>
                   </div>
                 </div>
                 <span className="text-sm font-semibold">{contact.value}</span>

@@ -252,9 +252,7 @@ export default function ClientPortalDashboard() {
             <TabsContent value="website">
               <WebsiteTab
                 leadId={session.lead.id}
-                email={session.email}
                 websiteUrl={session.lead.website_url}
-                sessionToken={session.token}
                 workflowData={session.lead.workflow_data}
               />
             </TabsContent>
