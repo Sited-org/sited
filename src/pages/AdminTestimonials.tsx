@@ -240,39 +240,6 @@ export default function AdminTestimonials() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Metric 1 (e.g., "3x" / "Conversion Rate")</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Value"
-                      value={form.metric_1_value || ''}
-                      onChange={(e) => updateField('metric_1_value', e.target.value)}
-                    />
-                    <Input
-                      placeholder="Label"
-                      value={form.metric_1_label || ''}
-                      onChange={(e) => updateField('metric_1_label', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Metric 2 (e.g., "50k+" / "Users")</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Value"
-                      value={form.metric_2_value || ''}
-                      onChange={(e) => updateField('metric_2_value', e.target.value)}
-                    />
-                    <Input
-                      placeholder="Label"
-                      value={form.metric_2_label || ''}
-                      onChange={(e) => updateField('metric_2_label', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="delivery_time">Delivery Time</Label>
                 <Input
