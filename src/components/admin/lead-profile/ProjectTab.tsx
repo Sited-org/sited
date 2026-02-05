@@ -9,7 +9,6 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FormResponsesDisplay } from './FormResponsesDisplay';
- import { ProjectWorkflowTracker } from '../workflow/ProjectWorkflowTracker';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -144,9 +143,6 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
-         {/* Project Workflow Tracker */}
-         <ProjectWorkflowTracker />
- 
         {/* Google Analytics Status */}
         {(lead.ga_property_id || gaStatus !== 'not_connected') && (
           <Card>
