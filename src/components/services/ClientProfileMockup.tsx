@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Mail, Phone, MapPin, Calendar, TrendingUp, FileText, DollarSign } from "lucide-react";
+import { User, Mail, Phone, Calendar, FileText, DollarSign } from "lucide-react";
 
 const ClientProfileMockup = () => {
   const stats = [
@@ -9,9 +9,9 @@ const ClientProfileMockup = () => {
   ];
 
   const communications = [
-    { type: "Problem", detail: "Website contact form not sending", date: "2 days ago" },
-    { type: "Action", detail: "Fixed email configuration issue", date: "1 day ago" },
-    { type: "Resolved", detail: "Client confirmed working", date: "Today" },
+    { type: "Problem", date: "2 days ago" },
+    { type: "Action", date: "1 day ago" },
+    { type: "Resolved", date: "Today" },
   ];
 
   return (
@@ -39,7 +39,6 @@ const ClientProfileMockup = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
                 <div>
                   <h3 className="text-lg sm:text-xl font-semibold">Sarah Chen</h3>
-                  <p className="text-sm text-muted-foreground">TechCorp Industries</p>
                 </div>
                 <span className="inline-flex self-start px-3 py-1 rounded-full text-xs font-medium bg-foreground text-background">
                   Active Client
@@ -54,10 +53,6 @@ const ClientProfileMockup = () => {
                 <span className="flex items-center gap-1.5">
                   <Phone size={14} />
                   (555) 123-4567
-                </span>
-                <span className="flex items-center gap-1.5 hidden sm:flex">
-                  <MapPin size={14} />
-                  San Francisco, CA
                 </span>
               </div>
             </div>
@@ -86,11 +81,6 @@ const ClientProfileMockup = () => {
 
         {/* Communication Timeline */}
         <div className="p-5 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={16} className="text-muted-foreground" />
-            <h4 className="text-sm font-medium">Recent Communication</h4>
-          </div>
-          
           <div className="space-y-3">
             {communications.map((comm, index) => (
               <motion.div
@@ -103,14 +93,15 @@ const ClientProfileMockup = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${
-                    comm.type === "Problem" ? "bg-destructive/60" : 
-                    comm.type === "Action" ? "bg-amber-500/60" : 
-                    "bg-green-500/60"
+                    comm.type === "Problem" ? "bg-red-500" : 
+                    comm.type === "Action" ? "bg-amber-500" : 
+                    "bg-green-500"
                   }`} />
-                  <div>
-                    <p className="text-sm font-medium">{comm.type}</p>
-                    <p className="text-xs text-muted-foreground">{comm.detail}</p>
-                  </div>
+                  <p className={`text-sm font-medium ${
+                    comm.type === "Problem" ? "text-red-500" : 
+                    comm.type === "Action" ? "text-amber-500" : 
+                    "text-green-500"
+                  }`}>{comm.type}</p>
                 </div>
                 <span className="text-xs text-muted-foreground">{comm.date}</span>
               </motion.div>
