@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe, FolderOpen } from 'lucide-react';
+import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClientOverviewTab } from '@/components/client-portal/ClientOverviewTab';
-import { ClientProjectTab } from '@/components/client-portal/ClientProjectTab';
 import { MyRequestsTab } from '@/components/client-portal/MyRequestsTab';
 import { PaymentsTab } from '@/components/client-portal/PaymentsTab';
 import { ProfileTab } from '@/components/client-portal/ProfileTab';
@@ -25,6 +24,7 @@ interface ClientSession {
     created_at: string;
     website_url?: string;
     billing_address?: string;
+    workflow_data?: any;
   };
   token: string;
   email: string;
@@ -216,14 +216,10 @@ export default function ClientPortalDashboard() {
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {/* Simple Tab Navigation */}
-            <TabsList className="grid w-full grid-cols-6 mb-6">
+            <TabsList className="grid w-full grid-cols-5 mb-6">
               <TabsTrigger value="overview" className="text-xs sm:text-sm">
                 <Home className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Overview</span>
-              </TabsTrigger>
-              <TabsTrigger value="project" className="text-xs sm:text-sm">
-                <FolderOpen className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Project</span>
               </TabsTrigger>
               <TabsTrigger value="website" className="text-xs sm:text-sm">
                 <Globe className="h-4 w-4 sm:mr-2" />
@@ -253,18 +249,13 @@ export default function ClientPortalDashboard() {
               />
             </TabsContent>
 
-            <TabsContent value="project">
-              <ClientProjectTab
-                lead={session.lead}
-              />
-            </TabsContent>
-
             <TabsContent value="website">
               <WebsiteTab
                 leadId={session.lead.id}
                 email={session.email}
                 websiteUrl={session.lead.website_url}
                 sessionToken={session.token}
+                workflowData={session.lead.workflow_data}
               />
             </TabsContent>
 
