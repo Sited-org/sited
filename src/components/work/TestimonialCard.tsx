@@ -1,6 +1,6 @@
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import { useRef, useState } from "react";
-import { Play, ExternalLink, Quote, X } from "lucide-react";
+import { Play, ExternalLink, Quote, Pause, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TestimonialCardProps {
@@ -28,131 +28,169 @@ export const TestimonialCard = ({
   websiteUrl,
   index,
 }: TestimonialCardProps) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const hasVideo = !!videoUrl;
+  const isEven = index % 2 === 0;
 
-  // Mouse tracking for 3D tilt effect
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const springConfig = { stiffness: 150, damping: 15 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), springConfig);
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), springConfig);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    mouseX.set(x);
-    mouseY.set(y);
+  const handlePlay = () => {
+    if (!videoRef.current) return;
+    videoRef.current.play();
+    setIsPlaying(true);
   };
 
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    mouseX.set(0);
-    mouseY.set(0);
+  const handlePause = () => {
+    if (!videoRef.current) return;
+    videoRef.current.pause();
+    setIsPlaying(false);
   };
+
+  const toggleMute = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = !videoRef.current.muted;
+    setIsMuted(!isMuted);
+  };
+
+  const handleVideoEnd = () => {
+    setIsPlaying(false);
+  };
+
+  // Determine if video is a direct file (not YouTube/Vimeo)
+  const isDirectVideo = hasVideo && !videoUrl!.includes("youtube") && !videoUrl!.includes("vimeo") && !videoUrl!.includes("youtu.be");
 
   return (
     <motion.div
-      ref={cardRef}
-      initial={{ opacity: 0, y: 60 }}
+      initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.6, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: "preserve-3d",
-      }}
-      className="group relative"
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.7, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      className="w-full"
     >
       <div
         className={`
           relative overflow-hidden rounded-2xl sm:rounded-3xl
           bg-background/40 backdrop-blur-xl border border-white/20
-          transition-all duration-500 ease-out
-          ${isHovered ? "shadow-elevated border-white/40 bg-background/60" : "shadow-soft"}
+          shadow-soft hover:shadow-elevated transition-all duration-500
+          flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"}
         `}
       >
-        {/* Gradient overlay on hover */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none z-10"
-        />
+        {/* Video / Thumbnail Section */}
+        <div className="relative w-full lg:w-3/5 aspect-video overflow-hidden flex-shrink-0">
+          {isDirectVideo ? (
+            <>
+              {/* Poster / cover image shown before play */}
+              {!isPlaying && (
+                <div className="absolute inset-0 z-10">
+                  {videoThumbnail && videoThumbnail !== "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop" ? (
+                    <img
+                      src={videoThumbnail}
+                      alt={`${company} cover`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <video
+                      src={videoUrl!}
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
+                </div>
+              )}
 
-        {/* Video thumbnail section */}
-        <div className="relative aspect-[16/10] overflow-hidden">
-          <motion.img
-            src={videoThumbnail}
-            alt={`${company} testimonial`}
-            className="w-full h-full object-cover"
-            animate={{
-              scale: isHovered ? 1.05 : 1,
-            }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          />
-          
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent" />
-          
-          {/* Play button - only show if video exists */}
-          {hasVideo && (
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              animate={{
-                scale: isHovered ? 1 : 0.9,
-                opacity: isHovered ? 1 : 0.8,
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowVideo(true)}
-                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
-              >
-                <Play
-                  size={24}
-                  className="sm:w-7 sm:h-7 md:w-8 md:h-8 ml-1 text-foreground"
-                  fill="currentColor"
-                />
-              </motion.div>
-            </motion.div>
+              <video
+                ref={videoRef}
+                src={videoUrl!}
+                className="w-full h-full object-cover"
+                onEnded={handleVideoEnd}
+                playsInline
+                preload="metadata"
+              />
+
+              {/* Play / Pause overlay */}
+              <div className="absolute inset-0 z-20 flex items-center justify-center">
+                {!isPlaying ? (
+                  <motion.div
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handlePlay}
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
+                  >
+                    <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
+                  </motion.div>
+                ) : (
+                  <div className="absolute bottom-4 right-4 flex gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={handlePause}
+                      className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center cursor-pointer"
+                    >
+                      <Pause size={18} className="text-foreground" />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={toggleMute}
+                      className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center cursor-pointer"
+                    >
+                      {isMuted ? <VolumeX size={18} className="text-foreground" /> : <Volume2 size={18} className="text-foreground" />}
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : hasVideo ? (
+            // External video link — show thumbnail with link
+            <a href={videoUrl!} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative">
+              <img
+                src={videoThumbnail}
+                alt={`${company} testimonial`}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-elevated">
+                  <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
+                </div>
+              </div>
+            </a>
+          ) : (
+            // No video — just thumbnail
+            <div className="w-full h-full">
+              <img
+                src={videoThumbnail}
+                alt={`${company} testimonial`}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
+            </div>
           )}
 
           {/* Category badge */}
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-4 left-4 z-30">
             <span className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider bg-background/90 backdrop-blur-sm rounded-full text-foreground">
               {category}
             </span>
           </div>
-
-          {/* Company name overlay */}
-          <div className="absolute bottom-4 left-4 right-4">
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-background tracking-tight">
-              {company}
-            </h3>
-          </div>
         </div>
 
-        {/* Content section */}
-        <div className="p-5 sm:p-6 md:p-8 space-y-4 sm:space-y-5">
-          {/* Description */}
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            {description}
-          </p>
+        {/* Text Content Section */}
+        <div className="w-full lg:w-2/5 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5">
+          <div>
+            <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
+              {company}
+            </h3>
+            <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {description}
+            </p>
+          </div>
 
           {/* Testimonial quote */}
           <div className="relative">
-            <Quote className="absolute -top-1 -left-1 w-6 h-6 text-accent/40" />
-            <blockquote className="pl-6 sm:pl-8 border-l-2 border-accent/30">
+            <Quote className="absolute -top-1 -left-1 w-5 h-5 text-accent/40" />
+            <blockquote className="pl-7 border-l-2 border-accent/30">
               <p className="text-sm sm:text-base text-foreground/90 italic leading-relaxed">
                 "{testimonial}"
               </p>
@@ -165,77 +203,26 @@ export const TestimonialCard = ({
           </div>
 
           {/* CTA */}
-          <motion.div
-            animate={{
-              y: isHovered ? 0 : 4,
-              opacity: isHovered ? 1 : 0.7,
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="group/btn gap-2 mt-2"
-              asChild
-            >
-              <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
-                View Project
-                <ExternalLink
-                  size={14}
-                  className="transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5"
-                />
-              </a>
-            </Button>
-          </motion.div>
+          {websiteUrl && websiteUrl !== "#" && (
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="group/btn gap-2"
+                asChild
+              >
+                <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
+                  View Project
+                  <ExternalLink
+                    size={14}
+                    className="transition-transform group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5"
+                  />
+                </a>
+              </Button>
+            </div>
+          )}
         </div>
-
-        {/* Subtle shine effect on hover */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-          style={{
-            background: "linear-gradient(105deg, transparent 40%, hsl(var(--background) / 0.1) 45%, transparent 50%)",
-            transform: "translateX(-100%)",
-          }}
-          animate={{
-            translateX: isHovered ? "200%" : "-100%",
-          }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-        />
       </div>
-
-      {/* Video Modal */}
-      {showVideo && hasVideo && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 backdrop-blur-sm p-4"
-          onClick={() => setShowVideo(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden bg-foreground"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-3 z-10 bg-background/80 hover:bg-background text-foreground rounded-full"
-              onClick={() => setShowVideo(false)}
-            >
-              <X size={20} />
-            </Button>
-            <video
-              src={videoUrl!}
-              controls
-              autoPlay
-              className="w-full h-full object-contain"
-            />
-          </motion.div>
-        </motion.div>
-      )}
     </motion.div>
   );
 };
