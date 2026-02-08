@@ -94,17 +94,17 @@ const Work = () => {
       <section className="py-12 sm:py-16 lg:py-20 bg-surface-elevated">
         <div className="container-tight">
           {isLoading ? (
-            <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
-              {[...Array(4)].map((_, i) => (
+            <div className="flex flex-col gap-8">
+              {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-[4/5] rounded-2xl bg-muted animate-pulse"
+                  className="aspect-video rounded-2xl bg-muted animate-pulse"
                 />
               ))}
             </div>
           ) : (
             <>
-              <div className="grid sm:grid-cols-2 gap-6 sm:gap-8 lg:gap-10">
+              <div className="flex flex-col gap-8 sm:gap-10 lg:gap-12">
                 {visibleProjects.map((project, index) => (
                   <TestimonialCard
                     key={project.company}

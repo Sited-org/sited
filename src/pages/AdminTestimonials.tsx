@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Upload, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Upload, Loader2, Image } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -49,7 +49,10 @@ export default function AdminTestimonials() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialInsert>(emptyForm);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   const handleVideoUpload = async (file: File) => {
     if (!file) return;
@@ -94,6 +97,55 @@ export default function AdminTestimonials() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleThumbnailUpload = async (file: File) => {
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingThumbnail(true);
+    try {
+      const fileName = `thumb-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      const { data, error } = await supabase.storage
+        .from('testimonial-videos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('testimonial-videos')
+        .getPublicUrl(data.path);
+
+      setForm(prev => ({ ...prev, video_thumbnail: urlData.publicUrl }));
+      toast.success('Cover photo uploaded successfully');
+    } catch (error: any) {
+      console.error('Thumbnail upload error:', error);
+      toast.error(error.message || 'Failed to upload cover photo');
+    } finally {
+      setIsUploadingThumbnail(false);
+    }
+  };
+
+  const handleThumbnailDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingThumbnail(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleThumbnailUpload(file);
   };
 
   // Only owner and admin can access
@@ -360,14 +412,72 @@ export default function AdminTestimonials() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="video_thumbnail">Video Thumbnail URL</Label>
-                <Input
-                  id="video_thumbnail"
-                  type="url"
-                  placeholder="https://..."
-                  value={form.video_thumbnail || ''}
-                  onChange={(e) => updateField('video_thumbnail', e.target.value)}
+                <Label>Video Cover Photo</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Upload a cover image for the video. If none is set, the first frame of the video will be used.
+                </p>
+                <input
+                  ref={thumbnailInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleThumbnailUpload(file);
+                  }}
+                  className="hidden"
                 />
+                
+                {form.video_thumbnail ? (
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={form.video_thumbnail}
+                      alt="Cover photo"
+                      className="w-full h-40 object-cover"
+                    />
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => thumbnailInputRef.current?.click()}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Replace
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => updateField('video_thumbnail', '')}
+                        className="h-7 px-2 text-xs"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsDraggingThumbnail(true); }}
+                    onDragLeave={() => setIsDraggingThumbnail(false)}
+                    onDrop={handleThumbnailDrop}
+                    onClick={() => !isUploadingThumbnail && thumbnailInputRef.current?.click()}
+                    className={`
+                      flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors
+                      ${isDraggingThumbnail ? 'border-accent bg-accent/10' : 'border-border hover:border-muted-foreground'}
+                      ${isUploadingThumbnail ? 'opacity-60 pointer-events-none' : ''}
+                    `}
+                  >
+                    {isUploadingThumbnail ? (
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    )}
+                    <span className="text-sm text-muted-foreground text-center">
+                      {isUploadingThumbnail ? 'Uploading...' : 'Drag & drop or click to upload cover photo'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">JPG, PNG, WebP · Max 5MB</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
