@@ -1,83 +1,100 @@
 
 
-# Plan: Hide Invoice Status Badge for Membership Schedule Rows
+## SEO, Sitemap, Image Optimization & Work Page Performance
 
-## Understanding the Current System
+### 1. Semantic HTML Heading Structure (All Pages)
 
-Your understanding is correct:
+Currently most pages use proper `h1`/`h2` tags but some are inconsistent. Every public page will get a clear heading hierarchy:
 
-| Row Type | Purpose | Affects Balance? | Should Show Invoice Status? |
-|----------|---------|------------------|----------------------------|
-| **Membership Schedule** (`is_recurring = true`) | Billing definition - drives automated invoicing | No | No (blank) |
-| **Real Invoice/Charge** (`is_recurring = false`, debit > 0) | Actual charge to be paid | Yes | Yes ("Not Sent", "Sent", "Paid", etc.) |
-| **Payment** (credit > 0) | Money received | Yes | Yes ("Completed") |
+**Home (`/`)**
+- `h1`: "We build websites that convert." (already correct)
+- `h2`: "Everything you need to succeed online" (Services section), "Results that speak." (Featured Work), "Your digital partner for growth." (About), "Let's build something extraordinary." (CTA)
+- `h3`: Service card titles, process step titles, project names
 
-The membership schedule row is simply a **record that the client has an active membership** and stores the billing frequency. It is NOT a charge itself - the automated billing system reads these and generates real invoices on the 1st of each month.
+**Services (`/services`)**
+- `h1`: "One thing done right." (already correct)
+- `h2`: Showcase section titles ("Let clients book themselves", "Know your customers", etc.) -- already correct
+- No changes needed here
 
-Currently, these rows incorrectly show "Not Sent" which implies they need to be manually invoiced.
+**Work (`/work`)**
+- `h1`: "Websites that perform." (already correct)
+- `h2`: "Your project could be next." (CTA) -- already correct
+- `h3`: Individual testimonial company names -- already correct
+
+**Contact (`/contact`)**
+- `h1`: "Let's build something great together" (already correct)
+- `h2`: "Send us a message", "Get in touch" -- already correct
+
+**Footer**
+- Change the footer CTA `h2` to `h3` since it repeats across pages and should not compete with page-level headings
+
+### 2. Meta Tags & Per-Page SEO
+
+Create a reusable `SEOHead` component using `document.title` and meta tag manipulation to set unique `<title>` and `<meta name="description">` for each page:
+
+| Page | Title | Description |
+|------|-------|-------------|
+| `/` | Sited \| AI-Powered Web Design & Development | (keep current) |
+| `/services` | Services \| Sited - Web Design, CRM & Booking | We build websites that book appointments, manage customers, and accept payments. All in one place. |
+| `/work` | Our Work \| Sited - Client Results & Testimonials | Real projects with real results. See websites we've built for businesses like yours. |
+| `/contact` | Contact \| Sited - Start Your Web Project | Get in touch to start your web project. Respond within 24 hours. |
+| `/client-portal` | Members Login \| Sited | Secure client portal login for Sited members. |
+
+### 3. Sitemap Generation
+
+Create a `public/sitemap.xml` file listing the 5 crucial public pages with proper priority and changefreq values:
+
+- `/` -- priority 1.0, weekly
+- `/services` -- priority 0.8, monthly
+- `/work` -- priority 0.8, weekly
+- `/contact` -- priority 0.7, monthly
+- `/client-portal` -- priority 0.3, monthly
+
+Update `public/robots.txt` to include a `Sitemap:` directive pointing to `https://sited.lovable.app/sitemap.xml`.
+
+### 4. Image Optimization for Faster Loading
+
+Replace all external Unsplash/Pexels image URLs with WebP format parameters where supported, and add `width`/`height` attributes to prevent layout shift:
+
+- Unsplash images: append `&fm=webp` to URLs (Unsplash supports WebP via their CDN)
+- Fallback thumbnails in Work page and Index page: update all `?w=1200&h=800&fit=crop` to `?w=1200&h=800&fit=crop&fm=webp&q=75`
+- Hero video poster: update to WebP format
+- Add `width` and `height` HTML attributes to `<img>` tags for CLS (Cumulative Layout Shift) prevention
+- Add `decoding="async"` to all non-critical images
+
+### 5. Work Page Load Speed Improvements
+
+- **Lazy Vimeo iframes**: Already lazy (only loads on play click) -- no change needed
+- **Thumbnail optimization**: Use `vumbnail.com` WebP thumbnails (append `_large.jpg` for higher quality without oversizing)
+- **Reduce initial render count**: Lower `INITIAL_COUNT` from 6 to 4 to reduce DOM nodes on first paint
+- **Simplify scroll animations**: Replace `framer-motion` `whileInView` on each card with a lightweight CSS `@keyframes` fade-in using `IntersectionObserver`, avoiding JS-driven animation overhead
+- **Remove unused motion imports**: Clean up any unused framer-motion features on the Work page
+- **Add `will-change: transform` only on hover** to avoid GPU memory overhead at rest
+
+### 6. Structured Data (JSON-LD)
+
+Add structured data to `index.html` for better search engine understanding:
+
+- **Organization schema**: Business name, logo, contact info, social links
+- **WebSite schema**: Search action, URL
 
 ---
 
-## What Will Change
+### Technical Details
 
-**Before**: Membership schedule rows display "Not Sent" badge
-**After**: Membership schedule rows display no badge (blank status column)
+**New file:**
+- `src/hooks/usePageSEO.ts` -- Custom hook that sets `document.title` and updates meta description on mount
 
----
+**Modified files:**
+- `index.html` -- Add JSON-LD structured data, keep existing meta as defaults
+- `public/robots.txt` -- Add Sitemap directive
+- `public/sitemap.xml` -- New static sitemap file
+- `src/pages/Index.tsx` -- Add `usePageSEO`, update image URLs to WebP
+- `src/pages/Services.tsx` -- Add `usePageSEO`
+- `src/pages/Work.tsx` -- Add `usePageSEO`, reduce initial count, optimize animations
+- `src/pages/Contact.tsx` -- Add `usePageSEO`
+- `src/pages/ClientPortalLogin.tsx` -- Add `usePageSEO`
+- `src/components/work/TestimonialCard.tsx` -- Replace framer-motion scroll animation with CSS, add image dimensions
+- `src/components/layout/Footer.tsx` -- Change `h2` to `h3`
 
-## Technical Changes
-
-### File: `src/components/admin/lead-profile/PaymentsTab.tsx`
-
-Modify the `getInvoiceStatusBadge` function to return `null` (no badge) for `is_recurring = true` rows:
-
-```typescript
-const getInvoiceStatusBadge = (transaction: TransactionWithBalance) => {
-  // Future preview transactions
-  if (transaction.isFuture) {
-    return <Badge variant="outline" className="...">Scheduled</Badge>;
-  }
-
-  // Voided transactions
-  if (transaction.status === 'void' || transaction.invoice_status === 'void') {
-    return <Badge variant="outline" className="...">Void</Badge>;
-  }
-  
-  // NEW: Membership schedule rows (is_recurring = true) are billing definitions,
-  // not actual charges to be invoiced - show no status badge
-  if (transaction.is_recurring) {
-    return null;
-  }
-
-  // For debit transactions (charges), show invoice status
-  if (Number(transaction.debit) > 0) {
-    switch (transaction.invoice_status) {
-      case 'not_sent':
-        return <Badge>Not Sent</Badge>;
-      // ... other cases
-    }
-  }
-  
-  // ... rest of function
-};
-```
-
----
-
-## Visual Result
-
-| Item | Status Column (Before) | Status Column (After) |
-|------|------------------------|----------------------|
-| Website Maintenance (50% Off) - Monthly | "Not Sent" badge | *(blank)* |
-| Feb 1 Invoice for $60 | "Sent" badge | "Sent" badge |
-| Payment received $60 | "Completed" badge | "Completed" badge |
-
----
-
-## Summary
-
-This is a small change to one function that will:
-1. Recognize membership schedule rows by `is_recurring = true`
-2. Return no badge for these rows
-3. Leave all other transaction types unchanged
-
+**No functional or cosmetic changes** -- all existing features (Vimeo playback, glassmorphism cards, alternating layout, chat, onboarding) remain untouched.
