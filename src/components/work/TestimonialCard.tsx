@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
-import { Play, ExternalLink, Quote } from "lucide-react";
+import { Play, ExternalLink, Quote, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TestimonialCardProps {
@@ -24,11 +24,15 @@ export const TestimonialCard = ({
   author,
   role,
   videoThumbnail,
+  videoUrl,
   websiteUrl,
   index,
 }: TestimonialCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+
+  const hasVideo = !!videoUrl;
 
   // Mouse tracking for 3D tilt effect
   const mouseX = useMotionValue(0);
@@ -98,27 +102,30 @@ export const TestimonialCard = ({
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent" />
           
-          {/* Play button */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            animate={{
-              scale: isHovered ? 1 : 0.9,
-              opacity: isHovered ? 1 : 0.8,
-            }}
-            transition={{ duration: 0.3 }}
-          >
+          {/* Play button - only show if video exists */}
+          {hasVideo && (
             <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
+              className="absolute inset-0 flex items-center justify-center"
+              animate={{
+                scale: isHovered ? 1 : 0.9,
+                opacity: isHovered ? 1 : 0.8,
+              }}
+              transition={{ duration: 0.3 }}
             >
-              <Play
-                size={24}
-                className="sm:w-7 sm:h-7 md:w-8 md:h-8 ml-1 text-foreground"
-                fill="currentColor"
-              />
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowVideo(true)}
+                className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-background/95 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
+              >
+                <Play
+                  size={24}
+                  className="sm:w-7 sm:h-7 md:w-8 md:h-8 ml-1 text-foreground"
+                  fill="currentColor"
+                />
+              </motion.div>
             </motion.div>
-          </motion.div>
+          )}
 
           {/* Category badge */}
           <div className="absolute top-4 left-4">
@@ -195,6 +202,40 @@ export const TestimonialCard = ({
           transition={{ duration: 0.8, ease: "easeInOut" }}
         />
       </div>
+
+      {/* Video Modal */}
+      {showVideo && hasVideo && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/80 backdrop-blur-sm p-4"
+          onClick={() => setShowVideo(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden bg-foreground"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-3 right-3 z-10 bg-background/80 hover:bg-background text-foreground rounded-full"
+              onClick={() => setShowVideo(false)}
+            >
+              <X size={20} />
+            </Button>
+            <video
+              src={videoUrl!}
+              controls
+              autoPlay
+              className="w-full h-full object-contain"
+            />
+          </motion.div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, MapPin, ArrowRight } from "lucide-react";
+import { Mail, Phone, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -144,13 +144,16 @@ const Contact = () => {
                     </div>
                     <div className="flex items-start gap-3 sm:gap-4">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                        <MapPin size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
+                        <Phone size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm sm:text-base">Location</p>
-                        <p className="text-sm sm:text-base text-muted-foreground">
-                          Remote-first, serving clients worldwide
-                        </p>
+                        <p className="font-medium text-sm sm:text-base">Phone</p>
+                        <a
+                          href="tel:0459909810"
+                          className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          0459 909 810
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -161,20 +164,33 @@ const Contact = () => {
               <ScrollReveal delay={0.2}>
                 <Link to="/onboarding/website">
                   <motion.div
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="bg-foreground text-background rounded-xl p-6 cursor-pointer group"
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="bg-foreground text-background rounded-2xl p-8 sm:p-10 cursor-pointer group relative overflow-hidden"
                   >
-                    <h3 className="text-lg font-semibold mb-2">
+                    {/* Subtle shimmer */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <span className="inline-block text-xs uppercase tracking-widest text-background/50 mb-3">
+                      Most Popular
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl font-semibold mb-3">
                       Ready to build your website?
                     </h3>
-                    <p className="text-background/70 text-sm mb-4">
-                      Tell us about your project and we'll handle the rest.
+                    <p className="text-background/70 text-base sm:text-lg mb-6 leading-relaxed">
+                      Skip the back-and-forth. Tell us about your project through our guided onboarding and we'll handle the rest — fast.
                     </p>
-                    <div className="flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all">
-                      Start Your Project
-                      <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-hover))] text-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-base px-8"
+                      asChild
+                    >
+                      <span>
+                        Start Your Project
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </Button>
                   </motion.div>
                 </Link>
               </ScrollReveal>
