@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect, memo } from "react";
-import { ArrowRight, Sparkles, Zap, Globe, Star, Quote } from "lucide-react";
+import { ArrowRight, Zap, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 
@@ -32,15 +32,7 @@ const Hero = memo(() => {
         style={{ opacity, scale, y }}
         className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center will-change-transform"
       >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="inline-flex items-center gap-2 bg-secondary rounded-full px-4 py-2 mb-8"
-        >
-          <Sparkles size={16} className="text-accent-foreground" />
-          <span className="text-sm font-medium">AI-Powered Design</span>
-        </motion.div>
+        {/* Spacer for removed badge */}
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
