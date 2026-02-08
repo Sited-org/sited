@@ -92,7 +92,7 @@ const Work = () => {
 
       {/* Projects Grid */}
       <section className="py-12 sm:py-16 lg:py-20 bg-surface-elevated">
-        <div className="container-tight">
+        <div className="w-[92%] max-w-[1600px] mx-auto">
           {isLoading ? (
             <div className="flex flex-col gap-8">
               {[...Array(3)].map((_, i) => (

@@ -30,10 +30,13 @@ export const TestimonialCard = ({
 }: TestimonialCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
 
   const hasVideo = !!videoUrl;
   const isEven = index % 2 === 0;
+
+  // Check if URL is a directly playable video (storage URL or direct file)
+  const isDirectVideo = hasVideo && !videoUrl!.includes("youtube") && !videoUrl!.includes("vimeo") && !videoUrl!.includes("youtu.be") && !videoUrl!.includes("drive.google.com");
 
   const handlePlay = () => {
     if (!videoRef.current) return;
@@ -57,21 +60,36 @@ export const TestimonialCard = ({
     setIsPlaying(false);
   };
 
-  // Determine if video is a direct file (not YouTube/Vimeo)
-  const isDirectVideo = hasVideo && !videoUrl!.includes("youtube") && !videoUrl!.includes("vimeo") && !videoUrl!.includes("youtu.be");
+  const handlePlayWithSound = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = false;
+    setIsMuted(false);
+    videoRef.current.play();
+    setIsPlaying(true);
+  };
+
+  // For external links (Google Drive, YouTube, Vimeo)
+  const getExternalUrl = () => {
+    if (!videoUrl) return "#";
+    if (videoUrl.includes("drive.google.com")) {
+      const match = videoUrl.match(/\/d\/([^/]+)/);
+      if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
+    }
+    return videoUrl;
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.7, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
       className="w-full"
     >
       <div
         className={`
           relative overflow-hidden rounded-2xl sm:rounded-3xl
-          bg-background/40 backdrop-blur-xl border border-white/20
+          bg-background/30 backdrop-blur-xl border border-white/15
           shadow-soft hover:shadow-elevated transition-all duration-500
           flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"}
         `}
@@ -80,34 +98,16 @@ export const TestimonialCard = ({
         <div className="relative w-full lg:w-3/5 aspect-video overflow-hidden flex-shrink-0">
           {isDirectVideo ? (
             <>
-              {/* Poster / cover image shown before play */}
-              {!isPlaying && (
-                <div className="absolute inset-0 z-10">
-                  {videoThumbnail && videoThumbnail !== "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop" ? (
-                    <img
-                      src={videoThumbnail}
-                      alt={`${company} cover`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <video
-                      src={videoUrl!}
-                      className="w-full h-full object-cover"
-                      muted
-                      preload="metadata"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
-                </div>
-              )}
-
+              {/* Video element - preloads first frames */}
               <video
                 ref={videoRef}
                 src={videoUrl!}
                 className="w-full h-full object-cover"
                 onEnded={handleVideoEnd}
                 playsInline
-                preload="metadata"
+                preload="auto"
+                muted
+                poster={videoThumbnail && !videoThumbnail.includes("unsplash.com") ? videoThumbnail : undefined}
               />
 
               {/* Play / Pause overlay */}
@@ -116,7 +116,7 @@ export const TestimonialCard = ({
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={handlePlay}
+                    onClick={handlePlayWithSound}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
                   >
                     <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
@@ -142,12 +142,13 @@ export const TestimonialCard = ({
               </div>
             </>
           ) : hasVideo ? (
-            // External video link — show thumbnail with link
-            <a href={videoUrl!} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative">
+            // External video link (Google Drive, YouTube, etc.)
+            <a href={getExternalUrl()} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative">
               <img
                 src={videoThumbnail}
                 alt={`${company} testimonial`}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -163,6 +164,7 @@ export const TestimonialCard = ({
                 src={videoThumbnail}
                 alt={`${company} testimonial`}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
             </div>
@@ -176,8 +178,8 @@ export const TestimonialCard = ({
           </div>
         </div>
 
-        {/* Text Content Section */}
-        <div className="w-full lg:w-2/5 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5">
+        {/* Text Content Section - glassmorphism */}
+        <div className="w-full lg:w-2/5 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5 bg-background/20 backdrop-blur-md">
           <div>
             <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
               {company}
