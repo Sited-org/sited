@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
-import { Play, ExternalLink, Quote, Pause, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
+import { Play, ExternalLink, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 
 interface TestimonialCardProps {
   company: string;
@@ -28,55 +29,13 @@ export const TestimonialCard = ({
   websiteUrl,
   index,
 }: TestimonialCardProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-
-  const hasVideo = !!videoUrl;
+  const [showPlayer, setShowPlayer] = useState(false);
   const isEven = index % 2 === 0;
 
-  // Check if URL is a directly playable video (storage URL or direct file)
-  const isDirectVideo = hasVideo && !videoUrl!.includes("youtube") && !videoUrl!.includes("vimeo") && !videoUrl!.includes("youtu.be") && !videoUrl!.includes("drive.google.com");
-
-  const handlePlay = () => {
-    if (!videoRef.current) return;
-    videoRef.current.play();
-    setIsPlaying(true);
-  };
-
-  const handlePause = () => {
-    if (!videoRef.current) return;
-    videoRef.current.pause();
-    setIsPlaying(false);
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !videoRef.current.muted;
-    setIsMuted(!isMuted);
-  };
-
-  const handleVideoEnd = () => {
-    setIsPlaying(false);
-  };
-
-  const handlePlayWithSound = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = false;
-    setIsMuted(false);
-    videoRef.current.play();
-    setIsPlaying(true);
-  };
-
-  // For external links (Google Drive, YouTube, Vimeo)
-  const getExternalUrl = () => {
-    if (!videoUrl) return "#";
-    if (videoUrl.includes("drive.google.com")) {
-      const match = videoUrl.match(/\/d\/([^/]+)/);
-      if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-    }
-    return videoUrl;
-  };
+  const vimeoId = extractVimeoId(videoUrl || '');
+  const thumbnailSrc = vimeoId
+    ? getVimeoThumbnail(vimeoId)
+    : videoThumbnail;
 
   return (
     <motion.div
@@ -96,77 +55,36 @@ export const TestimonialCard = ({
       >
         {/* Video / Thumbnail Section */}
         <div className="relative w-full lg:w-3/5 aspect-video overflow-hidden flex-shrink-0">
-          {isDirectVideo ? (
-            <>
-              {/* Video element - preloads first frames */}
-              <video
-                ref={videoRef}
-                src={videoUrl!}
+          {vimeoId && showPlayer ? (
+            <iframe
+              src={`https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div
+              className="w-full h-full relative cursor-pointer group"
+              onClick={() => vimeoId && setShowPlayer(true)}
+            >
+              <img
+                src={thumbnailSrc}
+                alt={`${company} testimonial`}
                 className="w-full h-full object-cover"
-                onEnded={handleVideoEnd}
-                playsInline
-                preload="auto"
-                muted
-                poster={videoThumbnail && !videoThumbnail.includes("unsplash.com") ? videoThumbnail : undefined}
+                loading="lazy"
               />
-
-              {/* Play / Pause overlay */}
-              <div className="absolute inset-0 z-20 flex items-center justify-center">
-                {!isPlaying ? (
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
+              {vimeoId && (
+                <div className="absolute inset-0 flex items-center justify-center">
                   <motion.div
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={handlePlayWithSound}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center cursor-pointer shadow-elevated"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-elevated group-hover:bg-background transition-colors"
                   >
                     <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
                   </motion.div>
-                ) : (
-                  <div className="absolute bottom-4 right-4 flex gap-2">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={handlePause}
-                      className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center cursor-pointer"
-                    >
-                      <Pause size={18} className="text-foreground" />
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={toggleMute}
-                      className="w-10 h-10 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center cursor-pointer"
-                    >
-                      {isMuted ? <VolumeX size={18} className="text-foreground" /> : <Volume2 size={18} className="text-foreground" />}
-                    </motion.button>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : hasVideo ? (
-            // External video link (Google Drive, YouTube, etc.)
-            <a href={getExternalUrl()} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative">
-              <img
-                src={videoThumbnail}
-                alt={`${company} testimonial`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-elevated">
-                  <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
                 </div>
-              </div>
-            </a>
-          ) : (
-            // No video — just thumbnail
-            <div className="w-full h-full">
-              <img
-                src={videoThumbnail}
-                alt={`${company} testimonial`}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
+              )}
             </div>
           )}
 
@@ -178,7 +96,7 @@ export const TestimonialCard = ({
           </div>
         </div>
 
-        {/* Text Content Section - glassmorphism */}
+        {/* Text Content Section */}
         <div className="w-full lg:w-2/5 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5 bg-background/20 backdrop-blur-md">
           <div>
             <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
@@ -189,7 +107,6 @@ export const TestimonialCard = ({
             </p>
           </div>
 
-          {/* Testimonial quote */}
           <div className="relative">
             <Quote className="absolute -top-1 -left-1 w-5 h-5 text-accent/40" />
             <blockquote className="pl-7 border-l-2 border-accent/30">
@@ -204,15 +121,9 @@ export const TestimonialCard = ({
             </blockquote>
           </div>
 
-          {/* CTA */}
           {websiteUrl && websiteUrl !== "#" && (
             <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="group/btn gap-2"
-                asChild
-              >
+              <Button variant="outline" size="sm" className="group/btn gap-2" asChild>
                 <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
                   View Project
                   <ExternalLink

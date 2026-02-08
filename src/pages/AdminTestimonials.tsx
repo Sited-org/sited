@@ -1,7 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Upload, Loader2, Image } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { extractVimeoId } from '@/lib/vimeo';
 
 const PROJECT_TYPES = ['Website Design'];
 
@@ -48,105 +48,6 @@ export default function AdminTestimonials() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialInsert>(emptyForm);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
-  const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const thumbnailInputRef = useRef<HTMLInputElement>(null);
-
-  const handleVideoUpload = async (file: File) => {
-    if (!file) return;
-    
-    // Validate file type
-    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload a valid video file (MP4, WebM, MOV, or AVI)');
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('Video file must be less than 10MB');
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
-      const { data, error } = await supabase.storage
-        .from('testimonial-videos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('testimonial-videos')
-        .getPublicUrl(data.path);
-
-      setForm(prev => ({ ...prev, video_url: urlData.publicUrl }));
-      toast.success('Video uploaded successfully');
-    } catch (error: any) {
-      console.error('Video upload error:', error);
-      toast.error(error.message || 'Failed to upload video');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleThumbnailUpload = async (file: File) => {
-    if (!file) return;
-    
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload a valid image file (JPG, PNG, WebP, or GIF)');
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
-
-    setIsUploadingThumbnail(true);
-    try {
-      const fileName = `thumb-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
-      const { data, error } = await supabase.storage
-        .from('testimonial-videos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('testimonial-videos')
-        .getPublicUrl(data.path);
-
-      setForm(prev => ({ ...prev, video_thumbnail: urlData.publicUrl }));
-      toast.success('Cover photo uploaded successfully');
-    } catch (error: any) {
-      console.error('Thumbnail upload error:', error);
-      toast.error(error.message || 'Failed to upload cover photo');
-    } finally {
-      setIsUploadingThumbnail(false);
-    }
-  };
-
-  const handleThumbnailDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingThumbnail(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleThumbnailUpload(file);
-  };
 
   // Only owner and admin can access
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
@@ -184,9 +85,20 @@ export default function AdminTestimonials() {
     setIsDialogOpen(true);
   };
 
-  // Count how many are currently shown on homepage (excluding current editing one)
   const homepageEditCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
   const canEnableHomepage = homepageEditCount < 3;
+  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
+
+  const handleVimeoUrlChange = (url: string) => {
+    updateField('video_url', url);
+    // Auto-generate thumbnail from Vimeo
+    const vimeoId = extractVimeoId(url);
+    if (vimeoId) {
+      updateField('video_thumbnail', `https://vumbnail.com/${vimeoId}.jpg`);
+    } else {
+      updateField('video_thumbnail', '');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,9 +131,6 @@ export default function AdminTestimonials() {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  // Calculate homepage count for all testimonials (not filtered by editing)
-  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -229,6 +138,8 @@ export default function AdminTestimonials() {
       </div>
     );
   }
+
+  const vimeoPreviewId = extractVimeoId(form.video_url || '');
 
   return (
     <div className="space-y-6">
@@ -335,149 +246,34 @@ export default function AdminTestimonials() {
                 </div>
               </div>
 
+              {/* Vimeo URL Input */}
               <div className="space-y-2">
-                <Label htmlFor="video_url">Testimonial Video</Label>
-                <div className="space-y-3">
-                  {/* File Upload */}
-                  <div className="flex items-center gap-3">
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleVideoUpload(file);
-                      }}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => videoInputRef.current?.click()}
-                      disabled={isUploading}
-                      className="flex-1"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Video (Max 10MB)
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  {/* OR divider */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground">OR</span>
-                    <div className="flex-1 h-px bg-border" />
-                  </div>
-                  
-                  {/* URL Input */}
-                  <Input
-                    id="video_url"
-                    type="url"
-                    placeholder="Paste video URL (YouTube, Vimeo, etc.)"
-                    value={form.video_url || ''}
-                    onChange={(e) => updateField('video_url', e.target.value)}
-                  />
-                  
-                  {/* Preview if URL exists */}
-                  {form.video_url && (
-                    <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
-                      <Video className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground truncate flex-1">
-                        {form.video_url}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => updateField('video_url', '')}
-                        className="h-6 px-2"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Upload a video file (max 10MB) or paste a URL from YouTube, Vimeo, or Google Drive
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Video Cover Photo</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Upload a cover image for the video. If none is set, the first frame of the video will be used.
-                </p>
-                <input
-                  ref={thumbnailInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleThumbnailUpload(file);
-                  }}
-                  className="hidden"
+                <Label htmlFor="video_url">Vimeo Video URL</Label>
+                <Input
+                  id="video_url"
+                  type="url"
+                  placeholder="https://vimeo.com/123456789"
+                  value={form.video_url || ''}
+                  onChange={(e) => handleVimeoUrlChange(e.target.value)}
                 />
-                
-                {form.video_thumbnail ? (
-                  <div className="relative rounded-lg overflow-hidden border border-border">
-                    <img
-                      src={form.video_thumbnail}
-                      alt="Cover photo"
-                      className="w-full h-40 object-cover"
+                {vimeoPreviewId && (
+                  <div className="rounded-lg overflow-hidden border border-border aspect-video">
+                    <iframe
+                      src={`https://player.vimeo.com/video/${vimeoPreviewId}`}
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen"
+                      allowFullScreen
                     />
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => thumbnailInputRef.current?.click()}
-                        className="h-7 px-2 text-xs"
-                      >
-                        Replace
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => updateField('video_thumbnail', '')}
-                        className="h-7 px-2 text-xs"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setIsDraggingThumbnail(true); }}
-                    onDragLeave={() => setIsDraggingThumbnail(false)}
-                    onDrop={handleThumbnailDrop}
-                    onClick={() => !isUploadingThumbnail && thumbnailInputRef.current?.click()}
-                    className={`
-                      flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed cursor-pointer transition-colors
-                      ${isDraggingThumbnail ? 'border-accent bg-accent/10' : 'border-border hover:border-muted-foreground'}
-                      ${isUploadingThumbnail ? 'opacity-60 pointer-events-none' : ''}
-                    `}
-                  >
-                    {isUploadingThumbnail ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Image className="h-8 w-8 text-muted-foreground" />
-                    )}
-                    <span className="text-sm text-muted-foreground text-center">
-                      {isUploadingThumbnail ? 'Uploading...' : 'Drag & drop or click to upload cover photo'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">JPG, PNG, WebP · Max 5MB</span>
                   </div>
                 )}
+                {form.video_url && !vimeoPreviewId && (
+                  <p className="text-xs text-destructive">
+                    Please enter a valid Vimeo URL (e.g., https://vimeo.com/123456789)
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Paste a Vimeo link. The thumbnail will be fetched automatically.
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -549,7 +345,7 @@ export default function AdminTestimonials() {
                   <div className="flex items-center gap-3">
                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                     <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
                         {testimonial.business_name}
                         {!testimonial.is_active && (
                           <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>
@@ -576,9 +372,9 @@ export default function AdminTestimonials() {
                         </a>
                       </Button>
                     )}
-                    <Button 
-                      variant={testimonial.show_on_homepage ? "default" : "ghost"} 
-                      size="icon" 
+                    <Button
+                      variant={testimonial.show_on_homepage ? "default" : "ghost"}
+                      size="icon"
                       onClick={() => handleToggleHomepage(testimonial)}
                       title={testimonial.show_on_homepage ? "Remove from Homepage" : "Add to Homepage"}
                     >
@@ -617,18 +413,6 @@ export default function AdminTestimonials() {
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">{testimonial.short_description}</p>
                 <div className="flex flex-wrap gap-4 text-sm">
-                  {testimonial.metric_1_value && testimonial.metric_1_label && (
-                    <div className="bg-muted px-3 py-1.5 rounded">
-                      <span className="font-semibold">{testimonial.metric_1_value}</span>{' '}
-                      <span className="text-muted-foreground">{testimonial.metric_1_label}</span>
-                    </div>
-                  )}
-                  {testimonial.metric_2_value && testimonial.metric_2_label && (
-                    <div className="bg-muted px-3 py-1.5 rounded">
-                      <span className="font-semibold">{testimonial.metric_2_value}</span>{' '}
-                      <span className="text-muted-foreground">{testimonial.metric_2_label}</span>
-                    </div>
-                  )}
                   {testimonial.delivery_time && (
                     <div className="bg-muted px-3 py-1.5 rounded">
                       <span className="font-semibold">{testimonial.delivery_time}</span>{' '}
