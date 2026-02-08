@@ -7,6 +7,7 @@ import { usePublicTestimonials, Testimonial } from "@/hooks/useTestimonials";
 import { TestimonialCard } from "@/components/work/TestimonialCard";
 import { WorkHero } from "@/components/work/WorkHero";
 import { WorkCTA } from "@/components/work/WorkCTA";
+import { usePageSEO } from "@/hooks/usePageSEO";
 
 // Fallback data for when database is empty
 const fallbackProjects = [
@@ -17,7 +18,7 @@ const fallbackProjects = [
     testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool.",
     author: "Sarah Mitchell",
     role: "Founder",
-    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop&fm=webp&q=75",
     websiteUrl: "https://bloomfloristry.com",
   },
   {
@@ -27,7 +28,7 @@ const fallbackProjects = [
     testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately.",
     author: "Marcus Chen",
     role: "CEO",
-    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop&fm=webp&q=75",
     websiteUrl: "https://urbanfitness.com",
   },
   {
@@ -37,7 +38,7 @@ const fallbackProjects = [
     testimonial: "The website they built isn't just beautiful—it's become our most effective sales tool. Inquiries have quadrupled.",
     author: "Elena Rodriguez",
     role: "Director",
-    videoThumbnail: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=800&fit=crop",
+    videoThumbnail: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=800&fit=crop&fm=webp&q=75",
     websiteUrl: "https://coastalrealty.com",
   },
 ];
@@ -50,7 +51,7 @@ const transformTestimonial = (t: Testimonial) => ({
   testimonial: t.testimonial_text,
   author: t.testimonial_author,
   role: t.testimonial_role,
-  videoThumbnail: t.video_thumbnail || "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop",
+    videoThumbnail: t.video_thumbnail || "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop&fm=webp&q=75",
   videoUrl: t.video_url,
   websiteUrl: t.website_url || "#",
 });
@@ -67,10 +68,15 @@ type ProjectDisplay = {
   websiteUrl: string;
 };
 
-const INITIAL_COUNT = 6;
+const INITIAL_COUNT = 4;
 const LOAD_MORE_COUNT = 6;
 
 const Work = () => {
+  usePageSEO({
+    title: "Our Work | Sited - Client Results & Testimonials",
+    description: "Real projects with real results. See websites we've built for businesses like yours.",
+  });
+
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const { data: dbTestimonials, isLoading } = usePublicTestimonials();
 
