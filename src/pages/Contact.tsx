@@ -9,8 +9,14 @@ import { motion } from "framer-motion";
 import { Mail, Phone, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePageSEO } from "@/hooks/usePageSEO";
 
 const Contact = () => {
+  usePageSEO({
+    title: "Contact | Sited - Start Your Web Project",
+    description: "Get in touch to start your web project. We respond within 24 hours.",
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

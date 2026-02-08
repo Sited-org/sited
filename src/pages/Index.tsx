@@ -8,6 +8,7 @@ import { useRef, useState, useEffect, memo } from "react";
 import { ArrowRight, Zap, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
+import { usePageSEO } from "@/hooks/usePageSEO";
 
 const Hero = memo(() => {
   const ref = useRef(null);
@@ -102,7 +103,7 @@ const HeroVideo = memo(() => {
               preload="metadata"
               onLoadedData={() => setVideoLoaded(true)}
               className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
-              poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=60&fit=crop"
+              poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=60&fit=crop&fm=webp"
             >
               <source
                 src="https://videos.pexels.com/video-files/3129671/3129671-hd_1920_1080_25fps.mp4"
@@ -212,19 +213,19 @@ const fallbackProjects = [
     company: "Bloom Floristry",
     category: "Website Design",
     result: "3x Conversion Rate",
-    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&q=75&fit=crop",
+    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&q=75&fit=crop&fm=webp",
   },
   {
     company: "Urban Fitness",
     category: "Website Design", 
     result: "200% More Leads",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=75&fit=crop",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=75&fit=crop&fm=webp",
   },
   {
     company: "Coastal Realty",
     category: "Website Design",
     result: "4x Online Sales",
-    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=75&fit=crop",
+    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=75&fit=crop&fm=webp",
   },
 ];
 
@@ -246,7 +247,7 @@ const FeaturedWork = () => {
         result: t.metric_1_value && t.metric_1_label 
           ? `${t.metric_1_value} ${t.metric_1_label}` 
           : t.short_description,
-        image: t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop",
+        image: t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp",
       }))
     : fallbackProjects;
 
@@ -468,6 +469,11 @@ const LegalLink = () => {
 };
 
 const Index = () => {
+  usePageSEO({
+    title: "Sited | AI-Powered Web Design & Development",
+    description: "Sited creates stunning & high conversion websites for small-medium businesses using new generation tech, and great customer support.",
+  });
+
   return (
     <Layout>
       <Hero />

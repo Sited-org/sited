@@ -9,9 +9,9 @@ export const Footer = () => {
     <footer className="bg-background border-t border-border">
       {/* CTA Section */}
       <div className="container-tight py-16 sm:py-20 text-center">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight mb-4">
           Ready to build your website?
-        </h2>
+        </h3>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           Tell us about your project and we'll bring your vision to life.
         </p>

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
+import { usePageSEO } from "@/hooks/usePageSEO";
 import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
 import ClientProfileMockup from "@/components/services/ClientProfileMockup";
@@ -105,6 +106,11 @@ const CTASection = () => {
 };
 
 const Services = () => {
+  usePageSEO({
+    title: "Services | Sited - Web Design, CRM & Booking",
+    description: "We build websites that book appointments, manage customers, and accept payments. All in one place.",
+  });
+
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: heroRef,

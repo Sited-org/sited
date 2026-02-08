@@ -1,5 +1,5 @@
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useState } from "react";
 import { Play, ExternalLink, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
@@ -30,6 +30,8 @@ export const TestimonialCard = ({
   index,
 }: TestimonialCardProps) => {
   const [showPlayer, setShowPlayer] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const isEven = index % 2 === 0;
 
   const vimeoId = extractVimeoId(videoUrl || '');
@@ -37,13 +39,31 @@ export const TestimonialCard = ({
     ? getVimeoThumbnail(vimeoId)
     : videoThumbnail;
 
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(el);
+        }
+      },
+      { rootMargin: "-50px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.6, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full"
+    <div
+      ref={cardRef}
+      className="w-full transition-all duration-600 ease-out"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? "translateY(0)" : "translateY(40px)",
+        transitionDelay: `${index * 80}ms`,
+      }}
     >
       <div
         className={`
@@ -69,9 +89,12 @@ export const TestimonialCard = ({
             >
               <img
                 src={thumbnailSrc}
-                alt={`${company} testimonial`}
+                alt={`${company} project showcase`}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                decoding="async"
+                width={1200}
+                height={800}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
               {vimeoId && (
@@ -136,6 +159,6 @@ export const TestimonialCard = ({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
