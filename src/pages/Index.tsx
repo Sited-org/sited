@@ -317,9 +317,9 @@ const FeaturedWork = () => {
                         href={project.websiteUrl as string}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors duration-300"
+                        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300"
                       >
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/80 text-white text-sm font-medium backdrop-blur-sm">
+                        <span className="opacity-60 group-hover:opacity-100 transition-opacity duration-300 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/80 text-white text-sm font-medium backdrop-blur-sm">
                           Open Site <ExternalLink size={14} />
                         </span>
                       </a>
