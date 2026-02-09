@@ -9,6 +9,7 @@ import { ArrowRight, Zap, Globe, Star, Quote } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 import { usePageSEO } from "@/hooks/usePageSEO";
+import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 
 const Hero = memo(() => {
   const ref = useRef(null);
@@ -241,14 +242,20 @@ const FeaturedWork = () => {
 
   // Transform testimonials to display format or use fallback
   const projects = testimonials && testimonials.length > 0 
-    ? testimonials.map(t => ({
-        company: t.business_name,
-        category: t.project_type,
-        result: t.metric_1_value && t.metric_1_label 
-          ? `${t.metric_1_value} ${t.metric_1_label}` 
-          : t.short_description,
-        image: t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp",
-      }))
+    ? testimonials.map(t => {
+        const vimeoId = t.video_url ? extractVimeoId(t.video_url) : null;
+        const thumbnail = vimeoId 
+          ? getVimeoThumbnail(vimeoId) 
+          : t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp";
+        return {
+          company: t.business_name,
+          category: t.project_type,
+          result: t.metric_1_value && t.metric_1_label 
+            ? `${t.metric_1_value} ${t.metric_1_label}` 
+            : t.short_description,
+          image: thumbnail,
+        };
+      })
     : fallbackProjects;
 
   return (
