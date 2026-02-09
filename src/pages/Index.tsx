@@ -187,7 +187,7 @@ const Process = () => {
       <div className="container-tight">
         <SectionHeading
           eyebrow="Our Process"
-          title="From idea to launch in weeks, not months"
+          title="From idea to launch in days, not months"
           description="Our streamlined process ensures quality delivery without unnecessary delays."
         />
 
@@ -311,6 +311,9 @@ const FeaturedWork = () => {
 
 // About/Trust Section
 const About = () => {
+  const { data: testimonials } = useHomepageTestimonials();
+  const firstTestimonial = testimonials && testimonials.length > 0 ? testimonials[0] : null;
+
   return (
     <section className="section-padding bg-surface-elevated">
       <div className="container-tight">
@@ -323,36 +326,24 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
-                Your digital partner for growth.
+                Your digital growth partner.
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                We're a boutique web design agency that combines AI precision with creative excellence. 
-                Our focused team delivers stunning websites that actually drive results.
+                Founded by Andrew Fuller, we have built a new system for creating cutting-edge websites that actually get you customers.
+                Utilising the latest technology for development, as well as years of experience with websites.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.25}>
+              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
+                We niche to create the best websites that most agencies would charge $5k - $10k for - In a matter of days - for less than 10% of the cost (Yes we still make money from this business model)
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.3}>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
-                No fluff. No endless meetings. Just beautiful, high-converting websites 
-                delivered in weeks, not months.
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                No fluff, No stuffing around, Just high quality, high converting websites made to make you more
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.4}>
-              <div className="flex flex-wrap gap-6 sm:gap-8 lg:gap-12">
-                <div>
-                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">50+</span>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Projects Delivered</p>
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">98%</span>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Client Satisfaction</p>
-                </div>
-                <div>
-                  <span className="text-2xl sm:text-3xl lg:text-4xl font-semibold">2 wks</span>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">Avg. Delivery</p>
-                </div>
-              </div>
             </ScrollReveal>
           </div>
           <ScrollReveal delay={0.2}>
@@ -360,16 +351,17 @@ const About = () => {
               <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-5 sm:p-8">
                 <Quote size={24} className="sm:w-8 sm:h-8 text-accent mb-4 sm:mb-6" />
                 <p className="text-base sm:text-lg leading-relaxed mb-4 sm:mb-6">
-                  "Sited transformed our entire digital presence. The website they built doesn't 
-                  just look incredible—it's become our most effective sales tool."
+                  "{firstTestimonial?.testimonial_text || "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool."}"
                 </p>
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="font-semibold text-sm sm:text-base">SM</span>
+                    <span className="font-semibold text-sm sm:text-base">
+                      {firstTestimonial ? firstTestimonial.testimonial_author.split(' ').map(n => n[0]).join('') : 'SM'}
+                    </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-sm sm:text-base">Sarah Mitchell</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Founder, Bloom Floristry</p>
+                    <p className="font-semibold text-sm sm:text-base">{firstTestimonial?.testimonial_author || "Sarah Mitchell"}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{firstTestimonial ? `${firstTestimonial.testimonial_role}, ${firstTestimonial.business_name}` : "Founder, Bloom Floristry"}</p>
                   </div>
                 </div>
                 <div className="flex gap-1 mt-3 sm:mt-4">
@@ -386,32 +378,6 @@ const About = () => {
   );
 };
 
-// Mid-page CTA
-const MidCTA = () => {
-  return (
-    <section className="py-12 sm:py-16 md:py-20 bg-accent">
-      <div className="container-tight">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 sm:gap-8">
-          <div>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-accent-foreground">
-              Ready to start your project?
-            </h3>
-            <p className="text-sm sm:text-base text-accent-foreground/70 mt-2">
-              Chat with our AI or book a call. Your choice.
-            </p>
-          </div>
-          <div className="flex gap-4">
-            <Button size="lg" variant="secondary" asChild className="w-full sm:w-auto">
-              <Link to="/contact">
-                Get Started <ArrowRight size={18} />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
 
 const CTA = () => {
   return (
@@ -482,7 +448,6 @@ const Index = () => {
       <FeaturedWork />
       <About />
       <Services />
-      <MidCTA />
       <Process />
       <CTA />
       <LegalLink />
