@@ -243,10 +243,15 @@ const FeaturedWork = () => {
   // Transform testimonials to display format or use fallback
   const projects = testimonials && testimonials.length > 0 
     ? testimonials.map(t => {
-        const vimeoId = t.video_url ? extractVimeoId(t.video_url) : null;
-        const thumbnail = vimeoId 
-          ? getVimeoThumbnail(vimeoId) 
-          : t.video_thumbnail || "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp";
+        const websiteUrl = t.website_url || null;
+        const thumbnail = websiteUrl
+          ? `https://image.thum.io/get/width/800/crop/450/${websiteUrl}`
+          : (() => {
+              const vimeoId = t.video_url ? extractVimeoId(t.video_url) : null;
+              return vimeoId 
+                ? getVimeoThumbnail(vimeoId) 
+                : "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp";
+            })();
         return {
           company: t.business_name,
           category: t.project_type,
@@ -254,6 +259,7 @@ const FeaturedWork = () => {
             ? `${t.metric_1_value} ${t.metric_1_label}` 
             : t.short_description,
           image: thumbnail,
+          websiteUrl,
         };
       })
     : fallbackProjects;
@@ -284,32 +290,40 @@ const FeaturedWork = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-          {projects.map((project, index) => (
-            <ScrollReveal key={project.company} delay={index * 0.05}>
-              <motion.div
-                whileHover={{ y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="group cursor-pointer"
-              >
-                <Link to="/work">
-                  <div className="overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
-                    <img
-                      src={project.image}
-                      alt={project.company}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  </div>
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {project.category}
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
-                  <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
-                </Link>
-              </motion.div>
-            </ScrollReveal>
-          ))}
+          {projects.map((project, index) => {
+            const hasWebsite = 'websiteUrl' in project && project.websiteUrl;
+            const Wrapper = hasWebsite ? 'a' : Link;
+            const wrapperProps = hasWebsite 
+              ? { href: project.websiteUrl as string, target: "_blank", rel: "noopener noreferrer" }
+              : { to: "/work" };
+
+            return (
+              <ScrollReveal key={project.company} delay={index * 0.05}>
+                <motion.div
+                  whileHover={{ y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="group cursor-pointer"
+                >
+                  <Wrapper {...(wrapperProps as any)}>
+                    <div className="overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
+                      <img
+                        src={project.image}
+                        alt={project.company}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                    <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                      {project.category}
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
+                    <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
+                  </Wrapper>
+                </motion.div>
+              </ScrollReveal>
+            );
+          })}
         </div>
       </div>
     </section>
