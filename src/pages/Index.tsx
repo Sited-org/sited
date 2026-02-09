@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect, memo } from "react";
-import { ArrowRight, Zap, Globe, Star, Quote } from "lucide-react";
+import { ArrowRight, Zap, Globe, Star, Quote, ExternalLink } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -245,7 +245,7 @@ const FeaturedWork = () => {
     ? testimonials.map(t => {
         const websiteUrl = t.website_url || null;
         const thumbnail = websiteUrl
-          ? `https://image.thum.io/get/width/800/crop/450/${websiteUrl}`
+          ? `https://image.thum.io/get/width/1920/crop/1080/${websiteUrl}`
           : (() => {
               const vimeoId = t.video_url ? extractVimeoId(t.video_url) : null;
               return vimeoId 
@@ -304,22 +304,32 @@ const FeaturedWork = () => {
                   transition={{ duration: 0.2 }}
                   className="group cursor-pointer"
                 >
-                  <Wrapper {...(wrapperProps as any)}>
-                    <div className="overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
-                      <img
-                        src={project.image}
-                        alt={project.company}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-48 sm:h-56 md:h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    </div>
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {project.category}
-                    </span>
-                    <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
-                    <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
-                  </Wrapper>
+                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
+                    <img
+                      src={project.image}
+                      alt={project.company}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full aspect-video object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                    />
+                    {hasWebsite && (
+                      <a
+                        href={project.websiteUrl as string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors duration-300"
+                      >
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/80 text-white text-sm font-medium backdrop-blur-sm">
+                          Open Site <ExternalLink size={14} />
+                        </span>
+                      </a>
+                    )}
+                  </div>
+                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
+                    {project.category}
+                  </span>
+                  <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
+                  <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
                 </motion.div>
               </ScrollReveal>
             );
