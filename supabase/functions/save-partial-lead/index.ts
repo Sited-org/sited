@@ -138,6 +138,9 @@ serve(async (req) => {
     if (lead_id) {
       logStep('Updating existing lead', { lead_id });
       
+      // Determine partial status: only mark as complete (false) when explicitly set to false
+      const isPartial = form_data?.partial === false ? false : true;
+      
       const { error: updateError } = await supabase
         .from('leads')
         .update({
@@ -145,7 +148,7 @@ serve(async (req) => {
           email,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: form_data?.partial !== false },
+          form_data: { ...form_data, partial: isPartial },
         })
         .eq('id', lead_id);
 
@@ -186,14 +189,15 @@ serve(async (req) => {
     if (existingLead) {
       logStep('Found existing lead, updating', { lead_id: existingLead.id });
       
-      // Update existing lead instead of creating duplicate
+      const isPartialExisting = form_data?.partial === false ? false : true;
+      
       const { error: updateError } = await supabase
         .from('leads')
         .update({
           name,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: form_data?.partial !== false },
+          form_data: { ...form_data, partial: isPartialExisting },
         })
         .eq('id', existingLead.id);
 
@@ -218,7 +222,7 @@ serve(async (req) => {
         phone: phone || null,
         business_name: business_name || null,
         project_type,
-        form_data: { ...form_data, partial: form_data?.partial !== false, contactInfoOnly: true },
+        form_data: { ...form_data, partial: true, contactInfoOnly: true },
         status: 'new',
       })
       .select('id')

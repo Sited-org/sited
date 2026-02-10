@@ -75,6 +75,12 @@ export default function LeadProfile() {
     if (!id || !canEdit) return;
     setSaving(true);
 
+    // If status is being changed away from 'new', clear the partial flag in form_data
+    const currentFormData = lead.form_data || {};
+    const updatedFormData = (status !== 'new' || lead.status !== status) && currentFormData.partial === true
+      ? { ...currentFormData, partial: false }
+      : currentFormData;
+
     const updates: any = {
       name,
       email,
@@ -85,6 +91,7 @@ export default function LeadProfile() {
       status,
       notes,
       deal_amount: parseFloat(dealAmount) || 0,
+      form_data: updatedFormData,
     };
 
     // Set deal_closed_at when status changes to sold
