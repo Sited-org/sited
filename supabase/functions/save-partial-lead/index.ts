@@ -145,7 +145,7 @@ serve(async (req) => {
           email,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: true },
+          form_data: { ...form_data, partial: form_data?.partial !== false },
         })
         .eq('id', lead_id);
 
@@ -193,7 +193,7 @@ serve(async (req) => {
           name,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: true },
+          form_data: { ...form_data, partial: form_data?.partial !== false },
         })
         .eq('id', existingLead.id);
 
@@ -218,7 +218,7 @@ serve(async (req) => {
         phone: phone || null,
         business_name: business_name || null,
         project_type,
-        form_data: { ...form_data, partial: true, contactInfoOnly: true },
+        form_data: { ...form_data, partial: form_data?.partial !== false, contactInfoOnly: true },
         status: 'new',
       })
       .select('id')

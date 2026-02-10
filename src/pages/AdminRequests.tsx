@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -202,6 +202,7 @@ export default function AdminRequests() {
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
   const [estimatedCompletion, setEstimatedCompletion] = useState('');
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
 
   const { data: requests = [], isLoading } = useQuery({
     queryKey: ['admin-requests'],
@@ -772,33 +773,41 @@ export default function AdminRequests() {
                     <Button 
                       variant="outline" 
                       className="w-full gap-2"
-                      onClick={() => {
-                        // Strip HTML tags from body for plain text prompt
-                        const plainBody = selectedRequest.body 
-                          ? selectedRequest.body.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
-                          : '';
-                        
-                        const prompt = `Please implement the following client request for their website:
+                      disabled={isGeneratingPrompt}
+                      onClick={async () => {
+                        setIsGeneratingPrompt(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke('generate-request-prompt', {
+                            body: {
+                              requestTitle: selectedRequest.title,
+                              requestDescription: selectedRequest.description,
+                              requestBody: selectedRequest.body,
+                              leadId: selectedRequest.lead_id,
+                            },
+                          });
 
-**Request Title:** ${selectedRequest.title}
+                          if (error) throw error;
+                          if (data?.error) throw new Error(data.error);
 
-${selectedRequest.description ? `**Description:** ${selectedRequest.description}\n` : ''}
-${plainBody ? `**Details:**\n${plainBody}\n` : ''}
-**Priority:** ${selectedRequest.priority}
-
-**Client:** ${selectedRequest.leads?.business_name || selectedRequest.leads?.name || 'Unknown'}
-
-Please implement this change carefully, ensuring it matches the existing design system and follows best practices. Test that the change works correctly before completing.`;
-
-                        navigator.clipboard.writeText(prompt);
-                        toast({
-                          title: "Copied!",
-                          description: "AI prompt copied to clipboard",
-                        });
+                          await navigator.clipboard.writeText(data.prompt);
+                          toast({
+                            title: "Copied!",
+                            description: "AI-generated prompt copied to clipboard",
+                          });
+                        } catch (err: any) {
+                          console.error('Error generating prompt:', err);
+                          toast({
+                            title: "Error",
+                            description: err.message || "Failed to generate prompt",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsGeneratingPrompt(false);
+                        }
                       }}
                     >
-                      <Sparkles className="h-4 w-4" />
-                      Copy AI Prompt
+                      <Sparkles className={`h-4 w-4 ${isGeneratingPrompt ? 'animate-spin' : ''}`} />
+                      {isGeneratingPrompt ? 'Generating...' : 'Copy AI Prompt'}
                     </Button>
                   </div>
 
