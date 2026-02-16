@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState, useEffect, memo } from "react";
-import { ArrowRight, Zap, Globe, Star, Quote, ExternalLink } from "lucide-react";
+import { ArrowRight, Zap, Globe, Star, Quote, ExternalLink, Layout as LayoutIcon, Users, BarChart3 } from "lucide-react";
 import { ChatSection } from "@/components/ChatSection";
 import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -34,17 +34,15 @@ const Hero = memo(() => {
         style={{ opacity, scale, y }}
         className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center will-change-transform"
       >
-        {/* Spacer for removed badge */}
-
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
           className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
         >
-          We build websites
+          A Professional Website, Portal, or Dashboard —
           <br />
-          <span className="text-muted-foreground">that convert.</span>
+          <span className="text-muted-foreground">Built Fast, Maintained Proactively, Always Improving.</span>
         </motion.h1>
 
         <motion.p
@@ -53,8 +51,7 @@ const Hero = memo(() => {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
-          Sited combines AI precision with creative excellence to deliver stunning 
-          digital experiences for small and medium businesses.
+          Sited builds and looks after websites, landing pages, CRMs, client portals, and admin dashboards for growing businesses — with a dedicated team monitoring your site every single month.
         </motion.p>
 
         <motion.div
@@ -64,12 +61,12 @@ const Hero = memo(() => {
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <Button variant="hero" size="xl" asChild>
-            <Link to="/contact">
-              Start Your Project <ArrowRight size={20} />
+            <Link to="/work">
+              See What We Build <ArrowRight size={20} />
             </Link>
           </Button>
           <Button variant="hero-outline" size="xl" asChild>
-            <Link to="/work">View Our Work</Link>
+            <Link to="/contact">Book a Free Consultation</Link>
           </Button>
         </motion.div>
       </motion.div>
@@ -126,13 +123,28 @@ HeroVideo.displayName = 'HeroVideo';
 const services = [
   {
     icon: Globe,
-    title: "Custom Website Design",
-    description: "Stunning, responsive websites that capture your brand and convert visitors into customers.",
+    title: "Website Builds",
+    description: "A professionally designed website that reflects your brand and turns visitors into leads. Built in days, not months. From simple landing pages to multi-page business sites, every build is fast, clean, and built to perform.",
+  },
+  {
+    icon: Users,
+    title: "CRM Systems",
+    description: "Stop managing clients in spreadsheets. We build custom CRM systems tailored to how your business actually works — track leads, manage pipelines, and have a clear view of every client relationship, all in one place.",
+  },
+  {
+    icon: BarChart3,
+    title: "Admin Dashboards",
+    description: "Your business data, presented clearly. We build internal dashboards that give you and your team real-time visibility of the numbers that matter — without needing a data analyst to make sense of them.",
+  },
+  {
+    icon: LayoutIcon,
+    title: "Client Portals",
+    description: "Give your clients a professional, branded space to access their documents, updates, and communications with you. A client portal elevates your service offering and reduces the back-and-forth that slows every project down.",
   },
   {
     icon: Zap,
-    title: "High-Performance Development",
-    description: "Lightning-fast, SEO-optimized websites built with cutting-edge technology.",
+    title: "Landing Pages",
+    description: "High-converting landing pages for campaigns, product launches, or new service offerings. Designed to capture attention and drive action — built and live within days.",
   },
 ];
 
@@ -142,11 +154,11 @@ const Services = () => {
       <div className="container-tight">
         <SectionHeading
           eyebrow="What We Do"
-          title="Everything you need to succeed online"
-          description="From concept to launch, we handle every aspect of your digital presence with precision and care."
+          title="What Sited Builds & Manages"
+          description="We build the digital tools your business runs on — and then we keep them running. Whether you need a sharp website that converts visitors into enquiries, a CRM to manage your clients, or a portal that gives your customers a seamless experience, Sited delivers it quickly and professionally. Then, through our Care Plan, we monitor and improve it every month so you never have to worry about it again."
         />
 
-        <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {services.map((service, index) => (
             <ScrollReveal key={service.title} delay={index * 0.1}>
               <motion.div
@@ -166,7 +178,7 @@ const Services = () => {
         <ScrollReveal delay={0.4} className="mt-12 text-center">
           <Button variant="outline" size="lg" asChild>
             <Link to="/services">
-              Explore All Services <ArrowRight size={18} />
+              See Everything We Build <ArrowRight size={18} />
             </Link>
           </Button>
         </ScrollReveal>
@@ -178,9 +190,9 @@ const Services = () => {
 const Process = () => {
   const steps = [
     { number: "01", title: "Discovery", description: "We learn about your business, goals, and vision through our detailed onboarding process." },
-    { number: "02", title: "Design", description: "Our AI-assisted design process creates stunning visuals tailored to your brand." },
-    { number: "03", title: "Develop", description: "We build your project using cutting-edge technology for speed and reliability." },
-    { number: "04", title: "Launch", description: "Your project goes live with full support and optimization." },
+    { number: "02", title: "Design", description: "We create stunning visuals tailored to your brand and your audience." },
+    { number: "03", title: "Develop", description: "We build your project using the best available technology for speed and reliability." },
+    { number: "04", title: "Launch & Care", description: "Your project goes live, and our Care Plan keeps it monitored and improving every month." },
   ];
 
   return (
@@ -276,7 +288,7 @@ const FeaturedWork = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
-                Results that speak.
+                Businesses That Trust Sited to Keep Their Digital Presence Running
               </h2>
             </ScrollReveal>
           </div>
@@ -340,7 +352,7 @@ const FeaturedWork = () => {
   );
 };
 
-// About/Trust Section
+// About/Trust Section — "Why Sited"
 const About = () => {
   const { data: testimonials } = useHomepageTestimonials();
   const firstTestimonial = testimonials && testimonials.length > 0 ? testimonials[0] : null;
@@ -352,29 +364,38 @@ const About = () => {
           <div>
             <ScrollReveal>
               <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                About Sited
+                Why Sited
               </span>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
-                Your digital growth partner.
+                Why Businesses Choose Sited Over a Traditional Agency
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                Founded by Andrew Fuller, we have built a new system for creating cutting-edge websites that actually get you customers.
-                Utilising the latest technology for development, as well as years of experience with websites.
+                Traditional web agencies are slow, expensive, and disappear the moment your site goes live. Sited is different. We move fast — most builds are complete within days — and we stay with you after launch. Through our monthly Care Plan, your site is monitored, reviewed, and improved on an ongoing basis. You get a dedicated team who knows your site inside and out, without the cost of a full-time developer.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.25}>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                We niche to create the best websites that most agencies would charge $5k - $10k for - In a matter of days - for less than 10% of the cost (Yes we still make money from this business model)
-              </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.3}>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                No fluff, No stuffing around, Just high quality, high converting websites made to make you more
-              </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-semibold text-sm sm:text-base mb-1">Fast delivery, without cutting corners.</p>
+                  <p className="text-sm text-muted-foreground">Most projects are completed within days, not months. You get a professional result without a drawn-out agency process.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm sm:text-base mb-1">Proactive care, not reactive panic.</p>
+                  <p className="text-sm text-muted-foreground">Our Care Plan means we are reviewing your site every month — catching issues, recommending improvements, and implementing changes before you even know they are needed.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm sm:text-base mb-1">One accountable partner.</p>
+                  <p className="text-sm text-muted-foreground">No handoffs to junior developers. No chasing emails. One team who built your site, knows it completely, and keeps it performing.</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm sm:text-base mb-1">Transparent, predictable pricing.</p>
+                  <p className="text-sm text-muted-foreground">You know what you are paying and what you are getting. No surprise invoices. No scope creep conversations.</p>
+                </div>
+              </div>
             </ScrollReveal>
           </div>
           <ScrollReveal delay={0.2}>
@@ -416,12 +437,12 @@ const CTA = () => {
       <div className="container-tight text-center">
         <ScrollReveal>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-4 sm:mb-6">
-            Let's build something extraordinary.
+            Your site should be working as hard as you are.
           </h2>
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-            Your next website is just a conversation away.
+            Whether you need a new website built or you want to put an existing site on a Sited Care Plan, the next step is a free 20-minute conversation. We will tell you exactly what we can do and what it will cost — no obligation, no jargon.
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>
@@ -432,7 +453,7 @@ const CTA = () => {
               asChild
             >
               <Link to="/contact">
-                Start Your Project <ArrowRight size={20} />
+                Book Your Free Consultation <ArrowRight size={20} />
               </Link>
             </Button>
             <Button
@@ -467,8 +488,8 @@ const LegalLink = () => {
 
 const Index = () => {
   usePageSEO({
-    title: "Sited | AI-Powered Web Design & Development",
-    description: "Sited creates stunning & high conversion websites for small-medium businesses using new generation tech, and great customer support.",
+    title: "Sited | Professional Web Design, Built Fast & Maintained Monthly",
+    description: "Sited builds professional websites, CRMs, client portals, and dashboards for growing businesses — then monitors and improves them every month through our Care Plan. Fast builds. Proactive care. One accountable team.",
   });
 
   return (
