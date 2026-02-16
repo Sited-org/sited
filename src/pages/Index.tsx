@@ -34,15 +34,15 @@ const Hero = memo(() => {
         style={{ opacity, scale, y }}
         className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center will-change-transform"
       >
-        <motion.h1
+         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
           className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
         >
-          A Professional Website, Portal, or Dashboard —
+          Built Fast. Looked After
           <br />
-          <span className="text-muted-foreground">Built Fast, Maintained Proactively, Always Improving.</span>
+          <span className="text-muted-foreground">Every Single Month.</span>
         </motion.h1>
 
         <motion.p
@@ -51,7 +51,7 @@ const Hero = memo(() => {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
-          Sited builds and looks after websites, landing pages, CRMs, client portals, and admin dashboards for growing businesses — with a dedicated team monitoring your site every single month.
+          Websites, portals, CRMs, and dashboards for growing businesses — built in days, monitored and improved monthly through our Care Plan.
         </motion.p>
 
         <motion.div
@@ -122,29 +122,29 @@ HeroVideo.displayName = 'HeroVideo';
 
 const services = [
   {
-    icon: Globe,
+  icon: Globe,
     title: "Website Builds",
-    description: "A professionally designed website that reflects your brand and turns visitors into leads. Built in days, not months. From simple landing pages to multi-page business sites, every build is fast, clean, and built to perform.",
+    description: "Custom websites that reflect your brand and convert visitors into leads. Built in days, not months.",
   },
   {
     icon: Users,
     title: "CRM Systems",
-    description: "Stop managing clients in spreadsheets. We build custom CRM systems tailored to how your business actually works — track leads, manage pipelines, and have a clear view of every client relationship, all in one place.",
+    description: "Stop using spreadsheets. We build CRMs around your actual workflow — leads, pipelines, and client relationships in one place.",
   },
   {
     icon: BarChart3,
     title: "Admin Dashboards",
-    description: "Your business data, presented clearly. We build internal dashboards that give you and your team real-time visibility of the numbers that matter — without needing a data analyst to make sense of them.",
+    description: "Your business data, presented clearly. Real-time visibility of the numbers that matter — no analyst required.",
   },
   {
     icon: LayoutIcon,
     title: "Client Portals",
-    description: "Give your clients a professional, branded space to access their documents, updates, and communications with you. A client portal elevates your service offering and reduces the back-and-forth that slows every project down.",
+    description: "A branded space for your clients to access documents, track progress, and communicate — cutting the back-and-forth.",
   },
   {
     icon: Zap,
     title: "Landing Pages",
-    description: "High-converting landing pages for campaigns, product launches, or new service offerings. Designed to capture attention and drive action — built and live within days.",
+    description: "High-converting pages for campaigns and launches. Designed to capture attention — built and live within days.",
   },
 ];
 
@@ -155,7 +155,7 @@ const Services = () => {
         <SectionHeading
           eyebrow="What We Do"
           title="What Sited Builds & Manages"
-          description="We build the digital tools your business runs on — and then we keep them running. Whether you need a sharp website that converts visitors into enquiries, a CRM to manage your clients, or a portal that gives your customers a seamless experience, Sited delivers it quickly and professionally. Then, through our Care Plan, we monitor and improve it every month so you never have to worry about it again."
+          description="We build the digital tools your business runs on — then keep them running through our monthly Care Plan."
         />
 
         <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -288,7 +288,7 @@ const FeaturedWork = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
-                Businesses That Trust Sited to Keep Their Digital Presence Running
+                Businesses That Trust Sited
               </h2>
             </ScrollReveal>
           </div>
@@ -369,31 +369,31 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
-                Why Businesses Choose Sited Over a Traditional Agency
+                Why Businesses Choose Sited
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                Traditional web agencies are slow, expensive, and disappear the moment your site goes live. Sited is different. We move fast — most builds are complete within days — and we stay with you after launch. Through our monthly Care Plan, your site is monitored, reviewed, and improved on an ongoing basis. You get a dedicated team who knows your site inside and out, without the cost of a full-time developer.
+                Traditional agencies are slow, expensive, and disappear after launch. We build in days, then stay — monitoring and improving your site every month through our Care Plan.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.25}>
               <div className="space-y-4">
                 <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">Fast delivery, without cutting corners.</p>
-                  <p className="text-sm text-muted-foreground">Most projects are completed within days, not months. You get a professional result without a drawn-out agency process.</p>
+                  <p className="font-semibold text-sm sm:text-base mb-1">Fast delivery, no shortcuts.</p>
+                  <p className="text-sm text-muted-foreground">Most projects done in days, not months.</p>
                 </div>
                 <div>
                   <p className="font-semibold text-sm sm:text-base mb-1">Proactive care, not reactive panic.</p>
-                  <p className="text-sm text-muted-foreground">Our Care Plan means we are reviewing your site every month — catching issues, recommending improvements, and implementing changes before you even know they are needed.</p>
+                  <p className="text-sm text-muted-foreground">Monthly reviews, improvements, and fixes — before you notice anything.</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">One accountable partner.</p>
-                  <p className="text-sm text-muted-foreground">No handoffs to junior developers. No chasing emails. One team who built your site, knows it completely, and keeps it performing.</p>
+                  <p className="font-semibold text-sm sm:text-base mb-1">One accountable team.</p>
+                  <p className="text-sm text-muted-foreground">The team that built it is the team that maintains it.</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">Transparent, predictable pricing.</p>
-                  <p className="text-sm text-muted-foreground">You know what you are paying and what you are getting. No surprise invoices. No scope creep conversations.</p>
+                  <p className="font-semibold text-sm sm:text-base mb-1">Transparent pricing.</p>
+                  <p className="text-sm text-muted-foreground">No surprise invoices. No scope creep.</p>
                 </div>
               </div>
             </ScrollReveal>
@@ -437,12 +437,12 @@ const CTA = () => {
       <div className="container-tight text-center">
         <ScrollReveal>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-4 sm:mb-6">
-            Your site should be working as hard as you are.
+            Your site should work as hard as you do.
           </h2>
         </ScrollReveal>
         <ScrollReveal delay={0.1}>
           <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-            Whether you need a new website built or you want to put an existing site on a Sited Care Plan, the next step is a free 20-minute conversation. We will tell you exactly what we can do and what it will cost — no obligation, no jargon.
+            New build or existing site — the next step is a free 20-minute call. No obligation, no jargon.
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>

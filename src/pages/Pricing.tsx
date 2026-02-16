@@ -9,15 +9,15 @@ import { usePageSEO } from "@/hooks/usePageSEO";
 const tiers = [
   {
     name: "Starter — Landing Page",
-    description: "A single, high-converting landing page for a campaign, product launch, or service offering. Designed to capture attention and drive one clear action. Delivered within 2–3 business days.",
+    description: "A high-converting landing page for campaigns or launches. One clear action. Delivered in 2–3 days.",
   },
   {
     name: "Professional — Website",
-    description: "A full business website with up to 6 pages, custom design, contact forms, and SEO foundations. This is your digital storefront — built professionally, connected to version control, and ready to represent your business from day one.",
+    description: "Up to 6 pages, custom design, contact forms, and SEO foundations. Your digital storefront — built professionally, ready from day one.",
   },
   {
     name: "Advanced — CRM / Portal / Dashboard",
-    description: "Custom-built business systems — CRMs, client portals, or admin dashboards — designed around your specific workflows. Scope is agreed in detail before work begins. Every build includes full documentation and version-controlled code.",
+    description: "CRMs, portals, or dashboards designed around your workflows. Scope agreed upfront, fully documented.",
   },
 ];
 
@@ -65,7 +65,7 @@ const Pricing = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2"
           >
-            We believe in straightforward pricing that reflects the value we deliver. Every project starts with a fixed build fee — no hidden costs, no scope creep conversations. After launch, we recommend adding your site to a Care Plan so it continues to perform and improve every month.
+            Fixed build fees, no hidden costs. After launch, our Care Plan keeps your site performing and improving monthly.
           </motion.p>
         </div>
       </section>
@@ -113,13 +113,8 @@ const Pricing = () => {
               </h2>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4">
-                Your website is not a finished product — it is a business asset that needs attention. The Care Plan keeps your site monitored, maintained, and continuously improving. Available to all Sited-built sites and to sites built elsewhere.
-              </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.15}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
-                Each month, your Sited team runs a full site integrity check, delivers an AI-powered performance overview, and implements a set of agreed improvements directly to your site. You receive a clear written report of what was checked, what changed, and what we recommend next.
+                Your site is a business asset. The Care Plan keeps it monitored, maintained, and improving — with a clear monthly report of what changed and what's next.
               </p>
             </ScrollReveal>
 
@@ -156,7 +151,7 @@ const Pricing = () => {
           </ScrollReveal>
           <ScrollReveal delay={0.1}>
             <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-              Book a free 20-minute call with the Sited team. We will listen to what your business actually needs, tell you what we would build, and give you a clear quote — with no pressure and no obligation.
+              Free 20-minute call. We listen, advise, and give you a clear quote — no pressure.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={0.2}>

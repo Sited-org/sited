@@ -62,7 +62,7 @@ const Contact = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2"
           >
-            Most projects start with a 20-minute call. We listen to what your business needs, share what we would build, and give you a clear, honest quote. No jargon. No sales pressure. If we are not the right fit, we will tell you that too.
+            20 minutes. We listen, advise, and give you a clear quote. No jargon, no pressure.
           </motion.p>
         </div>
       </section>

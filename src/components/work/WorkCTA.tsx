@@ -53,7 +53,7 @@ export const WorkCTA = () => {
           transition={{ duration: 0.8, delay: 0.1 }}
           className="text-background/60 text-sm sm:text-base md:text-lg max-w-md mx-auto mt-5 sm:mt-6 px-2"
         >
-          Let's build something exceptional — and then keep it running through our Care Plan. No templates, just results.
+          Built properly. Maintained monthly through our Care Plan.
         </motion.p>
 
         <motion.div
