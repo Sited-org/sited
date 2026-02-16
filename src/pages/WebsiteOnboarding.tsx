@@ -7,66 +7,59 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Globe, Sparkles, Upload } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check, Globe, Upload } from "lucide-react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
-import { OnboardingAIAssistant } from "@/components/onboarding/OnboardingAIAssistant";
 
 const steps = [
   { id: 1, title: "Contact Info" },
   { id: 2, title: "Business Details" },
-  { id: 3, title: "Project Goals" },
-  { id: 4, title: "Design & Content" },
-  { id: 5, title: "Technical Requirements" },
-  { id: 6, title: "Timeline & Budget" },
+  { id: 3, title: "Goals & Design" },
+  { id: 4, title: "Technical & Content" },
+  { id: 5, title: "Timeline & Budget" },
 ];
 
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { isSubmitting, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
-    // Contact Info
+    // Step 1: Contact Info
     fullName: "",
     email: "",
     phone: "",
-    preferredContact: "email",
-    timezone: "",
+    preferredContact: "",
 
-    // Business Details
+    // Step 2: Business Details
     businessName: "",
     industry: "",
     businessDescription: "",
     targetAudience: "",
     averageCustomerValue: "",
 
-    // Project Goals
+    // Step 3: Goals & Design (consolidated from old steps 3+4)
     primaryGoal: "",
     secondaryGoals: [] as string[],
     desiredActions: "",
     successMetrics: "",
-
-    // Design & Content
-    existingBranding: "no",
-    brandLogoFile: null as File | null,
-    brandLogoFileName: "",
+    existingBranding: "",
     brandColors: "",
     brandFonts: "",
+    brandLogoFile: null as File | null,
+    brandLogoFileName: "",
     designStyle: "",
-    inspirationSite1: "",
-    inspirationSite2: "",
-    inspirationSite3: "",
-    contentReady: "no",
+    inspirationSites: "",
+
+    // Step 4: Technical & Content (consolidated from old steps 4+5)
+    contentReady: "",
     contentHelp: [] as string[],
     requiredPages: [] as string[],
     customPages: "",
-
-    // Technical Requirements
+    domainOwned: "",
     currentWebsite: "",
-    domainOwned: "no",
     domainName: "",
     domainRegistrar: "",
     domainRegistrarOther: "",
@@ -75,15 +68,15 @@ const WebsiteOnboarding = () => {
     features: [] as string[],
     otherFeatures: "",
 
-    // Timeline & Budget
+    // Step 5: Timeline & Budget
     budget: "",
     timeline: "",
     launchDate: "",
-    additionalNotes: "",
     howDidYouHear: "",
+    additionalNotes: "",
   });
 
-  // Pre-fill from chatbot data (Sited AI)
+  // Pre-fill from chatbot data (legacy)
   useEffect(() => {
     const chatbotData = sessionStorage.getItem("chatbotInfo");
     if (chatbotData) {
@@ -109,8 +102,9 @@ const WebsiteOnboarding = () => {
 
   const updateFormData = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear validation errors when user updates a field
+    setValidationErrors([]);
   };
-
 
   const toggleArrayItem = (field: string, item: string) => {
     setFormData((prev) => {
@@ -120,10 +114,56 @@ const WebsiteOnboarding = () => {
       }
       return { ...prev, [field]: [...currentArray, item] };
     });
+    setValidationErrors([]);
   };
 
+  const validateStep = (): string[] => {
+    const errors: string[] = [];
+    switch (currentStep) {
+      case 1:
+        if (!formData.fullName.trim()) errors.push("fullName");
+        if (!formData.email.trim()) errors.push("email");
+        if (!formData.phone.trim()) errors.push("phone");
+        if (!formData.preferredContact) errors.push("preferredContact");
+        break;
+      case 2:
+        if (!formData.businessName.trim()) errors.push("businessName");
+        if (!formData.industry) errors.push("industry");
+        if (!formData.businessDescription.trim()) errors.push("businessDescription");
+        if (!formData.targetAudience.trim()) errors.push("targetAudience");
+        if (!formData.averageCustomerValue.trim()) errors.push("averageCustomerValue");
+        break;
+      case 3:
+        if (!formData.primaryGoal) errors.push("primaryGoal");
+        if (!formData.desiredActions.trim()) errors.push("desiredActions");
+        if (!formData.successMetrics.trim()) errors.push("successMetrics");
+        if (!formData.existingBranding) errors.push("existingBranding");
+        if (!formData.designStyle) errors.push("designStyle");
+        break;
+      case 4:
+        if (!formData.contentReady) errors.push("contentReady");
+        if (formData.requiredPages.length === 0) errors.push("requiredPages");
+        if (!formData.domainOwned) errors.push("domainOwned");
+        break;
+      case 5:
+        if (!formData.budget) errors.push("budget");
+        if (!formData.timeline) errors.push("timeline");
+        if (!formData.howDidYouHear) errors.push("howDidYouHear");
+        break;
+    }
+    return errors;
+  };
+
+  const hasError = (field: string) => validationErrors.includes(field);
+
   const nextStep = async () => {
-    // Save partial lead after contact info step
+    const errors = validateStep();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      toast.error("Please complete all required fields before continuing.");
+      return;
+    }
+
     if (currentStep === 1 && formData.fullName && formData.email) {
       await savePartialLead({
         name: formData.fullName,
@@ -132,7 +172,6 @@ const WebsiteOnboarding = () => {
         project_type: 'website',
       });
     } else if (currentStep > 1 && currentStep < steps.length) {
-      // Update partial lead with accumulated form data at each subsequent step
       await updatePartialLead({
         name: formData.fullName,
         email: formData.email,
@@ -141,9 +180,10 @@ const WebsiteOnboarding = () => {
         form_data: formData,
       });
     }
-    
+
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
+      setValidationErrors([]);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -151,11 +191,19 @@ const WebsiteOnboarding = () => {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      setValidationErrors([]);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handleSubmit = async () => {
+    const errors = validateStep();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      toast.error("Please complete all required fields before submitting.");
+      return;
+    }
+
     const success = await submitLead({
       name: formData.fullName,
       email: formData.email,
@@ -171,7 +219,8 @@ const WebsiteOnboarding = () => {
     }
   };
 
-  // Show confirmation screen after submission
+  const errorRing = "ring-2 ring-destructive/50";
+
   if (isSubmitted) {
     return (
       <Layout hideFooter>
@@ -274,7 +323,7 @@ const WebsiteOnboarding = () => {
                   </div>
                   {index < steps.length - 1 && (
                     <div
-                      className={`hidden sm:block w-12 md:w-20 lg:w-28 h-0.5 mx-2 transition-colors ${
+                      className={`hidden sm:block w-16 md:w-24 lg:w-32 h-0.5 mx-2 transition-colors ${
                         currentStep > step.id ? "bg-foreground" : "bg-muted"
                       }`}
                     />
@@ -320,7 +369,7 @@ const WebsiteOnboarding = () => {
                       value={formData.fullName}
                       onChange={(e) => updateFormData("fullName", e.target.value)}
                       placeholder="John Smith"
-                      className="h-12"
+                      className={`h-12 ${hasError("fullName") ? errorRing : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
@@ -331,40 +380,22 @@ const WebsiteOnboarding = () => {
                       value={formData.email}
                       onChange={(e) => updateFormData("email", e.target.value)}
                       placeholder="john@company.com"
-                      className="h-12"
+                      className={`h-12 ${hasError("email") ? errorRing : ""}`}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => updateFormData("phone", e.target.value)}
-                      placeholder="+1 (555) 000-0000"
-                      className="h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="timezone">Your Timezone</Label>
-                    <Select value={formData.timezone} onValueChange={(v) => updateFormData("timezone", v)}>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pst">Pacific Time (PST)</SelectItem>
-                        <SelectItem value="mst">Mountain Time (MST)</SelectItem>
-                        <SelectItem value="cst">Central Time (CST)</SelectItem>
-                        <SelectItem value="est">Eastern Time (EST)</SelectItem>
-                        <SelectItem value="gmt">GMT (London)</SelectItem>
-                        <SelectItem value="cet">Central European Time</SelectItem>
-                        <SelectItem value="aest">Australian Eastern Time</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateFormData("phone", e.target.value)}
+                    placeholder="0400 000 000"
+                    className={`h-12 ${hasError("phone") ? errorRing : ""}`}
+                  />
+                </div>
+                <div className={`space-y-3 ${hasError("preferredContact") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Preferred Contact Method *</Label>
                   <RadioGroup
                     value={formData.preferredContact}
@@ -373,8 +404,8 @@ const WebsiteOnboarding = () => {
                   >
                     {["Email", "Phone", "Video Call"].map((method) => (
                       <div key={method} className="flex items-center space-x-2">
-                        <RadioGroupItem value={method.toLowerCase().replace(" ", "-")} id={method} />
-                        <Label htmlFor={method} className="font-normal cursor-pointer">
+                        <RadioGroupItem value={method.toLowerCase().replace(" ", "-")} id={`contact-${method}`} />
+                        <Label htmlFor={`contact-${method}`} className="font-normal cursor-pointer">
                           {method}
                         </Label>
                       </div>
@@ -387,37 +418,10 @@ const WebsiteOnboarding = () => {
             {/* Step 2: Business Details */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Business Details</h2>
-                    <p className="text-muted-foreground">Tell us about your business</p>
-                  </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Business Details</h2>
+                  <p className="text-muted-foreground">Tell us about your business</p>
                 </div>
-                
-                {/* AI Help CTA */}
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Sparkles size={20} className="text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Not sure how to answer?</p>
-                        <p className="text-xs text-muted-foreground">Let Sited AI guide you through the process</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setShowAIAssistant(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Sparkles size={14} className="mr-2" />
-                      Get Sited AI to help
-                    </Button>
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="businessName">Business Name *</Label>
@@ -426,16 +430,16 @@ const WebsiteOnboarding = () => {
                       value={formData.businessName}
                       onChange={(e) => updateFormData("businessName", e.target.value)}
                       placeholder="Your Company Name"
-                      className="h-12"
+                      className={`h-12 ${hasError("businessName") ? errorRing : ""}`}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="industry">Industry *</Label>
                     <Select value={formData.industry} onValueChange={(v) => updateFormData("industry", v)}>
-                      <SelectTrigger className="h-12">
+                      <SelectTrigger className={`h-12 ${hasError("industry") ? errorRing : ""}`}>
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-popover z-50">
                         <SelectItem value="retail">Retail / E-commerce</SelectItem>
                         <SelectItem value="healthcare">Healthcare</SelectItem>
                         <SelectItem value="finance">Finance / Insurance</SelectItem>
@@ -453,23 +457,23 @@ const WebsiteOnboarding = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="businessDescription">Business Description *</Label>
+                  <Label htmlFor="businessDescription">What does your business do? *</Label>
                   <Textarea
                     id="businessDescription"
                     value={formData.businessDescription}
                     onChange={(e) => updateFormData("businessDescription", e.target.value)}
-                    placeholder="Describe what your business does, your products/services, and what makes you unique..."
-                    className="min-h-[120px]"
+                    placeholder="Describe your products/services and what makes you unique..."
+                    className={`min-h-[120px] ${hasError("businessDescription") ? errorRing : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="targetAudience">Target Audience *</Label>
+                  <Label htmlFor="targetAudience">Who is your ideal customer? *</Label>
                   <Textarea
                     id="targetAudience"
                     value={formData.targetAudience}
                     onChange={(e) => updateFormData("targetAudience", e.target.value)}
-                    placeholder="Describe your ideal customers: demographics, interests, pain points..."
-                    className="min-h-[100px]"
+                    placeholder="Demographics, interests, pain points..."
+                    className={`min-h-[100px] ${hasError("targetAudience") ? errorRing : ""}`}
                   />
                 </div>
                 <div className="space-y-2">
@@ -479,49 +483,24 @@ const WebsiteOnboarding = () => {
                     value={formData.averageCustomerValue}
                     onChange={(e) => updateFormData("averageCustomerValue", e.target.value)}
                     placeholder="E.g., $500, $1,000, $50,000"
-                    className="h-12"
+                    className={`h-12 ${hasError("averageCustomerValue") ? errorRing : ""}`}
                   />
                   <p className="text-xs text-muted-foreground">
-                    If the business has not launched, estimate the average value of a customer
+                    If the business has not launched, provide an estimate
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Project Goals */}
+            {/* Step 3: Goals & Design (consolidated) */}
             {currentStep === 3 && (
               <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Project Goals</h2>
-                    <p className="text-muted-foreground">What do you want to achieve?</p>
-                  </div>
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Goals & Design</h2>
+                  <p className="text-muted-foreground">What do you want to achieve and how should it look?</p>
                 </div>
-                
-                {/* AI Help CTA */}
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Sparkles size={20} className="text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Need help defining your goals?</p>
-                        <p className="text-xs text-muted-foreground">Let Sited AI help you articulate your vision</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setShowAIAssistant(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Sparkles size={14} className="mr-2" />
-                      Get Sited AI to help
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-3">
+
+                <div className={`space-y-3 ${hasError("primaryGoal") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Primary Goal for the Website *</Label>
                   <RadioGroup
                     value={formData.primaryGoal}
@@ -530,7 +509,7 @@ const WebsiteOnboarding = () => {
                   >
                     {[
                       { value: "generate-leads", label: "Generate leads / inquiries" },
-                      { value: "sell-products", label: "Sell products online (e-commerce)" },
+                      { value: "sell-products", label: "Sell products online" },
                       { value: "brand-awareness", label: "Build brand awareness" },
                       { value: "provide-info", label: "Provide information to customers" },
                       { value: "showcase-portfolio", label: "Showcase work / portfolio" },
@@ -548,6 +527,7 @@ const WebsiteOnboarding = () => {
                     ))}
                   </RadioGroup>
                 </div>
+
                 <div className="space-y-3">
                   <Label>Secondary Goals (Select all that apply)</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -564,74 +544,62 @@ const WebsiteOnboarding = () => {
                         className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-foreground/30 transition-colors"
                       >
                         <Checkbox
-                          id={goal}
+                          id={`goal-${goal}`}
                           checked={formData.secondaryGoals.includes(goal)}
                           onCheckedChange={() => toggleArrayItem("secondaryGoals", goal)}
                         />
-                        <Label htmlFor={goal} className="font-normal cursor-pointer flex-1">
+                        <Label htmlFor={`goal-${goal}`} className="font-normal cursor-pointer flex-1">
                           {goal}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="desiredActions">What actions should visitors take? *</Label>
+                  <Label htmlFor="desiredActions">What actions should visitors take on your site? *</Label>
                   <Textarea
                     id="desiredActions"
                     value={formData.desiredActions}
                     onChange={(e) => updateFormData("desiredActions", e.target.value)}
-                    placeholder="E.g., fill out a contact form, make a purchase, book an appointment, call your business..."
-                    className="min-h-[100px]"
+                    placeholder="E.g., fill out a contact form, make a purchase, book an appointment..."
+                    className={`min-h-[80px] ${hasError("desiredActions") ? errorRing : ""}`}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="successMetrics">How will you measure success?</Label>
-                  <Textarea
-                    id="successMetrics"
-                    value={formData.successMetrics}
-                    onChange={(e) => updateFormData("successMetrics", e.target.value)}
-                    placeholder="E.g., number of inquiries per month, conversion rate, traffic increase..."
-                    className="min-h-[80px]"
-                  />
-                </div>
-              </div>
-            )}
 
-            {/* Step 4: Design & Content */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Design & Content</h2>
-                    <p className="text-muted-foreground">Visual preferences and content needs</p>
-                  </div>
-                </div>
-                
-                {/* AI Help CTA */}
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Sparkles size={20} className="text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Not sure about design choices?</p>
-                        <p className="text-xs text-muted-foreground">Let Sited AI guide your creative decisions</p>
-                      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="successMetrics">How will you measure success? *</Label>
+                  <div className="flex flex-col gap-2">
+                    <Textarea
+                      id="successMetrics"
+                      value={formData.successMetrics}
+                      onChange={(e) => {
+                        updateFormData("successMetrics", e.target.value);
+                      }}
+                      placeholder="E.g., number of inquiries per month, conversion rate, traffic increase..."
+                      className={`min-h-[80px] ${hasError("successMetrics") && formData.successMetrics !== "Not sure yet" ? errorRing : ""}`}
+                      disabled={formData.successMetrics === "Not sure yet"}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="success-not-sure"
+                        checked={formData.successMetrics === "Not sure yet"}
+                        onCheckedChange={(checked) =>
+                          updateFormData("successMetrics", checked ? "Not sure yet" : "")
+                        }
+                      />
+                      <Label htmlFor="success-not-sure" className="font-normal text-sm cursor-pointer text-muted-foreground">
+                        Not sure yet
+                      </Label>
                     </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setShowAIAssistant(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Sparkles size={14} className="mr-2" />
-                      Get Sited AI to help
-                    </Button>
                   </div>
                 </div>
-                <div className="space-y-3">
+
+                <div className="border-t border-border pt-6 mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Design Preferences</h3>
+                </div>
+
+                <div className={`space-y-3 ${hasError("existingBranding") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Do you have existing branding (logo, colors, fonts)? *</Label>
                   <RadioGroup
                     value={formData.existingBranding}
@@ -658,75 +626,85 @@ const WebsiteOnboarding = () => {
                     </div>
                   </RadioGroup>
                 </div>
-                {formData.existingBranding !== "no" && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="brandColors">Brand Colors</Label>
-                        <Input
-                          id="brandColors"
-                          value={formData.brandColors}
-                          onChange={(e) => updateFormData("brandColors", e.target.value)}
-                          placeholder="E.g., #FF5733, Navy Blue, Forest Green"
-                          className="h-12"
-                        />
+
+                {/* Conditional: Brand details expand when they have branding */}
+                <AnimatePresence>
+                  {(formData.existingBranding === "yes-complete" || formData.existingBranding === "yes-partial") && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-6 p-4 bg-muted/30 rounded-lg border border-border">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="brandColors">Brand Colors</Label>
+                            <Input
+                              id="brandColors"
+                              value={formData.brandColors}
+                              onChange={(e) => updateFormData("brandColors", e.target.value)}
+                              placeholder="E.g., #FF5733, Navy Blue"
+                              className="h-12"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="brandFonts">Brand Fonts</Label>
+                            <Input
+                              id="brandFonts"
+                              value={formData.brandFonts}
+                              onChange={(e) => updateFormData("brandFonts", e.target.value)}
+                              placeholder="E.g., Helvetica, Open Sans"
+                              className="h-12"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="brandLogo">Upload Your Logo</Label>
+                          <div className="flex items-center gap-4">
+                            <label
+                              htmlFor="brandLogo"
+                              className="flex items-center gap-3 px-4 py-3 border border-border rounded-lg cursor-pointer hover:border-foreground/30 transition-colors flex-1"
+                            >
+                              <Upload size={20} className="text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">
+                                {formData.brandLogoFileName || "Choose a file (PNG, JPG, SVG)"}
+                              </span>
+                            </label>
+                            <Input
+                              id="brandLogo"
+                              type="file"
+                              accept=".png,.jpg,.jpeg,.svg,.webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                updateFormData("brandLogoFile", file);
+                                updateFormData("brandLogoFileName", file?.name || "");
+                              }}
+                              className="hidden"
+                            />
+                            {formData.brandLogoFileName && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  updateFormData("brandLogoFile", null);
+                                  updateFormData("brandLogoFileName", "");
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="brandFonts">Brand Fonts</Label>
-                        <Input
-                          id="brandFonts"
-                          value={formData.brandFonts}
-                          onChange={(e) => updateFormData("brandFonts", e.target.value)}
-                          placeholder="E.g., Helvetica, Open Sans"
-                          className="h-12"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="brandLogo">Upload Your Logo</Label>
-                      <div className="flex items-center gap-4">
-                        <label
-                          htmlFor="brandLogo"
-                          className="flex items-center gap-3 px-4 py-3 border border-border rounded-lg cursor-pointer hover:border-foreground/30 transition-colors flex-1"
-                        >
-                          <Upload size={20} className="text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {formData.brandLogoFileName || "Choose a file (PNG, JPG, SVG)"}
-                          </span>
-                        </label>
-                        <Input
-                          id="brandLogo"
-                          type="file"
-                          accept=".png,.jpg,.jpeg,.svg,.webp"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            updateFormData("brandLogoFile", file);
-                            updateFormData("brandLogoFileName", file?.name || "");
-                          }}
-                          className="hidden"
-                        />
-                        {formData.brandLogoFileName && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              updateFormData("brandLogoFile", null);
-                              updateFormData("brandLogoFileName", "");
-                            }}
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Upload your logo file (max 5MB)
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-3">
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className={`space-y-3 ${hasError("designStyle") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Design Style Preference *</Label>
                   <RadioGroup
                     value={formData.designStyle}
@@ -745,50 +723,40 @@ const WebsiteOnboarding = () => {
                         key={style}
                         className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-foreground/30 transition-colors"
                       >
-                        <RadioGroupItem value={style.toLowerCase().replace(/ & /g, "-")} id={style} />
-                        <Label htmlFor={style} className="font-normal cursor-pointer text-sm">
+                        <RadioGroupItem value={style.toLowerCase().replace(/ & /g, "-")} id={`style-${style}`} />
+                        <Label htmlFor={`style-${style}`} className="font-normal cursor-pointer text-sm">
                           {style}
                         </Label>
                       </div>
                     ))}
                   </RadioGroup>
                 </div>
-                <div className="space-y-4">
-                  <Label>Websites you admire (for inspiration)</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Input
-                        id="inspirationSite1"
-                        value={formData.inspirationSite1}
-                        onChange={(e) => updateFormData("inspirationSite1", e.target.value)}
-                        placeholder="https://example1.com"
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Input
-                        id="inspirationSite2"
-                        value={formData.inspirationSite2}
-                        onChange={(e) => updateFormData("inspirationSite2", e.target.value)}
-                        placeholder="https://example2.com"
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Input
-                        id="inspirationSite3"
-                        value={formData.inspirationSite3}
-                        onChange={(e) => updateFormData("inspirationSite3", e.target.value)}
-                        placeholder="https://example3.com"
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="inspirationSites">Websites you admire (for inspiration)</Label>
+                  <Input
+                    id="inspirationSites"
+                    value={formData.inspirationSites}
+                    onChange={(e) => updateFormData("inspirationSites", e.target.value)}
+                    placeholder="Paste URLs separated by commas"
+                    className="h-12"
+                  />
                   <p className="text-xs text-muted-foreground">
-                    Share up to 3 website links that inspire you
+                    Share any websites that inspire you — optional but helpful
                   </p>
                 </div>
-                <div className="space-y-3">
+              </div>
+            )}
+
+            {/* Step 4: Technical & Content (consolidated) */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Technical & Content</h2>
+                  <p className="text-muted-foreground">Pages, content, domain, and integrations</p>
+                </div>
+
+                <div className={`space-y-3 ${hasError("contentReady") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Do you have content ready (text, images, videos)? *</Label>
                   <RadioGroup
                     value={formData.contentReady}
@@ -797,54 +765,61 @@ const WebsiteOnboarding = () => {
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="yes" id="content-yes" />
-                      <Label htmlFor="content-yes" className="font-normal cursor-pointer">
-                        Yes, all ready
-                      </Label>
+                      <Label htmlFor="content-yes" className="font-normal cursor-pointer">Yes, all ready</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="partial" id="content-partial" />
-                      <Label htmlFor="content-partial" className="font-normal cursor-pointer">
-                        Partially ready
-                      </Label>
+                      <Label htmlFor="content-partial" className="font-normal cursor-pointer">Partially ready</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="no" id="content-no" />
-                      <Label htmlFor="content-no" className="font-normal cursor-pointer">
-                        No, need help
-                      </Label>
+                      <Label htmlFor="content-no" className="font-normal cursor-pointer">No, need help</Label>
                     </div>
                   </RadioGroup>
                 </div>
-                {formData.contentReady !== "yes" && (
-                  <div className="space-y-3">
-                    <Label>What content help do you need?</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {[
-                        "Copywriting / Text",
-                        "Professional Photography",
-                        "Stock Images",
-                        "Video Production",
-                        "Graphics / Illustrations",
-                      ].map((help) => (
-                        <div
-                          key={help}
-                          className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-foreground/30 transition-colors"
-                        >
-                          <Checkbox
-                            id={help}
-                            checked={formData.contentHelp.includes(help)}
-                            onCheckedChange={() => toggleArrayItem("contentHelp", help)}
-                          />
-                          <Label htmlFor={help} className="font-normal cursor-pointer flex-1">
-                            {help}
-                          </Label>
+
+                {/* Conditional: content help expands when not ready */}
+                <AnimatePresence>
+                  {formData.contentReady && formData.contentReady !== "yes" && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border">
+                        <Label>What content help do you need?</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {[
+                            "Copywriting / Text",
+                            "Professional Photography",
+                            "Stock Images",
+                            "Video Production",
+                            "Graphics / Illustrations",
+                          ].map((help) => (
+                            <div
+                              key={help}
+                              className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:border-foreground/30 transition-colors bg-card"
+                            >
+                              <Checkbox
+                                id={`help-${help}`}
+                                checked={formData.contentHelp.includes(help)}
+                                onCheckedChange={() => toggleArrayItem("contentHelp", help)}
+                              />
+                              <Label htmlFor={`help-${help}`} className="font-normal cursor-pointer flex-1 text-sm">
+                                {help}
+                              </Label>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-3">
-                  <Label>Required Pages *</Label>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className={`space-y-3 ${hasError("requiredPages") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
+                  <Label>Required Pages (Select at least one) *</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {[
                       "Home",
@@ -865,17 +840,18 @@ const WebsiteOnboarding = () => {
                         className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:border-foreground/30 transition-colors"
                       >
                         <Checkbox
-                          id={page}
+                          id={`page-${page}`}
                           checked={formData.requiredPages.includes(page)}
                           onCheckedChange={() => toggleArrayItem("requiredPages", page)}
                         />
-                        <Label htmlFor={page} className="font-normal cursor-pointer text-sm flex-1">
+                        <Label htmlFor={`page-${page}`} className="font-normal cursor-pointer text-sm flex-1">
                           {page}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="customPages">Other pages needed?</Label>
                   <Input
@@ -886,46 +862,13 @@ const WebsiteOnboarding = () => {
                     className="h-12"
                   />
                 </div>
-              </div>
-            )}
 
-            {/* Step 5: Technical Requirements */}
-            {currentStep === 5 && (
-              <div className="space-y-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Technical Requirements</h2>
-                    <p className="text-muted-foreground">Technical specifications and integrations</p>
-                  </div>
+                <div className="border-t border-border pt-6 mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Domain & Integrations</h3>
                 </div>
-                
-                {/* AI Help CTA */}
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Sparkles size={20} className="text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">Unsure about technical requirements?</p>
-                        <p className="text-xs text-muted-foreground">Sited AI can recommend what you need</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setShowAIAssistant(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <Sparkles size={14} className="mr-2" />
-                      Get Sited AI to help
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Domain Question First */}
-                <div className="space-y-3">
-                  <Label>Do you own a domain name?</Label>
+
+                <div className={`space-y-3 ${hasError("domainOwned") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
+                  <Label>Do you own a domain name? *</Label>
                   <RadioGroup
                     value={formData.domainOwned}
                     onValueChange={(v) => updateFormData("domainOwned", v)}
@@ -933,75 +876,90 @@ const WebsiteOnboarding = () => {
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="yes" id="domain-yes" />
-                      <Label htmlFor="domain-yes" className="font-normal cursor-pointer">
-                        Yes
-                      </Label>
+                      <Label htmlFor="domain-yes" className="font-normal cursor-pointer">Yes</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="no" id="domain-no" />
-                      <Label htmlFor="domain-no" className="font-normal cursor-pointer">
-                        No, need to purchase
-                      </Label>
+                      <Label htmlFor="domain-no" className="font-normal cursor-pointer">No, need to purchase</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="need-help" id="domain-help" />
-                      <Label htmlFor="domain-help" className="font-normal cursor-pointer">
-                        Need help deciding
-                      </Label>
+                      <RadioGroupItem value="not-sure" id="domain-not-sure" />
+                      <Label htmlFor="domain-not-sure" className="font-normal cursor-pointer">Not sure</Label>
                     </div>
                   </RadioGroup>
                 </div>
 
-                {/* Show these fields only if they own a domain */}
-                {formData.domainOwned === "yes" && (
-                  <div className="space-y-6 p-4 bg-muted/30 rounded-lg border border-border">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentWebsite">Current Website URL (if any)</Label>
-                      <Input
-                        id="currentWebsite"
-                        value={formData.currentWebsite}
-                        onChange={(e) => updateFormData("currentWebsite", e.target.value)}
-                        placeholder="https://www.example.com"
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="domainName">Domain Name</Label>
-                      <Input
-                        id="domainName"
-                        value={formData.domainName}
-                        onChange={(e) => updateFormData("domainName", e.target.value)}
-                        placeholder="example.com"
-                        className="h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="domainRegistrar">Who is the domain registered through?</Label>
-                      <Select value={formData.domainRegistrar} onValueChange={(v) => updateFormData("domainRegistrar", v)}>
-                        <SelectTrigger className="h-12">
-                          <SelectValue placeholder="Select registrar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="godaddy">GoDaddy</SelectItem>
-                          <SelectItem value="namecheap">Namecheap</SelectItem>
-                          <SelectItem value="other">Other (Specify)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {formData.domainRegistrar === "other" && (
-                      <div className="space-y-2">
-                        <Label htmlFor="domainRegistrarOther">Please specify</Label>
-                        <Input
-                          id="domainRegistrarOther"
-                          value={formData.domainRegistrarOther}
-                          onChange={(e) => updateFormData("domainRegistrarOther", e.target.value)}
-                          placeholder="E.g., Google Domains, Cloudflare..."
-                          className="h-12"
-                        />
+                {/* Conditional: Domain details expand when they own one */}
+                <AnimatePresence>
+                  {formData.domainOwned === "yes" && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="space-y-6 p-4 bg-muted/30 rounded-lg border border-border">
+                        <div className="space-y-2">
+                          <Label htmlFor="currentWebsite">Current Website URL (if any)</Label>
+                          <Input
+                            id="currentWebsite"
+                            value={formData.currentWebsite}
+                            onChange={(e) => updateFormData("currentWebsite", e.target.value)}
+                            placeholder="https://www.example.com"
+                            className="h-12"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="domainName">Domain Name</Label>
+                          <Input
+                            id="domainName"
+                            value={formData.domainName}
+                            onChange={(e) => updateFormData("domainName", e.target.value)}
+                            placeholder="example.com"
+                            className="h-12"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="domainRegistrar">Registered through?</Label>
+                          <Select value={formData.domainRegistrar} onValueChange={(v) => updateFormData("domainRegistrar", v)}>
+                            <SelectTrigger className="h-12">
+                              <SelectValue placeholder="Select registrar" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover z-50">
+                              <SelectItem value="godaddy">GoDaddy</SelectItem>
+                              <SelectItem value="namecheap">Namecheap</SelectItem>
+                              <SelectItem value="not-sure">Not sure</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <AnimatePresence>
+                          {formData.domainRegistrar === "other" && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="space-y-2">
+                                <Label htmlFor="domainRegistrarOther">Please specify</Label>
+                                <Input
+                                  id="domainRegistrarOther"
+                                  value={formData.domainRegistrarOther}
+                                  onChange={(e) => updateFormData("domainRegistrarOther", e.target.value)}
+                                  placeholder="E.g., Google Domains, Cloudflare..."
+                                  className="h-12"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <div className="space-y-3">
                   <Label>Required Integrations</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1021,19 +979,20 @@ const WebsiteOnboarding = () => {
                         className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:border-foreground/30 transition-colors"
                       >
                         <Checkbox
-                          id={integration}
+                          id={`int-${integration}`}
                           checked={formData.integrations.includes(integration)}
                           onCheckedChange={() => toggleArrayItem("integrations", integration)}
                         />
-                        <Label htmlFor={integration} className="font-normal cursor-pointer text-sm flex-1">
+                        <Label htmlFor={`int-${integration}`} className="font-normal cursor-pointer text-sm flex-1">
                           {integration}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="otherIntegrations">Other integrations needed?</Label>
+                  <Label htmlFor="otherIntegrations">Other integrations?</Label>
                   <Input
                     id="otherIntegrations"
                     value={formData.otherIntegrations}
@@ -1042,6 +1001,7 @@ const WebsiteOnboarding = () => {
                     className="h-12"
                   />
                 </div>
+
                 <div className="space-y-3">
                   <Label>Special Features Needed</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1061,19 +1021,20 @@ const WebsiteOnboarding = () => {
                         className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:border-foreground/30 transition-colors"
                       >
                         <Checkbox
-                          id={feature}
+                          id={`feat-${feature}`}
                           checked={formData.features.includes(feature)}
                           onCheckedChange={() => toggleArrayItem("features", feature)}
                         />
-                        <Label htmlFor={feature} className="font-normal cursor-pointer text-sm flex-1">
+                        <Label htmlFor={`feat-${feature}`} className="font-normal cursor-pointer text-sm flex-1">
                           {feature}
                         </Label>
                       </div>
                     ))}
                   </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="otherFeatures">Other features needed?</Label>
+                  <Label htmlFor="otherFeatures">Other features?</Label>
                   <Input
                     id="otherFeatures"
                     value={formData.otherFeatures}
@@ -1085,14 +1046,14 @@ const WebsiteOnboarding = () => {
               </div>
             )}
 
-            {/* Step 6: Timeline & Budget */}
-            {currentStep === 6 && (
+            {/* Step 5: Timeline & Budget */}
+            {currentStep === 5 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-semibold mb-2">Timeline & Budget</h2>
                   <p className="text-muted-foreground">Project scope and investment</p>
                 </div>
-                <div className="space-y-3">
+                <div className={`space-y-3 ${hasError("budget") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Budget Range *</Label>
                   <RadioGroup
                     value={formData.budget}
@@ -1100,7 +1061,7 @@ const WebsiteOnboarding = () => {
                     className="grid grid-cols-1 md:grid-cols-2 gap-3"
                   >
                     {[
-                      { value: "not-sure", label: "Not sure" },
+                      { value: "not-sure", label: "Not sure yet" },
                       { value: "0-500", label: "$0 - $500" },
                       { value: "500-1000", label: "$500 - $1,000" },
                       { value: "1000-2500", label: "$1,000 - $2,500" },
@@ -1118,7 +1079,7 @@ const WebsiteOnboarding = () => {
                     ))}
                   </RadioGroup>
                 </div>
-                <div className="space-y-3">
+                <div className={`space-y-3 ${hasError("timeline") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
                   <Label>Desired Timeline *</Label>
                   <RadioGroup
                     value={formData.timeline}
@@ -1146,22 +1107,37 @@ const WebsiteOnboarding = () => {
                   </RadioGroup>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="launchDate">Target Launch Date (if specific)</Label>
-                  <Input
-                    id="launchDate"
-                    type="date"
-                    value={formData.launchDate}
-                    onChange={(e) => updateFormData("launchDate", e.target.value)}
-                    className="h-12"
-                  />
+                  <Label htmlFor="launchDate">Target Launch Date</Label>
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      id="launchDate"
+                      type="date"
+                      value={formData.launchDate === "Not sure yet" ? "" : formData.launchDate}
+                      onChange={(e) => updateFormData("launchDate", e.target.value)}
+                      className="h-12"
+                      disabled={formData.launchDate === "Not sure yet"}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="launch-not-sure"
+                        checked={formData.launchDate === "Not sure yet"}
+                        onCheckedChange={(checked) =>
+                          updateFormData("launchDate", checked ? "Not sure yet" : "")
+                        }
+                      />
+                      <Label htmlFor="launch-not-sure" className="font-normal text-sm cursor-pointer text-muted-foreground">
+                        Not sure yet
+                      </Label>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="howDidYouHear">How did you hear about us?</Label>
+                <div className={`space-y-2 ${hasError("howDidYouHear") ? "ring-2 ring-destructive/50 rounded-lg p-3 -m-3" : ""}`}>
+                  <Label htmlFor="howDidYouHear">How did you hear about us? *</Label>
                   <Select value={formData.howDidYouHear} onValueChange={(v) => updateFormData("howDidYouHear", v)}>
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select an option" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       <SelectItem value="google">Google Search</SelectItem>
                       <SelectItem value="social-media">Social Media</SelectItem>
                       <SelectItem value="referral">Referral</SelectItem>
@@ -1171,16 +1147,15 @@ const WebsiteOnboarding = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="additionalNotes">Additional Notes or Questions</Label>
+                  <Label htmlFor="additionalNotes">Anything else we should know?</Label>
                   <Textarea
                     id="additionalNotes"
                     value={formData.additionalNotes}
                     onChange={(e) => updateFormData("additionalNotes", e.target.value)}
-                    placeholder="Anything else we should know about your project? Special requirements, concerns, questions..."
-                    className="min-h-[150px]"
+                    placeholder="Special requirements, concerns, questions..."
+                    className="min-h-[120px]"
                   />
                 </div>
-                
               </div>
             )}
 
@@ -1215,29 +1190,6 @@ const WebsiteOnboarding = () => {
           </motion.div>
         </div>
       </div>
-
-      {/* AI Assistant Dialog */}
-      <OnboardingAIAssistant
-        isOpen={showAIAssistant}
-        onClose={() => setShowAIAssistant(false)}
-        onDataCollected={(data) => {
-          setFormData(prev => ({ ...prev, ...data }));
-        }}
-        onStepComplete={(step) => {
-          // Advance to next step when AI has collected all info for current step
-          if (step === currentStep && currentStep < steps.length) {
-            toast.success(`Step ${step} complete! Moving to next step...`);
-            nextStep();
-          }
-        }}
-        onFormComplete={() => {
-          toast.success("All information collected! Review and submit when ready.");
-          setShowAIAssistant(false);
-        }}
-        currentFormData={formData}
-        currentStep={currentStep}
-        projectType="website"
-      />
     </Layout>
   );
 };
