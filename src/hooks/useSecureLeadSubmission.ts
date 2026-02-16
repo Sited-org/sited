@@ -206,5 +206,6 @@ export function useSecureLeadSubmission() {
     savePartialLead,
     updatePartialLead,
     submitLead,
+    getLeadId: () => partialLeadIdRef.current,
   };
 }

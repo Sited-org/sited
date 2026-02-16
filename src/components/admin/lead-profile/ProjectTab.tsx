@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { FormResponsesDisplay } from './FormResponsesDisplay';
 import { WorkflowTracker } from './WorkflowTracker';
+import { UploadedFilesDialog } from './UploadedFilesDialog';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -141,9 +142,25 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
 
   const gaStatus = lead.ga_status || 'not_connected';
 
+  // Extract uploaded files from form_data
+  const uploadedFiles = (lead.form_data?.uploaded_files as Array<{
+    file_name: string;
+    file_path: string;
+    file_size: number;
+    content_type: string;
+    uploaded_at: string;
+  }>) || [];
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
+        {/* Uploaded Files Button */}
+        {uploadedFiles.length > 0 && (
+          <div className="flex justify-end">
+            <UploadedFilesDialog files={uploadedFiles} />
+          </div>
+        )}
+
         {/* Workflow Tracker */}
         <WorkflowTracker lead={lead} canEdit={canEdit} onLeadUpdate={onLeadUpdate} />
 

@@ -12,6 +12,7 @@ import { ArrowLeft, ArrowRight, Check, Globe, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
+import { supabase } from "@/integrations/supabase/client";
 
 const steps = [
   { id: 1, title: "Contact Info" },
@@ -25,7 +26,7 @@ const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const { isSubmitting, savePartialLead, updatePartialLead, submitLead } = useSecureLeadSubmission();
+  const { isSubmitting, savePartialLead, updatePartialLead, submitLead, getLeadId } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Step 1: Contact Info
     fullName: "",
@@ -204,16 +205,35 @@ const WebsiteOnboarding = () => {
       return;
     }
 
+    // Prepare form data without File objects (can't serialize)
+    const { brandLogoFile, ...serializableFormData } = formData;
+
     const success = await submitLead({
       name: formData.fullName,
       email: formData.email,
       phone: formData.phone || null,
       business_name: formData.businessName || null,
       project_type: "website",
-      form_data: formData,
+      form_data: serializableFormData,
     });
 
     if (success) {
+      // Upload logo file if present
+      if (brandLogoFile) {
+        try {
+          const leadId = getLeadId();
+          if (leadId) {
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', brandLogoFile);
+            uploadFormData.append('lead_id', leadId);
+            await supabase.functions.invoke('upload-onboarding-file', {
+              body: uploadFormData,
+            });
+          }
+        } catch (err) {
+          console.error('File upload error (non-fatal):', err);
+        }
+      }
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
