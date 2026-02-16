@@ -87,9 +87,11 @@ export type Database = {
           business_location: string
           business_name: string
           business_type: string
+          cancelled_at: string | null
           created_at: string
           email: string
           first_name: string
+          google_calendar_event_id: string | null
           id: string
           last_name: string
           notes: string | null
@@ -103,9 +105,11 @@ export type Database = {
           business_location: string
           business_name: string
           business_type: string
+          cancelled_at?: string | null
           created_at?: string
           email: string
           first_name: string
+          google_calendar_event_id?: string | null
           id?: string
           last_name: string
           notes?: string | null
@@ -119,9 +123,11 @@ export type Database = {
           business_location?: string
           business_name?: string
           business_type?: string
+          cancelled_at?: string | null
           created_at?: string
           email?: string
           first_name?: string
+          google_calendar_event_id?: string | null
           id?: string
           last_name?: string
           notes?: string | null

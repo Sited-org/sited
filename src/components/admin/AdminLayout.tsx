@@ -14,12 +14,13 @@ import {
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-import { ClipboardList, Wallet } from 'lucide-react';
+import { ClipboardList, Wallet, CalendarDays } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Leads', href: '/admin/leads', icon: Users },
   { name: 'Requests', href: '/admin/requests', icon: ClipboardList },
+  { name: 'Calendar', href: '/admin/calendar', icon: CalendarDays },
   { name: 'Financial', href: '/admin/financial', icon: Wallet, paymentsOnly: true },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
