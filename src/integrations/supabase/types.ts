@@ -80,6 +80,57 @@ export type Database = {
         }
         Relationships: []
       }
+      bookings: {
+        Row: {
+          booking_date: string
+          booking_time: string
+          business_location: string
+          business_name: string
+          business_type: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          notes: string | null
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          booking_date: string
+          booking_time: string
+          business_location: string
+          business_name: string
+          business_type: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          notes?: string | null
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_date?: string
+          booking_time?: string
+          business_location?: string
+          business_name?: string
+          business_type?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          notes?: string | null
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       captcha_challenges: {
         Row: {
           answer: number
