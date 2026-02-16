@@ -7,9 +7,9 @@ const InvoiceMockup = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const lineItems = [
-    { description: "Call out fee", quantity: 1, price: 120 },
-    { description: "Materials", quantity: 1, price: 800 },
-    { description: "Installation", quantity: 1, price: 650 },
+    { description: "Consultation", quantity: 1, price: 250 },
+    { description: "Project delivery", quantity: 1, price: 1200 },
+    { description: "Ongoing support", quantity: 1, price: 350 },
   ];
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.price, 0);

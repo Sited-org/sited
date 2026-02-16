@@ -16,15 +16,15 @@ const ClientPortalMockup = () => {
   ];
 
   const requests = [
-    { title: "Update homepage banner", status: "completed", date: "2 days ago" },
-    { title: "Add contact form to footer", status: "in_progress", date: "Today" },
-    { title: "Fix mobile menu alignment", status: "pending", date: "Just now" },
+    { title: "Update branding assets", status: "completed", date: "2 days ago" },
+    { title: "Review quarterly report", status: "in_progress", date: "Today" },
+    { title: "Approve new proposal", status: "pending", date: "Just now" },
   ];
 
   const files = [
     { name: "Brand Guidelines.pdf", size: "2.4 MB", date: "Jan 15" },
-    { name: "Logo Pack.zip", size: "8.1 MB", date: "Jan 12" },
-    { name: "Product Photos.zip", size: "24 MB", date: "Jan 10" },
+    { name: "Project Proposal.pdf", size: "1.8 MB", date: "Jan 12" },
+    { name: "Signed Agreement.pdf", size: "540 KB", date: "Jan 10" },
   ];
 
   const statusConfig = {
