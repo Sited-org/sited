@@ -8,6 +8,7 @@ import { usePageSEO } from "@/hooks/usePageSEO";
 import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
 import ClientProfileMockup from "@/components/services/ClientProfileMockup";
+import ClientPortalMockup from "@/components/services/ClientPortalMockup";
 import InvoiceMockup from "@/components/services/InvoiceMockup";
 
 // Section wrapper with consistent spacing
@@ -288,7 +289,7 @@ const Services = () => {
         description="A dedicated space for your clients to access documents, track progress, and communicate — without the email clutter. Ready in days."
         reversed
       >
-        <InvoiceMockup />
+        <ClientPortalMockup />
       </ShowcaseSection>
 
       {/* Divider */}
@@ -296,7 +297,14 @@ const Services = () => {
         <div className="h-px bg-border/50" />
       </div>
 
-      {/* Care Plan section removed */}
+      {/* Payment Integration Showcase */}
+      <ShowcaseSection
+        label="Payment Integrations"
+        title="Get Paid Faster with Automatic Payment Integrations"
+        description="Automated invoicing, instant card payments, and bank transfers — all built into your system. No chasing, no delays."
+      >
+        <InvoiceMockup />
+      </ShowcaseSection>
 
       {/* CTA */}
       <CTASection />
