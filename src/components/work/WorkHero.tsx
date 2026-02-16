@@ -12,8 +12,8 @@ export const WorkHero = () => {
     offset: ["start start", "end start"],
   });
 
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0, 0.5], [0, 80]);
+  const heroOpacity = useTransform(scrollYProgress, [0.3, 0.85], [1, 0]);
+  const heroY = useTransform(scrollYProgress, [0.3, 0.85], [0, 60]);
 
   const scrollToTestimonials = () => {
     const el = document.getElementById("testimonials");
@@ -24,26 +24,31 @@ export const WorkHero = () => {
     <section ref={heroRef} className="relative pt-24 sm:pt-32 pb-12 sm:pb-16 bg-gradient-to-b from-surface-elevated to-background">
       <motion.div style={{ opacity: heroOpacity, y: heroY }}>
         {/* Hero heading */}
-        <div className="container-tight text-center mb-12 sm:mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="inline-block text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3 sm:mb-4">
-              How It Works
-            </span>
-          </motion.div>
+        <div className="container-tight text-center mb-6 sm:mb-8">
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-4 sm:mb-6"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-semibold tracking-tight mb-5 sm:mb-6"
           >
             Built Fast. Looked After Properly.
-            <br />
-            <span className="text-muted-foreground">That's the Sited Standard.</span>
           </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={scrollToTestimonials}
+              className="gap-1.5 text-muted-foreground/60 border-border/40 hover:text-muted-foreground hover:border-border/60"
+            >
+              See Our Work
+              <ArrowDown size={14} />
+            </Button>
+          </motion.div>
         </div>
 
         {/* Story */}
@@ -51,12 +56,12 @@ export const WorkHero = () => {
           <div className="max-w-3xl mx-auto">
             <ScrollReveal>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6">
-                Most businesses pay for a website, it gets built, and nobody looks at it again. The agency moves on. The site falls behind.
+                Most businesses pay for a website, it gets built, and nobody looks at it again. The agency moves on. The site falls behind, or starts breaking.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6">
-                We built Sited to fix that. We deliver fast, at a price traditional agencies can't match — then stay, monitoring and improving every month.
+                Sited is here to fix that. We deliver fast, at a price traditional agencies can't match — then stay, monitoring and improving every month.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
@@ -101,21 +106,6 @@ export const WorkHero = () => {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Scroll to testimonials */}
-        <div className="container-tight text-center">
-          <ScrollReveal delay={0.2}>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={scrollToTestimonials}
-              className="gap-2 group"
-            >
-              See Our Work
-              <ArrowDown size={18} className="transition-transform group-hover:translate-y-0.5" />
-            </Button>
-          </ScrollReveal>
         </div>
       </motion.div>
     </section>
