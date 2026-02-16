@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, ArrowRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, ArrowRight, X, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,10 @@ const BUSINESS_TYPES = [
   "Other",
 ];
 
-const TIME_SLOTS = ["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"];
+interface TimeSlot {
+  time: string;
+  available: boolean;
+}
 
 interface BookingDialogProps {
   open: boolean;
@@ -38,7 +41,9 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
-
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [meetingDuration, setMeetingDuration] = useState(20);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -72,6 +77,29 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     if (monthOffset === 0 && date <= today.getDate()) return false; // No past dates
     return true;
   };
+
+  // Fetch available slots when a day is selected
+  useEffect(() => {
+    if (!selectedDay) return;
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      const dateStr = new Date(year, currentMonth.getMonth(), selectedDay).toISOString().split('T')[0];
+      try {
+        const { data, error } = await supabase.functions.invoke('get-available-slots', {
+          body: { date: dateStr },
+        });
+        if (!error && data) {
+          setTimeSlots(data.slots || []);
+          if (data.config?.meeting_duration_minutes) setMeetingDuration(data.config.meeting_duration_minutes);
+          if (!data.available) setTimeSlots([]);
+        }
+      } catch {
+        setTimeSlots([]);
+      }
+      setLoadingSlots(false);
+    };
+    fetchSlots();
+  }, [selectedDay, year, currentMonth]);
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
@@ -183,7 +211,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
               className="p-6 sm:p-8"
             >
               <div className="mb-6">
-                <h3 className="text-lg font-semibold">Book a 20-Minute Call</h3>
+                <h3 className="text-lg font-semibold">Book a {meetingDuration}-Minute Call</h3>
                 <p className="text-sm text-muted-foreground mt-1">Pick a date and time that works for you.</p>
               </div>
 
@@ -268,23 +296,33 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                     className="overflow-hidden"
                   >
                     <div className="pt-6 mt-6 border-t border-border/50">
-                      <p className="text-sm text-muted-foreground mb-3">Available times</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {TIME_SLOTS.map((time, index) => (
-                          <motion.button
-                            key={time}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleTimeSelect(time)}
-                            className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
-                          >
-                            {time}
-                          </motion.button>
-                        ))}
-                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Available times ({meetingDuration} min)
+                      </p>
+                      {loadingSlots ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : timeSlots.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No available times for this date</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.filter(s => s.available).map((slot, index) => (
+                            <motion.button
+                              key={slot.time}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => handleTimeSelect(slot.time)}
+                              className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
+                            >
+                              {slot.time}
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
