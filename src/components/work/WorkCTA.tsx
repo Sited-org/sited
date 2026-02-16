@@ -33,7 +33,7 @@ export const WorkCTA = () => {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/10 backdrop-blur-sm mb-8"
         >
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">Ready to stand out?</span>
+          <span className="text-sm font-medium">Your site deserves proper care</span>
         </motion.div>
 
         <motion.h2
@@ -53,7 +53,7 @@ export const WorkCTA = () => {
           transition={{ duration: 0.8, delay: 0.1 }}
           className="text-background/60 text-sm sm:text-base md:text-lg max-w-md mx-auto mt-5 sm:mt-6 px-2"
         >
-          Let's create something exceptional together. No templates—just results.
+          Let's build something exceptional — and then keep it running through our Care Plan. No templates, just results.
         </motion.p>
 
         <motion.div
@@ -69,7 +69,7 @@ export const WorkCTA = () => {
             asChild
           >
             <Link to="/contact">
-              Start a Project
+              Book a Free Consultation
               <ArrowRight
                 size={20}
                 className="ml-2 transition-transform group-hover:translate-x-1"

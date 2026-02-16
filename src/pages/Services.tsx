@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle } from "lucide-react";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
@@ -46,8 +46,8 @@ const ShowcaseSection = ({
               {description}
             </p>
             <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
-              <Link to="/onboarding/website" className="gap-2">
-                Build Today
+              <Link to="/contact" className="gap-2">
+                Book a Free Consultation
                 <ArrowRight size={18} />
               </Link>
             </Button>
@@ -58,6 +58,60 @@ const ShowcaseSection = ({
             {children}
           </div>
         </div>
+      </div>
+    </section>
+  );
+};
+
+// Care Plan section
+const CarePlanSection = () => {
+  const features = [
+    "Monthly site integrity check — we compare your site against its last known state and flag anything that has changed without your knowledge.",
+    "AI-powered performance overview — a clear report covering your site's speed, usability, SEO health, and conversion opportunities.",
+    "Prioritised improvement recommendations — a ranked list of the changes that will have the biggest impact on your business.",
+    "Implemented updates — a set number of changes made directly to your site each month as part of your plan.",
+    "Direct access to your Sited team — one point of contact who knows your site and responds quickly.",
+  ];
+
+  return (
+    <section className="py-20 sm:py-32 lg:py-40 relative">
+      <div className="container-tight px-4 sm:px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="max-w-3xl mx-auto"
+        >
+          <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Monthly Retainer</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
+            The Sited Care Plan — Your Site, Monitored and Improved Every Month
+          </h2>
+          <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8 sm:mb-10">
+            Most web agencies disappear the moment your site goes live. Sited stays. The Care Plan is a monthly service that keeps your site healthy, up to date, and always improving. Every month, our team reviews your site, checks for any platform-level changes, runs a performance analysis, and delivers a prioritised list of improvements — with the most important ones implemented as part of your plan. You will never have to wonder if your site is still performing. We will tell you.
+          </p>
+          <div className="space-y-4 mb-8 sm:mb-10">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="flex items-start gap-3"
+              >
+                <CheckCircle size={20} className="text-accent mt-0.5 flex-shrink-0" />
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{feature}</p>
+              </motion.div>
+            ))}
+          </div>
+          <Button variant="hero" size="lg" asChild>
+            <Link to="/contact" className="gap-2">
+              Add Your Site to a Care Plan
+              <ArrowRight size={18} />
+            </Link>
+          </Button>
+        </motion.div>
       </div>
     </section>
   );
@@ -81,17 +135,17 @@ const CTASection = () => {
           className="text-center max-w-3xl mx-auto"
         >
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight mb-6 sm:mb-8">
-            Ready to build
+            Not sure what you need?
             <br />
-            <span className="text-muted-foreground">something real?</span>
+            <span className="text-muted-foreground">That's what the consultation is for.</span>
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-8 sm:mb-12">
-            Your website should work as hard as you do. Let's create something that actually moves the needle.
+            Book a free 20-minute call with the Sited team. We will listen to what your business actually needs, tell you what we would build, and give you a clear quote — with no pressure and no obligation.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Button size="xl" variant="hero" asChild className="w-full sm:w-auto">
-              <Link to="/onboarding/website" className="gap-2">
-                Start Your Project
+              <Link to="/contact" className="gap-2">
+                Book a Free Consultation
                 <ArrowRight size={20} />
               </Link>
             </Button>
@@ -107,8 +161,8 @@ const CTASection = () => {
 
 const Services = () => {
   usePageSEO({
-    title: "Services | Sited - Web Design, CRM & Booking",
-    description: "We build websites that book appointments, manage customers, and accept payments. All in one place.",
+    title: "What We Build | Sited — Websites, CRMs, Portals & Dashboards",
+    description: "Sited builds professional websites, CRM systems, client portals, admin dashboards, and landing pages for growing businesses — with ongoing monthly care through the Sited Care Plan.",
   });
 
   const heroRef = useRef(null);
@@ -151,9 +205,9 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.1]"
           >
-            One thing
+            Everything Your Business Needs Online
             <br />
-            <span className="text-muted-foreground">done right.</span>
+            <span className="text-muted-foreground">— Built, Managed, and Always Improving</span>
           </motion.h1>
 
           <motion.p
@@ -162,8 +216,7 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mt-8 mb-12"
           >
-            We build websites that do more than look good—they book appointments, 
-            manage customers, and accept payments. All in one place.
+            Sited delivers professional websites, digital tools, and business systems for growing companies. We build fast. We build well. And through our Care Plan, we ensure what we build keeps performing long after launch day.
           </motion.p>
 
           <motion.div
@@ -173,23 +226,23 @@ const Services = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="xl" variant="hero" asChild>
-              <Link to="/onboarding/website" className="gap-2">
-                Start Your Project
+              <Link to="/contact" className="gap-2">
+                Book a Free Consultation
                 <ArrowRight size={20} />
               </Link>
             </Button>
             <Button size="xl" variant="ghost" asChild>
-              <Link to="/work">See What We Build</Link>
+              <Link to="/work">See Our Work</Link>
             </Button>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Calendar Booking Showcase */}
+      {/* Website Design Showcase */}
       <ShowcaseSection
-        label="Scheduling"
-        title="Let clients book themselves"
-        description="No more back-and-forth emails. Your website becomes a 24/7 booking assistant that syncs with your calendar and sends automatic reminders."
+        label="Website Design & Development"
+        title="Websites That Work — For Your Business and Your Clients"
+        description="Your website is the first place a potential client goes to decide whether to trust you. We build sites that make that decision easy — clean design, clear messaging, fast loading, and built to convert visitors into enquiries. Every site is custom-built for your brand and your audience, delivered in days, and connected to a version-controlled system so every change is tracked and every previous state can be restored."
       >
         <CalendarMockup />
       </ShowcaseSection>
@@ -201,9 +254,9 @@ const Services = () => {
 
       {/* CRM Showcase */}
       <ShowcaseSection
-        label="Customer Management"
-        title="Know your customers"
-        description="A CRM built into your website means every lead, every conversation, and every sale is tracked. No separate tools, no lost opportunities."
+        label="CRM Systems"
+        title="A CRM That Fits Your Business — Not the Other Way Around"
+        description="Off-the-shelf CRMs force your team to adapt to their way of working. We build CRM systems around your actual processes — your pipeline stages, your client categories, your reporting needs. The result is a system your team will actually use, because it makes their job easier rather than adding complexity. We also build in the integrations you need from day one, so your CRM talks to your other tools without manual data entry."
         reversed
       >
         <CRMMockup />
@@ -214,11 +267,11 @@ const Services = () => {
         <div className="h-px bg-border/50" />
       </div>
 
-      {/* Client Profile Showcase */}
+      {/* Admin Dashboard Showcase */}
       <ShowcaseSection
-        label="Client Profiles"
-        title="Every detail at your fingertips"
-        description="Store contact information, track spending history, and see every interaction at a glance. Build deeper relationships with personalized service."
+        label="Admin Dashboards"
+        title="See the Numbers That Matter — At a Glance"
+        description="Most businesses are sitting on data they cannot easily read. We build admin dashboards that surface the information you actually need — revenue, leads, pipeline, performance — in a format that is clear, fast, and accessible from any device. No spreadsheet exports. No waiting for a report. Just your business data, presented usefully."
       >
         <ClientProfileMockup />
       </ShowcaseSection>
@@ -228,15 +281,23 @@ const Services = () => {
         <div className="h-px bg-border/50" />
       </div>
 
-      {/* Invoice Showcase */}
+      {/* Client Portal Showcase */}
       <ShowcaseSection
-        label="Payments"
-        title="Get paid faster"
-        description="Send professional invoices, accept payments online, and track everything in one place. Your website becomes your billing department."
+        label="Client Portals"
+        title="Give Your Clients a Professional Home — Branded to You"
+        description="A client portal tells your clients that you take your service seriously. It gives them a dedicated, branded space to access their documents, sign off on deliverables, track progress, and communicate with your team — all without the clutter of email chains. We build portals that feel like a premium extension of your brand, and they are ready to use within days."
         reversed
       >
         <InvoiceMockup />
       </ShowcaseSection>
+
+      {/* Divider */}
+      <div className="container-tight px-4 sm:px-6">
+        <div className="h-px bg-border/50" />
+      </div>
+
+      {/* Care Plan */}
+      <CarePlanSection />
 
       {/* CTA */}
       <CTASection />

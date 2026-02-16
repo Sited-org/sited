@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 
 const navLinks = [
   { name: "Home", href: "/" },
-  { name: "Services", href: "/services" },
-  { name: "Work", href: "/work" },
-  { name: "Contact", href: "/contact" },
+  { name: "What We Build", href: "/services" },
+  { name: "How It Works", href: "/about" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "Book a Call", href: "/contact" },
 ];
 
 const domains = ["au", "co"];
