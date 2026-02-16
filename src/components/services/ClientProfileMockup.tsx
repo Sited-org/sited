@@ -9,9 +9,9 @@ const ClientProfileMockup = () => {
   ];
 
   const communications = [
-    { type: "Problem", date: "2 days ago" },
-    { type: "Action", date: "1 day ago" },
-    { type: "Resolved", date: "Today" },
+    { type: "Received", date: "2 days ago" },
+    { type: "In Progress", date: "1 day ago" },
+    { type: "Completed", date: "Today" },
   ];
 
   return (
@@ -93,13 +93,13 @@ const ClientProfileMockup = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${
-                    comm.type === "Problem" ? "bg-red-500" : 
-                    comm.type === "Action" ? "bg-amber-500" : 
+                    comm.type === "Received" ? "bg-blue-500" : 
+                    comm.type === "In Progress" ? "bg-amber-500" : 
                     "bg-green-500"
                   }`} />
                   <p className={`text-sm font-medium ${
-                    comm.type === "Problem" ? "text-red-500" : 
-                    comm.type === "Action" ? "text-amber-500" : 
+                    comm.type === "Received" ? "text-blue-500" : 
+                    comm.type === "In Progress" ? "text-amber-500" : 
                     "text-green-500"
                   }`}>{comm.type}</p>
                 </div>
