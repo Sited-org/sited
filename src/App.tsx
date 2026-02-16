@@ -12,7 +12,7 @@ import Index from "./pages/Index";
 const Services = lazy(() => import("./pages/Services"));
 const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
-const AboutPage = lazy(() => import("./pages/About"));
+// About page removed - content merged into Work page
 // Pricing page removed
 const WebsiteOnboarding = lazy(() => import("./pages/WebsiteOnboarding"));
 // AppOnboarding removed - service no longer offered
@@ -53,7 +53,7 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/work" element={<Work />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/about" element={<AboutPage />} />
+            {/* About route removed - content merged into Work page */}
             {/* Pricing route removed */}
             <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
             <Route path="/policies" element={<Policies />} />

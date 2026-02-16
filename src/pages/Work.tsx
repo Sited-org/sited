@@ -73,8 +73,8 @@ const LOAD_MORE_COUNT = 6;
 
 const Work = () => {
   usePageSEO({
-    title: "Our Work | Sited - Client Results & Testimonials",
-    description: "Real projects with real results. See websites we've built for businesses like yours.",
+    title: "Our Work & How It Works | Sited",
+    description: "See how Sited delivers fast, high-quality websites — and the real results we've achieved for businesses like yours.",
   });
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
@@ -97,7 +97,7 @@ const Work = () => {
       <WorkHero />
 
       {/* Projects Grid */}
-      <section className="py-12 sm:py-16 lg:py-20 bg-surface-elevated">
+      <section id="testimonials" className="py-12 sm:py-16 lg:py-20 bg-surface-elevated">
         <div className="w-[92%] max-w-[1600px] mx-auto">
           {isLoading ? (
             <div className="flex flex-col gap-8">
