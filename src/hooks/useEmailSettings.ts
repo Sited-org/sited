@@ -132,6 +132,10 @@ export function useEmailAutomations() {
           functionName = 'process-recurring-invoices';
           successMessage = 'Recurring invoices are being processed and sent.';
           break;
+        case 'milestone_progress':
+          functionName = 'send-milestone-email';
+          successMessage = 'Milestone email check triggered.';
+          break;
         default:
           functionName = 'send-monthly-report';
       }

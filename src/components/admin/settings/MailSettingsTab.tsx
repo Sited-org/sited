@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEmailTemplates, useEmailAutomations, useEmailLogs, EmailTemplate, EmailAutomation } from '@/hooks/useEmailSettings';
-import { Mail, Settings2, History, Pencil, Play, Clock, CheckCircle, XCircle, UserPlus, CreditCard, BarChart3, Receipt } from 'lucide-react';
+import { Mail, Settings2, History, Pencil, Play, Clock, CheckCircle, XCircle, UserPlus, CreditCard, BarChart3, Receipt, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
@@ -34,12 +34,18 @@ const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; desc
     title: 'Recurring Invoices',
     description: 'Sends Stripe invoices to clients with active memberships',
   },
+  milestone_progress: {
+    icon: <TrendingUp className="h-5 w-5" />,
+    title: 'Milestone Progress',
+    description: 'Sent when project reaches 25%, 50%, 75%, or 100%',
+  },
 };
 
 const TEMPLATE_VARIABLES: Record<string, string[]> = {
   onboarding: ['{{name}}', '{{email}}', '{{business_name}}', '{{project_type}}', '{{phone}}'],
   payment_receipt: ['{{name}}', '{{email}}', '{{business_name}}', '{{amount}}', '{{invoice_id}}', '{{date}}', '{{description}}'],
   monthly_report: ['{{name}}', '{{email}}', '{{business_name}}', '{{month}}', '{{metrics_summary}}', '{{ai_recommendations}}'],
+  milestone_progress: ['{{name}}', '{{email}}', '{{business_name}}', '{{progress}}', '{{milestone_message}}'],
 };
 
 export default function MailSettingsTab() {
