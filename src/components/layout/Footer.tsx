@@ -27,10 +27,10 @@ export const Footer = () => {
       <div className="border-t border-border">
         <div className="container-tight py-10 text-center">
           <p className="text-lg font-semibold tracking-tight mb-3">
-            Built Fast. Monitored Always. Improved Every Month.
+            Built Fast. High Quality. Managed Professionally.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Websites, CRMs, portals, and dashboards — built fast, kept running through our monthly Care Plan.
+            Websites, CRMs, portals, and dashboards — built fast and managed professionally.
           </p>
         </div>
       </div>
@@ -46,7 +46,6 @@ export const Footer = () => {
               {[
                 { label: "What We Build", href: "/services" },
                 { label: "How It Works", href: "/about" },
-                { label: "Pricing", href: "/pricing" },
                 { label: "Book a Call", href: "/contact" },
               ].map((item) => (
                 <Link

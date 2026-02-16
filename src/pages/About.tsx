@@ -50,7 +50,7 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6">
-                We built Sited to fix that. We deliver fast, at a price traditional agencies can't match — then stay through our Care Plan, monitoring and improving every month.
+                We built Sited to fix that. We deliver fast, at a price traditional agencies can't match — then stay, monitoring and improving every month.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
@@ -84,7 +84,7 @@ const About = () => {
               {[
                 { icon: Zap, title: "Speed without shortcuts", desc: "Most projects complete in days, not months." },
                 { icon: Shield, title: "Version-controlled code", desc: "Every change logged, every state restorable." },
-                { icon: Eye, title: "Monthly Care Plan", desc: "We monitor and improve your site every month." },
+                { icon: Eye, title: "Ongoing management", desc: "We monitor and improve your site every month." },
                 { icon: Users, title: "One accountable team", desc: "The team that builds it is the team that maintains it." },
               ].map((item, index) => (
                 <ScrollReveal key={item.title} delay={0.1 + index * 0.05}>

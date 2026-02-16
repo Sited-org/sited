@@ -68,7 +68,7 @@ export const WorkHero = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto mt-5 sm:mt-6 px-2"
         >
-          Real projects. Real results. Built and maintained through our Care Plan.
+          Real projects. Real results. Built fast and managed professionally.
         </motion.p>
 
         {/* Scroll indicator */}
