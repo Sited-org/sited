@@ -40,9 +40,9 @@ const Hero = memo(() => {
           transition={{ duration: 0.4, delay: 0.05 }}
           className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
         >
-          Built Fast. Looked After
+           Built Fast. High Quality.
           <br />
-          <span className="text-muted-foreground">Every Single Month.</span>
+          <span className="text-muted-foreground">Managed Professionally.</span>
         </motion.h1>
 
         <motion.p
@@ -51,7 +51,7 @@ const Hero = memo(() => {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
         >
-          Websites, portals, CRMs, and dashboards for growing businesses — built in days, monitored and improved monthly through our Care Plan.
+          Websites, portals, CRMs, and dashboards for growing businesses — built in days and managed professionally.
         </motion.p>
 
         <motion.div
@@ -155,7 +155,7 @@ const Services = () => {
         <SectionHeading
           eyebrow="What We Do"
           title="What Sited Builds & Manages"
-          description="We build the digital tools your business runs on — then keep them running through our monthly Care Plan."
+          description="We build the digital tools your business runs on — then manage them professionally."
         />
 
         <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -192,7 +192,7 @@ const Process = () => {
     { number: "01", title: "Discovery", description: "We learn about your business, goals, and vision through our detailed onboarding process." },
     { number: "02", title: "Design", description: "We create stunning visuals tailored to your brand and your audience." },
     { number: "03", title: "Develop", description: "We build your project using the best available technology for speed and reliability." },
-    { number: "04", title: "Launch & Care", description: "Your project goes live, and our Care Plan keeps it monitored and improving every month." },
+    { number: "04", title: "Launch & Manage", description: "Your project goes live, and we keep it monitored and improving." },
   ];
 
   return (
@@ -374,7 +374,7 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                Traditional agencies are slow, expensive, and disappear after launch. We build in days, then stay — monitoring and improving your site every month through our Care Plan.
+                Traditional agencies are slow, expensive, and disappear after launch. We build in days, then stay — monitoring and improving your site every month.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.25}>
@@ -489,7 +489,7 @@ const LegalLink = () => {
 const Index = () => {
   usePageSEO({
     title: "Sited | Professional Web Design, Built Fast & Maintained Monthly",
-    description: "Sited builds professional websites, CRMs, client portals, and dashboards for growing businesses — then monitors and improves them every month through our Care Plan. Fast builds. Proactive care. One accountable team.",
+    description: "Sited builds professional websites, CRMs, client portals, and dashboards for growing businesses — built fast, high quality, and managed professionally.",
   });
 
   return (

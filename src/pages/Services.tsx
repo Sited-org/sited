@@ -162,7 +162,7 @@ const CTASection = () => {
 const Services = () => {
   usePageSEO({
     title: "What We Build | Sited — Websites, CRMs, Portals & Dashboards",
-    description: "Sited builds professional websites, CRM systems, client portals, admin dashboards, and landing pages for growing businesses — with ongoing monthly care through the Sited Care Plan.",
+    description: "Sited builds professional websites, CRM systems, client portals, admin dashboards, and landing pages for growing businesses.",
   });
 
   const heroRef = useRef(null);
@@ -216,7 +216,7 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mt-8 mb-12"
           >
-            Professional websites, portals, CRMs, and dashboards — built fast and kept running through our monthly Care Plan.
+            Professional websites, portals, CRMs, and dashboards — built fast and managed professionally.
           </motion.p>
 
           <motion.div
@@ -296,8 +296,7 @@ const Services = () => {
         <div className="h-px bg-border/50" />
       </div>
 
-      {/* Care Plan */}
-      <CarePlanSection />
+      {/* Care Plan section removed */}
 
       {/* CTA */}
       <CTASection />
