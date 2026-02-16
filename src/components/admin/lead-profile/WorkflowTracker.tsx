@@ -133,24 +133,57 @@
      return totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
    };
  
-   const saveWorkflow = async (data: WorkflowData) => {
-     setIsSaving(true);
-     try {
-       const { error } = await supabase
-         .from('leads')
-        .update({ workflow_data: JSON.parse(JSON.stringify(data)) })
-         .eq('id', lead.id);
-       
-       if (error) throw error;
-       
-       onLeadUpdate?.({ ...lead, workflow_data: data });
-       toast({ title: 'Workflow saved' });
-     } catch (error: any) {
-       toast({ title: 'Error saving workflow', description: error.message, variant: 'destructive' });
-     } finally {
-       setIsSaving(false);
-     }
-   };
+    // Calculate progress for a given workflow data object
+    const calcProgressForData = (d: WorkflowData): number => {
+      if (!d.configured) return 0;
+      let totalSteps = 0, completedSteps = 0;
+      if (d.stages.frontend?.enabled) {
+        totalSteps += STAGE_DEFINITIONS.frontend.steps.length;
+        completedSteps += d.stages.frontend.currentStep;
+      }
+      if (d.stages.backend?.enabled) {
+        totalSteps += STAGE_DEFINITIONS.backend.steps.length;
+        completedSteps += d.stages.backend.currentStep;
+      }
+      if (d.stages.integrations?.enabled) {
+        const opts = d.stages.integrations.selectedOptions;
+        totalSteps += opts.length * STAGE_DEFINITIONS.integrations.stepsPerOption.length;
+        opts.forEach(opt => { completedSteps += d.stages.integrations?.progress[opt] || 0; });
+      }
+      if (d.stages.ai?.enabled) {
+        const opts = d.stages.ai.selectedOptions;
+        totalSteps += opts.length * STAGE_DEFINITIONS.ai.stepsPerOption.length;
+        opts.forEach(opt => { completedSteps += d.stages.ai?.progress[opt] || 0; });
+      }
+      return totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    };
+
+    const saveWorkflow = async (data: WorkflowData) => {
+      setIsSaving(true);
+      try {
+        const { error } = await supabase
+          .from('leads')
+         .update({ workflow_data: JSON.parse(JSON.stringify(data)) })
+          .eq('id', lead.id);
+        
+        if (error) throw error;
+        
+        onLeadUpdate?.({ ...lead, workflow_data: data });
+        toast({ title: 'Workflow saved' });
+
+        // Trigger milestone email check
+        const newProgress = calcProgressForData(data);
+        if (newProgress > 0) {
+          supabase.functions.invoke('send-milestone-email', {
+            body: { lead_id: lead.id, progress: newProgress },
+          }).catch(err => console.error('Milestone email error:', err));
+        }
+      } catch (error: any) {
+        toast({ title: 'Error saving workflow', description: error.message, variant: 'destructive' });
+      } finally {
+        setIsSaving(false);
+      }
+    };
  
    const handleToggleStage = (stageKey: string, enabled: boolean) => {
      setWorkflowData(prev => ({
