@@ -51,14 +51,14 @@ export const WorkHero = () => {
           transition={{ duration: 0.8, delay: 0.1 }}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight mt-4 sm:mt-5"
         >
-          <span className="block">Businesses that trust Sited</span>
+          <span className="block">Our Work</span>
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
             className="block bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent"
           >
-            to keep them running.
+            Speaks for Itself.
           </motion.span>
         </motion.h1>
 
@@ -68,7 +68,7 @@ export const WorkHero = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-lg mx-auto mt-5 sm:mt-6 px-2"
         >
-          Real projects. Real results. See what we have built — and continue to look after — for businesses like yours.
+          Real projects. Real results. Built and maintained through our Care Plan.
         </motion.p>
 
         {/* Scroll indicator */}

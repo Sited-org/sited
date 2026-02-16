@@ -66,11 +66,11 @@ const ShowcaseSection = ({
 // Care Plan section
 const CarePlanSection = () => {
   const features = [
-    "Monthly site integrity check — we compare your site against its last known state and flag anything that has changed without your knowledge.",
-    "AI-powered performance overview — a clear report covering your site's speed, usability, SEO health, and conversion opportunities.",
-    "Prioritised improvement recommendations — a ranked list of the changes that will have the biggest impact on your business.",
-    "Implemented updates — a set number of changes made directly to your site each month as part of your plan.",
-    "Direct access to your Sited team — one point of contact who knows your site and responds quickly.",
+    "Monthly integrity check — flagging any unexpected changes.",
+    "Performance overview — speed, SEO, usability, and conversions.",
+    "Prioritised recommendations — ranked by business impact.",
+    "Implemented updates — changes made directly each month.",
+    "Direct access — one point of contact who knows your site.",
   ];
 
   return (
@@ -85,10 +85,10 @@ const CarePlanSection = () => {
         >
           <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Monthly Retainer</span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
-            The Sited Care Plan — Your Site, Monitored and Improved Every Month
+            The Sited Care Plan
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8 sm:mb-10">
-            Most web agencies disappear the moment your site goes live. Sited stays. The Care Plan is a monthly service that keeps your site healthy, up to date, and always improving. Every month, our team reviews your site, checks for any platform-level changes, runs a performance analysis, and delivers a prioritised list of improvements — with the most important ones implemented as part of your plan. You will never have to wonder if your site is still performing. We will tell you.
+            Most agencies disappear after launch. We stay. Every month, we review your site, run a performance analysis, and implement improvements. You never have to wonder if your site is still performing.
           </p>
           <div className="space-y-4 mb-8 sm:mb-10">
             {features.map((feature, index) => (
@@ -140,7 +140,7 @@ const CTASection = () => {
             <span className="text-muted-foreground">That's what the consultation is for.</span>
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-8 sm:mb-12">
-            Book a free 20-minute call with the Sited team. We will listen to what your business actually needs, tell you what we would build, and give you a clear quote — with no pressure and no obligation.
+            Free 20-minute call. We listen, advise, and give you a clear quote — no pressure.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Button size="xl" variant="hero" asChild className="w-full sm:w-auto">
@@ -205,9 +205,9 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.1 }}
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold tracking-tight leading-[1.1]"
           >
-            Everything Your Business Needs Online
+            One Thing Done Right.
             <br />
-            <span className="text-muted-foreground">— Built, Managed, and Always Improving</span>
+            <span className="text-muted-foreground">Built, Managed, Improved.</span>
           </motion.h1>
 
           <motion.p
@@ -216,7 +216,7 @@ const Services = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mt-8 mb-12"
           >
-            Sited delivers professional websites, digital tools, and business systems for growing companies. We build fast. We build well. And through our Care Plan, we ensure what we build keeps performing long after launch day.
+            Professional websites, portals, CRMs, and dashboards — built fast and kept running through our monthly Care Plan.
           </motion.p>
 
           <motion.div
@@ -241,8 +241,8 @@ const Services = () => {
       {/* Website Design Showcase */}
       <ShowcaseSection
         label="Website Design & Development"
-        title="Websites That Work — For Your Business and Your Clients"
-        description="Your website is the first place a potential client goes to decide whether to trust you. We build sites that make that decision easy — clean design, clear messaging, fast loading, and built to convert visitors into enquiries. Every site is custom-built for your brand and your audience, delivered in days, and connected to a version-controlled system so every change is tracked and every previous state can be restored."
+        title="Websites That Convert"
+        description="Clean design, clear messaging, fast loading — built to turn visitors into enquiries. Custom-built for your brand, delivered in days."
       >
         <CalendarMockup />
       </ShowcaseSection>
@@ -255,8 +255,8 @@ const Services = () => {
       {/* CRM Showcase */}
       <ShowcaseSection
         label="CRM Systems"
-        title="A CRM That Fits Your Business — Not the Other Way Around"
-        description="Off-the-shelf CRMs force your team to adapt to their way of working. We build CRM systems around your actual processes — your pipeline stages, your client categories, your reporting needs. The result is a system your team will actually use, because it makes their job easier rather than adding complexity. We also build in the integrations you need from day one, so your CRM talks to your other tools without manual data entry."
+        title="A CRM Built Around You"
+        description="We build CRMs around your actual processes — your pipeline, your categories, your reporting. A system your team will actually use."
         reversed
       >
         <CRMMockup />
@@ -270,8 +270,8 @@ const Services = () => {
       {/* Admin Dashboard Showcase */}
       <ShowcaseSection
         label="Admin Dashboards"
-        title="See the Numbers That Matter — At a Glance"
-        description="Most businesses are sitting on data they cannot easily read. We build admin dashboards that surface the information you actually need — revenue, leads, pipeline, performance — in a format that is clear, fast, and accessible from any device. No spreadsheet exports. No waiting for a report. Just your business data, presented usefully."
+        title="Your Numbers, At a Glance"
+        description="Revenue, leads, pipeline, performance — surfaced clearly and accessible from any device. No spreadsheets, no waiting."
       >
         <ClientProfileMockup />
       </ShowcaseSection>
@@ -284,8 +284,8 @@ const Services = () => {
       {/* Client Portal Showcase */}
       <ShowcaseSection
         label="Client Portals"
-        title="Give Your Clients a Professional Home — Branded to You"
-        description="A client portal tells your clients that you take your service seriously. It gives them a dedicated, branded space to access their documents, sign off on deliverables, track progress, and communicate with your team — all without the clutter of email chains. We build portals that feel like a premium extension of your brand, and they are ready to use within days."
+        title="Client Portals, Branded to You"
+        description="A dedicated space for your clients to access documents, track progress, and communicate — without the email clutter. Ready in days."
         reversed
       >
         <InvoiceMockup />

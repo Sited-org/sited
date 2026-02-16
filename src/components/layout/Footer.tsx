@@ -10,10 +10,10 @@ export const Footer = () => {
       {/* CTA Section */}
       <div className="container-tight py-16 sm:py-20 text-center">
         <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-          Your site should be working as hard as you are.
+          Your site should work as hard as you do.
         </h3>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Whether you need a new website built or you want to put an existing site on a Sited Care Plan, the next step is a free 20-minute conversation. We will tell you exactly what we can do and what it will cost — no obligation, no jargon.
+          New build or existing site — the next step is a free 20-minute call. No obligation, no jargon.
         </p>
         <Button variant="hero" size="lg" asChild>
           <Link to="/contact" className="gap-2">
@@ -30,7 +30,7 @@ export const Footer = () => {
             Built Fast. Monitored Always. Improved Every Month.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Sited builds professional websites, CRMs, portals, and dashboards for growing businesses — and then keeps them running through our monthly Care Plan. Your digital presence, looked after properly.
+            Websites, CRMs, portals, and dashboards — built fast, kept running through our monthly Care Plan.
           </p>
         </div>
       </div>

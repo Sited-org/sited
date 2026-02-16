@@ -45,17 +45,17 @@ const About = () => {
           <div className="max-w-3xl mx-auto">
             <ScrollReveal>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6">
-                Sited exists because the web development industry has a problem: businesses pay a lot of money for a website, it gets built, and then nobody looks at it again. The agency moves on. The site slowly falls behind. The business owner has no idea.
+                Most businesses pay for a website, it gets built, and nobody looks at it again. The agency moves on. The site falls behind.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-6">
-                We built Sited to fix that. Using the best development tools available, we build professional websites, CRMs, portals, and dashboards at a speed and price point that traditional agencies cannot match. And then — unlike traditional agencies — we stay. Through our Care Plan, every Sited client has a team actively monitoring and improving their site every month.
+                We built Sited to fix that. We deliver fast, at a price traditional agencies can't match — then stay through our Care Plan, monitoring and improving every month.
               </p>
             </ScrollReveal>
             <ScrollReveal delay={0.2}>
               <p className="text-base sm:text-lg text-foreground leading-relaxed font-medium mb-10">
-                We are not a tool. We are not a template builder. We are a professional delivery partner for growing businesses that want a serious digital presence and the peace of mind of knowing someone is looking after it.
+                Not a tool. Not a template builder. A delivery partner for businesses that want a serious digital presence — looked after properly.
               </p>
             </ScrollReveal>
           </div>
@@ -76,7 +76,7 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-8">
-                We use the best available build technology so we can deliver faster and at a lower cost than a traditional agency — without any reduction in quality. The result is a professional, custom-built product at a price that makes sense for a growing business.
+                Better tools mean faster delivery at lower cost — without compromising quality. Professional results at a price that makes sense.
               </p>
             </ScrollReveal>
             
@@ -114,7 +114,7 @@ const About = () => {
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-                Every site we build is tracked in a version-controlled system. Every change is logged. If something changes unexpectedly — whether through a platform update or anything else — we catch it before you or your clients do. That level of operational rigour is what separates Sited from a developer you found online.
+                Every change is logged. Every state is restorable. If something shifts unexpectedly, we catch it before you do.
               </p>
             </ScrollReveal>
           </div>
@@ -131,7 +131,7 @@ const About = () => {
           </ScrollReveal>
           <ScrollReveal delay={0.1}>
             <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-              Book a free 20-minute call. No jargon, no obligation — just a clear conversation about what we can build for you and how the Care Plan keeps it running.
+              Free 20-minute call. No jargon, no obligation — just a clear conversation about your business needs.
             </p>
           </ScrollReveal>
           <ScrollReveal delay={0.2}>
