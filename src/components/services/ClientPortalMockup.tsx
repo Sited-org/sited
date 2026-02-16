@@ -16,15 +16,15 @@ const ClientPortalMockup = () => {
   ];
 
   const requests = [
-    { title: "Update branding assets", status: "completed", date: "2 days ago" },
-    { title: "Review quarterly report", status: "in_progress", date: "Today" },
-    { title: "Approve new proposal", status: "pending", date: "Just now" },
+    { title: "New support request", status: "pending", date: "Just now" },
+    { title: "Account setup changes", status: "in_progress", date: "Yesterday" },
+    { title: "Onboarding checklist", status: "completed", date: "2 days ago" },
   ];
 
   const files = [
-    { name: "Brand Guidelines.pdf", size: "2.4 MB", date: "Jan 15" },
-    { name: "Project Proposal.pdf", size: "1.8 MB", date: "Jan 12" },
-    { name: "Signed Agreement.pdf", size: "540 KB", date: "Jan 10" },
+    { name: "Guidelines.pdf", size: "2.4 MB", date: "Jan 15" },
+    { name: "Terms & Conditions.pdf", size: "1.2 MB", date: "Jan 12" },
+    { name: "Project Proposal.pdf", size: "1.8 MB", date: "Jan 10" },
   ];
 
   const statusConfig = {
@@ -50,8 +50,8 @@ const ClientPortalMockup = () => {
                 <User size={16} className="text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold">Sarah's Portal</h3>
-                <p className="text-xs text-muted-foreground">Website Redesign</p>
+                <h3 className="text-sm font-semibold">Client Portal</h3>
+                <p className="text-xs text-muted-foreground">Your Project Hub</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -127,24 +127,25 @@ const ClientPortalMockup = () => {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-3">Recent Activity</p>
                   <div className="space-y-2.5">
-                    {requests.map((req, i) => {
-                      const config = statusConfig[req.status as keyof typeof statusConfig];
-                      return (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: -15 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.08 }}
-                          className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <config.icon size={14} className={config.color} />
-                            <span className="text-sm truncate">{req.title}</span>
-                          </div>
-                          <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                        </motion.div>
-                      );
-                    })}
+                    {[
+                      { title: "New support request", icon: AlertCircle, color: "text-blue-500" },
+                      { title: "Invoice paid", icon: CheckCircle, color: "text-green-500" },
+                      { title: "Approve new proposal", icon: Clock, color: "text-amber-500" },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        className="flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <item.icon size={14} className={item.color} />
+                          <span className="text-sm truncate">{item.title}</span>
+                        </div>
+                        <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
               </motion.div>
