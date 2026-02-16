@@ -3,10 +3,11 @@ import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Phone, ArrowRight, Calendar, FileText } from "lucide-react";
+import { Mail, Phone, ArrowRight, Calendar, FileText, Star } from "lucide-react";
 import { useState } from "react";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import BookingDialog from "@/components/booking/BookingDialog";
+import { usePublicTestimonials } from "@/hooks/useTestimonials";
 
 const Contact = () => {
   usePageSEO({
@@ -15,9 +16,10 @@ const Contact = () => {
   });
 
   const [bookingOpen, setBookingOpen] = useState(false);
+  const { data: testimonials } = usePublicTestimonials();
 
   return (
-    <Layout>
+    <Layout hideFooter>
       {/* Hero */}
       <section className="pt-24 sm:pt-32 pb-12 sm:pb-20 bg-gradient-to-b from-surface-elevated to-background">
         <div className="container-tight text-center">
@@ -54,24 +56,24 @@ const Contact = () => {
       {/* CTA Section */}
       <section className="section-padding bg-background">
         <div className="container-tight">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12 lg:gap-16">
-            {/* Primary CTA — Start Your Project */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            {/* Onboarding CTA */}
             <ScrollReveal>
-              <div className="bg-foreground text-background rounded-2xl p-8 sm:p-10 flex flex-col h-full">
+              <div className="bg-card border border-border rounded-2xl p-8 sm:p-10 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-4">
-                  <FileText size={18} />
-                  <span className="text-xs uppercase tracking-widest text-background/50">Recommended</span>
+                  <FileText size={16} className="text-muted-foreground" />
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Onboarding</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-semibold mb-3">
                   Ready to build your website?
                 </h2>
-                <p className="text-background/70 text-base sm:text-lg mb-8 leading-relaxed flex-1">
-                  Tell us about your business and project. Our onboarding form takes a few minutes and helps us give you an accurate quote fast.
+                <p className="text-muted-foreground text-base mb-8 leading-relaxed flex-1">
+                  Tell us about your business and project. Takes a few minutes — helps us quote you accurately.
                 </p>
                 <Button
-                  variant="default"
+                  variant="hero"
                   size="lg"
-                  className="bg-[hsl(var(--gold))] hover:bg-[hsl(var(--gold-hover))] text-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300 gap-2 text-base px-8 w-full sm:w-auto"
+                  className="w-full sm:w-auto gap-2"
                   asChild
                 >
                   <Link to="/onboarding/website">
@@ -82,80 +84,114 @@ const Contact = () => {
               </div>
             </ScrollReveal>
 
-            {/* Secondary CTA — Book a Call + Contact Info */}
-            <div className="space-y-6 sm:space-y-8">
-              <ScrollReveal delay={0.1}>
-                <div className="bg-card border border-border rounded-2xl p-8 sm:p-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Calendar size={18} className="text-muted-foreground" />
-                    <span className="text-xs uppercase tracking-widest text-muted-foreground">Book Directly</span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-semibold mb-3">
-                    Prefer a quick chat first?
-                  </h3>
-                  <p className="text-muted-foreground text-base mb-6 leading-relaxed">
-                    Book a free 20-minute call. Pick a time that suits you.
-                  </p>
-                  <Button
-                    variant="hero"
-                    size="lg"
-                    className="w-full sm:w-auto gap-2"
-                    onClick={() => setBookingOpen(true)}
-                  >
-                    Book a Time in the Sited Calendar
-                    <ArrowRight size={18} />
-                  </Button>
+            {/* Booking CTA */}
+            <ScrollReveal delay={0.1}>
+              <div className="bg-card border border-border rounded-2xl p-8 sm:p-10 flex flex-col h-full">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calendar size={16} className="text-muted-foreground" />
+                  <span className="text-xs uppercase tracking-widest text-muted-foreground">Booking</span>
                 </div>
-              </ScrollReveal>
-
-              <ScrollReveal delay={0.2}>
-                <div className="space-y-4 sm:space-y-6">
-                  <h3 className="text-lg font-semibold">Get in touch</h3>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                        <Mail size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Email</p>
-                        <a
-                          href="mailto:hello@sited.com"
-                          className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          hello@sited.com
-                        </a>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                        <Phone size={18} className="sm:w-5 sm:h-5 text-accent-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">Phone</p>
-                        <a
-                          href="tel:0459909810"
-                          className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          0459 909 810
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </ScrollReveal>
-
-              <ScrollReveal delay={0.3}>
-                <div className="bg-accent/30 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    <strong className="text-foreground">Response time:</strong> We
-                    typically respond within one business day. Through the Care Plan, you get direct access to your Sited team at any time.
-                  </p>
-                </div>
-              </ScrollReveal>
-            </div>
+                <h3 className="text-xl sm:text-2xl font-semibold mb-3">
+                  Prefer a quick chat first?
+                </h3>
+                <p className="text-muted-foreground text-base mb-8 leading-relaxed flex-1">
+                  Book a free 20-minute call. Pick a time that suits you.
+                </p>
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full sm:w-auto gap-2"
+                  onClick={() => setBookingOpen(true)}
+                >
+                  Book a Time
+                  <ArrowRight size={18} />
+                </Button>
+              </div>
+            </ScrollReveal>
           </div>
+
+          {/* Contact Info Row */}
+          <ScrollReveal delay={0.2}>
+            <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-10 justify-center">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                  <Mail size={16} className="text-accent-foreground" />
+                </div>
+                <a
+                  href="mailto:hello@sited.com"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  hello@sited.com
+                </a>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                  <Phone size={16} className="text-accent-foreground" />
+                </div>
+                <a
+                  href="tel:0459909810"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  0459 909 810
+                </a>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-foreground">Response:</strong> Within one business day. Care Plan clients get direct access.
+              </p>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      {testimonials && testimonials.length > 0 && (
+        <section className="section-padding bg-gradient-to-b from-background to-surface-elevated">
+          <div className="container-tight">
+            <ScrollReveal>
+              <div className="text-center mb-10 sm:mb-14">
+                <span className="inline-block text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-widest mb-3">
+                  What Our Clients Say
+                </span>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight">
+                  Real Results. Real Words.
+                </h2>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((t, index) => (
+                <ScrollReveal key={t.id} delay={index * 0.08}>
+                  <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 flex flex-col h-full">
+                    {/* Stars */}
+                    <div className="flex gap-0.5 mb-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={16}
+                          className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]"
+                        />
+                      ))}
+                    </div>
+
+                    {/* Quote */}
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed flex-1 mb-6">
+                      "{t.testimonial_text}"
+                    </p>
+
+                    {/* Author */}
+                    <div className="border-t border-border pt-4">
+                      <p className="font-semibold text-sm">{t.testimonial_author}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.testimonial_role}{t.business_name ? ` · ${t.business_name}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
     </Layout>
