@@ -59,10 +59,9 @@ import {
 import { useAnalysisAI, AnalysisType, SelectionMode, ClientForAnalysis } from '@/hooks/useAnalysisAI';
 
 const MEMBERSHIP_TIERS = [
-  { value: 'care-plan', label: 'Care Plan' },
-  { value: 'professional', label: 'Professional' },
-  { value: 'advanced', label: 'Advanced' },
-  { value: 'starter', label: 'Starter' },
+  { value: 'Blue', label: 'Blue' },
+  { value: 'Gold Package', label: 'Gold' },
+  { value: 'Platinum', label: 'Platinum' },
 ];
 
 const ANALYSIS_TYPES: { value: AnalysisType; icon: React.ElementType; title: string; description: string }[] = [

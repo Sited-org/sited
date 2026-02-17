@@ -12,45 +12,96 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   marketing: "Marketing Strategy",
 };
 
+const ANALYSIS_TYPE_EMOJI: Record<string, string> = {
+  seo: "🔍",
+  infrastructure: "🏗️",
+  marketing: "📈",
+};
+
+/**
+ * Convert markdown-style formatting to HTML:
+ * **bold** → <strong>bold</strong>
+ * *italic* → <em>italic</em>
+ * __underline__ → <u>underline</u>
+ */
+function formatAnalysisToHtml(text: string): string {
+  // Split by double newlines into paragraphs
+  const paragraphs = text.split(/\n\n+/);
+  
+  return paragraphs.map(p => {
+    let html = p.trim();
+    if (!html) return '';
+    
+    // Convert markdown bold **text** to <strong>
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Convert markdown italic *text* to <em> (but not inside strong tags)
+    html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+    // Convert __underline__ to <u>
+    html = html.replace(/__(.+?)__/g, '<u>$1</u>');
+    // Convert single newlines to <br>
+    html = html.replace(/\n/g, '<br>');
+    
+    // Check if this is a heading line (starts with emoji or strong tag)
+    if (html.startsWith('<strong>') && html.includes('</strong>') && html.length < 200) {
+      return `<h3 style="color: #1A1A1A; font-size: 17px; margin: 24px 0 8px 0; font-weight: 700;">${html}</h3>`;
+    }
+    
+    return `<p style="margin: 0 0 14px 0; font-size: 15px; line-height: 1.7; color: #333333;">${html}</p>`;
+  }).filter(Boolean).join('\n');
+}
+
 function buildEmailHtml(
   clientName: string,
   businessName: string,
   domain: string,
   analysisType: string,
+  analysisTypeKey: string,
   analysisContent: string,
   actionLink: string
 ): string {
-  // Convert plain text analysis to HTML paragraphs
-  const htmlContent = analysisContent
-    .split("\n\n")
-    .map((p) => `<p style="margin: 0 0 12px 0;">${p.replace(/\n/g, "<br>")}</p>`)
-    .join("");
+  const emoji = ANALYSIS_TYPE_EMOJI[analysisTypeKey] || "📊";
+  const htmlContent = formatAnalysisToHtml(analysisContent);
 
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #1A202C; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #1E3A5F; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-    <h1 style="color: #FFFFFF; margin: 0; font-size: 24px;">SITED</h1>
-    <p style="color: #93C5FD; margin: 10px 0 0 0; font-size: 14px;">Your Monthly Website Analysis</p>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #1A1A1A; max-width: 600px; margin: 0 auto; padding: 0; background-color: #F5F5F5;">
+  
+  <!-- Header with Sited branding -->
+  <div style="background-color: #000000; padding: 32px 30px; text-align: center;">
+    <div style="margin-bottom: 8px;">
+      <span style="display: inline-block; width: 40px; height: 40px; background-color: #FFFFFF; border-radius: 8px; line-height: 40px; font-size: 20px; font-weight: 800; color: #000000; font-family: -apple-system, sans-serif;">S</span>
+    </div>
+    <h1 style="color: #FFFFFF; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 2px;">SITED</h1>
+    <p style="color: #999999; margin: 6px 0 0 0; font-size: 13px; letter-spacing: 0.5px;">Monthly Website Analysis</p>
   </div>
-  <div style="background-color: #F8F9FA; padding: 30px; border-left: 4px solid #2563EB;">
-    <p style="margin: 0 0 10px 0; font-size: 16px;">Hi ${clientName},</p>
-    <p style="margin: 0; font-size: 16px;">Here is your monthly ${analysisType} for <strong>${businessName}</strong> (${domain}).</p>
+
+  <!-- Greeting -->
+  <div style="background-color: #FFFFFF; padding: 28px 30px; border-bottom: 1px solid #E5E5E5;">
+    <p style="margin: 0 0 8px 0; font-size: 16px; color: #1A1A1A;">Hi <strong>${clientName}</strong> 👋</p>
+    <p style="margin: 0; font-size: 15px; color: #555555;">Here is your monthly <strong>${emoji} ${analysisType}</strong> for <strong>${businessName}</strong> (${domain}).</p>
   </div>
-  <div style="padding: 30px; background-color: #FFFFFF;">
-    <h2 style="color: #1E3A5F; font-size: 20px; margin: 0 0 20px 0;">What We Found</h2>
-    <div style="font-size: 15px; line-height: 1.8; color: #4A5568;">${htmlContent}</div>
+
+  <!-- Analysis Content -->
+  <div style="padding: 28px 30px; background-color: #FFFFFF;">
+    <h2 style="color: #000000; font-size: 18px; margin: 0 0 20px 0; font-weight: 700; border-bottom: 2px solid #000000; padding-bottom: 10px;">📋 What We Found</h2>
+    <div style="font-size: 15px; line-height: 1.8; color: #333333;">${htmlContent}</div>
   </div>
-  <div style="background-color: #EFF6FF; padding: 30px; text-align: center; border-radius: 0 0 8px 8px;">
-    <p style="margin: 0 0 20px 0; font-size: 16px; color: #1E3A5F;">Want us to implement these changes for you?</p>
-    <a href="${actionLink}" style="display: inline-block; background-color: #2563EB; color: #FFFFFF; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Request Implementation →</a>
-    <p style="margin: 20px 0 0 0; font-size: 13px; color: #4A5568;">This will send your request directly to your Sited team.</p>
+
+  <!-- CTA Section -->
+  <div style="background-color: #F9F9F9; padding: 32px 30px; text-align: center; border-top: 1px solid #E5E5E5;">
+    <p style="margin: 0 0 6px 0; font-size: 17px; color: #1A1A1A; font-weight: 600;">🚀 Want us to implement these changes?</p>
+    <p style="margin: 0 0 20px 0; font-size: 14px; color: #666666;">Submit a request and our team will get started.</p>
+    <a href="${actionLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; padding: 14px 36px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; letter-spacing: 0.3px;">Request Implementation →</a>
+    <p style="margin: 16px 0 0 0; font-size: 12px; color: #999999;">This will take you to your client portal to submit the request.</p>
   </div>
-  <div style="padding: 20px; text-align: center; font-size: 12px; color: #718096;">
-    <p style="margin: 0 0 10px 0;">Built Fast. Monitored Always. Improved Every Month.</p>
-    <p style="margin: 0;">© 2026 Sited. Your digital presence, looked after properly.</p>
+
+  <!-- Footer -->
+  <div style="padding: 24px 30px; text-align: center; font-size: 12px; color: #999999; background-color: #000000;">
+    <p style="margin: 0 0 6px 0; color: #CCCCCC; font-weight: 500;">Built Fast. Monitored Always. Improved Every Month.</p>
+    <p style="margin: 0; color: #666666;">© 2026 Sited · <a href="https://sited.co" style="color: #999999;">sited.co</a></p>
   </div>
+
 </body>
 </html>`;
 }
@@ -81,8 +132,8 @@ serve(async (req) => {
     const { reports } = await req.json();
     if (!reports?.length) throw new Error("No reports to send");
 
-    // Build the base URL for the action request link
-    const siteUrl = Deno.env.get("SUPABASE_URL")!;
+    // Build the client portal URL for the CTA
+    const portalBaseUrl = "https://sited.lovable.app/client-portal";
 
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
@@ -90,16 +141,17 @@ serve(async (req) => {
       try {
         const analysisTypeLabel = ANALYSIS_TYPE_LABELS[report.analysisType] || report.analysisType;
 
-        // Create a signed action link via edge function URL
-        const actionLink = `${siteUrl}/functions/v1/request-analysis-action?clientId=${encodeURIComponent(report.clientId)}&type=${encodeURIComponent(report.analysisType)}`;
+        // CTA links to client portal with auto-request params
+        const actionLink = `${portalBaseUrl}?action=request-analysis&type=${encodeURIComponent(report.analysisType)}&clientId=${encodeURIComponent(report.clientId)}`;
 
-        const subject = `Your Sited Monthly Report — ${analysisTypeLabel} for ${report.businessName}`;
+        const subject = `${ANALYSIS_TYPE_EMOJI[report.analysisType] || "📊"} Your Sited Monthly Report — ${analysisTypeLabel} for ${report.businessName}`;
 
         const html = buildEmailHtml(
           report.clientName || "there",
           report.businessName,
           report.domain || "",
           analysisTypeLabel,
+          report.analysisType,
           report.analysis,
           actionLink
         );
