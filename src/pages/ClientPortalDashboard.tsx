@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe } from 'lucide-react';
@@ -68,8 +68,6 @@ export default function ClientPortalDashboard() {
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const hasFetchedRef = useRef(false);
-  const hasHandledActionRef = useRef(false);
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const fetchClientData = useCallback(async (clientSession: ClientSession) => {
@@ -177,40 +175,7 @@ export default function ClientPortalDashboard() {
     navigate('/client-portal');
   };
 
-  // Handle analysis action from email CTA
-  useEffect(() => {
-    if (hasHandledActionRef.current || loading || !session) return;
-    const action = searchParams.get('action');
-    const analysisType = searchParams.get('type');
-    const clientId = searchParams.get('clientId');
-
-    if (action === 'request-analysis' && analysisType && clientId) {
-      hasHandledActionRef.current = true;
-      // Clear the URL params
-      setSearchParams({});
-
-      // Auto-create the implementation request via edge function (as draft)
-      (async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke('request-analysis-action', {
-            body: { clientId, analysisType },
-          });
-
-          if (error) throw error;
-          if (data?.duplicate) {
-            toast.info('A request for this analysis was already submitted recently.');
-          } else {
-            toast.success('Draft request created — review and send it below.');
-          }
-          setActiveTab('requests');
-          fetchClientData(session);
-        } catch (e: any) {
-          console.error('Failed to create analysis request:', e);
-          toast.error('Failed to create draft. Please try again.');
-        }
-      })();
-    }
-  }, [loading, session, searchParams, setSearchParams, fetchClientData]);
+  // No longer creating drafts on portal load — drafts are created at the edge function level when the email CTA is clicked.
 
   const handleRequestCreated = useCallback(() => {
     if (session) {

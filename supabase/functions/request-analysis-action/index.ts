@@ -20,7 +20,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle GET requests (from email CTA click) — redirect to client portal
+    // Handle GET requests (from email CTA click) — create draft then redirect
     if (req.method === "GET") {
       const url = new URL(req.url);
       const clientId = url.searchParams.get("clientId");
@@ -30,16 +30,63 @@ serve(async (req) => {
         return new Response("Invalid request parameters.", { status: 400 });
       }
 
-      // Redirect to the client portal with action params
-      const portalUrl = `https://sited.lovable.app/client-portal?action=request-analysis&type=${encodeURIComponent(analysisType)}&clientId=${encodeURIComponent(clientId)}`;
-      
+      // Anti-spam: check for recent request from same client + type in last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentRequests } = await supabase
+        .from("client_requests")
+        .select("id")
+        .eq("lead_id", clientId)
+        .eq("analysis_type", analysisType)
+        .eq("request_source", "analysis")
+        .gte("created_at", fiveMinutesAgo)
+        .limit(1);
+
+      if (!recentRequests || recentRequests.length === 0) {
+        // Fetch client info
+        const { data: client } = await supabase
+          .from("leads")
+          .select("id, name, email, business_name")
+          .eq("id", clientId)
+          .single();
+
+        if (client) {
+          // Fetch the most recent analysis for this client + type
+          const { data: report } = await supabase
+            .from("analysis_reports")
+            .select("analysis_content")
+            .eq("lead_id", clientId)
+            .eq("analysis_type", analysisType)
+            .eq("status", "success")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+
+          const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+
+          // Create the draft request immediately
+          await supabase.from("client_requests").insert({
+            lead_id: clientId,
+            title: `${typeLabel} — Implementation Request`,
+            description: report?.analysis_content
+              ? `Client requested implementation of ${typeLabel} recommendations.\n\n${report.analysis_content.slice(0, 1000)}`
+              : `Client requested implementation of ${typeLabel} recommendations.`,
+            priority: "normal",
+            status: "draft",
+            request_source: "analysis",
+            analysis_type: analysisType,
+          });
+        }
+      }
+
+      // Redirect to the client portal login (draft already exists)
+      const portalUrl = `https://sited.lovable.app/client-portal`;
       return new Response(null, {
         status: 302,
         headers: { ...corsHeaders, "Location": portalUrl },
       });
     }
 
-    // Handle POST requests (from client portal after login)
+    // Handle POST requests (kept for backwards compatibility)
     if (req.method === "POST") {
       const { clientId, analysisType } = await req.json();
       
@@ -68,7 +115,6 @@ serve(async (req) => {
         );
       }
 
-      // Fetch client info
       const { data: client } = await supabase
         .from("leads")
         .select("id, name, email, business_name")
@@ -82,7 +128,6 @@ serve(async (req) => {
         });
       }
 
-      // Fetch the most recent analysis for this client + type
       const { data: report } = await supabase
         .from("analysis_reports")
         .select("analysis_content")
@@ -95,7 +140,6 @@ serve(async (req) => {
 
       const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
 
-      // Create the client request as DRAFT (not pending)
       const { data: newRequest, error: insertErr } = await supabase.from("client_requests").insert({
         lead_id: clientId,
         title: `${typeLabel} — Implementation Request`,
