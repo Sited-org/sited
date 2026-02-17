@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEmailTemplates, useEmailAutomations, useEmailLogs, EmailTemplate, EmailAutomation } from '@/hooks/useEmailSettings';
 import { Mail, Settings2, History, Pencil, Play, Clock, CheckCircle, XCircle, UserPlus, CreditCard, BarChart3, Receipt, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import EmailTemplateEditor from './EmailTemplateEditor';
 
 const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; description: string }> = {
   onboarding: {
@@ -41,12 +41,6 @@ const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; desc
   },
 };
 
-const TEMPLATE_VARIABLES: Record<string, string[]> = {
-  onboarding: ['{{name}}', '{{email}}', '{{business_name}}', '{{project_type}}', '{{phone}}'],
-  payment_receipt: ['{{name}}', '{{email}}', '{{business_name}}', '{{amount}}', '{{invoice_id}}', '{{date}}', '{{description}}'],
-  monthly_report: ['{{name}}', '{{email}}', '{{business_name}}', '{{month}}', '{{metrics_summary}}', '{{ai_recommendations}}'],
-  milestone_progress: ['{{name}}', '{{email}}', '{{business_name}}', '{{progress}}', '{{milestone_message}}'],
-};
 
 export default function MailSettingsTab() {
   const { templates, loading: templatesLoading, updateTemplate } = useEmailTemplates();
@@ -159,35 +153,14 @@ export default function MailSettingsTab() {
                                 <DialogTitle>Edit {info.title}</DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4 mt-4">
-                                <div className="space-y-2">
-                                  <Label>Subject Line</Label>
-                                  <Input
-                                    value={editedSubject}
-                                    onChange={(e) => setEditedSubject(e.target.value)}
-                                    placeholder="Email subject..."
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Email Body (HTML)</Label>
-                                  <Textarea
-                                    value={editedBody}
-                                    onChange={(e) => setEditedBody(e.target.value)}
-                                    placeholder="Email content..."
-                                    rows={12}
-                                    className="font-mono text-sm"
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label className="text-sm text-muted-foreground">Available Variables</Label>
-                                  <div className="flex flex-wrap gap-2">
-                                    {(TEMPLATE_VARIABLES[template.template_type] || []).map((variable) => (
-                                      <Badge key={variable} variant="secondary" className="font-mono text-xs">
-                                        {variable}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                                <div className="flex justify-end gap-2">
+                                <EmailTemplateEditor
+                                  subject={editedSubject}
+                                  bodyHtml={editedBody}
+                                  templateType={template.template_type}
+                                  onSubjectChange={setEditedSubject}
+                                  onBodyHtmlChange={setEditedBody}
+                                />
+                                <div className="flex justify-end gap-2 pt-2">
                                   <Button variant="outline" onClick={() => setEditingTemplate(null)}>
                                     Cancel
                                   </Button>
