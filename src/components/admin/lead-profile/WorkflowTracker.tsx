@@ -226,20 +226,16 @@ import {
      });
    };
  
-   const handleStepProgress = (stageKey: string, stepIndex: number, optionKey?: string) => {
+    const handleStepProgress = (stageKey: string, stepIndex: number, optionKey?: string) => {
      setWorkflowData(prev => {
-       const newData = { ...prev };
+       const newData = { ...prev, stages: { ...prev.stages } };
        
-       if (stageKey === 'frontend' || stageKey === 'backend') {
-         const stage = newData.stages[stageKey];
-         if (stage) {
-           stage.currentStep = stepIndex + 1;
-         }
-       } else if ((stageKey === 'integrations' || stageKey === 'ai') && optionKey) {
-         const stage = newData.stages[stageKey];
-         if (stage) {
-           stage.progress[optionKey] = stepIndex + 1;
-         }
+       if (optionKey && (stageKey === 'integrations' || stageKey === 'ai')) {
+         const stage = { ...newData.stages[stageKey] };
+         stage.progress = { ...stage.progress, [optionKey]: stepIndex + 1 };
+         newData.stages[stageKey] = stage;
+       } else {
+         newData.stages[stageKey] = { ...newData.stages[stageKey], currentStep: stepIndex + 1 };
        }
        
        return newData;
