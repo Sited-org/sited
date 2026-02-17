@@ -5,36 +5,33 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 interface ClientCredentialsRequest {
   clientName: string;
   clientEmail: string;
-  accessCode: string;
   portalUrl: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
   console.log("send-client-credentials function called");
 
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { clientName, clientEmail, accessCode, portalUrl }: ClientCredentialsRequest = await req.json();
+    const { clientName, clientEmail, portalUrl }: ClientCredentialsRequest = await req.json();
 
-    console.log(`Sending credentials to ${clientEmail}`);
+    console.log(`Sending portal invite to ${clientEmail}`);
 
     const firstName = clientName ? clientName.split(' ')[0] : 'there';
 
     const emailResponse = await resend.emails.send({
       from: "Sited <hello@sited.co>",
       to: [clientEmail],
-      subject: "Your Client Portal Access Details",
+      subject: "Your Client Portal is Ready",
       html: `
         <!DOCTYPE html>
         <html>
@@ -58,16 +55,14 @@ const handler = async (req: Request): Promise<Response> => {
             </p>
             
             <div style="background-color: #f3f4f6; border-radius: 8px; padding: 24px; margin: 24px 0;">
-              <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">
-                Your Login Details
+              <p style="color: #6b7280; font-size: 14px; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                How to Log In
               </p>
-              <p style="color: #111827; font-size: 16px; margin: 0 0 12px 0;">
-                <strong>Email:</strong> ${clientEmail}
-              </p>
-              <p style="color: #111827; font-size: 16px; margin: 0;">
-                <strong>Access Code:</strong> 
-                <span style="font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 0.1em; color: #2563eb;">${accessCode}</span>
-              </p>
+              <ol style="color: #111827; font-size: 15px; margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Visit the Client Portal using the button below</li>
+                <li style="margin-bottom: 8px;">Enter your email address: <strong>${clientEmail}</strong></li>
+                <li style="margin-bottom: 0;">You'll receive a one-time verification code to your email — enter it to access your portal</li>
+              </ol>
             </div>
             
             <a href="${portalUrl}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 16px 0;">
@@ -101,10 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.error("Error sending client credentials email:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };

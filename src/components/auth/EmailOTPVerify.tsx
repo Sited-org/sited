@@ -9,7 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 interface EmailOTPVerifyProps {
   email: string;
   userId?: string; // For admin users
-  accessCode?: string; // For client users
   userType: 'admin' | 'client';
   onVerified: (data?: any) => void;
   onCancel: () => void;
@@ -18,7 +17,6 @@ interface EmailOTPVerifyProps {
 export function EmailOTPVerify({ 
   email, 
   userId,
-  accessCode,
   userType,
   onVerified, 
   onCancel 
@@ -30,28 +28,23 @@ export function EmailOTPVerify({
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   
-  // Create a unique session key for this OTP request to prevent duplicates
   const sessionKey = userType === 'admin' 
     ? `otp_sent_admin_${userId}` 
     : `otp_sent_client_${email}`;
   
-  // Use ref to track if we've initiated sending in this component instance
   const isSendingRef = useRef(false);
 
   useEffect(() => {
-    // Check if we've already sent a code recently (within last 30 seconds)
     const lastSentTime = sessionStorage.getItem(sessionKey);
     const now = Date.now();
     
     if (lastSentTime && now - parseInt(lastSentTime) < 30000) {
-      // Code was sent recently, don't send again
       setCodeSent(true);
       const elapsed = Math.floor((now - parseInt(lastSentTime)) / 1000);
       setCountdown(Math.max(0, 60 - elapsed));
       return;
     }
     
-    // Only send if we haven't started sending yet
     if (!isSendingRef.current) {
       isSendingRef.current = true;
       sendVerificationCode();
@@ -66,14 +59,11 @@ export function EmailOTPVerify({
   }, [countdown]);
 
   const sendVerificationCode = async (isResend = false) => {
-    // Prevent duplicate sends
     if (sendingCode) return;
 
     setSendingCode(true);
     setError('');
 
-    // IMPORTANT: mark as "sent" immediately to prevent React StrictMode double-mount
-    // from triggering two sends before the first request resolves.
     const nowTs = Date.now().toString();
     if (!isResend) {
       sessionStorage.setItem(sessionKey, nowTs);
@@ -95,12 +85,10 @@ export function EmailOTPVerify({
       setCodeSent(true);
       setCountdown(60);
     } catch (err: any) {
-      // If the send failed, roll back the "sent" marker so the user can retry.
       if (!isResend) {
         sessionStorage.removeItem(sessionKey);
       }
       setError(err.message || 'Failed to send verification code');
-      // Clear the sending flag so user can retry
       isSendingRef.current = false;
     } finally {
       setSendingCode(false);
@@ -130,11 +118,9 @@ export function EmailOTPVerify({
 
         onVerified();
       } else {
-        // Client verification with session creation
         const { data, error: invokeError } = await supabase.functions.invoke('verify-client-otp', {
           body: { 
             email: email.trim().toLowerCase(),
-            access_code: accessCode?.trim().toUpperCase(),
             otp_code: otpCode,
           },
         });
