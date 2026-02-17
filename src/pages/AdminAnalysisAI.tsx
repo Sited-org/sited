@@ -62,6 +62,7 @@ const MEMBERSHIP_TIERS = [
   { value: 'Blue', label: 'Blue' },
   { value: 'Gold Package', label: 'Gold' },
   { value: 'Platinum', label: 'Platinum' },
+  { value: '50% Off', label: '50% Off' },
 ];
 
 const ANALYSIS_TYPES: { value: AnalysisType; icon: React.ElementType; title: string; description: string }[] = [
@@ -115,6 +116,7 @@ export default function AdminAnalysisAI() {
   const [viewReport, setViewReport] = useState<{ businessName: string; content: string } | null>(null);
   const [editReport, setEditReport] = useState<{ clientId: string; businessName: string; content: string } | null>(null);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(15);
 
   useEffect(() => {
     fetchClients();
@@ -224,52 +226,70 @@ export default function AdminAnalysisAI() {
           )}
 
           {/* Client preview table */}
-          {(selectionMode !== 'custom' || selectedClientIds.length > 0 || searchQuery) && (
-            <ScrollArea className="max-h-[300px] border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {selectionMode === 'custom' && <TableHead className="w-10" />}
-                    <TableHead>Client</TableHead>
-                    <TableHead>Business</TableHead>
-                    <TableHead>Domain</TableHead>
-                    <TableHead>Tier</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(selectionMode === 'custom' ? filteredClients : selectedClients).map(c => (
-                    <TableRow key={c.id}>
-                      {selectionMode === 'custom' && (
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedClientIds.includes(c.id)}
-                            onCheckedChange={() => handleToggleClient(c.id)}
-                          />
-                        </TableCell>
+          {(selectionMode !== 'custom' || selectedClientIds.length > 0 || searchQuery) && (() => {
+            const displayClients = selectionMode === 'custom' ? filteredClients : selectedClients;
+            const visibleClients = displayClients.slice(0, visibleCount);
+            const hasMore = displayClients.length > visibleCount;
+            return (
+              <div className="space-y-2">
+                <ScrollArea className="max-h-[400px] border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {selectionMode === 'custom' && <TableHead className="w-10" />}
+                        <TableHead>Client</TableHead>
+                        <TableHead>Business</TableHead>
+                        <TableHead>Domain</TableHead>
+                        <TableHead>Tier</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visibleClients.map(c => (
+                        <TableRow key={c.id}>
+                          {selectionMode === 'custom' && (
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedClientIds.includes(c.id)}
+                                onCheckedChange={() => handleToggleClient(c.id)}
+                              />
+                            </TableCell>
+                          )}
+                          <TableCell className="font-medium">{c.name || c.email}</TableCell>
+                          <TableCell>{c.business_name || '—'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              {c.website_url || <span className="text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" />Missing</span>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize text-xs">{c.membership_tier || 'None'}</Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {displayClients.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={selectionMode === 'custom' ? 5 : 4} className="text-center text-muted-foreground py-8">
+                            {loadingClients ? 'Loading clients...' : 'No clients found'}
+                          </TableCell>
+                        </TableRow>
                       )}
-                      <TableCell className="font-medium">{c.name || c.email}</TableCell>
-                      <TableCell>{c.business_name || '—'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {c.website_url || <span className="text-muted-foreground flex items-center gap-1"><AlertTriangle className="h-3 w-3 text-amber-500" />Missing</span>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize text-xs">{c.membership_tier || 'None'}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(selectionMode === 'custom' ? filteredClients : selectedClients).length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={selectionMode === 'custom' ? 5 : 4} className="text-center text-muted-foreground py-8">
-                        {loadingClients ? 'Loading clients...' : 'No clients found'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+                {hasMore && (
+                  <div className="flex justify-center pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVisibleCount(prev => prev + 15)}
+                    >
+                      Load More ({displayClients.length - visibleCount} remaining)
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {step1Complete && (
             <Button variant="ghost" size="sm" onClick={clearAll}>Clear Selection</Button>
