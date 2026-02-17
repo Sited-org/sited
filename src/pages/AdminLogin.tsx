@@ -24,20 +24,23 @@ export default function AdminLogin() {
   const [showOTPVerify, setShowOTPVerify] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
   
-  const { isAuthenticated, isAdmin, loading, user } = useAuth();
+  const { isAuthenticated, isAdmin, isDeveloper, loading, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Check if already authenticated and OTP verified
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
-      if (!loading && isAuthenticated && isAdmin && !showOTPVerify) {
-        // Check if user has completed OTP verification for this session
+      if (!loading && isAuthenticated && !showOTPVerify) {
         const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
         if (otpVerified === 'true') {
-          navigate('/admin');
-        } else if (user?.id) {
-          // User is authenticated but needs OTP verification
+          // Redirect based on role
+          if (isDeveloper) {
+            navigate('/dev');
+          } else if (isAdmin) {
+            navigate('/admin');
+          }
+        } else if (user?.id && (isAdmin || isDeveloper)) {
           setPendingUserId(user.id);
           setShowOTPVerify(true);
         }
@@ -45,7 +48,7 @@ export default function AdminLogin() {
     };
     
     checkAuthAndRedirect();
-  }, [isAuthenticated, isAdmin, loading, navigate, showOTPVerify, user]);
+  }, [isAuthenticated, isAdmin, isDeveloper, loading, navigate, showOTPVerify, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

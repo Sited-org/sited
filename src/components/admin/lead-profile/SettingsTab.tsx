@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2, AlertTriangle, Calendar, User, Mail, Send, Loader2, Check } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, AlertTriangle, Calendar, User, Mail, Send, Loader2, Check, Code } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -20,6 +21,44 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
   const [deleting, setDeleting] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
+  const [assignedTo, setAssignedTo] = useState<string>(lead.assigned_to || '');
+  const [savingAssignment, setSavingAssignment] = useState(false);
+  const [developers, setDevelopers] = useState<Array<{ user_id: string; display_name: string; email: string }>>([]);
+
+  useEffect(() => {
+    const fetchDevelopers = async () => {
+      const { data: devRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'developer');
+      if (!devRoles?.length) return;
+
+      const { data: profiles } = await supabase
+        .from('admin_profiles')
+        .select('user_id, display_name, email')
+        .in('user_id', devRoles.map(r => r.user_id));
+      
+      setDevelopers(profiles || []);
+    };
+    fetchDevelopers();
+  }, []);
+
+  const handleAssignDeveloper = async (value: string) => {
+    const newValue = value === 'unassigned' ? null : value;
+    setAssignedTo(newValue || '');
+    setSavingAssignment(true);
+    const { error } = await supabase
+      .from('leads')
+      .update({ assigned_to: newValue })
+      .eq('id', lead.id);
+    if (error) {
+      toast({ title: 'Error assigning developer', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: newValue ? 'Developer assigned' : 'Developer unassigned' });
+      onLeadUpdate?.({ ...lead, assigned_to: newValue });
+    }
+    setSavingAssignment(false);
+  };
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -110,6 +149,43 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
                 </>
               )}
             </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Developer Assignment */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Code className="h-5 w-5 text-primary" />
+            Developer Assignment
+          </CardTitle>
+          <CardDescription>
+            Assign a developer to work on this project
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={assignedTo || 'unassigned'}
+            onValueChange={handleAssignDeveloper}
+            disabled={!canEdit || savingAssignment}
+          >
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Select a developer" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {developers.map((dev) => (
+                <SelectItem key={dev.user_id} value={dev.user_id}>
+                  {dev.display_name} ({dev.email})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {savingAssignment && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+            </p>
           )}
         </CardContent>
       </Card>
