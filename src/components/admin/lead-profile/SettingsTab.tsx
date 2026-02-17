@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2, AlertTriangle, Calendar, User, Key, Copy, RefreshCw, Check } from 'lucide-react';
+import { Trash2, AlertTriangle, Calendar, User, Mail, Send, Loader2, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -18,16 +18,12 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [deleting, setDeleting] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
 
   const handleDelete = async () => {
     setDeleting(true);
-    const { error } = await supabase
-      .from('leads')
-      .delete()
-      .eq('id', lead.id);
-
+    const { error } = await supabase.from('leads').delete().eq('id', lead.id);
     if (error) {
       toast({ title: 'Error deleting lead', description: error.message, variant: 'destructive' });
       setDeleting(false);
@@ -37,70 +33,34 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
     }
   };
 
-  const handleGenerateCode = async () => {
-    setGeneratingCode(true);
+  const handleSendPortalInvite = async () => {
+    setSendingInvite(true);
     try {
-      // Call the database function to generate a unique code
-      const { data: codeData, error: codeError } = await supabase
-        .rpc('generate_client_access_code');
-
-      if (codeError) throw codeError;
-
-      // Update the lead with the new code
-      const { data: updatedLead, error: updateError } = await supabase
-        .from('leads')
-        .update({ client_access_code: codeData })
-        .eq('id', lead.id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
-
-      // Send credentials email to client
       const portalUrl = 'https://sited.co/client-portal';
       const { error: emailError } = await supabase.functions.invoke('send-client-credentials', {
         body: {
           clientName: lead.name || '',
           clientEmail: lead.email,
-          accessCode: codeData,
-          portalUrl
+          portalUrl,
         }
       });
 
-      if (emailError) {
-        console.error('Failed to send credentials email:', emailError);
-        toast({ 
-          title: 'Access code generated', 
-          description: `Code: ${codeData}. Note: Email could not be sent.`,
-          variant: 'default'
-        });
-      } else {
-        toast({ 
-          title: 'Access code generated & emailed', 
-          description: `Code sent to ${lead.email}` 
-        });
-      }
-      
-      if (onLeadUpdate && updatedLead) {
-        onLeadUpdate(updatedLead);
-      }
+      if (emailError) throw emailError;
+
+      setInviteSent(true);
+      toast({ 
+        title: 'Portal invite sent', 
+        description: `Instructions emailed to ${lead.email}` 
+      });
+      setTimeout(() => setInviteSent(false), 3000);
     } catch (error: any) {
       toast({ 
-        title: 'Error generating code', 
+        title: 'Error sending invite', 
         description: error.message, 
         variant: 'destructive' 
       });
     } finally {
-      setGeneratingCode(false);
-    }
-  };
-
-  const handleCopyCode = async () => {
-    if (lead.client_access_code) {
-      await navigator.clipboard.writeText(lead.client_access_code);
-      setCopied(true);
-      toast({ title: 'Code copied to clipboard' });
-      setTimeout(() => setCopied(false), 2000);
+      setSendingInvite(false);
     }
   };
 
@@ -110,68 +70,46 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Key className="h-5 w-5 text-primary" />
+            <Mail className="h-5 w-5 text-primary" />
             Client Portal Access
           </CardTitle>
           <CardDescription>
-            Generate an access code for the client to log into their portal
+            Send the client an email with instructions on how to access their portal
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {lead.client_access_code ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 p-3 bg-muted rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Access Code</p>
-                  <p className="font-mono text-2xl font-bold tracking-widest">
-                    {lead.client_access_code}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyCode}
-                  className="h-12 w-12"
-                >
-                  {copied ? (
-                    <Check className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Copy className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Client email:</span>
-                <span className="font-medium text-foreground">{lead.email}</span>
-              </div>
-              {canEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateCode}
-                  disabled={generatingCode}
-                  className="mt-2"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${generatingCode ? 'animate-spin' : ''}`} />
-                  Regenerate Code
-                </Button>
-              )}
+          <div className="p-4 bg-muted rounded-lg space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Clients log in using their email address. A one-time verification code is sent to their email for secure access.
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Client email:</span>
+              <span className="font-medium text-foreground">{lead.email}</span>
             </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-4">
-                No access code has been generated for this client yet.
-              </p>
-              {canEdit && (
-                <Button
-                  onClick={handleGenerateCode}
-                  disabled={generatingCode}
-                >
-                  <Key className={`h-4 w-4 mr-2 ${generatingCode ? 'animate-spin' : ''}`} />
-                  {generatingCode ? 'Generating...' : 'Generate Access Code'}
-                </Button>
+          </div>
+          {canEdit && (
+            <Button
+              onClick={handleSendPortalInvite}
+              disabled={sendingInvite}
+              className="w-full sm:w-auto"
+            >
+              {inviteSent ? (
+                <>
+                  <Check className="h-4 w-4 mr-2 text-green-500" />
+                  Invite Sent!
+                </>
+              ) : sendingInvite ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Portal Invite Email
+                </>
               )}
-            </div>
+            </Button>
           )}
         </CardContent>
       </Card>
@@ -220,9 +158,7 @@ export function SettingsTab({ lead, canEdit, onLeadUpdate }: SettingsTabProps) {
               <AlertTriangle className="h-5 w-5" />
               Danger Zone
             </CardTitle>
-            <CardDescription>
-              Irreversible actions for this lead
-            </CardDescription>
+            <CardDescription>Irreversible actions for this lead</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">

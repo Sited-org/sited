@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Lock, User, AlertCircle, Sparkles } from 'lucide-react';
+import { Loader2, Lock, Mail, AlertCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import { usePageSEO } from '@/hooks/usePageSEO';
@@ -16,10 +16,9 @@ export default function ClientPortalLogin() {
   });
 
   const [email, setEmail] = useState('');
-  const [accessCode, setAccessCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -29,12 +28,11 @@ export default function ClientPortalLogin() {
     setLoading(true);
 
     try {
-      // First verify access code is valid before proceeding to 2FA
+      // Check that a lead exists with this email before sending OTP
       const { data, error: invokeError } = await supabase.functions.invoke('verify-client-access', {
         body: { 
           email: email.trim().toLowerCase(), 
-          access_code: accessCode.trim().toUpperCase(),
-          skip_session: true, // Just validate, don't create session yet
+          skip_session: true,
         },
       });
 
@@ -43,10 +41,9 @@ export default function ClientPortalLogin() {
       }
 
       if (data?.success || data?.valid) {
-        // Credentials are valid, proceed to 2FA
-        setShowTwoFactor(true);
+        setShowOTP(true);
       } else {
-        throw new Error(data?.error || 'Access denied');
+        throw new Error(data?.error || 'No account found with this email');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to verify access');
@@ -55,14 +52,13 @@ export default function ClientPortalLogin() {
     }
   };
 
-  const handleTwoFactorVerified = (sessionData: any) => {
+  const handleOTPVerified = (sessionData: any) => {
     sessionStorage.setItem('clientPortalSession', JSON.stringify({
       lead: sessionData.lead,
       token: sessionData.sessionToken,
       email: email.trim().toLowerCase(),
       expiresAt: sessionData.expiresAt,
     }));
-    // Preserve any action params (e.g. from analysis email CTA)
     const action = searchParams.get('action');
     const type = searchParams.get('type');
     const clientId = searchParams.get('clientId');
@@ -74,16 +70,14 @@ export default function ClientPortalLogin() {
     navigate(`/client-portal/dashboard${qs ? `?${qs}` : ''}`);
   };
 
-  // Show 2FA verification
-  if (showTwoFactor) {
+  if (showOTP) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
         <EmailOTPVerify
           email={email}
-          accessCode={accessCode}
           userType="client"
-          onVerified={handleTwoFactorVerified}
-          onCancel={() => setShowTwoFactor(false)}
+          onVerified={handleOTPVerified}
+          onCancel={() => setShowOTP(false)}
         />
       </div>
     );
@@ -109,7 +103,7 @@ export default function ClientPortalLogin() {
               Secure Login
             </CardTitle>
             <CardDescription>
-              Enter your email and access code to continue
+              Enter your email to receive a verification code
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,27 +128,10 @@ export default function ClientPortalLogin() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="accessCode">Access Code</Label>
-                <Input
-                  id="accessCode"
-                  type="text"
-                  placeholder="e.g. A1B2C3D4"
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                  required
-                  className="font-mono tracking-wider uppercase"
-                  maxLength={8}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your access code was provided when you started your project
-                </p>
-              </div>
-
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={loading || !email || !accessCode}
+                disabled={loading || !email}
               >
                 {loading ? (
                   <>
@@ -163,8 +140,8 @@ export default function ClientPortalLogin() {
                   </>
                 ) : (
                   <>
-                    <User className="h-4 w-4 mr-2" />
-                    Access Portal
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Verification Code
                   </>
                 )}
               </Button>
