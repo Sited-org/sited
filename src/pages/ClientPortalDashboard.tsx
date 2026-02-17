@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe } from 'lucide-react';
@@ -68,6 +68,8 @@ export default function ClientPortalDashboard() {
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const hasFetchedRef = useRef(false);
+  const hasHandledActionRef = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const fetchClientData = useCallback(async (clientSession: ClientSession) => {
@@ -175,9 +177,40 @@ export default function ClientPortalDashboard() {
     navigate('/client-portal');
   };
 
+  // Handle analysis action from email CTA
+  useEffect(() => {
+    if (hasHandledActionRef.current || loading || !session) return;
+    const action = searchParams.get('action');
+    const analysisType = searchParams.get('type');
+    const clientId = searchParams.get('clientId');
+
+    if (action === 'request-analysis' && analysisType && clientId) {
+      hasHandledActionRef.current = true;
+      // Clear the URL params
+      setSearchParams({});
+
+      // Auto-create the implementation request via edge function
+      (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('request-analysis-action', {
+            body: { clientId, analysisType },
+          });
+
+          if (error) throw error;
+          toast.success('Implementation request submitted successfully!');
+          setActiveTab('requests');
+          // Refetch data to show new request
+          fetchClientData(session);
+        } catch (e: any) {
+          console.error('Failed to create analysis request:', e);
+          toast.error('Failed to submit request. Please try again.');
+        }
+      })();
+    }
+  }, [loading, session, searchParams, setSearchParams, fetchClientData]);
+
   const handleRequestCreated = useCallback(() => {
     if (session) {
-      // Refetch data when a request is created
       fetchClientData(session);
     }
   }, [session, fetchClientData]);

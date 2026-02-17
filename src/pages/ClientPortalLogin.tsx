@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ export default function ClientPortalLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -61,7 +62,16 @@ export default function ClientPortalLogin() {
       email: email.trim().toLowerCase(),
       expiresAt: sessionData.expiresAt,
     }));
-    navigate('/client-portal/dashboard');
+    // Preserve any action params (e.g. from analysis email CTA)
+    const action = searchParams.get('action');
+    const type = searchParams.get('type');
+    const clientId = searchParams.get('clientId');
+    const dashboardParams = new URLSearchParams();
+    if (action) dashboardParams.set('action', action);
+    if (type) dashboardParams.set('type', type);
+    if (clientId) dashboardParams.set('clientId', clientId);
+    const qs = dashboardParams.toString();
+    navigate(`/client-portal/dashboard${qs ? `?${qs}` : ''}`);
   };
 
   // Show 2FA verification

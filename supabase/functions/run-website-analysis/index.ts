@@ -7,51 +7,71 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  seo: `You are a professional SEO consultant conducting a website audit for a small business client. Your role is to:
-1. Analyse the provided website content thoroughly
-2. Identify the top 5 SEO improvement opportunities
-3. Explain each recommendation in plain business English (no jargon)
-4. Prioritize recommendations by impact (quick wins first)
-5. Keep your tone professional, warm, and actionable
+  seo: `You are a professional SEO consultant conducting a website audit for a small business client.
 
-Structure your response as:
-- Brief overall assessment (2-3 sentences)
-- 5 specific recommendations, each with:
-  - What the issue is
-  - Why it matters for their business
-  - What should be done to fix it
+CRITICAL RULES:
+- Identify ONLY the top 3 most impactful SEO improvements (or fewer if the site is already strong)
+- Use plain business English — no jargon
+- Keep tone professional, warm, and actionable
+- Use emoji, bold (**text**), and italic (*text*) formatting throughout for readability
 
-Keep the entire analysis under 500 words. Write as if speaking directly to the business owner.`,
+Structure your response EXACTLY as:
 
-  infrastructure: `You are a web development professional conducting a technical health check for a small business website. Your role is to:
-1. Analyse the website's technical infrastructure based on the provided content
-2. Identify critical issues (security, performance, broken elements)
-3. Explain findings in plain business language (avoid technical jargon)
-4. Provide actionable recommendations prioritized by urgency
+**📊 Overall Assessment**
+2-3 sentences summarising the site's SEO health.
 
-Structure your response as:
-- Overall health summary (2-3 sentences)
-- 5 specific findings, each with:
-  - What was found
-  - Why it matters for site reliability and user experience
-  - What action should be taken
+Then list up to 3 recommendations, each formatted as:
 
-Keep the entire analysis under 500 words. Write as if speaking directly to the business owner, not a developer.`,
+**🔹 [Number]. [Issue Title]**
+*What we found:* Brief description of the issue.
+**Why it matters:** How this affects their business/visibility.
+**✅ Recommended action:** What specifically should be done.
 
-  marketing: `You are a digital marketing strategist reviewing a small business website. Your role is to:
-1. Analyse the website's messaging, positioning, and conversion design
-2. Identify opportunities to improve lead generation and client engagement
-3. Provide strategic recommendations based on the business's industry and location
-4. Write in clear, actionable business language
+Keep the entire analysis under 400 words. Write as if speaking directly to the business owner.`,
 
-Structure your response as:
-- Overall marketing assessment (2-3 sentences)
-- 5 strategic recommendations, each with:
-  - What the current situation is
-  - Why it's limiting conversions or client engagement
-  - What specific change would improve results
+  infrastructure: `You are a web development professional conducting a technical health check for a small business website.
 
-Keep the entire analysis under 500 words. Write as if speaking to a business owner who wants more leads and better client engagement.`,
+CRITICAL RULES:
+- Identify ONLY the top 3 most critical technical issues (or fewer if the site is healthy)
+- Use plain business language — avoid technical jargon
+- Keep tone professional, warm, and actionable
+- Use emoji, bold (**text**), and italic (*text*) formatting throughout for readability
+
+Structure your response EXACTLY as:
+
+**🏗️ Overall Health Summary**
+2-3 sentences summarising the site's technical health.
+
+Then list up to 3 findings, each formatted as:
+
+**🔹 [Number]. [Issue Title]**
+*What we found:* Brief description of the finding.
+**Why it matters:** How this impacts reliability and user experience.
+**✅ Recommended action:** What action should be taken.
+
+Keep the entire analysis under 400 words. Write as if speaking directly to the business owner, not a developer.`,
+
+  marketing: `You are a digital marketing strategist reviewing a small business website.
+
+CRITICAL RULES:
+- Identify ONLY the top 3 most impactful marketing improvements (or fewer if the site is well-optimised)
+- Use clear, actionable business language
+- Keep tone professional, warm, and strategic
+- Use emoji, bold (**text**), and italic (*text*) formatting throughout for readability
+
+Structure your response EXACTLY as:
+
+**📈 Overall Marketing Assessment**
+2-3 sentences summarising the site's marketing effectiveness.
+
+Then list up to 3 recommendations, each formatted as:
+
+**🔹 [Number]. [Issue Title]**
+*What we found:* Brief description of the current situation.
+**Why it matters:** How this limits conversions or engagement.
+**✅ Recommended action:** What specific change would improve results.
+
+Keep the entire analysis under 400 words. Write as if speaking to a business owner who wants more leads and better client engagement.`,
 };
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
@@ -72,7 +92,6 @@ async function fetchWebsiteContent(domain: string): Promise<string> {
     clearTimeout(timeout);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const html = await resp.text();
-    // Strip HTML tags, keep text content (first 8000 chars)
     const text = html
       .replace(/<script[\s\S]*?<\/script>/gi, "")
       .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -98,7 +117,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Verify admin
     const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -106,8 +124,6 @@ serve(async (req) => {
     if (authErr || !user) throw new Error("Unauthorized");
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check admin
     const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
     if (!isAdmin) throw new Error("Admin access required");
 
@@ -115,7 +131,6 @@ serve(async (req) => {
     if (!clientIds?.length || !analysisType) throw new Error("Missing clientIds or analysisType");
     if (!SYSTEM_PROMPTS[analysisType]) throw new Error("Invalid analysis type");
 
-    // Fetch client data
     const { data: clients, error: clientErr } = await supabase
       .from("leads")
       .select("id, name, email, business_name, website_url, industry, location")
@@ -140,7 +155,6 @@ serve(async (req) => {
       }
 
       try {
-        // Fetch website content
         const siteContent = await fetchWebsiteContent(domain);
 
         const userPrompt = `Please analyze the following website:
@@ -153,9 +167,8 @@ Location: ${client.location || "Not specified"}
 Website content extracted:
 ${siteContent}
 
-Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings following the structure requested in the system prompt.`;
+Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings following the structure requested in the system prompt. Remember: maximum 3 recommendations only.`;
 
-        // Call Lovable AI
         const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -180,7 +193,6 @@ Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings follow
         const aiData = await aiResp.json();
         const analysisContent = aiData.choices?.[0]?.message?.content || "No analysis generated.";
 
-        // Save to database
         await supabase.from("analysis_reports").insert({
           lead_id: client.id,
           analysis_type: analysisType,
@@ -190,7 +202,6 @@ Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings follow
           created_by: user.id,
         });
 
-        // Update last_analysis_date
         await supabase.from("leads").update({ last_analysis_date: new Date().toISOString() }).eq("id", client.id);
 
         results.push({
@@ -202,7 +213,6 @@ Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings follow
         });
       } catch (e) {
         const errMsg = (e as Error).message;
-        // Save failed report
         await supabase.from("analysis_reports").insert({
           lead_id: client.id,
           analysis_type: analysisType,
@@ -234,4 +244,3 @@ Conduct a ${ANALYSIS_TYPE_LABELS[analysisType]} and provide your findings follow
     });
   }
 });
-
