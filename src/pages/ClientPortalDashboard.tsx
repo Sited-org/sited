@@ -189,7 +189,7 @@ export default function ClientPortalDashboard() {
       // Clear the URL params
       setSearchParams({});
 
-      // Auto-create the implementation request via edge function
+      // Auto-create the implementation request via edge function (as draft)
       (async () => {
         try {
           const { data, error } = await supabase.functions.invoke('request-analysis-action', {
@@ -197,13 +197,16 @@ export default function ClientPortalDashboard() {
           });
 
           if (error) throw error;
-          toast.success('Implementation request submitted successfully!');
+          if (data?.duplicate) {
+            toast.info('A request for this analysis was already submitted recently.');
+          } else {
+            toast.success('Draft request created — review and send it below.');
+          }
           setActiveTab('requests');
-          // Refetch data to show new request
           fetchClientData(session);
         } catch (e: any) {
           console.error('Failed to create analysis request:', e);
-          toast.error('Failed to submit request. Please try again.');
+          toast.error('Failed to create draft. Please try again.');
         }
       })();
     }

@@ -260,6 +260,7 @@ export type Database = {
           description: string | null
           estimated_completion: string | null
           id: string
+          last_analysis_action_at: string | null
           lead_id: string
           priority: string
           request_source: string | null
@@ -277,6 +278,7 @@ export type Database = {
           description?: string | null
           estimated_completion?: string | null
           id?: string
+          last_analysis_action_at?: string | null
           lead_id: string
           priority?: string
           request_source?: string | null
@@ -294,6 +296,7 @@ export type Database = {
           description?: string | null
           estimated_completion?: string | null
           id?: string
+          last_analysis_action_at?: string | null
           lead_id?: string
           priority?: string
           request_source?: string | null

@@ -58,6 +58,28 @@ import {
 } from 'lucide-react';
 import { useAnalysisAI, AnalysisType, SelectionMode, ClientForAnalysis } from '@/hooks/useAnalysisAI';
 
+/** Convert markdown-ish analysis text into styled HTML for the preview modal */
+function formatAnalysisForPreview(text: string): string {
+  const paragraphs = text.split(/\n\n+/);
+  return paragraphs
+    .map(p => {
+      let html = p.trim();
+      if (!html) return '';
+      // Remove stray asterisks that aren't part of valid formatting
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+      html = html.replace(/__(.+?)__/g, '<u>$1</u>');
+      html = html.replace(/\n/g, '<br>');
+      // Heading detection
+      if (html.startsWith('<strong>') && html.includes('</strong>') && html.length < 200) {
+        return `<h3>${html}</h3>`;
+      }
+      return `<p>${html}</p>`;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
 const MEMBERSHIP_TIERS = [
   { value: 'Blue', label: 'Blue' },
   { value: 'Gold Package', label: 'Gold Package' },
@@ -110,6 +132,7 @@ export default function AdminAnalysisAI() {
     sendEmails,
     updateAnalysis,
     clearAll,
+    clearAnalysis,
   } = useAnalysisAI();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -372,10 +395,15 @@ export default function AdminAnalysisAI() {
             </div>
           )}
 
-          {step3Complete && (
-            <div className="flex items-center gap-2 text-sm">
-              <Check className="h-4 w-4 text-green-600" />
-              <span className="font-medium">Analysis complete — {successResults.length} successful, {failedResults.length} failed</span>
+      {step3Complete && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="font-medium">Analysis complete — {successResults.length} successful, {failedResults.length} failed</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={clearAnalysis}>
+                Clear Analysis
+              </Button>
             </div>
           )}
         </CardContent>
@@ -479,14 +507,19 @@ export default function AdminAnalysisAI() {
         </Card>
       )}
 
-      {/* View Report Modal */}
+      {/* View Report Modal — email-style preview */}
       <Dialog open={!!viewReport} onOpenChange={() => setViewReport(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto p-0">
+          <DialogHeader className="p-6 pb-0">
             <DialogTitle>{viewReport?.businessName} — Full Report</DialogTitle>
           </DialogHeader>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed">
-            {viewReport?.content}
+          <div className="px-6 pb-6">
+            <div
+              className="prose prose-sm max-w-none text-sm leading-relaxed [&_h3]:text-base [&_h3]:font-bold [&_h3]:mt-5 [&_h3]:mb-2 [&_p]:mb-3 [&_p]:leading-7"
+              dangerouslySetInnerHTML={{
+                __html: formatAnalysisForPreview(viewReport?.content || ''),
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>
