@@ -80,6 +80,53 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_reports: {
+        Row: {
+          analysis_content: string | null
+          analysis_type: string
+          created_at: string
+          created_by: string | null
+          domain: string
+          email_sent_at: string | null
+          error_message: string | null
+          id: string
+          lead_id: string
+          status: string
+        }
+        Insert: {
+          analysis_content?: string | null
+          analysis_type: string
+          created_at?: string
+          created_by?: string | null
+          domain: string
+          email_sent_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id: string
+          status?: string
+        }
+        Update: {
+          analysis_content?: string | null
+          analysis_type?: string
+          created_at?: string
+          created_by?: string | null
+          domain?: string
+          email_sent_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_reports_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booking_date: string
@@ -205,6 +252,7 @@ export type Database = {
       client_requests: {
         Row: {
           admin_notes: string | null
+          analysis_type: string | null
           assigned_to: string | null
           body: string | null
           completed_at: string | null
@@ -214,12 +262,14 @@ export type Database = {
           id: string
           lead_id: string
           priority: string
+          request_source: string | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
           admin_notes?: string | null
+          analysis_type?: string | null
           assigned_to?: string | null
           body?: string | null
           completed_at?: string | null
@@ -229,12 +279,14 @@ export type Database = {
           id?: string
           lead_id: string
           priority?: string
+          request_source?: string | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
           admin_notes?: string | null
+          analysis_type?: string | null
           assigned_to?: string | null
           body?: string | null
           completed_at?: string | null
@@ -244,6 +296,7 @@ export type Database = {
           id?: string
           lead_id?: string
           priority?: string
+          request_source?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -563,8 +616,12 @@ export type Database = {
           generated_prompt: string | null
           generated_prompt_research: string | null
           id: string
+          industry: string | null
+          last_analysis_date: string | null
           last_contacted_at: string | null
           lead_number: number | null
+          location: string | null
+          membership_tier: string | null
           name: string | null
           notes: string | null
           phone: string | null
@@ -599,8 +656,12 @@ export type Database = {
           generated_prompt?: string | null
           generated_prompt_research?: string | null
           id?: string
+          industry?: string | null
+          last_analysis_date?: string | null
           last_contacted_at?: string | null
           lead_number?: number | null
+          location?: string | null
+          membership_tier?: string | null
           name?: string | null
           notes?: string | null
           phone?: string | null
@@ -635,8 +696,12 @@ export type Database = {
           generated_prompt?: string | null
           generated_prompt_research?: string | null
           id?: string
+          industry?: string | null
+          last_analysis_date?: string | null
           last_contacted_at?: string | null
           lead_number?: number | null
+          location?: string | null
+          membership_tier?: string | null
           name?: string | null
           notes?: string | null
           phone?: string | null

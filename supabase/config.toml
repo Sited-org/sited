@@ -101,3 +101,12 @@ verify_jwt = false
 
 [functions.get-available-slots]
 verify_jwt = false
+
+[functions.run-website-analysis]
+verify_jwt = true
+
+[functions.send-analysis-emails]
+verify_jwt = true
+
+[functions.request-analysis-action]
+verify_jwt = false

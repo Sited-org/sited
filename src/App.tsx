@@ -29,6 +29,7 @@ const AdminTestimonials = lazy(() => import("./pages/AdminTestimonials"));
 const AdminRequests = lazy(() => import("./pages/AdminRequests"));
 const AdminFinancial = lazy(() => import("./pages/AdminFinancial"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
+const AdminAnalysisAI = lazy(() => import("./pages/AdminAnalysisAI"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const ClientPortalLogin = lazy(() => import("./pages/ClientPortalLogin"));
 const ClientPortalDashboard = lazy(() => import("./pages/ClientPortalDashboard"));
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="leads/:id" element={<LeadProfile />} />
               <Route path="requests" element={<AdminRequests />} />
               <Route path="calendar" element={<AdminCalendar />} />
+              <Route path="analysis-ai" element={<AdminAnalysisAI />} />
               <Route path="financial" element={<AdminFinancial />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="team" element={<AdminTeam />} />
