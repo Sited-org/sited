@@ -1,0 +1,2 @@
+ALTER TABLE public.client_requests DROP CONSTRAINT client_requests_status_check;
+ALTER TABLE public.client_requests ADD CONSTRAINT client_requests_status_check CHECK (status = ANY (ARRAY['pending'::text, 'in_progress'::text, 'completed'::text, 'rejected'::text, 'cancelled'::text, 'draft'::text]));
