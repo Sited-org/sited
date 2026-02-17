@@ -33,6 +33,9 @@ const AdminAnalysisAI = lazy(() => import("./pages/AdminAnalysisAI"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const ClientPortalLogin = lazy(() => import("./pages/ClientPortalLogin"));
 const ClientPortalDashboard = lazy(() => import("./pages/ClientPortalDashboard"));
+const DevLayout = lazy(() => import("./components/dev/DevLayout"));
+const DevDashboard = lazy(() => import("./components/dev/DevDashboard"));
+const DevProjectView = lazy(() => import("./components/dev/DevProjectView"));
 
 const queryClient = new QueryClient();
 
@@ -64,6 +67,11 @@ const App = () => (
             {/* Client Portal Routes */}
             <Route path="/client-portal" element={<ClientPortalLogin />} />
             <Route path="/client-portal/dashboard" element={<ClientPortalDashboard />} />
+            {/* Developer Portal Routes */}
+            <Route path="/dev" element={<DevLayout />}>
+              <Route index element={<DevDashboard />} />
+              <Route path="project/:id" element={<DevProjectView />} />
+            </Route>
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>

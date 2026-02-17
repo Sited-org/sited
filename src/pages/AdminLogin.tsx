@@ -88,13 +88,25 @@ export default function AdminLogin() {
     setIsLoading(false);
   };
 
-  const handleOTPVerified = () => {
+  const handleOTPVerified = async () => {
     // Mark this session as OTP verified
     if (pendingUserId) {
       sessionStorage.setItem(`admin_otp_verified_${pendingUserId}`, 'true');
     }
     setShowOTPVerify(false);
-    navigate('/admin');
+    
+    // Check if user is a developer and redirect accordingly
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', pendingUserId!)
+      .maybeSingle();
+    
+    if (roleData?.role === 'developer') {
+      navigate('/dev');
+    } else {
+      navigate('/admin');
+    }
   };
 
   const handleOTPCancel = async () => {

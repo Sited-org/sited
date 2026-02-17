@@ -28,7 +28,7 @@ const navItems = [
 ];
 
 export default function AdminLayout() {
-  const { user, adminProfile, userRole, loading, signOut, isAuthenticated, isAdmin } = useAuth();
+  const { user, adminProfile, userRole, loading, signOut, isAuthenticated, isAdmin, isDeveloper } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,10 +36,16 @@ export default function AdminLayout() {
   useEffect(() => {
     if (loading) return; // Wait until fully loaded
     
+    // Hard-redirect developers to /dev - admin layout must never initialise for them
+    if (isAuthenticated && isDeveloper) {
+      navigate('/dev', { replace: true });
+      return;
+    }
+    
     if (!isAuthenticated || !isAdmin) {
       navigate('/admin/login', { replace: true });
     }
-  }, [loading, isAuthenticated, isAdmin, navigate]);
+  }, [loading, isAuthenticated, isAdmin, isDeveloper, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
