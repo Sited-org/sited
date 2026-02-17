@@ -12,6 +12,58 @@ const ANALYSIS_TYPE_LABELS: Record<string, string> = {
   marketing: "Marketing Strategy",
 };
 
+/**
+ * Parse analysis content into individual recommendations.
+ * Each recommendation starts with **🔹 [Number]. [Title]**
+ * Returns array of { title, description, body }
+ */
+function parseRecommendations(
+  analysisContent: string,
+  analysisType: string
+): { title: string; description: string; body: string }[] {
+  const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+
+  // Split by the recommendation marker pattern: **🔹 N. Title**
+  const recPattern = /\*\*🔹\s*\d+\.\s*(.+?)\*\*/g;
+  const markers: { index: number; title: string }[] = [];
+  let match;
+
+  while ((match = recPattern.exec(analysisContent)) !== null) {
+    markers.push({ index: match.index, title: match[1].trim() });
+  }
+
+  if (markers.length === 0) {
+    // Fallback: return the whole analysis as one request
+    return [{
+      title: `${typeLabel} — Implementation Request`,
+      description: `Implementation of ${typeLabel} recommendations.`,
+      body: analysisContent.slice(0, 2000),
+    }];
+  }
+
+  const recommendations: { title: string; description: string; body: string }[] = [];
+
+  for (let i = 0; i < markers.length; i++) {
+    const start = markers[i].index;
+    const end = i + 1 < markers.length ? markers[i + 1].index : analysisContent.length;
+    const sectionText = analysisContent.slice(start, end).trim();
+
+    // Extract "What we found:" as the description
+    const whatWeFoundMatch = sectionText.match(/\*What we found:\*\s*(.+?)(?:\n|$)/);
+    const description = whatWeFoundMatch
+      ? whatWeFoundMatch[1].trim().slice(0, 100)
+      : `${typeLabel} recommendation: ${markers[i].title}`.slice(0, 100);
+
+    recommendations.push({
+      title: `${typeLabel} — ${markers[i].title}`,
+      description,
+      body: sectionText,
+    });
+  }
+
+  return recommendations;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -20,7 +72,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle GET requests (from email CTA click) — create draft then redirect
+    // Handle GET requests (from email CTA click) — create drafts then redirect
     if (req.method === "GET") {
       const url = new URL(req.url);
       const clientId = url.searchParams.get("clientId");
@@ -30,7 +82,7 @@ serve(async (req) => {
         return new Response("Invalid request parameters.", { status: 400 });
       }
 
-      // Anti-spam: check for recent request from same client + type in last 5 minutes
+      // Anti-spam: check for recent requests from same client + type in last 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const { data: recentRequests } = await supabase
         .from("client_requests")
@@ -42,7 +94,6 @@ serve(async (req) => {
         .limit(1);
 
       if (!recentRequests || recentRequests.length === 0) {
-        // Fetch client info
         const { data: client } = await supabase
           .from("leads")
           .select("id, name, email, business_name")
@@ -61,24 +112,39 @@ serve(async (req) => {
             .limit(1)
             .single();
 
-          const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+          if (report?.analysis_content) {
+            // Parse into individual recommendations and create a draft for each
+            const recommendations = parseRecommendations(report.analysis_content, analysisType);
 
-          // Create the draft request immediately
-          await supabase.from("client_requests").insert({
-            lead_id: clientId,
-            title: `${typeLabel} — Implementation Request`,
-            description: report?.analysis_content
-              ? `Client requested implementation of ${typeLabel} recommendations.\n\n${report.analysis_content.slice(0, 1000)}`
-              : `Client requested implementation of ${typeLabel} recommendations.`,
-            priority: "normal",
-            status: "draft",
-            request_source: "analysis",
-            analysis_type: analysisType,
-          });
+            for (const rec of recommendations) {
+              await supabase.from("client_requests").insert({
+                lead_id: clientId,
+                title: rec.title,
+                description: rec.description,
+                body: rec.body,
+                priority: "normal",
+                status: "draft",
+                request_source: "analysis",
+                analysis_type: analysisType,
+              });
+            }
+          } else {
+            // No analysis content — create a single generic draft
+            const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+            await supabase.from("client_requests").insert({
+              lead_id: clientId,
+              title: `${typeLabel} — Implementation Request`,
+              description: `Client requested implementation of ${typeLabel} recommendations.`,
+              priority: "normal",
+              status: "draft",
+              request_source: "analysis",
+              analysis_type: analysisType,
+            });
+          }
         }
       }
 
-      // Redirect to the client portal login (draft already exists)
+      // Redirect to the client portal login
       const portalUrl = `https://sited.lovable.app/client-portal`;
       return new Response(null, {
         status: 302,
@@ -86,10 +152,10 @@ serve(async (req) => {
       });
     }
 
-    // Handle POST requests (kept for backwards compatibility)
+    // Handle POST requests (backwards compatibility)
     if (req.method === "POST") {
       const { clientId, analysisType } = await req.json();
-      
+
       if (!clientId || !analysisType) {
         return new Response(JSON.stringify({ error: "Missing clientId or analysisType" }), {
           status: 400,
@@ -97,7 +163,6 @@ serve(async (req) => {
         });
       }
 
-      // Anti-spam: check for recent draft request from same client + type in last 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const { data: recentRequests } = await supabase
         .from("client_requests")
@@ -110,7 +175,7 @@ serve(async (req) => {
 
       if (recentRequests && recentRequests.length > 0) {
         return new Response(
-          JSON.stringify({ error: "A request was already submitted recently. Please wait 5 minutes.", duplicate: true, existingRequestId: recentRequests[0].id }),
+          JSON.stringify({ error: "A request was already submitted recently. Please wait 5 minutes.", duplicate: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -138,24 +203,41 @@ serve(async (req) => {
         .limit(1)
         .single();
 
-      const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+      const createdIds: string[] = [];
 
-      const { data: newRequest, error: insertErr } = await supabase.from("client_requests").insert({
-        lead_id: clientId,
-        title: `${typeLabel} — Implementation Request`,
-        description: report?.analysis_content
-          ? `Client requested implementation of ${typeLabel} recommendations.\n\n${report.analysis_content.slice(0, 1000)}`
-          : `Client requested implementation of ${typeLabel} recommendations.`,
-        priority: "normal",
-        status: "draft",
-        request_source: "analysis",
-        analysis_type: analysisType,
-      }).select('id').single();
-
-      if (insertErr) throw insertErr;
+      if (report?.analysis_content) {
+        const recommendations = parseRecommendations(report.analysis_content, analysisType);
+        for (const rec of recommendations) {
+          const { data: newReq, error: insertErr } = await supabase.from("client_requests").insert({
+            lead_id: clientId,
+            title: rec.title,
+            description: rec.description,
+            body: rec.body,
+            priority: "normal",
+            status: "draft",
+            request_source: "analysis",
+            analysis_type: analysisType,
+          }).select("id").single();
+          if (insertErr) throw insertErr;
+          if (newReq) createdIds.push(newReq.id);
+        }
+      } else {
+        const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
+        const { data: newReq, error: insertErr } = await supabase.from("client_requests").insert({
+          lead_id: clientId,
+          title: `${typeLabel} — Implementation Request`,
+          description: `Client requested implementation of ${typeLabel} recommendations.`,
+          priority: "normal",
+          status: "draft",
+          request_source: "analysis",
+          analysis_type: analysisType,
+        }).select("id").single();
+        if (insertErr) throw insertErr;
+        if (newReq) createdIds.push(newReq.id);
+      }
 
       return new Response(
-        JSON.stringify({ success: true, requestId: newRequest?.id }),
+        JSON.stringify({ success: true, requestIds: createdIds }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

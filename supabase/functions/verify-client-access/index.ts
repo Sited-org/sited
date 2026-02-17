@@ -9,7 +9,7 @@ const corsHeaders = {
 // Rate limit configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_ATTEMPTS_PER_IP = 10; // Max 10 attempts per hour per IP
-const MAX_ATTEMPTS_PER_EMAIL = 5; // Max 5 attempts per hour per email
+const MAX_ATTEMPTS_PER_EMAIL = 10; // Max 10 attempts per hour per email
 
 // Session token configuration
 const SESSION_EXPIRY_HOURS = 24;

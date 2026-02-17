@@ -563,7 +563,7 @@ export default function AdminAnalysisAI() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setConfirmSend(false); sendEmails(); }}>
+            <AlertDialogAction onClick={async () => { setConfirmSend(false); await sendEmails(); clearAll(); }}>
               Send {successResults.length} Reports
             </AlertDialogAction>
           </AlertDialogFooter>
