@@ -60,9 +60,9 @@ import { useAnalysisAI, AnalysisType, SelectionMode, ClientForAnalysis } from '@
 
 const MEMBERSHIP_TIERS = [
   { value: 'Blue', label: 'Blue' },
-  { value: 'Gold Package', label: 'Gold' },
+  { value: 'Gold Package', label: 'Gold Package' },
   { value: 'Platinum', label: 'Platinum' },
-  { value: '50% Off', label: '50% Off' },
+  { value: 'Website Maintenance (50% Off)', label: '50% Off' },
 ];
 
 const ANALYSIS_TYPES: { value: AnalysisType; icon: React.ElementType; title: string; description: string }[] = [

@@ -41,12 +41,34 @@ export function useAnalysisAI() {
   const fetchClients = useCallback(async () => {
     setLoadingClients(true);
     try {
-      const { data, error } = await supabase
+      // Fetch leads
+      const { data: leadsData, error: leadsError } = await supabase
         .from('leads')
         .select('id, name, email, business_name, website_url, membership_tier, industry, location')
         .order('business_name');
-      if (error) throw error;
-      setClients((data as ClientForAnalysis[]) || []);
+      if (leadsError) throw leadsError;
+
+      // Fetch active recurring transactions to derive actual membership tiers
+      const { data: txData, error: txError } = await supabase
+        .from('transactions')
+        .select('lead_id, item')
+        .eq('is_recurring', true)
+        .eq('status', 'completed');
+      if (txError) throw txError;
+
+      // Build a map of lead_id -> membership item name from billing
+      const tierMap: Record<string, string> = {};
+      for (const tx of txData || []) {
+        tierMap[tx.lead_id] = tx.item;
+      }
+
+      // Merge: use the billing-derived tier, falling back to the leads column
+      const merged = (leadsData || []).map(lead => ({
+        ...lead,
+        membership_tier: tierMap[lead.id] || lead.membership_tier || null,
+      })) as ClientForAnalysis[];
+
+      setClients(merged);
     } catch (e: any) {
       toast.error('Failed to load clients');
       console.error(e);
