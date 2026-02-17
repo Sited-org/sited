@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const ANALYSIS_TYPE_LABELS: Record<string, string> = {
@@ -50,6 +50,24 @@ serve(async (req) => {
         });
       }
 
+      // Anti-spam: check for recent draft request from same client + type in last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentRequests } = await supabase
+        .from("client_requests")
+        .select("id, created_at")
+        .eq("lead_id", clientId)
+        .eq("analysis_type", analysisType)
+        .eq("request_source", "analysis")
+        .gte("created_at", fiveMinutesAgo)
+        .limit(1);
+
+      if (recentRequests && recentRequests.length > 0) {
+        return new Response(
+          JSON.stringify({ error: "A request was already submitted recently. Please wait 5 minutes.", duplicate: true, existingRequestId: recentRequests[0].id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Fetch client info
       const { data: client } = await supabase
         .from("leads")
@@ -77,7 +95,7 @@ serve(async (req) => {
 
       const typeLabel = ANALYSIS_TYPE_LABELS[analysisType] || analysisType;
 
-      // Create the client request
+      // Create the client request as DRAFT (not pending)
       const { data: newRequest, error: insertErr } = await supabase.from("client_requests").insert({
         lead_id: clientId,
         title: `${typeLabel} — Implementation Request`,
@@ -85,7 +103,7 @@ serve(async (req) => {
           ? `Client requested implementation of ${typeLabel} recommendations.\n\n${report.analysis_content.slice(0, 1000)}`
           : `Client requested implementation of ${typeLabel} recommendations.`,
         priority: "normal",
-        status: "pending",
+        status: "draft",
         request_source: "analysis",
         analysis_type: analysisType,
       }).select('id').single();

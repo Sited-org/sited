@@ -16,7 +16,9 @@ import {
   X,
   Paperclip,
   FileText,
-  Image as ImageIcon
+  Send,
+  Trash2,
+  FileEdit,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -51,17 +53,19 @@ interface SelectedFile {
 export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequestCreated, sessionToken }: MyRequestsTabProps) {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [body, setBody] = useState('');
   const [priority, setPriority] = useState<string>('normal');
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
+  const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const maxSize = 10 * 1024 * 1024; // 10MB limit
-    
+    const maxSize = 10 * 1024 * 1024;
     const validFiles = files.filter(file => {
       if (file.size > maxSize) {
         toast.error(`${file.name} is too large (max 10MB)`);
@@ -69,75 +73,51 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       }
       return true;
     });
-
     const newFiles: SelectedFile[] = validFiles.map(file => ({
       file,
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
     }));
     setSelectedFiles(prev => [...prev, ...newFiles]);
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => {
       const file = prev[index];
-      if (file.preview) {
-        URL.revokeObjectURL(file.preview);
-      }
+      if (file.preview) URL.revokeObjectURL(file.preview);
       return prev.filter((_, i) => i !== index);
     });
   };
 
   const uploadFiles = async (requestId: string) => {
-    if (!sessionToken) {
-      throw new Error('Session token required for file upload');
-    }
-
+    if (!sessionToken) throw new Error('Session token required for file upload');
     const uploadPromises = selectedFiles.map(async ({ file }) => {
       const formData = new FormData();
       formData.append('session_token', sessionToken);
       formData.append('lead_id', leadId);
       formData.append('request_id', requestId);
       formData.append('file', file);
-
-      const { data, error } = await supabase.functions.invoke('upload-request-attachment', {
-        body: formData,
-      });
-
-      if (error) {
-        console.error('Upload error:', error);
-        throw new Error(`Failed to upload ${file.name}`);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
+      const { data, error } = await supabase.functions.invoke('upload-request-attachment', { body: formData });
+      if (error) throw new Error(`Failed to upload ${file.name}`);
+      if (data?.error) throw new Error(data.error);
       return data;
     });
-
     await Promise.all(uploadPromises);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
     e.preventDefault();
     if (!title.trim()) {
       toast.error('Please enter a request title');
       return;
     }
-
     if (!sessionToken) {
       toast.error('Session expired. Please log in again.');
       return;
     }
 
-    setSubmitting(true);
+    asDraft ? setSavingDraft(true) : setSubmitting(true);
     try {
-      // Use the secure edge function to submit the request
       const { data, error } = await supabase.functions.invoke('submit-client-request', {
         body: {
           session_token: sessionToken,
@@ -148,35 +128,23 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
           priority,
           client_name: leadName,
           client_email: leadEmail,
+          status: asDraft ? 'draft' : 'pending',
         },
       });
-
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to submit request');
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
+      if (error) throw new Error(error.message || 'Failed to submit request');
+      if (data?.error) throw new Error(data.error);
       const newRequest = data?.request;
-      
-      if (!newRequest?.id) {
-        throw new Error('Failed to create request');
-      }
+      if (!newRequest?.id) throw new Error('Failed to create request');
 
-      // Upload files if any - using the service role bucket access
-      if (selectedFiles.length > 0) {
+      if (selectedFiles.length > 0 && !asDraft) {
         try {
           await uploadFiles(newRequest.id);
-        } catch (uploadError) {
-          console.error('File upload error (non-fatal):', uploadError);
+        } catch {
           toast.warning('Request submitted but some files failed to upload');
         }
       }
 
-      toast.success('Request submitted');
+      toast.success(asDraft ? 'Draft saved' : 'Request submitted');
       setTitle('');
       setDescription('');
       setBody('');
@@ -185,10 +153,54 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       setShowForm(false);
       onRequestCreated();
     } catch (error: any) {
-      console.error('Error submitting request:', error);
       toast.error(error.message || 'Failed to submit request');
     } finally {
       setSubmitting(false);
+      setSavingDraft(false);
+    }
+  };
+
+  const handleSendDraft = async (requestId: string) => {
+    setSendingDraftId(requestId);
+    try {
+      const { error } = await supabase.functions.invoke('submit-client-request', {
+        body: {
+          session_token: sessionToken,
+          lead_id: leadId,
+          request_id: requestId,
+          action: 'send_draft',
+          client_name: leadName,
+          client_email: leadEmail,
+        },
+      });
+      if (error) throw error;
+      toast.success('Request sent to the Sited team');
+      onRequestCreated();
+    } catch {
+      toast.error('Failed to send request');
+    } finally {
+      setSendingDraftId(null);
+    }
+  };
+
+  const handleDeleteDraft = async (requestId: string) => {
+    setDeletingDraftId(requestId);
+    try {
+      const { error } = await supabase.functions.invoke('submit-client-request', {
+        body: {
+          session_token: sessionToken,
+          lead_id: leadId,
+          request_id: requestId,
+          action: 'delete_draft',
+        },
+      });
+      if (error) throw error;
+      toast.success('Draft removed');
+      onRequestCreated();
+    } catch {
+      toast.error('Failed to delete draft');
+    } finally {
+      setDeletingDraftId(null);
     }
   };
 
@@ -198,6 +210,8 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completed</Badge>;
       case 'in_progress':
         return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">In Progress</Badge>;
+      case 'draft':
+        return <Badge variant="outline" className="border-amber-400 text-amber-600">Draft</Badge>;
       case 'cancelled':
       case 'rejected':
         return <Badge variant="secondary">Cancelled</Badge>;
@@ -206,6 +220,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
     }
   };
 
+  const draftRequests = requests.filter(r => r.status === 'draft');
   const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
   const completedRequests = requests.filter(r => r.status === 'completed');
   const cancelledRequests = requests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
@@ -230,69 +245,35 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
       {showForm && (
         <Card>
           <CardContent className="p-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-sm">New Request</p>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => {
-                    setShowForm(false);
-                    setSelectedFiles([]);
-                  }}
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setShowForm(false); setSelectedFiles([]); }}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm">Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="What do you need?"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  disabled={submitting}
-                />
+                <Input id="title" placeholder="What do you need?" value={title} onChange={(e) => setTitle(e.target.value)} disabled={submitting || savingDraft} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-sm">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe exactly what we are changing, on which area of your website"
-                  value={description}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 100) {
-                      setDescription(e.target.value);
-                    }
-                  }}
-                  maxLength={100}
-                  disabled={submitting}
-                  rows={2}
-                />
+                <Textarea id="description" placeholder="Describe exactly what we are changing, on which area of your website" value={description} onChange={(e) => { if (e.target.value.length <= 100) setDescription(e.target.value); }} maxLength={100} disabled={submitting || savingDraft} rows={2} />
                 <p className="text-xs text-muted-foreground">{description.length}/100 characters</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="body" className="text-sm">Content to Upload</Label>
-                <RichTextEditor
-                  value={body}
-                  onChange={setBody}
-                  placeholder="Paste text, code, or content that needs to be added (formatting is preserved)..."
-                  disabled={submitting}
-                  rows={4}
-                />
+                <RichTextEditor value={body} onChange={setBody} placeholder="Paste text, code, or content that needs to be added (formatting is preserved)..." disabled={submitting || savingDraft} rows={4} />
                 <p className="text-xs text-muted-foreground">Text or code that should be added to your site - formatting (bold, italics, etc.) is preserved</p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="priority" className="text-sm">Priority</Label>
-                <Select value={priority} onValueChange={setPriority} disabled={submitting}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={priority} onValueChange={setPriority} disabled={submitting || savingDraft}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="normal">Normal</SelectItem>
@@ -305,41 +286,17 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
               {/* File Upload */}
               <div className="space-y-2">
                 <Label className="text-sm">Attachments</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={submitting}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={submitting}
-                  className="w-full"
-                >
+                <input ref={fileInputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt" onChange={handleFileSelect} className="hidden" disabled={submitting || savingDraft} />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={submitting || savingDraft} className="w-full">
                   <Paperclip className="h-4 w-4 mr-2" />
                   Add Files
                 </Button>
-
-                {/* Selected Files Preview */}
                 {selectedFiles.length > 0 && (
                   <div className="space-y-2 mt-2">
                     {selectedFiles.map((item, index) => (
-                      <div 
-                        key={index} 
-                        className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg"
-                      >
+                      <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
                         {item.preview ? (
-                          <img 
-                            src={item.preview} 
-                            alt={item.file.name}
-                            className="h-10 w-10 object-cover rounded"
-                          />
+                          <img src={item.preview} alt={item.file.name} className="h-10 w-10 object-cover rounded" />
                         ) : (
                           <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
                             <FileText className="h-5 w-5 text-muted-foreground" />
@@ -347,17 +304,9 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate">{item.file.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {(item.file.size / 1024).toFixed(1)} KB
-                          </p>
+                          <p className="text-xs text-muted-foreground">{(item.file.size / 1024).toFixed(1)} KB</p>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          disabled={submitting}
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeFile(index)} disabled={submitting || savingDraft}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
@@ -366,19 +315,66 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                 )}
               </div>
 
-              <Button type="submit" disabled={submitting} className="w-full">
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Submit Request'
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" disabled={submitting || savingDraft} className="flex-1" onClick={(e) => handleSubmit(e as any, true)}>
+                  {savingDraft ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : <><FileEdit className="h-4 w-4 mr-2" />Save as Draft</>}
+                </Button>
+                <Button type="submit" disabled={submitting || savingDraft} className="flex-1">
+                  {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : <><Send className="h-4 w-4 mr-2" />Send Request</>}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {/* Draft Requests */}
+      {draftRequests.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-amber-600 flex items-center gap-2">
+            <FileEdit className="h-4 w-4" />
+            Drafts ({draftRequests.length})
+          </p>
+          {draftRequests.map((request) => (
+            <Card key={request.id} className="border-amber-200 dark:border-amber-800">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{request.title}</p>
+                    {request.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{request.description}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(request.created_at), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  {getStatusBadge(request.status)}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    disabled={sendingDraftId === request.id || deletingDraftId === request.id}
+                    onClick={() => handleSendDraft(request.id)}
+                  >
+                    {sendingDraftId === request.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                    Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10"
+                    disabled={sendingDraftId === request.id || deletingDraftId === request.id}
+                    onClick={() => handleDeleteDraft(request.id)}
+                  >
+                    {deletingDraftId === request.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                    Remove
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Active Requests */}
@@ -464,17 +460,13 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
           ))}
         </div>
       )}
+
       {requests.length === 0 && !showForm && (
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
             <MessageSquarePlus className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">No requests yet</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-3"
-              onClick={() => setShowForm(true)}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowForm(true)}>
               Submit Your First Request
             </Button>
           </CardContent>

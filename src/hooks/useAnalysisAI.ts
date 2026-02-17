@@ -191,6 +191,11 @@ export function useAnalysisAI() {
     setEditedAnalyses({});
   }, []);
 
+  const clearAnalysis = useCallback(() => {
+    setResults([]);
+    setEditedAnalyses({});
+  }, []);
+
   return {
     clients,
     loadingClients,
@@ -214,5 +219,6 @@ export function useAnalysisAI() {
     sendEmails,
     updateAnalysis,
     clearAll,
+    clearAnalysis,
   };
 }
