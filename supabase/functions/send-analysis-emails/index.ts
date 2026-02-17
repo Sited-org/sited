@@ -82,18 +82,17 @@ function buildEmailHtml(
     <p style="margin: 0; font-size: 15px; color: #555555;">Here is your monthly <strong>${emoji} ${analysisType}</strong> for <strong>${businessName}</strong> (${domain}).</p>
   </div>
 
-  <!-- Analysis Content -->
+  <!-- Analysis Content + CTA -->
   <div style="padding: 28px 30px; background-color: #FFFFFF;">
     <h2 style="color: #000000; font-size: 18px; margin: 0 0 20px 0; font-weight: 700; border-bottom: 2px solid #000000; padding-bottom: 10px;">📋 What We Found</h2>
     <div style="font-size: 15px; line-height: 1.8; color: #333333;">${htmlContent}</div>
-  </div>
-
-  <!-- CTA Section -->
-  <div style="background-color: #F9F9F9; padding: 32px 30px; text-align: center; border-top: 1px solid #E5E5E5;">
-    <p style="margin: 0 0 6px 0; font-size: 17px; color: #1A1A1A; font-weight: 600;">🚀 Want us to implement these changes?</p>
-    <p style="margin: 0 0 20px 0; font-size: 14px; color: #666666;">Submit a request and our team will get started.</p>
-    <a href="${actionLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; padding: 14px 36px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; letter-spacing: 0.3px;">Request Implementation →</a>
-    <p style="margin: 16px 0 0 0; font-size: 12px; color: #999999;">This will take you to your client portal to submit the request.</p>
+    
+    <!-- CTA directly after content to avoid email clipping -->
+    <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid #E5E5E5; text-align: center;">
+      <p style="margin: 0 0 6px 0; font-size: 17px; color: #1A1A1A; font-weight: 600;">🚀 Want us to implement these changes?</p>
+      <p style="margin: 0 0 16px 0; font-size: 14px; color: #666666;">Click below and our team will get started.</p>
+      <a href="${actionLink}" style="display: inline-block; background-color: #000000; color: #FFFFFF; padding: 14px 36px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; letter-spacing: 0.3px;">Request Implementation →</a>
+    </div>
   </div>
 
   <!-- Footer -->
@@ -132,8 +131,8 @@ serve(async (req) => {
     const { reports } = await req.json();
     if (!reports?.length) throw new Error("No reports to send");
 
-    // Build the client portal URL for the CTA
-    const portalBaseUrl = "https://sited.lovable.app/client-portal";
+    // Build the edge function URL for the CTA (creates draft + redirects to portal)
+    const edgeFunctionBaseUrl = `${supabaseUrl}/functions/v1/request-analysis-action`;
 
     const results = { sent: 0, failed: 0, errors: [] as string[] };
 
@@ -141,8 +140,8 @@ serve(async (req) => {
       try {
         const analysisTypeLabel = ANALYSIS_TYPE_LABELS[report.analysisType] || report.analysisType;
 
-        // CTA links to client portal with auto-request params
-        const actionLink = `${portalBaseUrl}?action=request-analysis&type=${encodeURIComponent(report.analysisType)}&clientId=${encodeURIComponent(report.clientId)}`;
+        // CTA links to edge function which creates draft then redirects to portal login
+        const actionLink = `${edgeFunctionBaseUrl}?type=${encodeURIComponent(report.analysisType)}&clientId=${encodeURIComponent(report.clientId)}`;
 
         const subject = `${ANALYSIS_TYPE_EMOJI[report.analysisType] || "📊"} Your Sited Monthly Report — ${analysisTypeLabel} for ${report.businessName}`;
 
