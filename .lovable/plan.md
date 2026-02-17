@@ -1,100 +1,203 @@
 
+# Developer Portal -- Separate Route Implementation
 
-## SEO, Sitemap, Image Optimization & Work Page Performance
-
-### 1. Semantic HTML Heading Structure (All Pages)
-
-Currently most pages use proper `h1`/`h2` tags but some are inconsistent. Every public page will get a clear heading hierarchy:
-
-**Home (`/`)**
-- `h1`: "We build websites that convert." (already correct)
-- `h2`: "Everything you need to succeed online" (Services section), "Results that speak." (Featured Work), "Your digital partner for growth." (About), "Let's build something extraordinary." (CTA)
-- `h3`: Service card titles, process step titles, project names
-
-**Services (`/services`)**
-- `h1`: "One thing done right." (already correct)
-- `h2`: Showcase section titles ("Let clients book themselves", "Know your customers", etc.) -- already correct
-- No changes needed here
-
-**Work (`/work`)**
-- `h1`: "Websites that perform." (already correct)
-- `h2`: "Your project could be next." (CTA) -- already correct
-- `h3`: Individual testimonial company names -- already correct
-
-**Contact (`/contact`)**
-- `h1`: "Let's build something great together" (already correct)
-- `h2`: "Send us a message", "Get in touch" -- already correct
-
-**Footer**
-- Change the footer CTA `h2` to `h3` since it repeats across pages and should not compete with page-level headings
-
-### 2. Meta Tags & Per-Page SEO
-
-Create a reusable `SEOHead` component using `document.title` and meta tag manipulation to set unique `<title>` and `<meta name="description">` for each page:
-
-| Page | Title | Description |
-|------|-------|-------------|
-| `/` | Sited \| AI-Powered Web Design & Development | (keep current) |
-| `/services` | Services \| Sited - Web Design, CRM & Booking | We build websites that book appointments, manage customers, and accept payments. All in one place. |
-| `/work` | Our Work \| Sited - Client Results & Testimonials | Real projects with real results. See websites we've built for businesses like yours. |
-| `/contact` | Contact \| Sited - Start Your Web Project | Get in touch to start your web project. Respond within 24 hours. |
-| `/client-portal` | Members Login \| Sited | Secure client portal login for Sited members. |
-
-### 3. Sitemap Generation
-
-Create a `public/sitemap.xml` file listing the 5 crucial public pages with proper priority and changefreq values:
-
-- `/` -- priority 1.0, weekly
-- `/services` -- priority 0.8, monthly
-- `/work` -- priority 0.8, weekly
-- `/contact` -- priority 0.7, monthly
-- `/client-portal` -- priority 0.3, monthly
-
-Update `public/robots.txt` to include a `Sitemap:` directive pointing to `https://sited.lovable.app/sitemap.xml`.
-
-### 4. Image Optimization for Faster Loading
-
-Replace all external Unsplash/Pexels image URLs with WebP format parameters where supported, and add `width`/`height` attributes to prevent layout shift:
-
-- Unsplash images: append `&fm=webp` to URLs (Unsplash supports WebP via their CDN)
-- Fallback thumbnails in Work page and Index page: update all `?w=1200&h=800&fit=crop` to `?w=1200&h=800&fit=crop&fm=webp&q=75`
-- Hero video poster: update to WebP format
-- Add `width` and `height` HTML attributes to `<img>` tags for CLS (Cumulative Layout Shift) prevention
-- Add `decoding="async"` to all non-critical images
-
-### 5. Work Page Load Speed Improvements
-
-- **Lazy Vimeo iframes**: Already lazy (only loads on play click) -- no change needed
-- **Thumbnail optimization**: Use `vumbnail.com` WebP thumbnails (append `_large.jpg` for higher quality without oversizing)
-- **Reduce initial render count**: Lower `INITIAL_COUNT` from 6 to 4 to reduce DOM nodes on first paint
-- **Simplify scroll animations**: Replace `framer-motion` `whileInView` on each card with a lightweight CSS `@keyframes` fade-in using `IntersectionObserver`, avoiding JS-driven animation overhead
-- **Remove unused motion imports**: Clean up any unused framer-motion features on the Work page
-- **Add `will-change: transform` only on hover** to avoid GPU memory overhead at rest
-
-### 6. Structured Data (JSON-LD)
-
-Add structured data to `index.html` for better search engine understanding:
-
-- **Organization schema**: Business name, logo, contact info, social links
-- **WebSite schema**: Search action, URL
+## Overview
+Build a fully independent Developer Portal at `/dev` with its own layout, components, and routing. Developers will be hard-redirected away from all `/admin/*` paths. The admin layout, sidebar, and navigation will never initialise for developer sessions.
 
 ---
 
-### Technical Details
+## Architecture
 
-**New file:**
-- `src/hooks/usePageSEO.ts` -- Custom hook that sets `document.title` and updates meta description on mount
+All developer-facing code lives under a new, isolated directory and route structure:
 
-**Modified files:**
-- `index.html` -- Add JSON-LD structured data, keep existing meta as defaults
-- `public/robots.txt` -- Add Sitemap directive
-- `public/sitemap.xml` -- New static sitemap file
-- `src/pages/Index.tsx` -- Add `usePageSEO`, update image URLs to WebP
-- `src/pages/Services.tsx` -- Add `usePageSEO`
-- `src/pages/Work.tsx` -- Add `usePageSEO`, reduce initial count, optimize animations
-- `src/pages/Contact.tsx` -- Add `usePageSEO`
-- `src/pages/ClientPortalLogin.tsx` -- Add `usePageSEO`
-- `src/components/work/TestimonialCard.tsx` -- Replace framer-motion scroll animation with CSS, add image dimensions
-- `src/components/layout/Footer.tsx` -- Change `h2` to `h3`
+```text
+src/
+  components/
+    dev/
+      DevLayout.tsx          -- Standalone layout (own sidebar, header, sign-out)
+      DevDashboard.tsx        -- Assigned project cards with progress
+      DevProjectView.tsx      -- Read-only client profile + editable workflow
+      DevWorkflowTracker.tsx  -- Extended tracker with notes + review flags
+  pages/
+    DevLogin.tsx              -- Shares /admin/login, redirects to /dev on success
+```
 
-**No functional or cosmetic changes** -- all existing features (Vimeo playback, glassmorphism cards, alternating layout, chat, onboarding) remain untouched.
+Routes added to `App.tsx`:
+```text
+/dev            -- DevLayout wrapper
+/dev            -- index: DevDashboard
+/dev/project/:id -- DevProjectView
+```
+
+---
+
+## Step 1 -- Database: RLS and Write Restrictions
+
+**New SQL migration:**
+
+1. Create `is_developer()` helper function (checks `user_roles.role = 'developer'`).
+
+2. Add scoped SELECT policy on `leads`:
+   - "Developers can view assigned leads" -- `is_developer(auth.uid()) AND assigned_to = auth.uid()`
+
+3. Add scoped UPDATE policy on `leads` for developers:
+   - "Developers can update workflow on assigned leads" -- same condition
+
+4. Add a BEFORE UPDATE trigger `enforce_developer_lead_updates` on `leads` that rejects any column change other than `workflow_data` when the session user is a developer. If a developer attempts to change name, email, status, deal_amount, etc., the trigger raises an exception.
+
+5. Add scoped SELECT policies for related tables so developers only see data for their assigned leads:
+   - `customer_notes` -- developer can SELECT where `lead_id IN (SELECT id FROM leads WHERE assigned_to = auth.uid())`
+   - `project_milestones` -- same pattern
+   - `client_requests` -- same pattern
+   - `project_updates` -- same pattern
+
+All existing `is_admin()` policies remain unchanged (developers are already excluded from `is_admin()`).
+
+---
+
+## Step 2 -- Login Routing
+
+**Modify `src/pages/AdminLogin.tsx`:**
+- After successful OTP verification, check the user's role.
+- If role is `developer`, redirect to `/dev` instead of `/admin`.
+- The `handleOTPVerified` function will query `user_roles` for the logged-in user and branch accordingly.
+
+**Modify `src/components/admin/AdminLayout.tsx`:**
+- In the `useEffect` auth guard, add an additional check: if the user IS authenticated AND their role is `developer`, hard-redirect to `/dev`. This ensures a developer who manually types `/admin/anything` is always bounced out.
+
+---
+
+## Step 3 -- Developer Layout (`src/components/dev/DevLayout.tsx`)
+
+A standalone layout component (NOT using AdminLayout):
+- Its own minimal sidebar with: Dashboard link, Sign Out button
+- Branded header: "Sited.dev"
+- Mobile-responsive hamburger menu
+- User display showing developer name and "Developer" role label
+- Renders `<Outlet />` for nested routes
+- Auth guard: if not authenticated or role is not `developer`, redirect to `/admin/login`
+
+---
+
+## Step 4 -- Developer Dashboard (`src/components/dev/DevDashboard.tsx`)
+
+- Fetches leads using `useLeads()` (RLS will automatically scope to assigned leads only)
+- Displays project cards showing:
+  - Client name and business name
+  - Project type
+  - Overall build progress percentage (calculated from `workflow_data`)
+  - Visual progress bar
+- Cards link to `/dev/project/:id`
+- Zero financial data, zero pipeline metrics, zero customer notes summary
+- Simple stats row: number of assigned projects, average completion percentage
+
+---
+
+## Step 5 -- Developer Project View (`src/components/dev/DevProjectView.tsx`)
+
+When a developer opens an assigned client project:
+
+**Read-only sections:**
+- Business name, contact details (name, email, phone), website URL
+- Form data / project brief (displayed via `FormResponsesDisplay` with no edit controls)
+- Uploaded assets (via `UploadedFilesDialog`, view-only)
+- AI Website Brief / generated prompts (display only, no generator)
+- Admin/sales notes (read-only text display)
+- Client requests list (read-only)
+
+**Editable section:**
+- Workflow Tracker (the only writable component)
+
+**Explicitly excluded:**
+- No Payments tab
+- No Card tab
+- No Settings tab
+- No status change dropdown
+- No Save Changes button for profile data
+- No deal amount field
+- No billing address
+- Back button navigates to `/dev` (not `/admin/leads`)
+
+---
+
+## Step 6 -- Enhanced Workflow Tracker (`src/components/dev/DevWorkflowTracker.tsx`)
+
+Based on the existing `WorkflowTracker` component but enhanced:
+
+**New stages added to STAGE_DEFINITIONS:**
+- `crm_setup`: "CRM Setup" with steps: Planning, Configuration, Testing, Live
+- `email_automation`: "Email Automation" with steps: Template Design, Flow Setup, Testing, Active
+
+**New data fields in workflow_data JSONB:**
+- `stage_notes`: `Record<string, string>` -- per-stage build notes (textarea under each stage)
+- `review_requested`: `Record<string, boolean>` -- per-stage review flag
+
+**UI additions:**
+- Small textarea under each active stage for build notes
+- "Request Review" toggle button per stage (sets `review_requested[stageKey] = true`)
+- Badge indicator when review is requested (visible to both developer and admin)
+
+The admin-facing `WorkflowTracker` in `src/components/admin/lead-profile/` will also be updated to display the review flags and notes (read-only for admins, or editable if they have `can_edit_leads`).
+
+---
+
+## Step 7 -- Route Registration (`src/App.tsx`)
+
+Add new lazy-loaded routes:
+
+```text
+const DevLayout = lazy(() => import("./components/dev/DevLayout"));
+const DevDashboard = lazy(() => import("./components/dev/DevDashboard"));
+const DevProjectView = lazy(() => import("./components/dev/DevProjectView"));
+
+<Route path="/dev" element={<DevLayout />}>
+  <Route index element={<DevDashboard />} />
+  <Route path="project/:id" element={<DevProjectView />} />
+</Route>
+```
+
+---
+
+## Step 8 -- Admin Guard Against Developer Access
+
+In `AdminLayout.tsx`, the existing auth guard will be extended:
+
+```
+if (!isAuthenticated || !isAdmin) -> redirect to /admin/login
+if (isDeveloper) -> redirect to /dev
+```
+
+This ensures the admin sidebar, navigation, and layout never initialise for a developer session. The developer role is already excluded from `is_admin()` in the database function, so `isAdmin` returns false for developers. However, to provide a clean redirect rather than showing the login page, we explicitly check `isDeveloper` first and redirect to `/dev`.
+
+---
+
+## Security Summary
+
+| Resource | Developer Access |
+|---|---|
+| leads (SELECT) | Only where `assigned_to = auth.uid()` via RLS |
+| leads (UPDATE) | Only `workflow_data` column via DB trigger, only assigned leads |
+| leads (INSERT/DELETE) | Blocked (no policy grants this) |
+| transactions, products, memberships | Blocked (`is_admin` excludes developers) |
+| customer_notes, project_milestones, client_requests | Read-only for assigned leads via new RLS policies |
+| user_roles, admin_profiles, system_settings | Blocked |
+| /admin/* routes | Hard-redirect to /dev at router level |
+| Admin sidebar/layout | Never initialises for developer sessions |
+
+---
+
+## Files to Create
+1. `src/components/dev/DevLayout.tsx`
+2. `src/components/dev/DevDashboard.tsx`
+3. `src/components/dev/DevProjectView.tsx`
+4. `src/components/dev/DevWorkflowTracker.tsx`
+
+## Files to Modify
+1. `src/App.tsx` -- add /dev routes
+2. `src/pages/AdminLogin.tsx` -- redirect developers to /dev after OTP
+3. `src/components/admin/AdminLayout.tsx` -- hard-redirect developers away
+4. `src/components/admin/lead-profile/WorkflowTracker.tsx` -- add new stages, notes, review flags
+5. `src/hooks/useAuth.ts` -- no changes needed (`isDeveloper` already exported)
+
+## New Migration
+1. `is_developer()` function, scoped RLS policies, update trigger
