@@ -240,13 +240,16 @@ export default function ClientPortalDashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview">
+             <TabsContent value="overview">
               <ClientOverviewTab
                 lead={session.lead}
                 transactions={transactions}
                 requests={requests}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
+                sessionToken={session.token}
+                leadName={session.lead.name}
+                onRequestCreated={handleRequestCreated}
               />
             </TabsContent>
 

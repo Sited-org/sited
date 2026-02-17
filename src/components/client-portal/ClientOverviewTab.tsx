@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +8,13 @@ import {
   CreditCard,
   ExternalLink,
   ArrowRight,
+  FileEdit,
+  Send,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 interface Transaction {
@@ -43,6 +50,9 @@ interface ClientOverviewTabProps {
   requests: ClientRequest[];
   hasPaymentMethod: boolean;
   onNavigate: (tab: string) => void;
+  sessionToken?: string;
+  leadName?: string;
+  onRequestCreated?: () => void;
 }
 
 export function ClientOverviewTab({ 
@@ -50,15 +60,66 @@ export function ClientOverviewTab({
   transactions, 
   requests,
   hasPaymentMethod,
-  onNavigate 
+  onNavigate,
+  sessionToken,
+  leadName,
+  onRequestCreated,
 }: ClientOverviewTabProps) {
+  const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalDue = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
   const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
+  const draftRequests = requests.filter(r => r.status === 'draft');
   
   const websiteUrl = lead.website_url;
   const previewUrl = lead.form_data?.preview_url || lead.form_data?.previewUrl;
   const displayUrl = websiteUrl || previewUrl;
+
+  const handleSendDraft = async (requestId: string) => {
+    setSendingDraftId(requestId);
+    try {
+      const { error } = await supabase.functions.invoke('submit-client-request', {
+        body: {
+          session_token: sessionToken,
+          lead_id: lead.id,
+          request_id: requestId,
+          action: 'send_draft',
+          client_name: leadName || lead.name,
+          client_email: lead.email,
+        },
+      });
+      if (error) throw error;
+      toast.success('Request sent to the Sited team');
+      onRequestCreated?.();
+    } catch {
+      toast.error('Failed to send request');
+    } finally {
+      setSendingDraftId(null);
+    }
+  };
+
+  const handleDeleteDraft = async (requestId: string) => {
+    setDeletingDraftId(requestId);
+    try {
+      const { error } = await supabase.functions.invoke('submit-client-request', {
+        body: {
+          session_token: sessionToken,
+          lead_id: lead.id,
+          request_id: requestId,
+          action: 'delete_draft',
+        },
+      });
+      if (error) throw error;
+      toast.success('Draft removed');
+      onRequestCreated?.();
+    } catch {
+      toast.error('Failed to delete draft');
+    } finally {
+      setDeletingDraftId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -132,6 +193,58 @@ export function ClientOverviewTab({
           </CardContent>
         </Card>
       </div>
+
+      {/* Draft Requests */}
+      {draftRequests.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                <FileEdit className="h-4 w-4" />
+                Draft Requests ({draftRequests.length})
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('requests')}>
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {draftRequests.slice(0, 3).map((r) => (
+                <div key={r.id} className="p-3 bg-background rounded-lg border">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{r.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(r.created_at), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="border-amber-400 text-amber-600 shrink-0">Draft</Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 h-8"
+                      disabled={sendingDraftId === r.id || deletingDraftId === r.id}
+                      onClick={() => handleSendDraft(r.id)}
+                    >
+                      {sendingDraftId === r.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                      Send to Sited
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-destructive hover:bg-destructive/10"
+                      disabled={sendingDraftId === r.id || deletingDraftId === r.id}
+                      onClick={() => handleDeleteDraft(r.id)}
+                    >
+                      {deletingDraftId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upcoming Payments */}
       {pendingTransactions.length > 0 && (
