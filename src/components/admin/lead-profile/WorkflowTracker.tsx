@@ -1,21 +1,25 @@
  import { useState, useEffect } from 'react';
+ import { Textarea } from '@/components/ui/textarea';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Checkbox } from '@/components/ui/checkbox';
  import { Progress } from '@/components/ui/progress';
  import { Badge } from '@/components/ui/badge';
- import { 
-   Settings2, 
-   Check, 
-   ChevronDown, 
-   ChevronUp,
-   Loader2,
-   Monitor,
-   Server,
-   Plug,
-   Bot,
-   Save
- } from 'lucide-react';
+import { 
+  Settings2, 
+  Check, 
+  ChevronDown, 
+  ChevronUp,
+  Loader2,
+  Monitor,
+  Server,
+  Plug,
+  Bot,
+  Save,
+  Database,
+  Mail,
+  Eye
+} from 'lucide-react';
  import { supabase } from '@/integrations/supabase/client';
  import { useToast } from '@/hooks/use-toast';
  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -23,7 +27,7 @@
  // Stage definitions
  const STAGE_DEFINITIONS = {
    frontend: {
-     name: 'Front End',
+     name: 'Customer-Facing Website',
      icon: Monitor,
      steps: ['Started', 'V1 Complete', 'Revision', 'Complete'],
    },
@@ -31,6 +35,16 @@
      name: 'Back End',
      icon: Server,
      steps: ['Started', 'V1 Complete', 'Shared', 'V2', 'Complete'],
+   },
+   crm_setup: {
+     name: 'CRM Setup',
+     icon: Database,
+     steps: ['Planning', 'Configuration', 'Testing', 'Live'],
+   },
+   email_automation: {
+     name: 'Email Automation',
+     icon: Mail,
+     steps: ['Template Design', 'Flow Setup', 'Testing', 'Active'],
    },
    integrations: {
      name: 'Integrations',
@@ -51,6 +65,8 @@
    stages: {
      frontend?: { enabled: boolean; currentStep: number };
      backend?: { enabled: boolean; currentStep: number };
+     crm_setup?: { enabled: boolean; currentStep: number };
+     email_automation?: { enabled: boolean; currentStep: number };
      integrations?: { 
        enabled: boolean; 
        selectedOptions: string[];
@@ -62,6 +78,8 @@
        progress: Record<string, number>;
      };
    };
+   stage_notes?: Record<string, string>;
+   review_requested?: Record<string, boolean>;
  }
  
  interface WorkflowTrackerProps {
@@ -85,75 +103,69 @@
        stages: {
          frontend: { enabled: false, currentStep: 0 },
          backend: { enabled: false, currentStep: 0 },
+         crm_setup: { enabled: false, currentStep: 0 },
+         email_automation: { enabled: false, currentStep: 0 },
          integrations: { enabled: false, selectedOptions: [], progress: {} },
          ai: { enabled: false, selectedOptions: [], progress: {} },
        },
+       stage_notes: {},
+       review_requested: {},
      };
    });
  
    // Calculate overall progress
    const calculateProgress = (): number => {
      if (!workflowData.configured) return 0;
-     
      let totalSteps = 0;
      let completedSteps = 0;
      
-     // Frontend
-     if (workflowData.stages.frontend?.enabled) {
-       totalSteps += STAGE_DEFINITIONS.frontend.steps.length;
-       completedSteps += workflowData.stages.frontend.currentStep;
+     // Simple stages (frontend, backend, crm_setup, email_automation)
+     for (const key of ['frontend', 'backend', 'crm_setup', 'email_automation'] as const) {
+       const stage = workflowData.stages[key];
+       const def = STAGE_DEFINITIONS[key];
+       if (stage?.enabled && def.steps) {
+         totalSteps += def.steps.length;
+         completedSteps += stage.currentStep;
+       }
      }
      
-     // Backend
-     if (workflowData.stages.backend?.enabled) {
-       totalSteps += STAGE_DEFINITIONS.backend.steps.length;
-       completedSteps += workflowData.stages.backend.currentStep;
-     }
-     
-     // Integrations
-     if (workflowData.stages.integrations?.enabled) {
-       const options = workflowData.stages.integrations.selectedOptions;
-       const stepsPerOption = STAGE_DEFINITIONS.integrations.stepsPerOption.length;
-       totalSteps += options.length * stepsPerOption;
-       options.forEach(opt => {
-         completedSteps += workflowData.stages.integrations?.progress[opt] || 0;
-       });
-     }
-     
-     // AI
-     if (workflowData.stages.ai?.enabled) {
-       const options = workflowData.stages.ai.selectedOptions;
-       const stepsPerOption = STAGE_DEFINITIONS.ai.stepsPerOption.length;
-       totalSteps += options.length * stepsPerOption;
-       options.forEach(opt => {
-         completedSteps += workflowData.stages.ai?.progress[opt] || 0;
-       });
+     // Multi-option stages (integrations, ai)
+     for (const key of ['integrations', 'ai'] as const) {
+       const stage = workflowData.stages[key];
+       const def = STAGE_DEFINITIONS[key];
+       if (stage?.enabled && def.stepsPerOption) {
+         const options = stage.selectedOptions;
+         totalSteps += options.length * def.stepsPerOption.length;
+         options.forEach(opt => {
+           completedSteps += stage.progress[opt] || 0;
+         });
+       }
      }
      
      return totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
    };
- 
+
     // Calculate progress for a given workflow data object
     const calcProgressForData = (d: WorkflowData): number => {
       if (!d.configured) return 0;
       let totalSteps = 0, completedSteps = 0;
-      if (d.stages.frontend?.enabled) {
-        totalSteps += STAGE_DEFINITIONS.frontend.steps.length;
-        completedSteps += d.stages.frontend.currentStep;
+      
+      for (const key of ['frontend', 'backend', 'crm_setup', 'email_automation'] as const) {
+        const stage = d.stages[key];
+        const def = STAGE_DEFINITIONS[key];
+        if (stage?.enabled && def.steps) {
+          totalSteps += def.steps.length;
+          completedSteps += stage.currentStep;
+        }
       }
-      if (d.stages.backend?.enabled) {
-        totalSteps += STAGE_DEFINITIONS.backend.steps.length;
-        completedSteps += d.stages.backend.currentStep;
-      }
-      if (d.stages.integrations?.enabled) {
-        const opts = d.stages.integrations.selectedOptions;
-        totalSteps += opts.length * STAGE_DEFINITIONS.integrations.stepsPerOption.length;
-        opts.forEach(opt => { completedSteps += d.stages.integrations?.progress[opt] || 0; });
-      }
-      if (d.stages.ai?.enabled) {
-        const opts = d.stages.ai.selectedOptions;
-        totalSteps += opts.length * STAGE_DEFINITIONS.ai.stepsPerOption.length;
-        opts.forEach(opt => { completedSteps += d.stages.ai?.progress[opt] || 0; });
+      for (const key of ['integrations', 'ai'] as const) {
+        const stage = d.stages[key];
+        const def = STAGE_DEFINITIONS[key];
+        if (stage?.enabled && def.stepsPerOption) {
+          const opts = stage.selectedOptions;
+          totalSteps += opts.length * def.stepsPerOption.length;
+          opts.forEach(opt => { completedSteps += stage.progress[opt] || 0; });
+        }
       }
       return totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
     };
@@ -306,11 +318,51 @@
              )}
            </div>
  
-           {/* Stage 3: Integrations */}
+           {/* Stage 3: CRM Setup */}
+           <div className="space-y-2">
+             <div className="flex items-center gap-3">
+               <Checkbox
+                 id="crm_setup"
+                 checked={workflowData.stages.crm_setup?.enabled}
+                 onCheckedChange={(checked) => handleToggleStage('crm_setup', !!checked)}
+               />
+               <label htmlFor="crm_setup" className="flex items-center gap-2 font-medium cursor-pointer">
+                 <Database className="h-4 w-4 text-primary" />
+                 Stage 3: CRM Setup
+               </label>
+             </div>
+             {workflowData.stages.crm_setup?.enabled && (
+               <p className="text-xs text-muted-foreground ml-7">
+                 Steps: {STAGE_DEFINITIONS.crm_setup.steps.join(' → ')}
+               </p>
+             )}
+           </div>
+ 
+           {/* Stage 4: Email Automation */}
+           <div className="space-y-2">
+             <div className="flex items-center gap-3">
+               <Checkbox
+                 id="email_automation"
+                 checked={workflowData.stages.email_automation?.enabled}
+                 onCheckedChange={(checked) => handleToggleStage('email_automation', !!checked)}
+               />
+               <label htmlFor="email_automation" className="flex items-center gap-2 font-medium cursor-pointer">
+                 <Mail className="h-4 w-4 text-primary" />
+                 Stage 4: Email Automation
+               </label>
+             </div>
+             {workflowData.stages.email_automation?.enabled && (
+               <p className="text-xs text-muted-foreground ml-7">
+                 Steps: {STAGE_DEFINITIONS.email_automation.steps.join(' → ')}
+               </p>
+             )}
+           </div>
+
+           {/* Stage 5: Integrations */}
            <div className="space-y-3">
              <div className="flex items-center gap-2 font-medium">
-               <Plug className="h-4 w-4 text-purple-500" />
-               Stage 3: Integrations
+               <Plug className="h-4 w-4 text-primary" />
+               Stage 5: Integrations
              </div>
              <div className="ml-6 space-y-2">
                <p className="text-xs text-muted-foreground">Select all that apply:</p>
@@ -339,8 +391,8 @@
            {/* Stage 4: AI Automations */}
            <div className="space-y-3">
              <div className="flex items-center gap-2 font-medium">
-               <Bot className="h-4 w-4 text-orange-500" />
-               Stage 4: AI Automations
+               <Bot className="h-4 w-4 text-primary" />
+               Stage 6: AI Automations
              </div>
              <div className="ml-6 space-y-2">
                <p className="text-xs text-muted-foreground">Select all that apply:</p>
@@ -407,27 +459,63 @@
        <CardContent className="space-y-4">
          {/* Frontend */}
          {workflowData.stages.frontend?.enabled && (
-           <StageProgress
-             title="Front End"
-             icon={<Monitor className="h-4 w-4 text-blue-500" />}
-             steps={STAGE_DEFINITIONS.frontend.steps}
-             currentStep={workflowData.stages.frontend.currentStep}
-             onStepClick={canEdit ? (idx) => handleStepProgress('frontend', idx) : undefined}
-             expanded={expandedStages.frontend}
-             onToggle={() => toggleExpand('frontend')}
-           />
+           <>
+             <StageProgress
+               title="Customer-Facing Website"
+               icon={<Monitor className="h-4 w-4 text-primary" />}
+               steps={STAGE_DEFINITIONS.frontend.steps}
+               currentStep={workflowData.stages.frontend.currentStep}
+               onStepClick={canEdit ? (idx) => handleStepProgress('frontend', idx) : undefined}
+               expanded={expandedStages.frontend}
+               onToggle={() => toggleExpand('frontend')}
+               reviewRequested={workflowData.review_requested?.frontend}
+               stageNote={workflowData.stage_notes?.frontend}
+             />
+           </>
          )}
- 
+
          {/* Backend */}
          {workflowData.stages.backend?.enabled && (
            <StageProgress
              title="Back End"
-             icon={<Server className="h-4 w-4 text-green-500" />}
+             icon={<Server className="h-4 w-4 text-primary" />}
              steps={STAGE_DEFINITIONS.backend.steps}
              currentStep={workflowData.stages.backend.currentStep}
              onStepClick={canEdit ? (idx) => handleStepProgress('backend', idx) : undefined}
              expanded={expandedStages.backend}
              onToggle={() => toggleExpand('backend')}
+             reviewRequested={workflowData.review_requested?.backend}
+             stageNote={workflowData.stage_notes?.backend}
+           />
+         )}
+
+         {/* CRM Setup */}
+         {workflowData.stages.crm_setup?.enabled && (
+           <StageProgress
+             title="CRM Setup"
+             icon={<Database className="h-4 w-4 text-primary" />}
+             steps={STAGE_DEFINITIONS.crm_setup.steps}
+             currentStep={workflowData.stages.crm_setup.currentStep}
+             onStepClick={canEdit ? (idx) => handleStepProgress('crm_setup', idx) : undefined}
+             expanded={expandedStages.crm_setup}
+             onToggle={() => toggleExpand('crm_setup')}
+             reviewRequested={workflowData.review_requested?.crm_setup}
+             stageNote={workflowData.stage_notes?.crm_setup}
+           />
+         )}
+
+         {/* Email Automation */}
+         {workflowData.stages.email_automation?.enabled && (
+           <StageProgress
+             title="Email Automation"
+             icon={<Mail className="h-4 w-4 text-primary" />}
+             steps={STAGE_DEFINITIONS.email_automation.steps}
+             currentStep={workflowData.stages.email_automation.currentStep}
+             onStepClick={canEdit ? (idx) => handleStepProgress('email_automation', idx) : undefined}
+             expanded={expandedStages.email_automation}
+             onToggle={() => toggleExpand('email_automation')}
+             reviewRequested={workflowData.review_requested?.email_automation}
+             stageNote={workflowData.stage_notes?.email_automation}
            />
          )}
  
@@ -510,7 +598,9 @@
    currentStep, 
    onStepClick,
    expanded,
-   onToggle
+   onToggle,
+   reviewRequested,
+   stageNote
  }: {
    title: string;
    icon: React.ReactNode;
@@ -519,6 +609,8 @@
    onStepClick?: (idx: number) => void;
    expanded?: boolean;
    onToggle?: () => void;
+   reviewRequested?: boolean;
+   stageNote?: string;
  }) {
    return (
      <Collapsible open={expanded} onOpenChange={onToggle}>
@@ -530,12 +622,22 @@
              <Badge variant={currentStep >= steps.length ? "default" : "outline"} className="text-xs">
                {currentStep}/{steps.length}
              </Badge>
+             {reviewRequested && (
+               <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                 <Eye className="h-3 w-3 mr-1" /> Review
+               </Badge>
+             )}
            </div>
            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
          </div>
        </CollapsibleTrigger>
-       <CollapsibleContent className="mt-2">
+       <CollapsibleContent className="mt-2 space-y-2">
          <StepIndicator steps={steps} currentStep={currentStep} onStepClick={onStepClick} />
+         {stageNote && (
+           <div className="mx-2 p-2 bg-muted/30 rounded text-xs text-muted-foreground">
+             <span className="font-medium">Dev Notes:</span> {stageNote}
+           </div>
+         )}
        </CollapsibleContent>
      </Collapsible>
    );
