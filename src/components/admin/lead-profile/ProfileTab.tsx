@@ -1,13 +1,15 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink, Code } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
+import { supabase } from '@/integrations/supabase/client';
 
 type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
 
@@ -64,12 +66,23 @@ export function ProfileTab({
 }: ProfileTabProps) {
   const { rawTransactions } = useTransactions(lead.id);
   const { memberships } = useMemberships();
+  const [assignedDevName, setAssignedDevName] = useState<string | null>(null);
 
   // Find active membership from recurring transactions
   const activeMembershipTransaction = rawTransactions.find(t => t.is_recurring);
   const activeMembership = activeMembershipTransaction 
     ? memberships.find(m => m.name === activeMembershipTransaction.item)
     : null;
+
+  useEffect(() => {
+    if (!lead.assigned_to) { setAssignedDevName(null); return; }
+    supabase
+      .from('admin_profiles')
+      .select('display_name')
+      .eq('user_id', lead.assigned_to)
+      .maybeSingle()
+      .then(({ data }) => setAssignedDevName(data?.display_name || null));
+  }, [lead.assigned_to]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -282,6 +295,28 @@ export function ProfileTab({
                 <span className="text-muted-foreground">Deal Closed</span>
                 <span>{format(new Date(lead.deal_closed_at), 'PP')}</span>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Assigned Developer */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Code className="h-5 w-5" />
+              Assigned Developer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {assignedDevName ? (
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
+                  {assignedDevName.charAt(0).toUpperCase()}
+                </div>
+                <span className="font-medium">{assignedDevName}</span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No developer assigned. Assign one in the Settings tab.</p>
             )}
           </CardContent>
         </Card>
