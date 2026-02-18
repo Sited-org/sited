@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Trash2, Shield, UserPlus, Code, DollarSign, Settings, Eye } from 'lucide-react';
+import { Trash2, Shield, UserPlus, Code, DollarSign, Settings, Eye, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const ROLE_INFO: Record<StaffRole, { label: string; description: string; icon: React.ElementType; color: string }> = {
   owner: { label: 'Owner', description: 'Full access to everything', icon: Shield, color: 'bg-primary text-primary-foreground' },
@@ -23,11 +24,13 @@ const ROLE_INFO: Record<StaffRole, { label: string; description: string; icon: R
 };
 
 export default function AdminTeam() {
-  const { users, loading, updateUserPermissions, deleteUser } = useAdminUsers();
+  const { users, loading, updateUserPermissions, deleteUser, fetchUsers } = useAdminUsers();
   const { user, canManageUsers, userRole } = useAuth();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<StaffRole>('developer');
+  const [isInviting, setIsInviting] = useState(false);
 
   if (loading) return <div className="animate-pulse text-muted-foreground">Loading...</div>;
   if (!canManageUsers) return <div className="text-muted-foreground">You don't have permission to view this page.</div>;
@@ -37,15 +40,36 @@ export default function AdminTeam() {
     await updateUserPermissions(userId, { role, ...permissions });
   };
 
-  const handleAddStaff = () => {
+  const handleAddStaff = async () => {
     if (!newEmail.trim()) {
       toast.error('Please enter an email address');
       return;
     }
-    toast.success(`Invitation will be sent to ${newEmail} as ${ROLE_INFO[newRole].label}`);
-    setIsAddDialogOpen(false);
-    setNewEmail('');
-    setNewRole('developer');
+    setIsInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-staff', {
+        body: {
+          email: newEmail.trim(),
+          role: newRole,
+          display_name: newName.trim() || undefined,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Invitation sent to ${newEmail} as ${ROLE_INFO[newRole].label}`);
+      setIsAddDialogOpen(false);
+      setNewEmail('');
+      setNewName('');
+      setNewRole('developer');
+      // Refresh the user list
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send invitation');
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   return (
@@ -68,6 +92,17 @@ export default function AdminTeam() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
+                <Label htmlFor="name">Display Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  disabled={isInviting}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
@@ -75,6 +110,7 @@ export default function AdminTeam() {
                   placeholder="staff@example.com"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
+                  disabled={isInviting}
                 />
               </div>
               <div className="space-y-2">
@@ -147,8 +183,10 @@ export default function AdminTeam() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleAddStaff}>Send Invite</Button>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isInviting}>Cancel</Button>
+              <Button onClick={handleAddStaff} disabled={isInviting}>
+                {isInviting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending...</> : 'Send Invite'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
