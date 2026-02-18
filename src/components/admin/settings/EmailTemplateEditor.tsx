@@ -56,6 +56,14 @@ const VARIABLE_DESCRIPTIONS: Record<string, Record<string, string>> = {
     '{{email}}': 'Client\'s email address',
     '{{business_name}}': 'Client\'s business name',
   },
+  staff_invitation: {
+    '{{name}}': 'Staff member\'s display name',
+    '{{email}}': 'Staff member\'s email address',
+    '{{role}}': 'Assigned role (Developer, Admin, etc.)',
+    '{{password}}': 'Generated temporary password',
+    '{{login_url}}': 'Login page URL',
+    '{{dashboard_path}}': 'Dashboard redirect path (/dev or /admin)',
+  },
 };
 
 interface ParsedEmail {

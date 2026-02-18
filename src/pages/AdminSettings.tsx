@@ -62,6 +62,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [showPasswordOtp, setShowPasswordOtp] = useState(false);
   const [pendingPasswordChange, setPendingPasswordChange] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
 
   // Memberships
   const { memberships, loading: membershipsLoading, addMembership, updateMembership, deleteMembership } = useMemberships();
@@ -151,10 +152,25 @@ export default function AdminSettings() {
     setSaving(false);
   };
 
-  const handleInitiatePasswordChange = () => {
+  const handleInitiatePasswordChange = async () => {
     if (newPassword.length < 6) { 
       toast({ title: 'Password too short', description: 'Password must be at least 6 characters', variant: 'destructive' }); 
       return; 
+    }
+    if (!currentPassword) {
+      toast({ title: 'Current password required', variant: 'destructive' });
+      return;
+    }
+    // Verify the current password by attempting a sign-in
+    setSaving(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: user?.email || '',
+      password: currentPassword,
+    });
+    setSaving(false);
+    if (error) {
+      toast({ title: 'Incorrect current password', description: 'Please enter your current password correctly.', variant: 'destructive' });
+      return;
     }
     setPendingPasswordChange(newPassword);
     setShowPasswordOtp(true);
@@ -168,6 +184,7 @@ export default function AdminSettings() {
     } else {
       toast({ title: 'Password updated successfully' });
       setNewPassword('');
+      setCurrentPassword('');
     }
     setPendingPasswordChange('');
     setShowPasswordOtp(false);
@@ -904,8 +921,17 @@ export default function AdminSettings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Password changes require 2FA verification for security.
+                    Enter your current password and a new password. A 2FA code will be required.
                   </p>
+                  <div className="space-y-2">
+                    <Label>Current Password</Label>
+                    <Input 
+                      type="password" 
+                      value={currentPassword} 
+                      onChange={(e) => setCurrentPassword(e.target.value)} 
+                      placeholder="••••••••" 
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label>New Password</Label>
                     <Input 
@@ -915,7 +941,7 @@ export default function AdminSettings() {
                       placeholder="••••••••" 
                     />
                   </div>
-                  <Button onClick={handleInitiatePasswordChange} disabled={saving || !newPassword}>
+                  <Button onClick={handleInitiatePasswordChange} disabled={saving || !newPassword || !currentPassword}>
                     {saving ? 'Updating...' : 'Change Password'}
                   </Button>
                 </CardContent>
