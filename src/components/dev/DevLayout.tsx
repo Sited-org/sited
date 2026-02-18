@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, LogOut, UserCircle, Menu, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, UserCircle, Menu, X, FolderOpen, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function DevLayout() {
@@ -74,6 +74,32 @@ export default function DevLayout() {
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
+            </Link>
+            <Link
+              to="/dev/projects"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive('/dev/projects')
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <FolderOpen className="h-4 w-4" />
+              Projects
+            </Link>
+            <Link
+              to="/dev/requests"
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive('/dev/requests')
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Requests
             </Link>
           </nav>
 

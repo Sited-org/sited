@@ -39,6 +39,11 @@ const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; desc
     title: 'Milestone Progress',
     description: 'Sent when project reaches 25%, 50%, 75%, or 100%',
   },
+  staff_invitation: {
+    icon: <UserPlus className="h-5 w-5" />,
+    title: 'Staff Invitation',
+    description: 'Sent when inviting new staff members to the team',
+  },
 };
 
 

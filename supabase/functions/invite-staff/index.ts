@@ -169,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Determine login URL and role label
-    const loginUrl = `${req.headers.get("origin") || "https://sited.lovable.app"}/admin/login`;
+    const loginUrl = "https://sited.co/admin/login";
     const roleLabels: Record<string, string> = {
       developer: "Developer",
       sales: "Sales",
@@ -180,18 +180,46 @@ const handler = async (req: Request): Promise<Response> => {
     const roleLabel = roleLabels[role] || "Staff";
     const dashboardPath = role === "developer" ? "/dev" : "/admin";
 
-    // Send welcome email with credentials
-    const emailResponse = await resend.emails.send({
-      from: "Sited <hello@sited.co>",
-      to: [email.toLowerCase().trim()],
-      subject: `You've been invited to Sited as ${roleLabel}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
+    // Try to fetch the email template from the database
+    let emailSubject = `You've been invited to Sited as ${roleLabel}`;
+    let emailBodyHtml = "";
+
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, body_html, is_enabled")
+      .eq("template_type", "staff_invitation")
+      .maybeSingle();
+
+    if (template?.is_enabled && template.body_html) {
+      // Use the database template with variable replacement
+      const replaceVars = (str: string) =>
+        str
+          .replace(/\{\{name\}\}/g, name)
+          .replace(/\{\{email\}\}/g, email)
+          .replace(/\{\{role\}\}/g, roleLabel)
+          .replace(/\{\{password\}\}/g, tempPassword)
+          .replace(/\{\{login_url\}\}/g, loginUrl)
+          .replace(/\{\{dashboard_path\}\}/g, dashboardPath);
+
+      emailSubject = replaceVars(template.subject);
+      // Wrap template body in the branded email shell
+      const bodyContent = replaceVars(template.body_html);
+      emailBodyHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; padding: 20px;">
+          <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <div style="background: linear-gradient(135deg, #1a1a1a, #333); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Sited</h1>
+              <p style="color: #94a3b8; margin: 8px 0 0; font-size: 14px;">You've been added as <strong style="color: white;">${roleLabel}</strong></p>
+            </div>
+            <div style="padding: 30px;">${bodyContent}</div>
+            <div style="background: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0; color: #94a3b8; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
+            </div>
+          </div>
+        </body></html>`;
+    } else {
+      // Fallback: hardcoded template
+      emailBodyHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; padding: 20px;">
           <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <div style="background: linear-gradient(135deg, #1a1a1a, #333); padding: 30px; text-align: center;">
@@ -200,42 +228,32 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             <div style="padding: 30px;">
               <p style="color: #4b5563; margin: 0 0 20px;">Hi ${name},</p>
-              <p style="color: #4b5563; margin: 0 0 20px;">
-                You've been invited to the Sited platform. Use the credentials below to log in, then you'll be asked to verify with a one-time code sent to your email.
-              </p>
-              
+              <p style="color: #4b5563; margin: 0 0 20px;">You've been invited to the Sited platform. Use the credentials below to log in, then you'll be asked to verify with a one-time code sent to your email.</p>
               <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin: 0 0 12px;">Your Login Credentials</p>
                 <p style="color: #1e293b; margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${email}</p>
                 <p style="color: #1e293b; margin: 0 0 8px; font-size: 14px;"><strong>Temporary Password:</strong></p>
-                <div style="background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; letter-spacing: 1px; text-align: center;">
-                  ${tempPassword}
-                </div>
+                <div style="background: #1e293b; color: #e2e8f0; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 16px; letter-spacing: 1px; text-align: center;">${tempPassword}</div>
               </div>
-
               <div style="background: #fef3c7; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
-                <p style="color: #92400e; font-size: 13px; margin: 0;">
-                  <strong>Important:</strong> Please change your password after your first login for security.
-                </p>
+                <p style="color: #92400e; font-size: 13px; margin: 0;"><strong>Important:</strong> Please change your password after your first login for security.</p>
               </div>
-              
-              <a href="${loginUrl}" style="display: block; background: #1e293b; color: white; text-decoration: none; padding: 14px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center;">
-                Log In to Dashboard
-              </a>
-              
-              <p style="color: #94a3b8; font-size: 12px; margin: 20px 0 0; text-align: center;">
-                After logging in, you'll be redirected to <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${dashboardPath}</code>
-              </p>
+              <a href="${loginUrl}" style="display: block; background: #1e293b; color: white; text-decoration: none; padding: 14px; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center;">Log In to Dashboard</a>
+              <p style="color: #94a3b8; font-size: 12px; margin: 20px 0 0; text-align: center;">After logging in, you'll be redirected to <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${dashboardPath}</code></p>
             </div>
             <div style="background: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-                If you didn't expect this invitation, please ignore this email.
-              </p>
+              <p style="margin: 0; color: #94a3b8; font-size: 12px;">If you didn't expect this invitation, please ignore this email.</p>
             </div>
           </div>
-        </body>
-        </html>
-      `,
+        </body></html>`;
+    }
+
+    // Send welcome email with credentials
+    const emailResponse = await resend.emails.send({
+      from: "Sited <hello@sited.co>",
+      to: [email.toLowerCase().trim()],
+      subject: emailSubject,
+      html: emailBodyHtml,
     });
 
     console.log("Invite email sent:", emailResponse);
