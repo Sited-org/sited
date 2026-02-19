@@ -12,7 +12,7 @@ import { z } from "zod";
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   email: z.string().trim().email("Invalid email").max(255),
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
 interface LeadCaptureDialogProps {
@@ -115,7 +115,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
                 {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
               </div>
               <div>
-                <Label htmlFor="lc-phone">Phone <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                <Label htmlFor="lc-phone">Phone *</Label>
                 <Input
                   id="lc-phone"
                   type="tel"
@@ -124,6 +124,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
                   placeholder="04XX XXX XXX"
                   className="mt-1"
                 />
+                {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
               </div>
             </div>
             <Button

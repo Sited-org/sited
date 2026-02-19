@@ -5,7 +5,6 @@ import { usePageSEO } from "@/hooks/usePageSEO";
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star } from "lucide-react";
 import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
-import { TestimonialShowcase } from "@/components/home/TestimonialShowcase";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 const Index = () => {
@@ -53,7 +52,7 @@ const Index = () => {
               to="/work"
               className="inline-flex items-center gap-2 text-base font-medium text-foreground underline decoration-gold decoration-2 underline-offset-4 hover:decoration-gold-hover transition-colors"
             >
-              {hero.secondary_cta_label}
+              See what we've done for others
             </Link>
           </div>
 
@@ -123,10 +122,42 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 4. FEATURED TESTIMONIAL */}
+      {/* 4. FOUNDER VIDEO INTRO */}
       <section className="bg-card border-y border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <TestimonialShowcase />
+          <div className="flex flex-col lg:flex-row gap-8 items-center">
+            {/* Video - 2/3 */}
+            <div className="w-full lg:w-2/3 rounded-2xl overflow-hidden bg-muted aspect-video flex items-center justify-center border border-border shadow-soft">
+              <div className="text-center text-muted-foreground p-8">
+                <div className="w-16 h-16 rounded-full bg-sited-blue/20 flex items-center justify-center mx-auto mb-3">
+                  <ArrowRight size={24} className="text-sited-blue" />
+                </div>
+                <p className="text-sm font-medium">Founder video placeholder</p>
+                <p className="text-xs mt-1">Landscape video from Andrew will go here</p>
+              </div>
+            </div>
+            {/* Intro - 1/3 */}
+            <div className="w-full lg:w-1/3">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-14 h-14 rounded-full bg-sited-blue/20 border-2 border-sited-blue flex items-center justify-center">
+                  <span className="text-lg font-black text-sited-blue">AF</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Andrew Fuller</h3>
+                  <p className="text-xs text-sited-blue font-semibold uppercase tracking-wider">CEO & Founder</p>
+                </div>
+              </div>
+              <blockquote className="text-base sm:text-lg font-medium text-foreground leading-relaxed">
+                "Agencies are overpriced. I <span className="font-black text-sited-blue">COULDN'T</span> believe I could make a profitable business selling it for 90% less."
+              </blockquote>
+              <div className="mt-4 flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} size={14} className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" />
+                ))}
+                <span className="text-xs text-muted-foreground ml-1.5">500+ websites delivered</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -207,34 +238,47 @@ const Index = () => {
             {results.heading}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {results.cards.map((card, i) => (
-              <div
-                key={i}
-                className="bg-background border-2 border-sited-blue/20 rounded-xl p-6 shadow-soft relative"
-                style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
-              >
-                <Quote size={18} className="text-sited-blue mb-3" />
-                <p className="text-sm font-medium text-foreground leading-relaxed mb-3">
-                  "{card.quote}"
-                </p>
-                <p className="text-xs text-muted-foreground">{card.subtext}</p>
-                <div className="absolute top-3 right-3 w-4 h-4 bg-gold/30 rounded-full" />
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonial strip */}
-          <div className="mt-12 bg-background border border-border rounded-xl p-6 sm:p-8">
-            <p className="text-xs font-semibold tracking-widest text-center text-muted-foreground mb-4 uppercase">
-              {results.testimonial_strip_heading}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-              {results.testimonials.map((t, i) => (
-                <p key={i} className="text-sm text-muted-foreground italic text-center max-w-xs">
-                  "{t.quote}"
-                </p>
-              ))}
-            </div>
+            {results.cards.map((card, i) => {
+              const stockPhotos = [
+                "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
+                "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face",
+              ];
+              const bgColors = [
+                "bg-sited-blue/10 border-sited-blue/30",
+                "bg-[hsl(var(--gold))]/10 border-[hsl(var(--gold))]/30",
+                "bg-accent/30 border-accent/50",
+              ];
+              return (
+                <div
+                  key={i}
+                  className={`${bgColors[i]} border-2 rounded-2xl p-6 shadow-soft relative overflow-hidden`}
+                  style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <img
+                      src={stockPhotos[i]}
+                      alt="Client"
+                      className="w-11 h-11 rounded-full object-cover border-2 border-background shadow-sm"
+                      loading="lazy"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">{card.subtext}</p>
+                      <div className="flex gap-0.5 mt-0.5">
+                        {Array.from({ length: 5 }).map((_, j) => (
+                          <Star key={j} size={10} className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <Quote size={16} className="text-sited-blue mb-2" />
+                  <p className="text-sm font-medium text-foreground leading-relaxed">
+                    "{card.quote}"
+                  </p>
+                  <div className="absolute top-3 right-3 w-4 h-4 bg-[hsl(var(--gold))]/30 rounded-full" />
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -349,50 +349,13 @@ const Work = () => {
         {/* ━━ BLOCK 3: VIDEO TESTIMONIALS ━━ */}
         <VideoTestimonials />
 
-        {/* ━━ PROJECTS ━━ */}
-        <section id="projects" className="py-16 sm:py-24 bg-background">
-          <div className="w-[92%] max-w-[1400px] mx-auto">
-            <div className="text-center mb-12">
-              <motion.h2
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7 }}
-                className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase"
-              >
-                Featured <span className="text-sited-blue">Projects</span>
-              </motion.h2>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="mt-3 text-muted-foreground max-w-md mx-auto"
-              >
-                Every project comes with a video walkthrough, live site, and a genuine client testimonial.
-              </motion.p>
-            </div>
-
-            {isLoading ? (
-              <div className="flex flex-col gap-10">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="aspect-[2.2/1] rounded-2xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-10 sm:gap-12">
-                {visibleProjects.map((project, index) => (
-                  <ProjectCard key={project.company + index} project={project} index={index} onCta={openCta} />
-                ))}
-              </div>
-            )}
-
-            {/* Mid-page CTA */}
+        {/* ━━ MID-PAGE CTA ━━ */}
+        <section id="projects" className="py-16 sm:py-20 bg-background">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mt-14 text-center"
             >
               <p className="text-lg sm:text-xl font-bold text-foreground mb-2">
                 Like what you see?
@@ -402,22 +365,6 @@ const Work = () => {
               </p>
               <CTAButton onClick={openCta} label="Get a Quote" />
             </motion.div>
-
-            {canLoadMore && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mt-10 flex justify-center"
-              >
-                <button
-                  onClick={() => setVisibleCount((prev) => Math.min(prev + LOAD_MORE_COUNT, allProjects.length))}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-sm font-semibold text-foreground hover:bg-card transition-colors"
-                >
-                  Load More Projects <ChevronDown size={16} />
-                </button>
-              </motion.div>
-            )}
           </div>
         </section>
 
