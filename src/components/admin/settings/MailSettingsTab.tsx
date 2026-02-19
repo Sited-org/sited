@@ -46,6 +46,14 @@ const TEMPLATE_INFO: Record<string, { icon: React.ReactNode; title: string; desc
   },
 };
 
+const AUTOMATION_TRIGGERS: Record<string, string> = {
+  onboarding: 'When a new lead is created via the contact form',
+  payment_receipt: 'After a Stripe payment is successfully processed',
+  monthly_report: 'Scheduled monthly (or manual trigger)',
+  recurring_invoices: 'Scheduled for active membership billing cycles',
+  milestone_progress: 'When project milestones reach 25%, 50%, 75%, or 100%',
+  staff_invitation: 'When a new team member is invited via Admin → Team',
+};
 
 export default function MailSettingsTab() {
   const { templates, loading: templatesLoading, updateTemplate } = useEmailTemplates();
@@ -119,12 +127,18 @@ export default function MailSettingsTab() {
             <div className="flex items-center justify-center h-32">
               <div className="animate-pulse text-muted-foreground">Loading templates...</div>
             </div>
+          ) : templates.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No email templates found</p>
+              <p className="text-xs mt-1">Templates are created automatically when the system is set up.</p>
+            </div>
           ) : (
             <div className="grid gap-4">
               {templates.map((template) => {
                 const info = TEMPLATE_INFO[template.template_type] || {
                   icon: <Mail className="h-5 w-5" />,
-                  title: template.template_type,
+                  title: template.template_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
                   description: 'Email template',
                 };
                 const automation = getAutomationForTemplate(template.template_type);
@@ -185,14 +199,24 @@ export default function MailSettingsTab() {
                       </div>
                       {automation && (
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant={automation.is_enabled ? 'default' : 'secondary'}>
-                            {automation.is_enabled ? 'Automation Active' : 'Automation Disabled'}
+                          <Badge variant={automation.is_enabled ? 'default' : 'secondary'} className="text-xs">
+                            {automation.is_enabled ? '⚡ Auto-sends' : 'Automation Off'}
                           </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Trigger: {AUTOMATION_TRIGGERS[template.template_type] || 'Manual'}
+                          </span>
                           {automation.last_run_at && (
                             <span className="text-xs text-muted-foreground">
-                              Last run: {format(new Date(automation.last_run_at), 'MMM d, yyyy h:mm a')}
+                              · Last: {format(new Date(automation.last_run_at), 'MMM d, h:mm a')}
                             </span>
                           )}
+                        </div>
+                      )}
+                      {!automation && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-muted-foreground">
+                            Trigger: {AUTOMATION_TRIGGERS[template.template_type] || 'Manual'}
+                          </span>
                         </div>
                       )}
                     </CardContent>
@@ -205,6 +229,7 @@ export default function MailSettingsTab() {
 
         {/* Automations Tab */}
         <TabsContent value="automations" className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">Each automation triggers at a specific event and sends the corresponding email template.</p>
           {automationsLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-pulse text-muted-foreground">Loading automations...</div>
@@ -217,6 +242,7 @@ export default function MailSettingsTab() {
                   title: automation.automation_type,
                   description: 'Automation',
                 };
+                const linkedTemplate = templates.find(t => t.template_type === automation.automation_type);
 
                 return (
                   <Card key={automation.id}>
@@ -228,7 +254,7 @@ export default function MailSettingsTab() {
                           </div>
                           <div>
                             <h3 className="font-medium">{info.title}</h3>
-                            <p className="text-sm text-muted-foreground">{info.description}</p>
+                            <p className="text-sm text-muted-foreground">{AUTOMATION_TRIGGERS[automation.automation_type] || info.description}</p>
                             {automation.schedule_cron && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                                 <Clock className="h-3 w-3" />
@@ -261,11 +287,25 @@ export default function MailSettingsTab() {
                           )}
                         </div>
                       </div>
-                      {automation.last_run_at && (
-                        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-                          Last triggered: {format(new Date(automation.last_run_at), 'MMMM d, yyyy \'at\' h:mm a')}
+                      {/* Linked template info */}
+                      <div className="mt-3 pt-3 border-t flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            Sends template: <span className="font-medium text-foreground">{linkedTemplate ? (TEMPLATE_INFO[linkedTemplate.template_type]?.title || linkedTemplate.template_type) : 'No template linked'}</span>
+                          </span>
+                          {linkedTemplate && (
+                            <Badge variant={linkedTemplate.is_enabled ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                              {linkedTemplate.is_enabled ? 'Active' : 'Disabled'}
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                        {automation.last_run_at && (
+                          <span className="text-xs text-muted-foreground">
+                            Last: {format(new Date(automation.last_run_at), 'MMM d, h:mm a')}
+                          </span>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );

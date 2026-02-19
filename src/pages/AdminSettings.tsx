@@ -14,8 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, GripVertical, Mail, Package, Shield, Key, Home, Tag, FileText, Eye } from 'lucide-react';
-import OfferSettingsTab from '@/components/admin/settings/OfferSettingsTab';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, GripVertical, Mail, Package, Shield, Key, Home, FileText, Eye } from 'lucide-react';
+
 import PagesSettingsTab from '@/components/admin/settings/PagesSettingsTab';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
@@ -300,10 +300,6 @@ export default function AdminSettings() {
           <TabsTrigger value="pages" className="gap-2 flex-1 min-w-[100px]">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Pages</span>
-          </TabsTrigger>
-          <TabsTrigger value="offer" className="gap-2 flex-1 min-w-[100px]">
-            <Tag className="h-4 w-4" />
-            <span className="hidden sm:inline">Offer</span>
           </TabsTrigger>
         </TabsList>
 
@@ -691,10 +687,6 @@ export default function AdminSettings() {
           <PagesSettingsTab />
         </TabsContent>
 
-        {/* Offer Tab */}
-        <TabsContent value="offer" className="mt-6">
-          <OfferSettingsTab />
-        </TabsContent>
 
       </Tabs>
     </div>

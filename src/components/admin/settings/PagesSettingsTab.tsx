@@ -157,6 +157,14 @@ export default function PagesSettingsTab() {
               
               <div className="space-y-3">
                 <HeadingField 
+                  tag="H1" 
+                  label="Hero Headline" 
+                  value={homepageForm.hero?.headline || ''} 
+                  onChange={v => {
+                    setHomepageForm(prev => prev ? { ...prev, hero: { ...prev.hero, headline: v } } : prev);
+                  }} 
+                />
+                <HeadingField 
                   tag="H2" 
                   label="Websites Section" 
                   value={homepageForm.more_of_everything?.title || ''} 
