@@ -1,508 +1,337 @@
 import { Layout } from "@/components/layout/Layout";
-import { ScrollReveal } from "@/components/common/ScrollReveal";
-import { SectionHeading } from "@/components/common/SectionHeading";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { useRef, useState, useEffect, memo } from "react";
-import { ArrowRight, Zap, Globe, Star, Quote, ExternalLink, Layout as LayoutIcon, Users, BarChart3 } from "lucide-react";
-import { ChatSection } from "@/components/ChatSection";
-import { useHomepageTestimonials } from "@/hooks/useTestimonials";
+import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
-import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
+import { Link } from "react-router-dom";
+import { ArrowRight, Search, Users, MessageSquare, Clock, Shield, Heart, Wrench, Globe, Settings, Sparkles, Quote, CheckCircle2 } from "lucide-react";
 
-const Hero = memo(() => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
+const Index = () => {
+  usePageSEO({
+    title: "Sited | Websites That Pull Their Weight",
+    description: "Sited builds and manages websites, online tools, and systems for service businesses across Australia. More traffic, more enquiries, less hassle.",
   });
 
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.95]);
-  const y = useTransform(scrollYProgress, [0, 0.5], [0, 50]);
+  const { content, loading } = useHomepageContent();
 
-  return (
-    <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-surface-elevated to-background" />
-      
-      {/* Simplified floating elements - CSS only */}
-      <div className="absolute top-1/4 left-[15%] w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]" />
-      <div className="absolute bottom-1/4 right-[15%] w-48 h-48 bg-accent/30 rounded-full blur-3xl animate-[pulse_6s_ease-in-out_infinite_1s]" />
-
-      <motion.div
-        style={{ opacity, scale, y }}
-        className="relative z-10 container-tight pt-24 sm:pt-32 pb-16 sm:pb-20 text-center will-change-transform"
-      >
-         <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.05 }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-6"
-        >
-           Built Fast. High Quality.
-          <br />
-          <span className="text-muted-foreground">Managed Professionally.</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed px-2"
-        >
-          Websites, portals, CRMs, and dashboards for growing businesses — built in days and managed professionally.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-        >
-          <Button variant="hero" size="xl" asChild>
-            <Link to="/work">
-              See What We Build <ArrowRight size={20} />
-            </Link>
-          </Button>
-          <Button variant="hero-outline" size="xl" asChild>
-            <Link to="/contact">Book a Free Consultation</Link>
-          </Button>
-        </motion.div>
-      </motion.div>
-
-    </section>
-  );
-});
-
-Hero.displayName = 'Hero';
-
-const HeroVideo = memo(() => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "100px" });
-  const [videoLoaded, setVideoLoaded] = useState(false);
-
-  return (
-    <section ref={ref} className="py-12 sm:py-16 lg:py-20 bg-background">
-      <div className="container-tight px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden shadow-elevated bg-muted"
-        >
-          {isInView && (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              onLoadedData={() => setVideoLoaded(true)}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
-              poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=60&fit=crop&fm=webp"
-            >
-              <source
-                src="https://videos.pexels.com/video-files/3129671/3129671-hd_1920_1080_25fps.mp4"
-                type="video/mp4"
-              />
-            </video>
-          )}
-          {!videoLoaded && (
-            <div className="absolute inset-0 bg-muted animate-pulse" />
-          )}
-        </motion.div>
-      </div>
-    </section>
-  );
-});
-
-HeroVideo.displayName = 'HeroVideo';
-
-const services = [
-  {
-  icon: Globe,
-    title: "Website Builds",
-    description: "Custom websites that reflect your brand and convert visitors into leads. Built in days, not months.",
-  },
-  {
-    icon: Users,
-    title: "CRM Systems",
-    description: "Stop using spreadsheets. We build CRMs around your actual workflow — leads, pipelines, and client relationships in one place.",
-  },
-  {
-    icon: BarChart3,
-    title: "Admin Dashboards",
-    description: "Your business data, presented clearly. Real-time visibility of the numbers that matter — no analyst required.",
-  },
-  {
-    icon: LayoutIcon,
-    title: "Client Portals",
-    description: "A branded space for your clients to access documents, track progress, and communicate — cutting the back-and-forth.",
-  },
-  {
-    icon: Zap,
-    title: "Landing Pages",
-    description: "High-converting pages for campaigns and launches. Designed to capture attention — built and live within days.",
-  },
-];
-
-const Services = () => {
-  return (
-    <section className="section-padding bg-background">
-      <div className="container-tight">
-        <SectionHeading
-          eyebrow="What We Do"
-          title="What Sited Builds & Manages"
-          description="We build the digital tools your business runs on — then manage them professionally."
-        />
-
-        <div className="mt-10 sm:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {services.map((service, index) => (
-            <ScrollReveal key={service.title} delay={index * 0.1}>
-              <motion.div
-                whileHover={{ y: -4 }}
-                className="group p-5 sm:p-8 rounded-2xl border border-border bg-card hover:shadow-elevated transition-all duration-300"
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-accent flex items-center justify-center mb-4 sm:mb-6">
-                  <service.icon size={20} className="sm:w-6 sm:h-6 text-accent-foreground" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">{service.title}</h3>
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{service.description}</p>
-              </motion.div>
-            </ScrollReveal>
-          ))}
+  if (loading || !content) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
         </div>
+      </Layout>
+    );
+  }
 
-        <ScrollReveal delay={0.4} className="mt-12 text-center">
-          <Button variant="outline" size="lg" asChild>
-            <Link to="/services">
-              See Everything We Build <ArrowRight size={18} />
-            </Link>
-          </Button>
-        </ScrollReveal>
-      </div>
-    </section>
-  );
-};
-
-const Process = () => {
-  const steps = [
-    { number: "01", title: "Discovery", description: "We learn about your business, goals, and vision through our detailed onboarding process." },
-    { number: "02", title: "Design", description: "We create stunning visuals tailored to your brand and your audience." },
-    { number: "03", title: "Develop", description: "We build your project using the best available technology for speed and reliability." },
-    { number: "04", title: "Launch & Manage", description: "Your project goes live, and we keep it monitored and improving." },
-  ];
+  const { hero, proof_bar, more_of_everything, trusted_by, who_we_help, why_stay, services, results, process, final_cta } = content;
 
   return (
-    <section className="section-padding bg-surface-elevated">
-      <div className="container-tight">
-        <SectionHeading
-          eyebrow="Our Process"
-          title="From idea to launch in days, not months"
-          description="Our streamlined process ensures quality delivery without unnecessary delays."
-        />
-
-        <div className="mt-10 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {steps.map((step, index) => (
-            <ScrollReveal key={step.number} delay={index * 0.1}>
-              <div className="relative">
-                <span className="text-4xl sm:text-5xl lg:text-7xl font-bold text-muted/50">{step.number}</span>
-                <h3 className="text-base sm:text-lg lg:text-xl font-semibold mt-2 sm:mt-4 mb-1 sm:mb-2">{step.title}</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{step.description}</p>
-              </div>
-            </ScrollReveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// Fallback projects for when no testimonials are marked for homepage
-const fallbackProjects = [
-  {
-    company: "Bloom Floristry",
-    category: "Website Design",
-    result: "3x Conversion Rate",
-    image: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400&q=75&fit=crop&fm=webp",
-  },
-  {
-    company: "Urban Fitness",
-    category: "Website Design", 
-    result: "200% More Leads",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=75&fit=crop&fm=webp",
-  },
-  {
-    company: "Coastal Realty",
-    category: "Website Design",
-    result: "4x Online Sales",
-    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=75&fit=crop&fm=webp",
-  },
-];
-
-const FeaturedWork = () => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
-  const { data: testimonials } = useHomepageTestimonials();
-
-  const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
-
-  // Transform testimonials to display format or use fallback
-  const projects = testimonials && testimonials.length > 0 
-    ? testimonials.map(t => {
-        const websiteUrl = t.website_url || null;
-        const thumbnail = websiteUrl
-          ? `https://image.thum.io/get/width/1920/crop/1080/${websiteUrl}`
-          : (() => {
-              const vimeoId = t.video_url ? extractVimeoId(t.video_url) : null;
-              return vimeoId 
-                ? getVimeoThumbnail(vimeoId) 
-                : "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&q=75&fit=crop&fm=webp";
-            })();
-        return {
-          company: t.business_name,
-          category: t.project_type,
-          result: t.metric_1_value && t.metric_1_label 
-            ? `${t.metric_1_value} ${t.metric_1_label}` 
-            : t.short_description,
-          image: thumbnail,
-          websiteUrl,
-        };
-      })
-    : fallbackProjects;
-
-  return (
-    <section ref={ref} className="section-padding bg-background overflow-hidden">
-      <div className="container-tight">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 sm:gap-6 mb-10 sm:mb-16">
-          <div>
-            <ScrollReveal>
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Selected Work
-              </span>
-            </ScrollReveal>
-            <ScrollReveal delay={0.1}>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-semibold tracking-tight mt-3 sm:mt-4">
-                Businesses That Trust Sited
-              </h2>
-            </ScrollReveal>
-          </div>
-          <ScrollReveal delay={0.2}>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/work">
-                View All Projects <ArrowRight size={18} />
-              </Link>
-            </Button>
-          </ScrollReveal>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-          {projects.map((project, index) => {
-            const hasWebsite = 'websiteUrl' in project && project.websiteUrl;
-            const Wrapper = hasWebsite ? 'a' : Link;
-            const wrapperProps = hasWebsite 
-              ? { href: project.websiteUrl as string, target: "_blank", rel: "noopener noreferrer" }
-              : { to: "/work" };
-
-            return (
-              <ScrollReveal key={project.company} delay={index * 0.05}>
-                <motion.div
-                  whileHover={{ y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="group cursor-pointer"
-                >
-                  <div className="relative overflow-hidden rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
-                    <img
-                      src={project.image}
-                      alt={project.company}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full aspect-video object-cover object-top transition-transform duration-300 group-hover:scale-105"
-                    />
-                    {hasWebsite && (
-                      <a
-                        href={project.websiteUrl as string}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors duration-300"
-                      >
-                        <span className="opacity-60 group-hover:opacity-100 transition-opacity duration-300 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/80 text-white text-sm font-medium backdrop-blur-sm">
-                          Open Site <ExternalLink size={14} />
-                        </span>
-                      </a>
-                    )}
-                  </div>
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {project.category}
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-semibold mt-1 mb-1">{project.company}</h3>
-                  <p className="text-sm sm:text-base text-accent font-medium">{project.result}</p>
-                </motion.div>
-              </ScrollReveal>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// About/Trust Section — "Why Sited"
-const About = () => {
-  const { data: testimonials } = useHomepageTestimonials();
-  const firstTestimonial = testimonials && testimonials.length > 0 ? testimonials[0] : null;
-
-  return (
-    <section className="section-padding bg-surface-elevated">
-      <div className="container-tight">
-        <div className="grid lg:grid-cols-2 gap-10 sm:gap-16 items-center">
-          <div>
-            <ScrollReveal>
-              <span className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                Why Sited
-              </span>
-            </ScrollReveal>
-            <ScrollReveal delay={0.1}>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mt-3 sm:mt-4 mb-4 sm:mb-6">
-                Why Businesses Choose Sited
-              </h2>
-            </ScrollReveal>
-            <ScrollReveal delay={0.2}>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed mb-4 sm:mb-6">
-                Traditional agencies are slow, expensive, and disappear after launch. We build in days, then stay — monitoring and improving your site every month.
+    <Layout>
+      {/* 1. HERO */}
+      <section className="relative overflow-hidden bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-20">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Left */}
+            <div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground">
+                {hero.headline}
+              </h1>
+              <p className="mt-5 text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-lg">
+                {hero.subheadline}
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.25}>
-              <div className="space-y-4">
-                <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">Fast delivery, no shortcuts.</p>
-                  <p className="text-sm text-muted-foreground">Most projects done in days, not months.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">Proactive care, not reactive panic.</p>
-                  <p className="text-sm text-muted-foreground">Monthly reviews, improvements, and fixes — before you notice anything.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">One accountable team.</p>
-                  <p className="text-sm text-muted-foreground">The team that built it is the team that maintains it.</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm sm:text-base mb-1">Transparent pricing.</p>
-                  <p className="text-sm text-muted-foreground">No surprise invoices. No scope creep.</p>
-                </div>
+              <p className="mt-4 text-base sm:text-lg font-medium text-foreground italic">
+                {hero.question}
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <Link
+                  to={hero.primary_cta_link}
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-lg bg-sited-blue text-white font-semibold text-base hover:bg-sited-blue-hover transition-colors"
+                >
+                  {hero.primary_cta_label}
+                </Link>
+                <Link
+                  to={hero.secondary_cta_link}
+                  className="inline-flex items-center gap-2 text-base font-medium text-foreground underline decoration-gold decoration-2 underline-offset-4 hover:decoration-gold-hover transition-colors"
+                >
+                  {hero.secondary_cta_label} <ArrowRight size={16} />
+                </Link>
               </div>
-            </ScrollReveal>
-          </div>
-          <ScrollReveal delay={0.2}>
-            <div className="relative">
-              <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-5 sm:p-8">
-                <Quote size={24} className="sm:w-8 sm:h-8 text-accent mb-4 sm:mb-6" />
-                <p className="text-base sm:text-lg leading-relaxed mb-4 sm:mb-6">
-                  "{firstTestimonial?.testimonial_text || "Sited transformed our entire digital presence. The website they built doesn't just look incredible—it's become our most effective sales tool."}"
+
+              {/* Mini social proof */}
+              <div className="mt-10">
+                <p className="text-sm font-medium text-muted-foreground mb-4">
+                  {hero.social_proof_label}
                 </p>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center">
-                    <span className="font-semibold text-sm sm:text-base">
-                      {firstTestimonial ? firstTestimonial.testimonial_author.split(' ').map(n => n[0]).join('') : 'SM'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm sm:text-base">{firstTestimonial?.testimonial_author || "Sarah Mitchell"}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{firstTestimonial ? `${firstTestimonial.testimonial_role}, ${firstTestimonial.business_name}` : "Founder, Bloom Floristry"}</p>
-                  </div>
-                </div>
-                <div className="flex gap-1 mt-3 sm:mt-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={14} className="sm:w-4 sm:h-4 fill-accent text-accent" />
+                <div className="space-y-3">
+                  {hero.mini_testimonials.map((t, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gold/40 flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="text-xs font-semibold text-foreground">{t.name?.[0] || "?"}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm text-foreground leading-snug">"{t.quote}"</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">— {t.name}, {t.role}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
-          </ScrollReveal>
-        </div>
-      </div>
-    </section>
-  );
-};
 
-
-const CTA = () => {
-  return (
-    <section className="section-padding bg-foreground text-background">
-      <div className="container-tight text-center">
-        <ScrollReveal>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-4 sm:mb-6">
-            Your site should work as hard as you do.
-          </h2>
-        </ScrollReveal>
-        <ScrollReveal delay={0.1}>
-          <p className="text-background/70 text-base sm:text-lg max-w-2xl mx-auto mb-8 sm:mb-10">
-            New build or existing site — the next step is a free 20-minute call. No obligation, no jargon.
-          </p>
-        </ScrollReveal>
-        <ScrollReveal delay={0.2}>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-              size="xl"
-              className="bg-background text-foreground hover:bg-background/90"
-              asChild
-            >
-              <Link to="/contact">
-                Book Your Free Consultation <ArrowRight size={20} />
-              </Link>
-            </Button>
-            <Button
-              size="xl"
-              variant="ghost"
-              className="text-background hover:bg-background/10"
-              asChild
-            >
-              <Link to="/work">
-                View Our Work
-              </Link>
-            </Button>
+            {/* Right - Device mockup */}
+            <div className="relative hidden lg:block">
+              <div className="absolute -top-8 -right-8 w-72 h-72 bg-gold/20 rounded-full blur-3xl" />
+              <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-sited-blue/15 rounded-full blur-2xl" />
+              <div className="relative bg-card border border-border rounded-2xl shadow-elevated p-3">
+                <div className="flex items-center gap-1.5 mb-2 px-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-gold" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-accent/60" />
+                  <div className="ml-3 flex-1 h-5 bg-muted rounded-md" />
+                </div>
+                <div className="bg-muted rounded-lg aspect-[4/3] flex items-center justify-center">
+                  <div className="text-center px-6">
+                    <Globe className="w-10 h-10 text-sited-blue mx-auto mb-3" />
+                    <div className="h-3 bg-border rounded w-3/4 mx-auto mb-2" />
+                    <div className="h-2 bg-border/60 rounded w-1/2 mx-auto mb-4" />
+                    <div className="h-8 bg-sited-blue/20 rounded w-1/3 mx-auto" />
+                  </div>
+                </div>
+              </div>
+              {/* Gold accent band */}
+              <div className="absolute -right-4 top-1/3 w-20 h-48 bg-gold/30 rounded-full -rotate-12 blur-sm" />
+            </div>
           </div>
-        </ScrollReveal>
+        </div>
+      </section>
+
+      {/* 2. PROOF BAR */}
+      <section className="bg-gold/10 border-y border-gold/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+          <p className="text-xs font-semibold tracking-[0.2em] text-center text-muted-foreground mb-6">
+            {proof_bar.title}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0 sm:divide-x sm:divide-foreground/15">
+            {proof_bar.items.map((item, i) => (
+              <p key={i} className="text-sm text-foreground font-medium text-center sm:px-6">
+                {item}
+              </p>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. MORE OF EVERYTHING */}
+      <section className="bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+                {more_of_everything.title}
+              </h2>
+              <div className="mt-3 w-16 h-1 bg-sited-blue rounded-full" />
+            </div>
+            <div className="space-y-6">
+              {more_of_everything.items.map((item, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="w-1 bg-sited-blue/40 rounded-full shrink-0 mt-1" />
+                  <div>
+                    <p className="font-semibold text-foreground">{item.bold}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{item.supporting}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. TRUSTED BY */}
+      {(trusted_by.logos.length > 0 || trusted_by.heading) && (
+        <section className="bg-card border-y border-border">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center">
+            <p className="text-sm text-muted-foreground max-w-xl mx-auto mb-8">
+              {trusted_by.heading}
+            </p>
+            {trusted_by.logos.length > 0 && (
+              <div className="flex items-center justify-center gap-8 sm:gap-12 flex-wrap mb-6">
+                {trusted_by.logos.map((logo, i) => (
+                  <img key={i} src={logo.url} alt="Client logo" className="h-8 sm:h-10 opacity-60 grayscale hover:opacity-100 hover:grayscale-0 transition-all" />
+                ))}
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+              {trusted_by.under_text}
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* 5. WHO WE HELP */}
+      <section className="bg-background">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+            {who_we_help.heading}
+          </h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            {who_we_help.intro}
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+            {who_we_help.bullets.map((b, i) => (
+              <span key={i} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold/15 text-sm font-medium text-foreground">
+                <CheckCircle2 size={15} className="text-sited-blue" /> {b}
+              </span>
+            ))}
+          </div>
+          <p className="mt-6 text-base text-muted-foreground font-medium">
+            {who_we_help.closing}
+          </p>
+        </div>
+      </section>
+
+      {/* 6. WHY PEOPLE STAY */}
+      <section className="bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-12">
+            {why_stay.heading}
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {why_stay.reasons.map((r, i) => {
+              const icons = [MessageSquare, Heart, Wrench, Shield];
+              const Icon = icons[i] || Shield;
+              return (
+                <div key={i} className="bg-background border border-border rounded-xl p-6 hover:border-gold/40 transition-colors">
+                  <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mb-4">
+                    <Icon size={18} className="text-foreground" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">{r.title}</h3>
+                  <p className="text-sm text-muted-foreground">{r.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 7. SERVICES */}
+      <section className="bg-background">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-12">
+            {services.heading}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {services.cards.map((card, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl p-6 sm:p-8 flex flex-col">
+                <div className="w-full h-1 bg-sited-blue/30 rounded-full mb-6" />
+                <h3 className="text-lg font-semibold text-foreground mb-3">{card.title}</h3>
+                <p className="text-sm text-muted-foreground flex-1 mb-6">{card.description}</p>
+                <Link
+                  to={card.cta_link}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
+                >
+                  {card.cta_label} <ArrowRight size={14} />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. RESULTS */}
+      <section className="bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-12">
+            {results.heading}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {results.cards.map((card, i) => (
+              <div
+                key={i}
+                className="bg-background border-2 border-sited-blue/20 rounded-xl p-6 sm:p-8 shadow-soft relative"
+                style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
+              >
+                <div className="absolute top-4 right-4 w-6 h-6 bg-gold/30 rounded-full" />
+                <Quote size={20} className="text-sited-blue mb-4" />
+                <p className="text-base font-medium text-foreground leading-relaxed mb-4">
+                  "{card.quote}"
+                </p>
+                <p className="text-sm text-muted-foreground">{card.subtext}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Testimonial strip */}
+          <div className="mt-16">
+            <p className="text-sm font-semibold tracking-wider text-center text-muted-foreground mb-6 uppercase">
+              {results.testimonial_strip_heading}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+              {results.testimonials.map((t, i) => (
+                <p key={i} className="text-sm text-muted-foreground italic text-center max-w-xs">
+                  "{t.quote}"
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 9. PROCESS */}
+      <section className="bg-background">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-12">
+            {process.heading}
+          </h2>
+          <div className="space-y-0">
+            {process.steps.map((step, i) => (
+              <div key={i} className="flex gap-5">
+                <div className="flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-full bg-sited-blue text-white flex items-center justify-center font-bold text-sm shrink-0">
+                    {i + 1}
+                  </div>
+                  {i < process.steps.length - 1 && (
+                    <div className="w-px flex-1 bg-sited-blue/20 my-1" />
+                  )}
+                </div>
+                <div className="pb-10">
+                  <h3 className="font-semibold text-foreground">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 10. FINAL CTA */}
+      <section className="bg-sited-blue">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+            {final_cta.heading}
+          </h2>
+          <p className="mt-4 text-lg text-white/80 max-w-xl mx-auto">
+            {final_cta.body}
+          </p>
+          <Link
+            to={final_cta.button_link}
+            className="mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-gold text-foreground font-semibold text-base hover:bg-gold-hover transition-colors"
+          >
+            {final_cta.button_label} <ArrowRight size={18} />
+          </Link>
+          <p className="mt-4 text-sm text-white/60">
+            {final_cta.reassurance}
+          </p>
+        </div>
+      </section>
+
+      {/* Legal link */}
+      <div className="py-4 text-center bg-background">
+        <Link
+          to="/policies"
+          className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+        >
+          Privacy Policy & Terms
+        </Link>
       </div>
-    </section>
-  );
-};
-
-const LegalLink = () => {
-  return (
-    <div className="py-4 text-center">
-      <Link 
-        to="/policies" 
-        className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-      >
-        Privacy Policy & Terms
-      </Link>
-    </div>
-  );
-};
-
-const Index = () => {
-  usePageSEO({
-    title: "Sited | Professional Web Design, Built Fast & Maintained Monthly",
-    description: "Sited builds professional websites, CRMs, client portals, and dashboards for growing businesses — built fast, high quality, and managed professionally.",
-  });
-
-  return (
-    <Layout>
-      <Hero />
-      <ChatSection />
-      <HeroVideo />
-      <FeaturedWork />
-      <About />
-      <Services />
-      <Process />
-      <CTA />
-      <LegalLink />
     </Layout>
   );
 };

@@ -41,8 +41,10 @@
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
     --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.08);
     --shadow-elevated: 0 12px 48px -12px hsl(0 0% 0% / 0.12);
-    --gold: 38 92% 50%;
-    --gold-hover: 38 92% 58%;
+    --gold: 30 38% 76%;
+    --gold-hover: 30 38% 68%;
+    --sited-blue: 202 74% 69%;
+    --sited-blue-hover: 202 74% 62%;
     
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 26%;

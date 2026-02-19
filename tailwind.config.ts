@@ -65,6 +65,14 @@ export default {
         surface: {
           elevated: "hsl(var(--surface-elevated))",
         },
+        gold: {
+          DEFAULT: "hsl(var(--gold))",
+          hover: "hsl(var(--gold-hover))",
+        },
+        "sited-blue": {
+          DEFAULT: "hsl(var(--sited-blue))",
+          hover: "hsl(var(--sited-blue-hover))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
