@@ -1,21 +1,34 @@
-import { motion } from "framer-motion";
-import { Check, ArrowRight, Shield, Zap, Clock, Loader2, Star, Crown } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronDown } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import BookingDialog from "@/components/booking/BookingDialog";
+import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
+import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
 
-const TIERS = [
-  {
+const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
+
+export type TierConfig = {
+  id: string;
+  name: string;
+  tagline: string;
+  price: string;
+  totalPrice: string;
+  icon: typeof Zap;
+  features: string[];
+  accentClass: string;
+  badgeClass: string;
+};
+
+const TIERS: Record<string, TierConfig> = {
+  "basic-deposit": {
     id: "basic-deposit",
     name: "Basic Blue",
-    tagline: "Start with a $49 deposit",
+    tagline: "Everything you need to get started",
     price: "$49",
-    priceNote: "deposit (fully refundable)",
-    fullPrice: "$549 total",
+    totalPrice: "$549",
     icon: Zap,
     features: [
       "Professional frontend website",
@@ -25,17 +38,15 @@ const TIERS = [
       "Email integration",
       "Calendar integration",
     ],
-    accent: "border-sited-blue/40 bg-sited-blue/5",
-    accentButton: "bg-sited-blue hover:bg-sited-blue-hover",
-    popular: false,
+    accentClass: "border-sited-blue/40 bg-sited-blue/5",
+    badgeClass: "bg-sited-blue text-white",
   },
-  {
+  gold: {
     id: "gold",
     name: "Gold Package",
-    tagline: "Most popular choice",
-    price: "$649",
-    priceNote: "one-time payment",
-    fullPrice: null,
+    tagline: "For businesses that want more leads",
+    price: "$49",
+    totalPrice: "$649",
     icon: Star,
     features: [
       "High-converting website",
@@ -45,17 +56,15 @@ const TIERS = [
       "All integrations included",
       "Client portal access",
     ],
-    accent: "border-yellow-500/40 bg-yellow-500/5",
-    accentButton: "bg-yellow-600 hover:bg-yellow-700",
-    popular: true,
+    accentClass: "border-yellow-500/40 bg-yellow-500/5",
+    badgeClass: "bg-yellow-500 text-black",
   },
-  {
+  platinum: {
     id: "platinum",
     name: "Platinum Package",
     tagline: "The full premium experience",
-    price: "$1,199",
-    priceNote: "one-time payment",
-    fullPrice: null,
+    price: "$49",
+    totalPrice: "$1,199",
     icon: Crown,
     features: [
       "Highest quality design",
@@ -65,59 +74,57 @@ const TIERS = [
       "All integrations & APIs",
       "Priority support & delivery",
     ],
-    accent: "border-purple-500/40 bg-purple-500/5",
-    accentButton: "bg-purple-600 hover:bg-purple-700",
-    popular: false,
+    accentClass: "border-purple-500/40 bg-purple-500/5",
+    badgeClass: "bg-purple-600 text-white",
   },
-];
+};
 
 const Offer = () => {
   const { content, loading } = useOfferContent();
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [checkingOut, setCheckingOut] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
+  const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   usePageSEO({
-    title: "Exclusive Offer | Sited — Don't Miss This",
-    description: "A limited-time offer on a fully custom website. Claim yours before it's gone.",
+    title: "Secure Your Website | Sited — $49 Deposit",
+    description: "Get a fully custom website with just a $49 refundable deposit. Choose Basic Blue, Gold, or Platinum.",
   });
-
-  useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "success") {
-      toast.success("Payment successful! We'll be in touch shortly to get started.");
-    } else if (payment === "cancelled") {
-      toast.info("Payment was cancelled. No charges were made.");
-    }
-  }, [searchParams]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-sited-blue" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-sited-blue border-t-transparent" />
       </div>
     );
   }
 
-  const handleCheckout = async (tierId: string) => {
-    setCheckingOut(tierId);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-offer-checkout", {
-        body: { tier: tierId },
-      });
+  if (paymentComplete) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-lg text-center space-y-6"
+        >
+          <div className="mx-auto w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Check size={40} className="text-green-500" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-foreground">You're In!</h1>
+          <p className="text-muted-foreground text-lg">
+            Your deposit has been received. We'll be in touch within 24 hours to kick off your{" "}
+            <span className="font-bold text-foreground">{TIERS[selectedTier].name}</span> project.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Check your email for a confirmation and onboarding details.
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
-    } catch (err: any) {
-      console.error("Checkout error:", err);
-      toast.error("Something went wrong. Please try again.");
-      setCheckingOut(null);
-    }
-  };
+  const activeTier = TIERS[selectedTier];
+  const upgradeTiers = Object.values(TIERS).filter((t) => t.id !== selectedTier && t.id !== "basic-deposit");
+  const Icon = activeTier.icon;
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,7 +135,7 @@ const Offer = () => {
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
         {/* Badge */}
         {content.badge_text && (
           <motion.div
@@ -148,12 +155,12 @@ const Offer = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center"
+          className="text-center mb-12"
         >
           <p className="text-xs sm:text-sm uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">
             {content.subheadline}
           </p>
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter text-foreground uppercase leading-[0.9]">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-foreground uppercase leading-[0.9]">
             {content.headline}
           </h1>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -161,85 +168,130 @@ const Offer = () => {
           </p>
         </motion.div>
 
-        {/* Tier Cards */}
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TIERS.map((tier, i) => {
-            const Icon = tier.icon;
-            return (
+        {/* Main Tier Card */}
+        <motion.div
+          key={selectedTier}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className={`rounded-2xl border-2 p-6 sm:p-8 ${activeTier.accentClass}`}
+        >
+          {/* Tier Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-background/80">
+                <Icon size={24} className="text-foreground" />
+              </div>
+              <div>
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${activeTier.badgeClass}`}>
+                  {selectedTier === "basic-deposit" ? "Recommended" : "Upgraded"}
+                </span>
+                <h2 className="text-2xl font-black text-foreground mt-1">{activeTier.name}</h2>
+                <p className="text-sm text-muted-foreground">{activeTier.tagline}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="mb-6 flex items-baseline gap-3">
+            <span className="text-5xl sm:text-6xl font-black text-foreground">$49</span>
+            <div>
+              <p className="text-sm text-muted-foreground">refundable deposit</p>
+              <p className="text-xs text-muted-foreground">{activeTier.totalPrice} total project cost</p>
+            </div>
+          </div>
+
+          {/* Features */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-8">
+            {activeTier.features.map((feature, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                <Check size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                <span>{feature}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA Button */}
+          {!showPayment && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowPayment(true)}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider transition-colors"
+            >
+              Secure Your Website — $49
+              <ArrowRight size={16} />
+            </motion.button>
+          )}
+
+          {/* Inline Payment Form */}
+          <AnimatePresence>
+            {showPayment && (
               <motion.div
-                key={tier.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.15 * i }}
-                className={`relative rounded-2xl border-2 p-6 sm:p-8 flex flex-col ${tier.accent} ${
-                  tier.popular ? "md:scale-105 md:shadow-xl" : ""
-                }`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.4 }}
               >
-                {tier.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="bg-yellow-500 text-black text-xs font-black uppercase tracking-wider px-4 py-1 rounded-full">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-background/80">
-                    <Icon size={22} className="text-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-foreground">{tier.name}</h3>
-                    <p className="text-xs text-muted-foreground">{tier.tagline}</p>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <span className="text-4xl sm:text-5xl font-black text-foreground">{tier.price}</span>
-                  <p className="text-xs text-muted-foreground mt-1">{tier.priceNote}</p>
-                  {tier.fullPrice && (
-                    <p className="text-sm text-muted-foreground mt-0.5 font-medium">{tier.fullPrice}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2.5 mb-8 flex-1">
-                  {tier.features.map((feature, fi) => (
-                    <div key={fi} className="flex items-start gap-2.5 text-sm text-foreground">
-                      <Check size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => handleCheckout(tier.id)}
-                  disabled={checkingOut !== null}
-                  className={`w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-white font-black text-sm uppercase tracking-wider transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed ${tier.accentButton}`}
-                >
-                  {checkingOut === tier.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      {tier.id === "basic-deposit" ? "Pay $49 Deposit" : `Get Started — ${tier.price}`}
-                      <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
+                <Elements stripe={stripePromise}>
+                  <OfferPaymentForm
+                    tier={selectedTier}
+                    tierName={activeTier.name}
+                    onSuccess={() => setPaymentComplete(true)}
+                    onCancel={() => setShowPayment(false)}
+                  />
+                </Elements>
               </motion.div>
-            );
-          })}
-        </div>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Guarantee */}
         {content.guarantee_text && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-8 text-center"
-          >
+          <div className="mt-6 text-center">
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <Shield size={16} className="text-sited-blue" />
               <span>{content.guarantee_text}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Upgrade Section */}
+        {!showPayment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-14"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 h-px bg-border" />
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <ChevronDown size={14} />
+                Want more?
+              </p>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Object.values(TIERS)
+                .filter((t) => t.id !== "basic-deposit" && t.id !== selectedTier)
+                .map((tier) => (
+                  <OfferUpgradeCard
+                    key={tier.id}
+                    tier={tier}
+                    isActive={selectedTier === tier.id}
+                    onUpgrade={() => setSelectedTier(tier.id)}
+                  />
+                ))}
+              {selectedTier !== "basic-deposit" && (
+                <OfferUpgradeCard
+                  tier={TIERS["basic-deposit"]}
+                  isActive={false}
+                  onUpgrade={() => setSelectedTier("basic-deposit")}
+                  label="Switch back"
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -248,25 +300,23 @@ const Offer = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-sm text-muted-foreground"
+          transition={{ delay: 0.5 }}
+          className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-sm text-muted-foreground"
         >
           <div className="flex items-center gap-2">
-            <Clock size={16} className="text-sited-blue" />
+            <Shield size={16} className="text-sited-blue" />
+            <span>100% refundable deposit</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Zap size={16} className="text-sited-blue" />
             <span>Live in 2 weeks</span>
           </div>
           <div className="flex items-center gap-2">
             <Shield size={16} className="text-sited-blue" />
             <span>No lock-in contracts</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap size={16} className="text-sited-blue" />
-            <span>500+ websites delivered</span>
-          </div>
         </motion.div>
       </div>
-
-      <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
     </div>
   );
 };
