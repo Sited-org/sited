@@ -35,34 +35,26 @@ function useDeviceTier() {
 
 const SITE_COUNTS = { mobile: 4, tablet: 6, laptop: 6, desktop: 12 };
 
-/*
- * Each card renders the client website at 1440px native width inside an iframe,
- * then CSS-scales it to fit the card. For sites that block iframe embedding,
- * we fall back to a full-page screenshot via thum.io.
- *
- * The scroll animation translates the wrapper div upward to reveal the full
- * homepage content below the fold.
- */
 const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
-  const [shouldLoad, setShouldLoad] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [iframeFailed, setIframeFailed] = useState(false);
-  const [cardWidth, setCardWidth] = useState(0);
+  const [scrollDistance, setScrollDistance] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Measure viewport width for scale calculation
+  // Measure viewport height
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setCardWidth(entry.contentRect.width));
+    const ro = new ResizeObserver(([entry]) => setViewportH(entry.contentRect.height));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   // Lazy load when near viewport
+  const [shouldLoad, setShouldLoad] = useState(false);
   useEffect(() => {
     const el = cardRef.current;
     if (!el) return;
@@ -74,47 +66,14 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     return () => obs.disconnect();
   }, []);
 
-  // Stagger scroll: each card starts 1s after previous
+  // Stagger scroll start after image loads
   useEffect(() => {
-    if (!shouldLoad) return;
-    const timer = setTimeout(() => setScrollActive(true), index * 1000 + 2000);
+    if (!loaded) return;
+    const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
     return () => clearTimeout(timer);
-  }, [shouldLoad, index]);
+  }, [loaded, index]);
 
-  // Detect iframe load failure (CSP/X-Frame-Options blocking)
-  useEffect(() => {
-    if (!shouldLoad || iframeFailed) return;
-    // Give the iframe 4 seconds to load; if it doesn't render content, fall back
-    const timer = setTimeout(() => {
-      try {
-        const iframe = iframeRef.current;
-        if (iframe) {
-          // Can't access cross-origin iframe content, but if the iframe
-          // loaded successfully it will have a non-empty contentDocument
-          // For cross-origin, this will throw — which means it loaded (CORS blocks access but content is there)
-          iframe.contentDocument;
-        }
-      } catch {
-        // Cross-origin access denied = iframe loaded successfully
-        return;
-      }
-      // If we get here without throwing, iframe may be empty/blocked
-      // We'll rely on the visual check — no action needed since thum.io fallback handles it
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [shouldLoad, iframeFailed]);
-
-  const NATIVE_W = 1440;
-  const scale = cardWidth > 0 ? cardWidth / NATIVE_W : 0.25;
-  const viewportH = cardWidth * (10 / 16);
-  
-  // Full page capture height — enough for most homepages
-  const FULL_PAGE_H = 12000;
-  const scaledContentH = FULL_PAGE_H * scale;
-  const scrollDistance = scaledContentH - viewportH;
-
-  // Screenshot fallback URL (full-page screenshot at 1440px width)
-  const screenshotUrl = `https://image.thum.io/get/width/1440/crop/4000/noanimate/${site.url}`;
+  const screenshotUrl = `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -129,68 +88,42 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           </div>
         </div>
 
-        {/* 16:10 laptop viewport */}
+        {/* 16:10 viewport */}
         <div
           ref={viewportRef}
           className="relative w-full overflow-hidden bg-background"
           style={{ aspectRatio: "16 / 10" }}
         >
-          {shouldLoad && cardWidth > 0 ? (
-            <>
-              {/* Scrolling wrapper — translates upward to reveal full page */}
-              <div
-                className="absolute top-0 left-0 will-change-transform"
-                style={{
-                  width: `${cardWidth}px`,
-                  height: `${scaledContentH}px`,
-                  animation: scrollActive && !hovered
-                    ? `scrollIframe 20s ease-in-out infinite`
-                    : "none",
-                  ["--scroll-distance" as string]: `-${scrollDistance}px`,
+          {shouldLoad ? (
+            <div
+              className="absolute top-0 left-0 w-full will-change-transform"
+              style={{
+                animation: scrollActive && !hovered && scrollDistance > 0
+                  ? `scrollIframe 20s ease-in-out infinite`
+                  : "none",
+                ["--scroll-distance" as string]: `-${scrollDistance}px`,
+              }}
+            >
+              <img
+                src={screenshotUrl}
+                alt={`${site.name} website screenshot`}
+                className="w-full h-auto block"
+                loading="lazy"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  const dist = img.offsetHeight - viewportH;
+                  setScrollDistance(dist > 0 ? dist : 0);
+                  setLoaded(true);
                 }}
-              >
-                {/* Primary: iframe at native 1440px, scaled down */}
-                <iframe
-                  ref={iframeRef}
-                  src={site.url}
-                  title={`${site.name} website`}
-                  className="pointer-events-none border-0 block origin-top-left"
-                  loading="lazy"
-                  sandbox="allow-scripts allow-same-origin"
-                  onError={() => setIframeFailed(true)}
-                  style={{
-                    width: `${NATIVE_W}px`,
-                    height: `${FULL_PAGE_H}px`,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "top left",
-                  }}
-                />
-              </div>
-
-              {/* Fallback: screenshot image for sites that block iframes */}
-              {iframeFailed && (
-                <div
-                  className="absolute top-0 left-0"
-                  style={{
-                    width: `${cardWidth}px`,
-                    height: `${scaledContentH}px`,
-                    animation: scrollActive && !hovered
-                      ? `scrollIframe 20s ease-in-out infinite`
-                      : "none",
-                    ["--scroll-distance" as string]: `-${scrollDistance}px`,
-                  }}
-                >
-                  <img
-                    src={screenshotUrl}
-                    alt={`${site.name} website screenshot`}
-                    className="w-full h-auto"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-            </>
+              />
+            </div>
           ) : (
             <div className="w-full h-full bg-muted animate-pulse" />
+          )}
+
+          {/* Loading skeleton until image ready */}
+          {shouldLoad && !loaded && (
+            <div className="absolute inset-0 bg-muted animate-pulse" />
           )}
 
           {/* Hover overlay */}
