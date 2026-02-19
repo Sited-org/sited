@@ -205,6 +205,9 @@ export type Database = {
           phone: string
           status: string
           updated_at: string
+          zoom_join_url: string | null
+          zoom_meeting_id: string | null
+          zoom_meeting_url: string | null
         }
         Insert: {
           booking_date: string
@@ -223,6 +226,9 @@ export type Database = {
           phone: string
           status?: string
           updated_at?: string
+          zoom_join_url?: string | null
+          zoom_meeting_id?: string | null
+          zoom_meeting_url?: string | null
         }
         Update: {
           booking_date?: string
@@ -241,6 +247,9 @@ export type Database = {
           phone?: string
           status?: string
           updated_at?: string
+          zoom_join_url?: string | null
+          zoom_meeting_id?: string | null
+          zoom_meeting_url?: string | null
         }
         Relationships: []
       }

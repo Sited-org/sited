@@ -125,3 +125,6 @@ verify_jwt = false
 
 [functions.confirm-offer-payment]
 verify_jwt = false
+
+[functions.create-zoom-meeting]
+verify_jwt = false
