@@ -7,6 +7,7 @@ import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
+import OnboardingBookingDialog from "@/components/booking/OnboardingBookingDialog";
 
 const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
 
@@ -84,6 +85,8 @@ const Offer = () => {
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
 
   usePageSEO({
     title: "Secure Your Website | Sited — $49 Deposit",
@@ -111,13 +114,30 @@ const Offer = () => {
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-foreground">You're In!</h1>
           <p className="text-muted-foreground text-lg">
-            Your deposit has been received. We'll be in touch within 24 hours to kick off your{" "}
+            Your deposit has been received. Let's book your onboarding call to kick off your{" "}
             <span className="font-bold text-foreground">{TIERS[selectedTier].name}</span> project.
           </p>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowBookingDialog(true)}
+            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider transition-colors"
+          >
+            Book Your Onboarding Call
+            <ArrowRight size={16} />
+          </motion.button>
           <p className="text-sm text-muted-foreground">
-            Check your email for a confirmation and onboarding details.
+            45-minute kickoff session to get your project started.
           </p>
         </motion.div>
+        <OnboardingBookingDialog
+          open={showBookingDialog}
+          onOpenChange={setShowBookingDialog}
+          tierName={TIERS[selectedTier].name}
+          customerName={customerInfo.name}
+          customerEmail={customerInfo.email}
+          customerPhone={customerInfo.phone}
+        />
       </div>
     );
   }
@@ -237,7 +257,11 @@ const Offer = () => {
                   <OfferPaymentForm
                     tier={selectedTier}
                     tierName={activeTier.name}
-                    onSuccess={() => setPaymentComplete(true)}
+                    onSuccess={(info) => {
+                      setCustomerInfo(info);
+                      setPaymentComplete(true);
+                      setShowBookingDialog(true);
+                    }}
                     onCancel={() => setShowPayment(false)}
                   />
                 </Elements>
