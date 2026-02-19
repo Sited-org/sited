@@ -56,7 +56,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
           email: result.data.email,
           phone: result.data.phone || null,
           project_type: "website",
-          form_data: { contactInfoOnly: true, source: "cta_popup", partial: true },
+          form_data: { contactInfoOnly: true, source: "cta_popup" },
         },
       });
 

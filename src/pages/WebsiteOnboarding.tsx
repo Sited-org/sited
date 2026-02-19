@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Globe, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useSecureLeadSubmission } from "@/hooks/useSecureLeadSubmission";
 import { supabase } from "@/integrations/supabase/client";
 
 const steps = [
@@ -25,8 +24,8 @@ const steps = [
 const WebsiteOnboarding = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const { isSubmitting, savePartialLead, updatePartialLead, submitLead, getLeadId } = useSecureLeadSubmission();
   const [formData, setFormData] = useState({
     // Step 1: Contact Info
     fullName: "",
@@ -165,23 +164,6 @@ const WebsiteOnboarding = () => {
       return;
     }
 
-    if (currentStep === 1 && formData.fullName && formData.email) {
-      await savePartialLead({
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone || null,
-        project_type: 'website',
-      });
-    } else if (currentStep > 1 && currentStep < steps.length) {
-      await updatePartialLead({
-        name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone || null,
-        business_name: formData.businessName || null,
-        form_data: formData,
-      });
-    }
-
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
       setValidationErrors([]);
@@ -205,37 +187,45 @@ const WebsiteOnboarding = () => {
       return;
     }
 
-    // Prepare form data without File objects (can't serialize)
-    const { brandLogoFile, ...serializableFormData } = formData;
+    setIsSubmitting(true);
+    try {
+      // Prepare form data without File objects (can't serialize)
+      const { brandLogoFile, ...serializableFormData } = formData;
 
-    const success = await submitLead({
-      name: formData.fullName,
-      email: formData.email,
-      phone: formData.phone || null,
-      business_name: formData.businessName || null,
-      project_type: "website",
-      form_data: serializableFormData,
-    });
+      // Update existing lead by email (update_only — never creates a new lead)
+      const { data: response } = await supabase.functions.invoke('save-partial-lead', {
+        body: {
+          name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone || null,
+          business_name: formData.businessName || null,
+          project_type: "website",
+          form_data: { ...serializableFormData, source: "onboarding_form" },
+          update_only: true,
+        },
+      });
 
-    if (success) {
-      // Upload logo file if present
-      if (brandLogoFile) {
+      // Upload logo file if present and we have a lead_id
+      if (brandLogoFile && response?.lead_id) {
         try {
-          const leadId = getLeadId();
-          if (leadId) {
-            const uploadFormData = new FormData();
-            uploadFormData.append('file', brandLogoFile);
-            uploadFormData.append('lead_id', leadId);
-            await supabase.functions.invoke('upload-onboarding-file', {
-              body: uploadFormData,
-            });
-          }
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', brandLogoFile);
+          uploadFormData.append('lead_id', response.lead_id);
+          await supabase.functions.invoke('upload-onboarding-file', {
+            body: uploadFormData,
+          });
         } catch (err) {
           console.error('File upload error (non-fatal):', err);
         }
       }
+
       setIsSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      console.error('Submission error:', err);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

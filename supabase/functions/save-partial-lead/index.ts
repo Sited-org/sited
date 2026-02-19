@@ -13,21 +13,15 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_REQUESTS_PER_WINDOW = 20; // Max partial saves per IP per hour
-
-interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-}
+const MAX_REQUESTS_PER_WINDOW = 20;
 
 async function checkRateLimit(
   supabase: any,
   ipAddress: string,
   endpoint: string
-): Promise<RateLimitResult> {
+): Promise<{ allowed: boolean; remaining: number }> {
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
 
-  // Count requests in current window
   const { count, error } = await supabase
     .from('rate_limits')
     .select('*', { count: 'exact', head: true })
@@ -37,7 +31,6 @@ async function checkRateLimit(
 
   if (error) {
     logStep('Rate limit check error', { error: error.message });
-    // Allow on error to prevent blocking legitimate requests
     return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW };
   }
 
@@ -45,7 +38,6 @@ async function checkRateLimit(
   const allowed = requestCount < MAX_REQUESTS_PER_WINDOW;
 
   if (allowed) {
-    // Record this request
     await supabase.from('rate_limits').insert({
       ip_address: ipAddress,
       endpoint: endpoint,
@@ -59,7 +51,6 @@ async function checkRateLimit(
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -74,30 +65,21 @@ serve(async (req) => {
       throw new Error('Missing Supabase environment variables');
     }
 
-    // Create service role client (bypasses RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get client IP for rate limiting
     const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                       req.headers.get('cf-connecting-ip') ||
                       'unknown';
 
-    logStep('Checking rate limit', { ip: ipAddress });
-
-    // Check rate limit
     const rateLimitResult = await checkRateLimit(supabase, ipAddress, 'save-partial-lead');
     if (!rateLimitResult.allowed) {
       logStep('Rate limit exceeded', { ip: ipAddress });
       return new Response(
         JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { 
-          status: 429, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Parse request body
     const body = await req.json();
     const { 
       lead_id, 
@@ -106,19 +88,17 @@ serve(async (req) => {
       phone, 
       project_type, 
       business_name,
-      form_data 
+      form_data,
+      update_only, // When true, only update existing leads — never create new ones
     } = body;
 
-    logStep('Processing request', { lead_id, email, project_type });
+    logStep('Processing request', { lead_id, email, project_type, update_only });
 
     // Validate required fields
     if (!email || !name || !project_type) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: name, email, project_type' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -127,19 +107,17 @@ serve(async (req) => {
     if (!emailRegex.test(email)) {
       return new Response(
         JSON.stringify({ error: 'Invalid email format' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // If lead_id is provided, update existing lead
+    // Strip the legacy "partial" flag from form_data
+    const cleanFormData = form_data ? { ...form_data } : {};
+    delete cleanFormData.partial;
+
+    // If lead_id is provided, update that specific lead
     if (lead_id) {
-      logStep('Updating existing lead', { lead_id });
-      
-      // Determine partial status: only mark as complete (false) when explicitly set to false
-      const isPartial = form_data?.partial === false ? false : true;
+      logStep('Updating existing lead by ID', { lead_id });
       
       const { error: updateError } = await supabase
         .from('leads')
@@ -148,7 +126,7 @@ serve(async (req) => {
           email,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: isPartial },
+          form_data: cleanFormData,
         })
         .eq('id', lead_id);
 
@@ -156,10 +134,7 @@ serve(async (req) => {
         logStep('Update error', { error: updateError.message });
         return new Response(
           JSON.stringify({ error: 'Failed to update lead' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -169,15 +144,11 @@ serve(async (req) => {
       );
     }
 
-    // Check for existing recent lead with same email and project_type (within 24 hours)
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+    // Look up existing lead by email (any time, not just 24h)
     const { data: existingLead, error: selectError } = await supabase
       .from('leads')
-      .select('id')
+      .select('id, form_data')
       .eq('email', email)
-      .eq('project_type', project_type)
-      .gte('created_at', twentyFourHoursAgo)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -186,10 +157,13 @@ serve(async (req) => {
       logStep('Select error', { error: selectError.message });
     }
 
+    // If existing lead found, update it
     if (existingLead) {
       logStep('Found existing lead, updating', { lead_id: existingLead.id });
       
-      const isPartialExisting = form_data?.partial === false ? false : true;
+      // Merge form_data: keep existing data, overlay new data
+      const mergedFormData = { ...(existingLead.form_data as Record<string, unknown> || {}), ...cleanFormData };
+      delete mergedFormData.partial; // Clean up any legacy partial flag
       
       const { error: updateError } = await supabase
         .from('leads')
@@ -197,7 +171,7 @@ serve(async (req) => {
           name,
           phone: phone || null,
           business_name: business_name || null,
-          form_data: { ...form_data, partial: isPartialExisting },
+          form_data: mergedFormData,
         })
         .eq('id', existingLead.id);
 
@@ -211,8 +185,18 @@ serve(async (req) => {
       );
     }
 
-    // Create new partial lead
-    logStep('Creating new partial lead');
+    // No existing lead found
+    // If update_only mode, don't create — just return success with no lead_id
+    if (update_only) {
+      logStep('Update-only mode: no existing lead found, skipping creation');
+      return new Response(
+        JSON.stringify({ success: true, lead_id: null, skipped: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // CREATE new lead (only from Lead Capture Dialog)
+    logStep('Creating new lead');
     
     const { data: newLead, error: insertError } = await supabase
       .from('leads')
@@ -222,8 +206,8 @@ serve(async (req) => {
         phone: phone || null,
         business_name: business_name || null,
         project_type,
-        form_data: { ...form_data, partial: true, contactInfoOnly: true },
-        status: 'new',
+        form_data: cleanFormData,
+        status: 'warm_lead',
       })
       .select('id')
       .single();
@@ -232,16 +216,13 @@ serve(async (req) => {
       logStep('Insert error', { error: insertError.message });
       return new Response(
         JSON.stringify({ error: 'Failed to save lead' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     logStep('Lead created successfully', { lead_id: newLead.id });
 
-    // Send branded instant notification to hello@sited.co for partial leads too
+    // Send branded instant notification to hello@sited.co
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (RESEND_API_KEY) {
       fetch("https://api.resend.com/emails", {
@@ -250,17 +231,17 @@ serve(async (req) => {
         body: JSON.stringify({
           from: "Sited <hello@sited.co>",
           to: ["hello@sited.co"],
-          subject: `🔔 New Partial Lead: ${name}`,
+          subject: `🔔 New Warm Lead: ${name}`,
           html: `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f8f8;padding:40px 20px;"><tr><td align="center">
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 <tr><td style="background:#141414;padding:28px 40px;border-radius:16px 16px 0 0;text-align:center;">
 <h1 style="color:#fff;font-size:22px;font-weight:800;margin:0;">SITED</h1>
-<p style="color:#a1a1aa;font-size:12px;margin:6px 0 0;">PARTIAL LEAD</p>
+<p style="color:#a1a1aa;font-size:12px;margin:6px 0 0;">NEW WARM LEAD</p>
 </td></tr>
 <tr><td style="background:#fff;padding:36px 40px;border-radius:0 0 16px 16px;">
-<h2 style="color:#141414;font-size:20px;font-weight:700;margin:0 0 16px;">New Partial Lead 📝</h2>
+<h2 style="color:#141414;font-size:20px;font-weight:700;margin:0 0 16px;">New Warm Lead 🔥</h2>
 <table width="100%" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:20px;">
 <tr><td>
 <p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>👤</strong>&nbsp; ${name}</p>
@@ -287,10 +268,7 @@ ${phone ? `<p style="color:#141414;font-size:14px;margin:0;"><strong>📱</stron
     logStep('Unexpected error', { error: errorMessage });
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
