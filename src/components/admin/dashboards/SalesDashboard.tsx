@@ -103,7 +103,7 @@ export default function SalesDashboard() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-xs text-muted-foreground">#{lead.lead_number}</span>
-                  <LeadStatusBadge status={lead.status} formData={lead.form_data} />
+                  <LeadStatusBadge status={lead.status} />
                 </div>
                 <h4 className="font-medium truncate">{lead.name || lead.email}</h4>
                 <p className="text-sm text-muted-foreground truncate">{lead.business_name || 'No business'}</p>

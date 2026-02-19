@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LeadStatusBadge, isPartialLead, getLeadRowBackground } from '@/components/admin/LeadStatusBadge';
+import { LeadStatusBadge, getLeadRowBackground } from '@/components/admin/LeadStatusBadge';
 import { Search, Download, Eye, Calendar } from 'lucide-react';
 import { format, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
 
@@ -53,10 +53,8 @@ export default function AdminLeads() {
       String(lead.lead_number).includes(search);
     
     let matchesStatus = true;
-    if (statusFilter === 'partial') {
-      matchesStatus = isPartialLead(lead.form_data);
-    } else if (statusFilter !== 'all') {
-      matchesStatus = lead.status === statusFilter && !isPartialLead(lead.form_data);
+    if (statusFilter !== 'all') {
+      matchesStatus = lead.status === statusFilter;
     }
     
     const matchesProject = projectFilter === 'all' || lead.project_type === projectFilter;
@@ -95,7 +93,6 @@ export default function AdminLeads() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="partial">Partial</SelectItem>
             {ALL_STATUSES.map(s => (
               <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
             ))}
@@ -147,7 +144,7 @@ export default function AdminLeads() {
               filteredLeads.map((lead) => (
                 <TableRow 
                   key={lead.id} 
-                  className={cn("cursor-pointer", getLeadRowBackground(lead.status, lead.form_data))}
+                  className={cn("cursor-pointer", getLeadRowBackground(lead.status))}
                   onClick={() => navigate(`/admin/leads/${lead.id}`)}
                 >
                   <TableCell className="font-mono font-medium">#{lead.lead_number}</TableCell>
@@ -162,7 +159,7 @@ export default function AdminLeads() {
                     <span className="text-sm">{projectTypeLabels[lead.project_type] || lead.project_type}</span>
                   </TableCell>
                   <TableCell>
-                    <LeadStatusBadge status={lead.status} formData={lead.form_data} />
+                    <LeadStatusBadge status={lead.status} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(lead.created_at), 'MMM d, yyyy')}

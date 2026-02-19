@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import type { LeadStatus } from '@/hooks/useLeads';
-import { STATUS_LABELS } from '@/hooks/useLeads';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   warm_lead: { label: 'Warm Lead', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
@@ -20,10 +19,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   sold: { label: 'OT Sold (Dev)', className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' },
 };
 
-const partialConfig = { label: 'Partial', className: 'bg-sky-500/10 text-sky-600 border-sky-500/20' };
-
 export const rowBackgroundConfig: Record<string, string> = {
-  partial: 'bg-sky-500/5 hover:bg-sky-500/10',
   warm_lead: 'bg-amber-500/5 hover:bg-amber-500/10',
   discovery_call_booked: 'bg-sky-500/5 hover:bg-sky-500/10',
   new_lead: 'bg-blue-500/5 hover:bg-blue-500/10',
@@ -43,23 +39,15 @@ export const rowBackgroundConfig: Record<string, string> = {
 
 interface LeadStatusBadgeProps {
   status: LeadStatus;
-  formData?: Record<string, unknown>;
   className?: string;
 }
 
-export function isPartialLead(formData?: Record<string, unknown>): boolean {
-  if (!formData) return false;
-  return formData.partial === true;
-}
-
-export function getLeadRowBackground(status: LeadStatus, formData?: Record<string, unknown>): string {
-  if (isPartialLead(formData)) return rowBackgroundConfig.partial;
+export function getLeadRowBackground(status: LeadStatus): string {
   return rowBackgroundConfig[status] || '';
 }
 
-export function LeadStatusBadge({ status, formData, className }: LeadStatusBadgeProps) {
-  const isPartial = isPartialLead(formData);
-  const config = isPartial ? partialConfig : (statusConfig[status] || statusConfig.warm_lead);
+export function LeadStatusBadge({ status, className }: LeadStatusBadgeProps) {
+  const config = statusConfig[status] || statusConfig.warm_lead;
   
   return (
     <span className={cn(

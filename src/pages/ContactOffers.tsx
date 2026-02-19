@@ -206,6 +206,7 @@ const ContactOffers = () => {
       const leadEmail = sessionStorage.getItem("lead_email") || "";
       const leadPhone = sessionStorage.getItem("lead_phone") || "";
       
+      // Update existing lead only — never create a new one
       await supabase.functions.invoke("save-partial-lead", {
         body: {
           name: leadName,
@@ -214,10 +215,10 @@ const ContactOffers = () => {
           project_type: "website",
           form_data: {
             source: "offers_flow",
-            partial: false,
             business_category: category,
             questionnaire_answers: answers,
           },
+          update_only: true,
         },
       });
     } catch (err) {

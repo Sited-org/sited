@@ -62,7 +62,7 @@ export function LeadsTable({ leads, onUpdateStatus, onUpdateNotes, onDelete, onM
                   </TableCell>
                   <TableCell><p className="text-sm">{lead.business_name || '-'}</p></TableCell>
                   <TableCell><p className="text-sm">{getProjectTypeLabel(lead.project_type)}</p></TableCell>
-                  <TableCell><LeadStatusBadge status={lead.status} formData={lead.form_data} /></TableCell>
+                  <TableCell><LeadStatusBadge status={lead.status} /></TableCell>
                   <TableCell>
                     <p className="text-sm text-muted-foreground">{format(new Date(lead.created_at), 'MMM d, yyyy')}</p>
                   </TableCell>
