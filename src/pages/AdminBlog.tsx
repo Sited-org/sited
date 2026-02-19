@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminBlogPosts, useCreateBlogPost, useUpdateBlogPost, useDeleteBlogPost, BlogPost, BlogPostInsert } from "@/hooks/useBlogPosts";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,32 @@ export default function AdminBlog() {
   const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // Sync editor content when dialog opens or form.content changes externally (e.g. image insert)
+  const lastSyncedContent = useRef<string>("");
+  const syncEditorContent = useCallback((content: string) => {
+    if (editorRef.current && editorRef.current.innerHTML !== content) {
+      editorRef.current.innerHTML = content;
+      lastSyncedContent.current = content;
+    }
+  }, []);
+
+  // When dialog opens with content (edit mode), populate the editor
+  useEffect(() => {
+    if (dialogOpen) {
+      // Small delay to ensure the DOM element is mounted
+      setTimeout(() => syncEditorContent(form.content), 50);
+    }
+  }, [dialogOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleEditorInput = useCallback(() => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      lastSyncedContent.current = html;
+      setForm((p) => ({ ...p, content: html }));
+    }
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -135,7 +161,10 @@ export default function AdminBlog() {
     } else {
       const { data: urlData } = supabase.storage.from("blog-images").getPublicUrl(path);
       const imgTag = `<img src="${urlData.publicUrl}" alt="Blog image" class="rounded-xl my-4 max-w-full" />`;
-      setForm((prev) => ({ ...prev, content: prev.content + imgTag }));
+      if (editorRef.current) {
+        editorRef.current.innerHTML += imgTag;
+        handleEditorInput();
+      }
     }
     setImageUploading(false);
   };
@@ -362,6 +391,7 @@ export default function AdminBlog() {
               </div>
 
               <div
+                ref={editorRef}
                 contentEditable
                 dir="ltr"
                 className="min-h-[300px] w-full rounded-b-lg border border-border bg-background p-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring overflow-auto text-left
@@ -377,8 +407,7 @@ export default function AdminBlog() {
                   [&_p]:my-1
                   [&_mark]:bg-accent/60 [&_mark]:px-1 [&_mark]:rounded
                 "
-                dangerouslySetInnerHTML={{ __html: form.content }}
-                onInput={(e) => setForm((p) => ({ ...p, content: (e.target as HTMLDivElement).innerHTML }))}
+                onInput={handleEditorInput}
                 suppressContentEditableWarning
               />
             </div>
