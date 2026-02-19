@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Play, ExternalLink, Quote, Star, ChevronDown } from "lucide-react";
 import { usePublicTestimonials, Testimonial } from "@/hooks/useTestimonials";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
+import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
@@ -229,6 +230,7 @@ const Work = () => {
   });
 
   const [ctaOpen, setCtaOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const { data: dbTestimonials, isLoading } = usePublicTestimonials();
   const heroRef = useRef(null);
@@ -258,6 +260,7 @@ const Work = () => {
   return (
     <Layout>
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
+      <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 
       <div className="overflow-x-hidden w-full">
         {/* ━━ HERO ━━ */}
@@ -363,7 +366,7 @@ const Work = () => {
               <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                 Every project starts with a free 20-minute consultation. No pressure, just honest advice.
               </p>
-              <CTAButton onClick={openCta} label="Get a Quote" />
+              <CTAButton onClick={() => setBookingOpen(true)} label="Free Consult" />
             </motion.div>
           </div>
         </section>
@@ -461,7 +464,7 @@ const Work = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
             >
-              <CTAButton onClick={openCta} label="Get a Quote Today" variant="gold" />
+              <CTAButton onClick={() => setBookingOpen(true)} label="Free Consult" variant="gold" />
               <CTAButton onClick={openCta} label="See What We Can Do" variant="outline" />
             </motion.div>
             <motion.p

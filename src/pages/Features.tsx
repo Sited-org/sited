@@ -9,6 +9,7 @@ import ClientProfileMockup from "@/components/services/ClientProfileMockup";
 import ClientPortalMockup from "@/components/services/ClientPortalMockup";
 import InvoiceMockup from "@/components/services/InvoiceMockup";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
+import BookingDialog from "@/components/booking/BookingDialog";
 
 const valueBlocks = [
   {
@@ -46,7 +47,7 @@ const valueBlocks = [
   },
   {
     icon: Sparkles,
-    title: "More Time Doing What You're Good At",
+    title: "More Time",
     accent: "Focus on your craft, not your website.",
     description: "You started your business because you're great at what you do — not because you love wrestling with technology. We take the entire digital side off your plate: design, development, hosting, updates, and support. You focus on your clients. We handle the rest.",
     stats: [
@@ -94,7 +95,7 @@ const ShowcaseSection = ({
             onClick={onCta}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-sited-blue text-white font-semibold text-sm hover:bg-sited-blue-hover transition-colors"
           >
-            Start Here <ArrowRight size={16} />
+            See Offer <ArrowRight size={16} />
           </button>
         </motion.div>
         <div className={reversed ? "lg:col-start-1" : ""}>
@@ -118,10 +119,12 @@ const Features = () => {
   });
 
   const [ctaOpen, setCtaOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   return (
     <Layout>
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
+      <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 
       <div className="overflow-x-hidden w-full">
         {/* Hero */}
@@ -298,10 +301,10 @@ const Features = () => {
               Free 20-minute call. We listen, advise, and give you a clear quote — no pressure.
             </p>
             <button
-              onClick={() => setCtaOpen(true)}
+              onClick={() => setBookingOpen(true)}
               className="mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-gold text-foreground font-bold text-lg hover:bg-gold-hover transition-colors"
             >
-              Get a Quote Today <ArrowRight size={20} />
+              Book a Call <ArrowRight size={20} />
             </button>
           </div>
         </section>
