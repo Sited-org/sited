@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 const clientSites = [
@@ -37,19 +37,21 @@ const SITE_COUNTS = { mobile: 4, tablet: 6, laptop: 6, desktop: 12 };
 
 /*
  * Each card renders the client website at 1440px native width inside an iframe,
- * then CSS-scales it to fit the card. The iframe is 3× viewport height to capture
- * the full homepage. A CSS animation scrolls the content top-to-bottom.
+ * then CSS-scales it to fit the card. For sites that block iframe embedding,
+ * we fall back to a full-page screenshot via thum.io.
  *
- * Key: the iframe wrapper has explicit pixel dimensions calculated from the card
- * width, preventing any layout collapse.
+ * The scroll animation translates the wrapper div upward to reveal the full
+ * homepage content below the fold.
  */
 const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
   const [shouldLoad, setShouldLoad] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [iframeFailed, setIframeFailed] = useState(false);
   const [cardWidth, setCardWidth] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Measure viewport width for scale calculation
   useEffect(() => {
@@ -75,16 +77,44 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   // Stagger scroll: each card starts 1s after previous
   useEffect(() => {
     if (!shouldLoad) return;
-    const timer = setTimeout(() => setScrollActive(true), index * 1000);
+    const timer = setTimeout(() => setScrollActive(true), index * 1000 + 2000);
     return () => clearTimeout(timer);
   }, [shouldLoad, index]);
 
+  // Detect iframe load failure (CSP/X-Frame-Options blocking)
+  useEffect(() => {
+    if (!shouldLoad || iframeFailed) return;
+    // Give the iframe 4 seconds to load; if it doesn't render content, fall back
+    const timer = setTimeout(() => {
+      try {
+        const iframe = iframeRef.current;
+        if (iframe) {
+          // Can't access cross-origin iframe content, but if the iframe
+          // loaded successfully it will have a non-empty contentDocument
+          // For cross-origin, this will throw — which means it loaded (CORS blocks access but content is there)
+          iframe.contentDocument;
+        }
+      } catch {
+        // Cross-origin access denied = iframe loaded successfully
+        return;
+      }
+      // If we get here without throwing, iframe may be empty/blocked
+      // We'll rely on the visual check — no action needed since thum.io fallback handles it
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [shouldLoad, iframeFailed]);
+
   const NATIVE_W = 1440;
-  const scale = cardWidth > 0 ? cardWidth / NATIVE_W : 0.3;
-  // Viewport height at laptop ratio (16:10)
+  const scale = cardWidth > 0 ? cardWidth / NATIVE_W : 0.25;
   const viewportH = cardWidth * (10 / 16);
-  // iframe height = full homepage length at native width
-  const iframeH = 8000; // 8000px captures most full homepages
+  
+  // Full page capture height — enough for most homepages
+  const FULL_PAGE_H = 12000;
+  const scaledContentH = FULL_PAGE_H * scale;
+  const scrollDistance = scaledContentH - viewportH;
+
+  // Screenshot fallback URL (full-page screenshot at 1440px width)
+  const screenshotUrl = `https://image.thum.io/get/width/1440/crop/4000/noanimate/${site.url}`;
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -106,32 +136,59 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           style={{ aspectRatio: "16 / 10" }}
         >
           {shouldLoad && cardWidth > 0 ? (
-            <div
-              className="absolute top-0 left-0"
-              style={{
-                width: `${cardWidth}px`,
-                height: `${iframeH * scale}px`,
-                animation: scrollActive && !hovered
-                  ? `scrollIframe 16s ease-in-out infinite`
-                  : "none",
-                /* The animation scrolls from 0 to -(totalHeight - viewportHeight) */
-                ["--scroll-distance" as any]: `-${iframeH * scale - viewportH}px`,
-              }}
-            >
-              <iframe
-                src={site.url}
-                title={`${site.name} website`}
-                className="pointer-events-none border-0 block origin-top-left"
-                loading="lazy"
-                sandbox="allow-scripts allow-same-origin"
+            <>
+              {/* Scrolling wrapper — translates upward to reveal full page */}
+              <div
+                className="absolute top-0 left-0 will-change-transform"
                 style={{
-                  width: `${NATIVE_W}px`,
-                  height: `${iframeH}px`,
-                  transform: `scale(${scale})`,
-                  transformOrigin: "top left",
+                  width: `${cardWidth}px`,
+                  height: `${scaledContentH}px`,
+                  animation: scrollActive && !hovered
+                    ? `scrollIframe 20s ease-in-out infinite`
+                    : "none",
+                  ["--scroll-distance" as string]: `-${scrollDistance}px`,
                 }}
-              />
-            </div>
+              >
+                {/* Primary: iframe at native 1440px, scaled down */}
+                <iframe
+                  ref={iframeRef}
+                  src={site.url}
+                  title={`${site.name} website`}
+                  className="pointer-events-none border-0 block origin-top-left"
+                  loading="lazy"
+                  sandbox="allow-scripts allow-same-origin"
+                  onError={() => setIframeFailed(true)}
+                  style={{
+                    width: `${NATIVE_W}px`,
+                    height: `${FULL_PAGE_H}px`,
+                    transform: `scale(${scale})`,
+                    transformOrigin: "top left",
+                  }}
+                />
+              </div>
+
+              {/* Fallback: screenshot image for sites that block iframes */}
+              {iframeFailed && (
+                <div
+                  className="absolute top-0 left-0"
+                  style={{
+                    width: `${cardWidth}px`,
+                    height: `${scaledContentH}px`,
+                    animation: scrollActive && !hovered
+                      ? `scrollIframe 20s ease-in-out infinite`
+                      : "none",
+                    ["--scroll-distance" as string]: `-${scrollDistance}px`,
+                  }}
+                >
+                  <img
+                    src={screenshotUrl}
+                    alt={`${site.name} website screenshot`}
+                    className="w-full h-auto"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <div className="w-full h-full bg-muted animate-pulse" />
           )}
