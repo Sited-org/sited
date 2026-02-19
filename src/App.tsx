@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 const Services = lazy(() => import("./pages/Services"));
 const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
+const ContactOffers = lazy(() => import("./pages/ContactOffers"));
 // About page removed - content merged into Work page
 // Pricing page removed
 // WebsiteOnboarding removed — all CTAs now use popup lead capture
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/services" element={<Services />} />
             <Route path="/work" element={<Work />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/contact/offers" element={<ContactOffers />} />
             {/* About route removed - content merged into Work page */}
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
