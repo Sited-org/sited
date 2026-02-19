@@ -6,6 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const ADMIN_TIMEZONES = [
+  { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)" },
+  { value: "Australia/Melbourne", label: "Melbourne (AEST/AEDT)" },
+  { value: "Australia/Brisbane", label: "Brisbane (AEST)" },
+  { value: "Australia/Perth", label: "Perth (AWST)" },
+  { value: "Australia/Adelaide", label: "Adelaide (ACST/ACDT)" },
+  { value: "Australia/Hobart", label: "Hobart (AEST/AEDT)" },
+  { value: "Australia/Darwin", label: "Darwin (ACST)" },
+  { value: "Australia/Lord_Howe", label: "Lord Howe Island" },
+];
 
 interface CalendarSettingsProps {
   config: CalendarConfig;
@@ -143,11 +155,16 @@ export function CalendarSettings({ config, open, onOpenChange, onSave }: Calenda
           {/* Timezone */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Timezone</Label>
-            <Input
-              value={draft.timezone}
-              onChange={(e) => setDraft(prev => ({ ...prev, timezone: e.target.value }))}
-              placeholder="Australia/Sydney"
-            />
+            <Select value={draft.timezone} onValueChange={(v) => setDraft(prev => ({ ...prev, timezone: v }))}>
+              <SelectTrigger className="text-sm">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {ADMIN_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Separator />

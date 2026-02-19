@@ -136,7 +136,8 @@ const OnboardingBookingDialog = ({
     if (!selectedDay) return;
     const fetchSlots = async () => {
       setLoadingSlots(true);
-      const dateStr = new Date(year, currentMonth.getMonth(), selectedDay).toISOString().split("T")[0];
+      const dd = new Date(year, currentMonth.getMonth(), selectedDay);
+      const dateStr = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}-${String(dd.getDate()).padStart(2, '0')}`;
       try {
         const { data, error } = await supabase.functions.invoke("get-available-slots", {
           body: { date: dateStr, duration_override: DURATION, timezone: selectedTimezone },
@@ -178,7 +179,7 @@ const OnboardingBookingDialog = ({
     setIsSubmitting(true);
 
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
-    const dateStr = bookingDate.toISOString().split("T")[0];
+    const dateStr = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}-${String(bookingDate.getDate()).padStart(2, '0')}`;
 
     const { data: insertData, error } = await supabase.from("bookings").insert({
       first_name: form.firstName.trim(), last_name: form.lastName.trim(),
