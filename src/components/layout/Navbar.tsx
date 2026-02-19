@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -54,6 +55,7 @@ const AnimatedLogo = () => {
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [ctaOpen, setCtaOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -112,9 +114,10 @@ export const Navbar = () => {
           </ul>
 
           <div className="hidden md:block">
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/onboarding/website">Start a Project</Link>
+            <Button variant="hero" size="sm" onClick={() => setCtaOpen(true)}>
+              Start a Project
             </Button>
+            <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
           </div>
 
           {/* Mobile Menu Button */}
@@ -170,8 +173,8 @@ export const Navbar = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
               >
-                <Button variant="hero" size="lg" asChild>
-                  <Link to="/onboarding/website">Start a Project</Link>
+                <Button variant="hero" size="lg" onClick={() => { setIsMobileMenuOpen(false); setCtaOpen(true); }}>
+                  Start a Project
                 </Button>
               </motion.div>
             </motion.nav>

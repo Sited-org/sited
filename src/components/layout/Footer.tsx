@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 export const Footer = () => {
+  const [ctaOpen, setCtaOpen] = useState(false);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -15,12 +18,11 @@ export const Footer = () => {
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           New build or existing site — the next step is a free 20-minute call. No obligation, no jargon.
         </p>
-        <Button variant="hero" size="lg" asChild>
-          <Link to="/contact" className="gap-2">
-            Book Your Free Consultation
-            <ArrowRight size={18} />
-          </Link>
+        <Button variant="hero" size="lg" onClick={() => setCtaOpen(true)} className="gap-2">
+          Get Started
+          <ArrowRight size={18} />
         </Button>
+        <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       </div>
 
       {/* Brand Statement */}
