@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { date } = await req.json(); // date in YYYY-MM-DD format
+    const { date, duration_override } = await req.json(); // date in YYYY-MM-DD format, duration_override optional
     if (!date) throw new Error('Date is required');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -53,17 +53,20 @@ serve(async (req) => {
 
     const bookedTimes = new Set((existingBookings || []).map(b => b.booking_time));
 
+    // Use override duration if provided, otherwise use config
+    const meetingDuration = duration_override ? Number(duration_override) : config.meeting_duration_minutes;
+
     // Generate available slots
     const [startH, startM] = config.available_hours_start.split(':').map(Number);
     const [endH, endM] = config.available_hours_end.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
-    const totalSlotMinutes = config.buffer_before_minutes + config.meeting_duration_minutes + config.buffer_after_minutes;
+    const totalSlotMinutes = config.buffer_before_minutes + meetingDuration + config.buffer_after_minutes;
 
     const slots: { time: string; available: boolean }[] = [];
     let current = startMinutes;
 
-    while (current + config.meeting_duration_minutes <= endMinutes) {
+    while (current + meetingDuration <= endMinutes) {
       const h = Math.floor(current / 60);
       const m = current % 60;
       const period = h >= 12 ? 'PM' : 'AM';
@@ -78,7 +81,7 @@ serve(async (req) => {
       current += totalSlotMinutes;
     }
 
-    return new Response(JSON.stringify({ slots, available: true, config: { meeting_duration_minutes: config.meeting_duration_minutes } }), {
+    return new Response(JSON.stringify({ slots, available: true, config: { meeting_duration_minutes: meetingDuration } }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

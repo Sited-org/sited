@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 interface OfferPaymentFormProps {
   tier: string;
   tierName: string;
-  onSuccess: () => void;
+  onSuccess: (info: { name: string; email: string; phone: string }) => void;
   onCancel: () => void;
 }
 
@@ -92,7 +92,7 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentF
         }
 
         toast.success("Payment received! Welcome aboard.");
-        onSuccess();
+        onSuccess({ name: name.trim(), email: email.trim(), phone: phone.trim() });
       } else {
         throw new Error("Payment was not completed. Please try again.");
       }
