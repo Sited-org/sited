@@ -173,10 +173,8 @@ const CustomWebsites = () => {
             transition={{ duration: 0.7 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-sited-blue/10 text-sited-blue text-xs font-black uppercase tracking-wider border border-sited-blue/20 mb-6">
-              <Globe size={14} />
-              Custom built for your business
-            </span>
+
+
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-foreground leading-[0.95]">
               Turn <span className="text-sited-blue">clicks</span> into{" "}
               <span className="text-sited-blue">clients</span>, quick.
