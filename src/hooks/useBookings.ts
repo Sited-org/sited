@@ -16,6 +16,9 @@ export interface Booking {
   status: string;
   notes: string | null;
   google_calendar_event_id: string | null;
+  zoom_meeting_id: string | null;
+  zoom_meeting_url: string | null;
+  zoom_join_url: string | null;
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;

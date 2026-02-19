@@ -119,6 +119,8 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     form.businessType &&
     form.businessLocation.trim();
 
+  const [zoomJoinUrl, setZoomJoinUrl] = useState<string | null>(null);
+
   const handleSubmit = async () => {
     if (!isFormValid || !selectedDay || !selectedTime) return;
     setIsSubmitting(true);
@@ -126,7 +128,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
     const dateStr = bookingDate.toISOString().split("T")[0];
 
-    const { error } = await supabase.from("bookings").insert({
+    const { data: insertData, error } = await supabase.from("bookings").insert({
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
       email: form.email.trim(),
@@ -136,15 +138,44 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       business_location: form.businessLocation.trim(),
       booking_date: dateStr,
       booking_time: selectedTime,
-    });
-
-    setIsSubmitting(false);
+    }).select('id').single();
 
     if (error) {
+      setIsSubmitting(false);
       toast.error("Something went wrong. Please try again.");
       return;
     }
 
+    // Create Zoom meeting
+    try {
+      // Parse time like "9:00 AM" to ISO start_time
+      const [timePart, ampm] = selectedTime!.split(' ');
+      const [hStr, mStr] = timePart.split(':');
+      let hours = parseInt(hStr);
+      if (ampm === 'PM' && hours !== 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+      
+      const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
+        body: {
+          booking_id: insertData.id,
+          topic: `Discovery Call – ${form.businessName.trim()}`,
+          start_time: startDate.toISOString(),
+          duration: meetingDuration,
+          attendee_email: form.email.trim(),
+          attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+        },
+      });
+
+      if (zoomData?.zoom_join_url) {
+        setZoomJoinUrl(zoomData.zoom_join_url);
+      }
+    } catch (e) {
+      console.error('Zoom meeting creation failed:', e);
+      // Booking still succeeded, just no Zoom link
+    }
+
+    setIsSubmitting(false);
     setIsBooked(true);
   };
 
@@ -158,6 +189,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       setHoveredDay(null);
       setIsBooked(false);
       setMonthOffset(0);
+      setZoomJoinUrl(null);
       setForm({
         firstName: "",
         lastName: "",
@@ -195,9 +227,20 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
               <p className="text-sm text-muted-foreground text-center">
                 {monthName} {selectedDay}, {year} at {selectedTime}
               </p>
-              <p className="text-sm text-muted-foreground text-center mt-3">
-                We'll send a confirmation with a Zoom link to {form.email}.
-              </p>
+              {zoomJoinUrl ? (
+                <a
+                  href={zoomJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                >
+                  Join Zoom Meeting ↗
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center mt-3">
+                  We'll send a confirmation with meeting details to {form.email}.
+                </p>
+              )}
               <Button variant="outline" className="mt-6" onClick={handleClose}>
                 Close
               </Button>

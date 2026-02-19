@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink, Video } from 'lucide-react';
 
 interface BookingDetailSheetProps {
   booking: Booking | null;
@@ -93,6 +93,28 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
               <span>{booking.business_location}</span>
             </div>
           </div>
+
+          {/* Zoom Meeting */}
+          {booking.zoom_join_url && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Zoom Meeting</h4>
+                <a
+                  href={booking.zoom_meeting_url || booking.zoom_join_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <Video className="h-4 w-4" />
+                  Start Meeting (Host)
+                </a>
+                <p className="text-xs text-muted-foreground">
+                  Join URL: <a href={booking.zoom_join_url} target="_blank" rel="noopener noreferrer" className="hover:underline">{booking.zoom_join_url}</a>
+                </p>
+              </div>
+            </>
+          )}
 
           {booking.notes && (
             <>
