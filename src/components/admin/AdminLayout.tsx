@@ -9,7 +9,8 @@ import {
   LogOut, 
   UserCircle,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ const navItems = [
   { name: 'Calendar', href: '/admin/calendar', icon: CalendarDays },
   { name: 'Analysis AI', href: '/admin/analysis-ai', icon: Sparkles },
   { name: 'Financial', href: '/admin/financial', icon: Wallet, paymentsOnly: true },
+  { name: 'Blog', href: '/admin/blog', icon: FileText },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
