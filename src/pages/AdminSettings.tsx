@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,15 +14,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key, Upload, Loader2, Home, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, GripVertical, Mail, Package, Shield, Key, Home, Tag, FileText, Eye } from 'lucide-react';
 import OfferSettingsTab from '@/components/admin/settings/OfferSettingsTab';
-import HomepageSettingsTab from '@/components/admin/settings/HomepageSettingsTab';
+import PagesSettingsTab from '@/components/admin/settings/PagesSettingsTab';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
-import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
 import { ProductsSettingsTab } from '@/components/admin/settings/ProductsSettingsTab';
 import SecuritySettingsTab from '@/components/admin/settings/SecuritySettingsTab';
-// FormFieldsSettingsTab import removed - form editing disabled
+import { extractVimeoId } from '@/lib/vimeo';
+import { Badge } from '@/components/ui/badge';
 
 const PROJECT_TYPES = ['Website Design'];
 
@@ -80,53 +80,6 @@ export default function AdminSettings() {
   const [testimonialDialogOpen, setTestimonialDialogOpen] = useState(false);
   const [editingTestimonialId, setEditingTestimonialId] = useState<string | null>(null);
   const [testimonialForm, setTestimonialForm] = useState<TestimonialInsert>(emptyTestimonialForm);
-  const [isVideoUploading, setIsVideoUploading] = useState(false);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
-  const handleVideoUpload = async (file: File) => {
-    if (!file) return;
-    
-    // Validate file type
-    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
-    if (!validTypes.includes(file.type)) {
-      toast({ title: 'Invalid file type', description: 'Please upload MP4, WebM, MOV, or AVI', variant: 'destructive' });
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast({ title: 'File too large', description: 'Video must be less than 10MB', variant: 'destructive' });
-      return;
-    }
-
-    setIsVideoUploading(true);
-    try {
-      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
-      const { data, error } = await supabase.storage
-        .from('testimonial-videos')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('testimonial-videos')
-        .getPublicUrl(data.path);
-
-      setTestimonialForm(prev => ({ ...prev, video_url: urlData.publicUrl }));
-      toast({ title: 'Video uploaded successfully' });
-    } catch (error: any) {
-      console.error('Video upload error:', error);
-      toast({ title: 'Upload failed', description: error.message || 'Failed to upload video', variant: 'destructive' });
-    } finally {
-      setIsVideoUploading(false);
-    }
-  };
 
   const canManageTestimonials = userRole && ['owner', 'admin'].includes(userRole.role);
 
@@ -140,7 +93,6 @@ export default function AdminSettings() {
   const handleUpdateProfile = async () => {
     if (!user) return;
     setSaving(true);
-    // Update display name and sync email with auth email
     const { error } = await supabase.from('admin_profiles').update({ 
       display_name: displayName,
       email: user.email 
@@ -163,7 +115,6 @@ export default function AdminSettings() {
       toast({ title: 'Current password required', variant: 'destructive' });
       return;
     }
-    // Verify the current password by attempting a sign-in
     setSaving(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: user?.email || '',
@@ -171,7 +122,7 @@ export default function AdminSettings() {
     });
     setSaving(false);
     if (error) {
-      toast({ title: 'Incorrect current password', description: 'Please enter your current password correctly.', variant: 'destructive' });
+      toast({ title: 'Incorrect current password', variant: 'destructive' });
       return;
     }
     setPendingPasswordChange(newPassword);
@@ -266,9 +217,20 @@ export default function AdminSettings() {
     setTestimonialDialogOpen(true);
   };
 
-  // Count how many are currently shown on homepage (excluding current editing one)
   const homepageTestimonialCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingTestimonialId).length || 0;
   const canEnableHomepage = homepageTestimonialCount < 3;
+  const workPageCount = testimonials?.filter(t => t.is_active).length || 0;
+  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
+
+  const handleVimeoUrlChange = (url: string) => {
+    updateTestimonialField('video_url', url);
+    const vimeoId = extractVimeoId(url);
+    if (vimeoId) {
+      updateTestimonialField('video_thumbnail', `https://vumbnail.com/${vimeoId}.jpg`);
+    } else {
+      updateTestimonialField('video_thumbnail', '');
+    }
+  };
 
   const handleTestimonialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,6 +262,8 @@ export default function AdminSettings() {
     }
   };
 
+  const vimeoPreviewId = extractVimeoId(testimonialForm.video_url || '');
+
   return (
     <div className="space-y-6">
       <div>
@@ -317,10 +281,6 @@ export default function AdminSettings() {
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Products</span>
           </TabsTrigger>
-          <TabsTrigger value="services" className="gap-2 flex-1 min-w-[100px]">
-            <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Services</span>
-          </TabsTrigger>
           <TabsTrigger value="testimonials" className="gap-2 flex-1 min-w-[100px]" disabled={!canManageTestimonials}>
             <Star className="h-4 w-4" />
             <span className="hidden sm:inline">Testimonials</span>
@@ -337,9 +297,9 @@ export default function AdminSettings() {
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Security</span>
           </TabsTrigger>
-          <TabsTrigger value="homepage" className="gap-2 flex-1 min-w-[100px]">
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Homepage</span>
+          <TabsTrigger value="pages" className="gap-2 flex-1 min-w-[100px]">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Pages</span>
           </TabsTrigger>
           <TabsTrigger value="offer" className="gap-2 flex-1 min-w-[100px]">
             <Tag className="h-4 w-4" />
@@ -368,48 +328,21 @@ export default function AdminSettings() {
                 <form onSubmit={handleMembershipSubmit} className="space-y-4 mt-4">
                   <div className="space-y-2">
                     <Label htmlFor="membership_name">Name *</Label>
-                    <Input
-                      id="membership_name"
-                      value={membershipForm.name}
-                      onChange={(e) => setMembershipForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Website Maintenance"
-                      required
-                    />
+                    <Input id="membership_name" value={membershipForm.name} onChange={(e) => setMembershipForm(prev => ({ ...prev, name: e.target.value }))} placeholder="e.g., Website Maintenance" required />
                   </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="membership_description">Description</Label>
-                    <Textarea
-                      id="membership_description"
-                      value={membershipForm.description || ''}
-                      onChange={(e) => setMembershipForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe what this membership includes..."
-                      rows={3}
-                    />
+                    <Textarea id="membership_description" value={membershipForm.description || ''} onChange={(e) => setMembershipForm(prev => ({ ...prev, description: e.target.value }))} rows={3} />
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="membership_price">Price ($) *</Label>
-                      <Input
-                        id="membership_price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={membershipForm.price}
-                        onChange={(e) => setMembershipForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                        required
-                      />
+                      <Input id="membership_price" type="number" min="0" step="0.01" value={membershipForm.price} onChange={(e) => setMembershipForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="membership_interval">Billing Interval</Label>
-                      <Select
-                        value={membershipForm.billing_interval}
-                        onValueChange={(v) => setMembershipForm(prev => ({ ...prev, billing_interval: v as any }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={membershipForm.billing_interval} onValueChange={(v) => setMembershipForm(prev => ({ ...prev, billing_interval: v as any }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="weekly">Weekly</SelectItem>
                           <SelectItem value="monthly">Monthly</SelectItem>
@@ -419,23 +352,13 @@ export default function AdminSettings() {
                       </Select>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-3">
-                    <Switch
-                      id="membership_active"
-                      checked={membershipForm.is_active}
-                      onCheckedChange={(checked) => setMembershipForm(prev => ({ ...prev, is_active: checked }))}
-                    />
+                    <Switch id="membership_active" checked={membershipForm.is_active} onCheckedChange={(checked) => setMembershipForm(prev => ({ ...prev, is_active: checked }))} />
                     <Label htmlFor="membership_active">Active</Label>
                   </div>
-
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setMembershipDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">
-                      {editingMembershipId ? 'Update' : 'Create'} Membership
-                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setMembershipDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit">{editingMembershipId ? 'Update' : 'Create'} Membership</Button>
                   </div>
                 </form>
               </DialogContent>
@@ -443,9 +366,7 @@ export default function AdminSettings() {
           </div>
 
           {membershipsLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-pulse text-muted-foreground">Loading memberships...</div>
-            </div>
+            <div className="flex items-center justify-center h-32"><div className="animate-pulse text-muted-foreground">Loading memberships...</div></div>
           ) : memberships.length > 0 ? (
             <div className="grid gap-4">
               {memberships.map((membership) => (
@@ -454,43 +375,18 @@ export default function AdminSettings() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{membership.name}</h3>
-                        {!membership.is_active && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Inactive</span>
-                        )}
+                        {!membership.is_active && <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Inactive</span>}
                       </div>
-                      {membership.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{membership.description}</p>
-                      )}
-                      <p className="text-lg font-bold mt-2">
-                        ${membership.price.toLocaleString()}{getIntervalLabel(membership.billing_interval)}
-                      </p>
+                      {membership.description && <p className="text-sm text-muted-foreground mt-1">{membership.description}</p>}
+                      <p className="text-lg font-bold mt-2">${membership.price.toLocaleString()}{getIntervalLabel(membership.billing_interval)}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenMembershipEdit(membership)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenMembershipEdit(membership)}><Pencil className="h-4 w-4" /></Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
+                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                         <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Membership</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete "{membership.name}"? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleMembershipDelete(membership.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
+                          <AlertDialogHeader><AlertDialogTitle>Delete Membership</AlertDialogTitle><AlertDialogDescription>Are you sure you want to delete "{membership.name}"?</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleMembershipDelete(membership.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
@@ -503,10 +399,7 @@ export default function AdminSettings() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">No memberships yet</p>
-                <Button onClick={handleOpenMembershipCreate}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Membership
-                </Button>
+                <Button onClick={handleOpenMembershipCreate}><Plus className="h-4 w-4 mr-2" />Add First Membership</Button>
               </CardContent>
             </Card>
           )}
@@ -517,18 +410,22 @@ export default function AdminSettings() {
           <ProductsSettingsTab />
         </TabsContent>
 
-        {/* Services Tab */}
-        <TabsContent value="services" className="mt-6">
-          <ServicesSettingsTab />
-        </TabsContent>
-
-
-        {/* Testimonials Tab */}
+        {/* Testimonials Tab - Redesigned */}
         <TabsContent value="testimonials" className="space-y-6 mt-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Testimonials</h2>
-              <p className="text-sm text-muted-foreground">Manage testimonials displayed on the Work page</p>
+              <p className="text-sm text-muted-foreground">Manage testimonials across the website</p>
+              <div className="flex gap-3 mt-2">
+                <Badge variant="outline" className="gap-1.5">
+                  <Eye className="h-3 w-3" />
+                  Work Page: {workPageCount} active
+                </Badge>
+                <Badge variant="outline" className="gap-1.5 border-accent text-accent-foreground">
+                  <Home className="h-3 w-3" />
+                  Homepage: {homepageCount}/3 slots
+                </Badge>
+              </div>
             </div>
             <Dialog open={testimonialDialogOpen} onOpenChange={setTestimonialDialogOpen}>
               <DialogTrigger asChild>
@@ -541,223 +438,126 @@ export default function AdminSettings() {
                 <DialogHeader>
                   <DialogTitle>{editingTestimonialId ? 'Edit Testimonial' : 'Add New Testimonial'}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleTestimonialSubmit} className="space-y-4 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="project_type">Project Type *</Label>
-                      <Select value={testimonialForm.project_type} onValueChange={(v) => updateTestimonialField('project_type', v)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROJECT_TYPES.map(type => (
-                            <SelectItem key={type} value={type}>{type}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="business_name">Business Name *</Label>
-                      <Input
-                        id="business_name"
-                        value={testimonialForm.business_name}
-                        onChange={(e) => updateTestimonialField('business_name', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="short_description">Short Description *</Label>
-                    <Textarea
-                      id="short_description"
-                      value={testimonialForm.short_description}
-                      onChange={(e) => updateTestimonialField('short_description', e.target.value)}
-                      rows={2}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery_time">Delivery Time</Label>
-                    <Input
-                      id="delivery_time"
-                      placeholder="e.g., 2 weeks"
-                      value={testimonialForm.delivery_time || ''}
-                      onChange={(e) => updateTestimonialField('delivery_time', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="testimonial_text">Testimonial Text *</Label>
-                    <Textarea
-                      id="testimonial_text"
-                      value={testimonialForm.testimonial_text}
-                      onChange={(e) => updateTestimonialField('testimonial_text', e.target.value)}
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="testimonial_author">Author Name *</Label>
-                      <Input
-                        id="testimonial_author"
-                        value={testimonialForm.testimonial_author}
-                        onChange={(e) => updateTestimonialField('testimonial_author', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="testimonial_role">Author Role *</Label>
-                      <Input
-                        id="testimonial_role"
-                        placeholder="e.g., CEO, Founder"
-                        value={testimonialForm.testimonial_role}
-                        onChange={(e) => updateTestimonialField('testimonial_role', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="video_url">Testimonial Video</Label>
-                    <div className="space-y-3">
-                      {/* File Upload */}
-                      <div className="flex items-center gap-3">
-                        <input
-                          ref={videoInputRef}
-                          type="file"
-                          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleVideoUpload(file);
-                          }}
-                          className="hidden"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => videoInputRef.current?.click()}
-                          disabled={isVideoUploading}
-                          className="flex-1"
-                        >
-                          {isVideoUploading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload Video (Max 10MB)
-                            </>
-                          )}
-                        </Button>
+                <form onSubmit={handleTestimonialSubmit} className="space-y-5 mt-4">
+                  {/* Section 1: Business Info */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Business Details</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Business Name *</Label>
+                        <Input value={testimonialForm.business_name} onChange={(e) => updateTestimonialField('business_name', e.target.value)} placeholder="e.g., Bloom Floristry" required />
                       </div>
-                      
-                      {/* OR divider */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground">OR</span>
-                        <div className="flex-1 h-px bg-border" />
+                      <div className="space-y-2">
+                        <Label>Project Type</Label>
+                        <Select value={testimonialForm.project_type} onValueChange={(v) => updateTestimonialField('project_type', v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>{PROJECT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                        </Select>
                       </div>
-                      
-                      {/* URL Input */}
-                      <Input
-                        id="video_url"
-                        type="url"
-                        placeholder="Paste video URL (YouTube, Vimeo, etc.)"
-                        value={testimonialForm.video_url || ''}
-                        onChange={(e) => updateTestimonialField('video_url', e.target.value)}
-                      />
-                      
-                      {/* Preview if URL exists */}
-                      {testimonialForm.video_url && (
-                        <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
-                          <Video className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground truncate flex-1">
-                            {testimonialForm.video_url}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateTestimonialField('video_url', '')}
-                            className="h-6 px-2"
-                          >
-                            Remove
-                          </Button>
+                    </div>
+                    <div className="space-y-2 mt-3">
+                      <Label>Short Description *</Label>
+                      <Textarea value={testimonialForm.short_description} onChange={(e) => updateTestimonialField('short_description', e.target.value)} rows={2} placeholder="Brief description of the project..." required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="space-y-2">
+                        <Label>Delivery Time</Label>
+                        <Input value={testimonialForm.delivery_time || ''} onChange={(e) => updateTestimonialField('delivery_time', e.target.value)} placeholder="e.g., 2 weeks" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Website URL</Label>
+                        <Input type="url" value={testimonialForm.website_url || ''} onChange={(e) => updateTestimonialField('website_url', e.target.value)} placeholder="https://..." />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  {/* Section 2: Testimonial */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Testimonial</p>
+                    <div className="space-y-2 mt-2">
+                      <Label>Testimonial Quote *</Label>
+                      <Textarea value={testimonialForm.testimonial_text} onChange={(e) => updateTestimonialField('testimonial_text', e.target.value)} rows={3} placeholder="What the client said about their experience..." required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="space-y-2">
+                        <Label>Author Name *</Label>
+                        <Input value={testimonialForm.testimonial_author} onChange={(e) => updateTestimonialField('testimonial_author', e.target.value)} placeholder="e.g., Sarah Mitchell" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Author Role *</Label>
+                        <Input value={testimonialForm.testimonial_role} onChange={(e) => updateTestimonialField('testimonial_role', e.target.value)} placeholder="e.g., Founder" required />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border" />
+
+                  {/* Section 3: Video */}
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Video (Optional)</p>
+                    <div className="space-y-2 mt-2">
+                      <Label>Vimeo URL</Label>
+                      <Input type="url" value={testimonialForm.video_url || ''} onChange={(e) => handleVimeoUrlChange(e.target.value)} placeholder="https://vimeo.com/123456789" />
+                      {vimeoPreviewId && (
+                        <div className="rounded-lg overflow-hidden border border-border aspect-video mt-2">
+                          <iframe src={`https://player.vimeo.com/video/${vimeoPreviewId}`} className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen />
                         </div>
                       )}
+                      {testimonialForm.video_url && !vimeoPreviewId && (
+                        <p className="text-xs text-destructive">Please enter a valid Vimeo URL</p>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Upload a video file (max 10MB) or paste a URL from YouTube, Vimeo, or Google Drive
-                    </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="video_thumbnail">Video Thumbnail URL</Label>
-                    <Input
-                      id="video_thumbnail"
-                      type="url"
-                      placeholder="https://..."
-                      value={testimonialForm.video_thumbnail || ''}
-                      onChange={(e) => updateTestimonialField('video_thumbnail', e.target.value)}
-                    />
-                  </div>
+                  <div className="h-px bg-border" />
 
-                  <div className="space-y-2">
-                    <Label htmlFor="website_url">Website URL</Label>
-                    <Input
-                      id="website_url"
-                      type="url"
-                      placeholder="https://..."
-                      value={testimonialForm.website_url || ''}
-                      onChange={(e) => updateTestimonialField('website_url', e.target.value)}
-                    />
-                  </div>
+                  {/* Section 4: Visibility */}
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visibility</p>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Work page toggle */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                        <div className="flex items-center gap-3">
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <Label className="cursor-pointer font-medium">Show on Work Page</Label>
+                            <p className="text-xs text-muted-foreground">Visible at /work — replaces placeholder testimonials</p>
+                          </div>
+                        </div>
+                        <Switch checked={testimonialForm.is_active} onCheckedChange={(checked) => updateTestimonialField('is_active', checked)} />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                      {/* Homepage toggle */}
+                      <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                        <div className="flex items-center gap-3">
+                          <Home className="h-4 w-4 text-accent-foreground" />
+                          <div>
+                            <Label className="cursor-pointer font-medium">Show on Homepage</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Featured in the Results section ({homepageTestimonialCount}/3 slots used)
+                              {!canEnableHomepage && !testimonialForm.show_on_homepage && ' — Disable another first'}
+                            </p>
+                          </div>
+                        </div>
+                        <Switch 
+                          checked={testimonialForm.show_on_homepage} 
+                          onCheckedChange={(checked) => updateTestimonialField('show_on_homepage', checked)} 
+                          disabled={!canEnableHomepage && !testimonialForm.show_on_homepage}
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="display_order">Display Order</Label>
-                      <Input
-                        id="display_order"
-                        type="number"
-                        value={testimonialForm.display_order}
-                        onChange={(e) => updateTestimonialField('display_order', parseInt(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div className="flex items-center gap-3 pt-6">
-                      <Switch
-                        id="is_active"
-                        checked={testimonialForm.is_active}
-                        onCheckedChange={(checked) => updateTestimonialField('is_active', checked)}
-                      />
-                      <Label htmlFor="is_active">Active (visible on Work page)</Label>
+                      <Label>Display Order</Label>
+                      <Input type="number" value={testimonialForm.display_order} onChange={(e) => updateTestimonialField('display_order', parseInt(e.target.value) || 0)} />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                    <Switch
-                      id="show_on_homepage"
-                      checked={testimonialForm.show_on_homepage}
-                      onCheckedChange={(checked) => updateTestimonialField('show_on_homepage', checked)}
-                      disabled={!canEnableHomepage && !testimonialForm.show_on_homepage}
-                    />
-                    <div>
-                      <Label htmlFor="show_on_homepage" className="cursor-pointer">Show on Homepage</Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {homepageTestimonialCount}/3 slots used. {!canEnableHomepage && !testimonialForm.show_on_homepage && 'Disable another to enable this.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setTestimonialDialogOpen(false)}>
-                      Cancel
-                    </Button>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button type="button" variant="outline" onClick={() => setTestimonialDialogOpen(false)}>Cancel</Button>
                     <Button type="submit" disabled={createTestimonialMutation.isPending || updateTestimonialMutation.isPending}>
                       {editingTestimonialId ? 'Update' : 'Create'} Testimonial
                     </Button>
@@ -768,9 +568,7 @@ export default function AdminSettings() {
           </div>
 
           {testimonialsLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-pulse text-muted-foreground">Loading testimonials...</div>
-            </div>
+            <div className="flex items-center justify-center h-32"><div className="animate-pulse text-muted-foreground">Loading testimonials...</div></div>
           ) : testimonials && testimonials.length > 0 ? (
             <div className="grid gap-4">
               {testimonials.map((testimonial) => (
@@ -782,86 +580,36 @@ export default function AdminSettings() {
                         <div>
                           <CardTitle className="text-lg flex items-center gap-2">
                             {testimonial.business_name}
-                            {!testimonial.is_active && (
-                              <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>
-                            )}
-                            {testimonial.show_on_homepage && (
-                              <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage</span>
-                            )}
+                            {!testimonial.is_active && <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>
+                          <div className="flex gap-1.5 mt-1">
+                            {testimonial.is_active && <Badge variant="secondary" className="text-[10px]">Work Page</Badge>}
+                            {testimonial.show_on_homepage && <Badge className="text-[10px] bg-accent text-accent-foreground">Homepage</Badge>}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {testimonial.website_url && (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={testimonial.website_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
+                          <Button variant="ghost" size="icon" asChild><a href={testimonial.website_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button>
                         )}
                         {testimonial.video_url && (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={testimonial.video_url} target="_blank" rel="noopener noreferrer">
-                              <Video className="h-4 w-4" />
-                            </a>
-                          </Button>
+                          <Button variant="ghost" size="icon" asChild><a href={testimonial.video_url} target="_blank" rel="noopener noreferrer"><Video className="h-4 w-4" /></a></Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenTestimonialEdit(testimonial)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenTestimonialEdit(testimonial)}><Pencil className="h-4 w-4" /></Button>
                         <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Testimonial</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete the testimonial from {testimonial.business_name}? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleTestimonialDelete(testimonial.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
+                            <AlertDialogHeader><AlertDialogTitle>Delete Testimonial</AlertDialogTitle><AlertDialogDescription>Delete the testimonial from {testimonial.business_name}?</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleTestimonialDelete(testimonial.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-3">{testimonial.short_description}</p>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                      {testimonial.metric_1_value && testimonial.metric_1_label && (
-                        <div className="bg-muted px-3 py-1.5 rounded">
-                          <span className="font-semibold">{testimonial.metric_1_value}</span>{' '}
-                          <span className="text-muted-foreground">{testimonial.metric_1_label}</span>
-                        </div>
-                      )}
-                      {testimonial.metric_2_value && testimonial.metric_2_label && (
-                        <div className="bg-muted px-3 py-1.5 rounded">
-                          <span className="font-semibold">{testimonial.metric_2_value}</span>{' '}
-                          <span className="text-muted-foreground">{testimonial.metric_2_label}</span>
-                        </div>
-                      )}
-                      {testimonial.delivery_time && (
-                        <div className="bg-muted px-3 py-1.5 rounded">
-                          <span className="font-semibold">{testimonial.delivery_time}</span>{' '}
-                          <span className="text-muted-foreground">Delivery</span>
-                        </div>
-                      )}
-                    </div>
-                    <blockquote className="mt-4 border-l-2 border-accent pl-4 italic text-sm text-muted-foreground">
+                    <blockquote className="border-l-2 border-accent pl-4 italic text-sm text-muted-foreground">
                       "{testimonial.testimonial_text}"
-                      <cite className="block mt-2 not-italic font-medium text-foreground">
+                      <cite className="block mt-1 not-italic font-medium text-foreground text-xs">
                         — {testimonial.testimonial_author}, {testimonial.testimonial_role}
                       </cite>
                     </blockquote>
@@ -874,10 +622,7 @@ export default function AdminSettings() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Star className="h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">No testimonials yet</p>
-                <Button onClick={handleOpenTestimonialCreate}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Testimonial
-                </Button>
+                <Button onClick={handleOpenTestimonialCreate}><Plus className="h-4 w-4 mr-2" />Add First Testimonial</Button>
               </CardContent>
             </Card>
           )}
@@ -901,9 +646,7 @@ export default function AdminSettings() {
           ) : (
             <>
               <Card>
-                <CardHeader>
-                  <CardTitle>Profile</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Display Name</Label>
@@ -912,44 +655,22 @@ export default function AdminSettings() {
                   <div className="space-y-2">
                     <Label>Email</Label>
                     <Input value={user?.email || ''} disabled />
-                    <p className="text-xs text-muted-foreground">
-                      This email is used for login and 2FA verification codes
-                    </p>
                   </div>
-                  <Button onClick={handleUpdateProfile} disabled={saving}>
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </Button>
+                  <Button onClick={handleUpdateProfile} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Change Password
-                  </CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Key className="h-5 w-5" />Change Password</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Enter your current password and a new password. A 2FA code will be required.
-                  </p>
                   <div className="space-y-2">
                     <Label>Current Password</Label>
-                    <Input 
-                      type="password" 
-                      value={currentPassword} 
-                      onChange={(e) => setCurrentPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                    />
+                    <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
                   </div>
                   <div className="space-y-2">
                     <Label>New Password</Label>
-                    <Input 
-                      type="password" 
-                      value={newPassword} 
-                      onChange={(e) => setNewPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                    />
+                    <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
                   </div>
                   <Button onClick={handleInitiatePasswordChange} disabled={saving || !newPassword || !currentPassword}>
                     {saving ? 'Updating...' : 'Change Password'}
@@ -965,9 +686,9 @@ export default function AdminSettings() {
           <SecuritySettingsTab />
         </TabsContent>
 
-        {/* Homepage Tab */}
-        <TabsContent value="homepage" className="mt-6">
-          <HomepageSettingsTab />
+        {/* Pages Tab (replaces Homepage) */}
+        <TabsContent value="pages" className="mt-6">
+          <PagesSettingsTab />
         </TabsContent>
 
         {/* Offer Tab */}
