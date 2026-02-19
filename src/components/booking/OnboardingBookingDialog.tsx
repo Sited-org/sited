@@ -79,6 +79,7 @@ const OnboardingBookingDialog = ({
   }, [customerName, customerEmail, customerPhone]);
 
   const DURATION = 45;
+  const CALL_LABEL = "Plan Call";
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -160,9 +161,9 @@ const OnboardingBookingDialog = ({
       business_location: form.businessLocation.trim(),
       booking_date: dateStr,
       booking_time: selectedTime,
-      booking_type: 'onboarding',
+      booking_type: 'plan',
       duration_minutes: DURATION,
-      notes: `Onboarding call — ${tierName} (45 min)`,
+      notes: `Plan Call — ${tierName} (${DURATION} min)`,
     }).select('id').single();
 
     if (error) {
@@ -184,12 +185,13 @@ const OnboardingBookingDialog = ({
       const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
-          topic: `Onboarding Call – ${form.businessName.trim()}`,
+          topic: `Plan Call – ${form.businessName.trim()}`,
           start_time: startDate.toISOString(),
           duration: DURATION,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: 'onboarding',
+          booking_type: 'plan',
+          business_name: form.businessName.trim(),
         },
       });
 
@@ -231,7 +233,7 @@ const OnboardingBookingDialog = ({
               </motion.div>
               <p className="text-lg font-semibold text-green-500 mb-1">You're All Set!</p>
               <p className="text-sm text-muted-foreground text-center">
-                {monthName} {selectedDay}, {year} at {selectedTime} — 45 minutes
+                {monthName} {selectedDay}, {year} at {selectedTime} — {DURATION} min {CALL_LABEL}
               </p>
               <p className="text-sm text-muted-foreground text-center mt-3">
                 We'll send a confirmation with a Zoom link to {form.email}.
@@ -249,9 +251,9 @@ const OnboardingBookingDialog = ({
               className="p-6 sm:p-8"
             >
               <div className="mb-6">
-                <h3 className="text-lg font-semibold">Book Your Onboarding Call</h3>
+                <h3 className="text-lg font-semibold">Book Your {CALL_LABEL}</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  45-minute kickoff session for your <span className="font-semibold text-foreground">{tierName}</span> project.
+                  {DURATION}-minute kickoff session for your <span className="font-semibold text-foreground">{tierName}</span> project.
                 </p>
               </div>
 
@@ -480,7 +482,7 @@ const OnboardingBookingDialog = ({
                   size="lg"
                   className="w-full mt-2"
                 >
-                  {isSubmitting ? "Booking..." : "Confirm Onboarding Call"}
+                  {isSubmitting ? "Booking..." : `Confirm ${CALL_LABEL}`}
                   <ArrowRight size={16} />
                 </Button>
               </div>

@@ -36,89 +36,104 @@ async function getZoomAccessToken(): Promise<string> {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-AU', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return new Date(dateStr).toLocaleDateString('en-AU', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     timeZone: 'Australia/Sydney',
   });
 }
 
 function formatTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString('en-AU', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
+  return new Date(dateStr).toLocaleTimeString('en-AU', {
+    hour: 'numeric', minute: '2-digit', hour12: true,
     timeZone: 'Australia/Sydney',
   });
 }
 
-function buildConfirmationEmail(params: {
-  attendeeName: string;
-  date: string;
-  time: string;
-  duration: number;
-  bookingType: string;
-  zoomJoinUrl: string;
-}): string {
-  const { attendeeName, date, time, duration, bookingType, zoomJoinUrl } = params;
-  const typeLabel = bookingType === 'onboarding' ? 'Onboarding Call' : 'Discovery Call';
+function getTypeLabel(bookingType: string): string {
+  return bookingType === 'plan' ? 'Plan Call' : 'Discovery Call';
+}
 
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+function buildConfirmationEmail(p: {
+  attendeeName: string; date: string; time: string; duration: number; typeLabel: string; zoomJoinUrl: string;
+}): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-        <!-- Header -->
         <tr><td style="background-color:#0066FF;padding:32px 40px;text-align:center;">
           <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;letter-spacing:-0.5px;">SITED</h1>
         </td></tr>
-        <!-- Body -->
         <tr><td style="padding:40px;">
           <h2 style="color:#18181b;font-size:22px;font-weight:700;margin:0 0 8px;">You're booked in! ✅</h2>
           <p style="color:#71717a;font-size:15px;line-height:1.6;margin:0 0 24px;">
-            Hey ${attendeeName}, your <strong>${typeLabel}</strong> has been confirmed.
+            Hey ${p.attendeeName}, your <strong>${p.typeLabel}</strong> has been confirmed.
           </p>
-          
-          <!-- Details Card -->
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;border-radius:12px;padding:24px;margin-bottom:24px;">
             <tr><td>
               <p style="color:#71717a;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px;font-weight:600;">Meeting Details</p>
-              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>📅 Date:</strong> ${date}</p>
-              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>🕐 Time:</strong> ${time} (AEST)</p>
-              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>⏱ Duration:</strong> ${duration} minutes</p>
+              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>📅 Date:</strong> ${p.date}</p>
+              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>🕐 Time:</strong> ${p.time} (AEST)</p>
+              <p style="color:#18181b;font-size:15px;margin:0 0 6px;"><strong>⏱ Duration:</strong> ${p.duration} minutes</p>
               <p style="color:#18181b;font-size:15px;margin:0;"><strong>📹 Format:</strong> Zoom Video Call</p>
             </td></tr>
           </table>
-
-          <!-- CTA Button -->
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr><td align="center" style="padding:8px 0 24px;">
-              <a href="${zoomJoinUrl}" target="_blank" style="display:inline-block;background-color:#0066FF;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:10px;">
+              <a href="${p.zoomJoinUrl}" target="_blank" style="display:inline-block;background-color:#0066FF;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 32px;border-radius:10px;">
                 Join Zoom Meeting →
               </a>
             </td></tr>
           </table>
-
           <p style="color:#71717a;font-size:14px;line-height:1.6;margin:0 0 8px;">
             Save this email — you'll need the link above to join the call. If you need to reschedule, reply to this email or call us on <strong>0459 909 810</strong>.
           </p>
         </td></tr>
-        <!-- Footer -->
         <tr><td style="padding:20px 40px;border-top:1px solid #e4e4e7;text-align:center;">
           <p style="color:#a1a1aa;font-size:12px;margin:0;">Sited · sited.com.au · 0459 909 810</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
-</body>
-</html>`;
+</body></html>`;
+}
+
+function buildAdminNotificationEmail(p: {
+  attendeeName: string; attendeeEmail: string; businessName: string;
+  date: string; time: string; duration: number; typeLabel: string; zoomStartUrl: string;
+}): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+        <tr><td style="background-color:#18181b;padding:24px 40px;text-align:center;">
+          <h1 style="color:#ffffff;font-size:18px;font-weight:800;margin:0;">New Booking 📅</h1>
+        </td></tr>
+        <tr><td style="padding:32px 40px;">
+          <p style="color:#71717a;font-size:14px;margin:0 0 20px;">A new <strong>${p.typeLabel}</strong> has been booked.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;border-radius:12px;padding:20px;margin-bottom:20px;">
+            <tr><td>
+              <p style="color:#18181b;font-size:14px;margin:0 0 4px;"><strong>Client:</strong> ${p.attendeeName}</p>
+              <p style="color:#18181b;font-size:14px;margin:0 0 4px;"><strong>Email:</strong> ${p.attendeeEmail}</p>
+              <p style="color:#18181b;font-size:14px;margin:0 0 4px;"><strong>Business:</strong> ${p.businessName}</p>
+              <p style="color:#18181b;font-size:14px;margin:0 0 4px;"><strong>Date:</strong> ${p.date}</p>
+              <p style="color:#18181b;font-size:14px;margin:0 0 4px;"><strong>Time:</strong> ${p.time} (AEST)</p>
+              <p style="color:#18181b;font-size:14px;margin:0;"><strong>Duration:</strong> ${p.duration} min</p>
+            </td></tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="${p.zoomStartUrl}" target="_blank" style="display:inline-block;background-color:#18181b;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;">
+                Start Zoom Meeting →
+              </a>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
 }
 
 serve(async (req) => {
@@ -127,15 +142,14 @@ serve(async (req) => {
   }
 
   try {
-    const { booking_id, topic, start_time, duration, attendee_email, attendee_name, booking_type } = await req.json();
+    const { booking_id, topic, start_time, duration, attendee_email, attendee_name, booking_type, business_name } = await req.json();
 
     if (!booking_id) throw new Error('booking_id is required');
 
-    // Get Zoom access token
     const accessToken = await getZoomAccessToken();
-
     const meetingDuration = duration || 20;
-    const meetingTopic = topic || (booking_type === 'onboarding' ? 'Sited Onboarding Call' : 'Sited Discovery Call');
+    const typeLabel = getTypeLabel(booking_type);
+    const meetingTopic = topic || `Sited ${typeLabel}`;
 
     // Create Zoom meeting
     const meetingResponse = await fetch('https://api.zoom.us/v2/users/me/meetings', {
@@ -147,16 +161,13 @@ serve(async (req) => {
       body: JSON.stringify({
         topic: meetingTopic,
         type: 2,
-        start_time: start_time,
+        start_time,
         duration: meetingDuration,
         timezone: 'Australia/Sydney',
         settings: {
-          host_video: true,
-          participant_video: true,
-          join_before_host: false,
-          waiting_room: true,
-          meeting_authentication: false,
-          auto_recording: 'none',
+          host_video: true, participant_video: true,
+          join_before_host: false, waiting_room: true,
+          meeting_authentication: false, auto_recording: 'none',
         },
       }),
     });
@@ -168,48 +179,48 @@ serve(async (req) => {
 
     const meeting = await meetingResponse.json();
 
-    // Update the booking with Zoom details
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { error: updateError } = await supabase
-      .from('bookings')
-      .update({
-        zoom_meeting_id: String(meeting.id),
-        zoom_meeting_url: meeting.start_url,
-        zoom_join_url: meeting.join_url,
-      })
-      .eq('id', booking_id);
+    // Update booking with Zoom details
+    await supabase.from('bookings').update({
+      zoom_meeting_id: String(meeting.id),
+      zoom_meeting_url: meeting.start_url,
+      zoom_join_url: meeting.join_url,
+    }).eq('id', booking_id);
 
-    if (updateError) {
-      console.error('Failed to update booking with Zoom details:', updateError);
+    // Fetch booking details for admin email (business name etc)
+    let bookingBusinessName = business_name || '';
+    if (!bookingBusinessName) {
+      const { data: bookingRow } = await supabase.from('bookings').select('business_name').eq('id', booking_id).single();
+      bookingBusinessName = bookingRow?.business_name || 'Unknown';
     }
 
-    // Send branded confirmation email to client
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const formattedDate = formatDate(start_time);
+    const formattedTime = formatTime(start_time);
+    const firstName = attendee_name?.split(' ')[0] || 'there';
+
+    // 1. Send branded confirmation email to client
     if (attendee_email) {
       try {
-        const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-        
         const emailHtml = buildConfirmationEmail({
-          attendeeName: attendee_name?.split(' ')[0] || 'there',
-          date: formatDate(start_time),
-          time: formatTime(start_time),
+          attendeeName: firstName,
+          date: formattedDate,
+          time: formattedTime,
           duration: meetingDuration,
-          bookingType: booking_type || 'discovery',
+          typeLabel,
           zoomJoinUrl: meeting.join_url,
         });
-
-        const typeLabel = booking_type === 'onboarding' ? 'Onboarding Call' : 'Discovery Call';
 
         await resend.emails.send({
           from: "Sited <hello@sited.co>",
           to: [attendee_email],
-          subject: `Your ${typeLabel} is confirmed — ${formatDate(start_time)}`,
+          subject: `Your ${typeLabel} is confirmed — ${formattedDate}`,
           html: emailHtml,
         });
 
-        // Log the email
         await supabase.from('email_logs').insert({
           template_type: 'booking_confirmation',
           recipient_email: attendee_email,
@@ -221,9 +232,33 @@ serve(async (req) => {
 
         console.log('Booking confirmation email sent to:', attendee_email);
       } catch (emailError) {
-        console.error('Failed to send confirmation email:', emailError);
-        // Don't fail the whole request if email fails
+        console.error('Failed to send client confirmation email:', emailError);
       }
+    }
+
+    // 2. Send admin notification email
+    try {
+      const adminHtml = buildAdminNotificationEmail({
+        attendeeName: attendee_name || 'Unknown',
+        attendeeEmail: attendee_email || 'N/A',
+        businessName: bookingBusinessName,
+        date: formattedDate,
+        time: formattedTime,
+        duration: meetingDuration,
+        typeLabel,
+        zoomStartUrl: meeting.start_url,
+      });
+
+      await resend.emails.send({
+        from: "Sited <hello@sited.co>",
+        to: ["hello@sited.co"],
+        subject: `New ${typeLabel} — ${attendee_name || 'Unknown'} (${formattedDate})`,
+        html: adminHtml,
+      });
+
+      console.log('Admin notification email sent');
+    } catch (adminEmailError) {
+      console.error('Failed to send admin notification email:', adminEmailError);
     }
 
     return new Response(JSON.stringify({

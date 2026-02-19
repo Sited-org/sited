@@ -4,7 +4,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 
@@ -16,7 +15,7 @@ interface CalendarSettingsProps {
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0]; // Mon=1 ... Sun=0
+const DAY_VALUES = [1, 2, 3, 4, 5, 6, 0];
 
 export function CalendarSettings({ config, open, onOpenChange, onSave }: CalendarSettingsProps) {
   const [draft, setDraft] = useState(config);
@@ -50,17 +49,25 @@ export function CalendarSettings({ config, open, onOpenChange, onSave }: Calenda
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
-          {/* Meeting Duration */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Meeting Duration (minutes)</Label>
-            <Input
-              type="number"
-              min={5}
-              max={120}
-              value={draft.meeting_duration_minutes}
-              onChange={(e) => setDraft(prev => ({ ...prev, meeting_duration_minutes: parseInt(e.target.value) || 20 }))}
-              className="w-32"
-            />
+          {/* Meeting Types */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Meeting Types</Label>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20">
+                <div>
+                  <p className="text-sm font-medium">Discovery Call</p>
+                  <p className="text-xs text-muted-foreground">Standard booking via website</p>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold">20 min</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20">
+                <div>
+                  <p className="text-sm font-medium">Plan Call</p>
+                  <p className="text-xs text-muted-foreground">Post-payment onboarding</p>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold">45 min</Badge>
+              </div>
+            </div>
           </div>
 
           {/* Buffers */}
@@ -161,6 +168,17 @@ export function CalendarSettings({ config, open, onOpenChange, onSave }: Calenda
                 Connect Google Calendar (Coming Soon)
               </Button>
             )}
+          </div>
+
+          {/* Zoom Availability */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Zoom Availability</Label>
+              <Badge variant="default" className="text-xs">Active</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Existing Zoom meetings automatically block booking time slots.
+            </p>
           </div>
 
           <Separator />
