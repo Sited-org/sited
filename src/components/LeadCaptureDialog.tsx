@@ -69,6 +69,9 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
     setSubmitting(false);
     toast.success("Great! Let's learn more about your business.");
     sessionStorage.setItem("lead_captured", "true");
+    sessionStorage.setItem("lead_name", result.data.name);
+    sessionStorage.setItem("lead_email", result.data.email);
+    sessionStorage.setItem("lead_phone", result.data.phone || "");
     onOpenChange(false);
     resetForm();
     navigate("/contact/offers");
