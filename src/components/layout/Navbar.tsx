@@ -9,7 +9,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Features", href: "/features" },
-  { name: "Our Work", href: "/work" },
+  { name: "Portfolio", href: "/portfolio" },
   { name: "Contact", href: "/contact" },
   { name: "Blog", href: "/blog" },
 ];

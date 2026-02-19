@@ -52,7 +52,7 @@ const Index = () => {
               Get a Quote <ArrowRight size={20} />
             </button>
             <Link
-              to="/work"
+              to="/portfolio"
               className="inline-flex items-center gap-2 text-base font-medium text-foreground underline decoration-gold decoration-2 underline-offset-4 hover:decoration-gold-hover transition-colors"
             >
               See what we've done for others

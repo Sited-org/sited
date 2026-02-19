@@ -515,8 +515,8 @@ export default function AdminSettings() {
                         <div className="flex items-center gap-3">
                           <Eye className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <Label className="cursor-pointer font-medium">Show on Work Page</Label>
-                            <p className="text-xs text-muted-foreground">Visible at /work — replaces placeholder testimonials</p>
+                            <Label className="cursor-pointer font-medium">Show on Portfolio Page</Label>
+                            <p className="text-xs text-muted-foreground">Visible at /portfolio — replaces placeholder testimonials</p>
                           </div>
                         </div>
                         <Switch checked={testimonialForm.is_active} onCheckedChange={(checked) => updateTestimonialField('is_active', checked)} />
