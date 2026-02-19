@@ -8,6 +8,8 @@ import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
+import FeatureWithInfo from "@/components/offer/FeatureInfo";
+import SocialProofSection from "@/components/offer/SocialProofSection";
 import OnboardingBookingDialog from "@/components/booking/OnboardingBookingDialog";
 
 const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
@@ -232,11 +234,11 @@ const Offer = () => {
           </div>
 
           {/* Features */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
             {activeTier.features.map((feature, i) => (
-              <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+              <div key={i} className="flex items-start gap-2.5 text-sm text-foreground p-2.5 rounded-lg bg-background/60 border border-border/50">
                 <Check size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
-                <span>{feature}</span>
+                <FeatureWithInfo feature={feature} />
               </div>
             ))}
           </div>
@@ -330,26 +332,8 @@ const Offer = () => {
           </motion.div>
         )}
 
-        {/* Trust signals */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 text-sm text-muted-foreground"
-        >
-          <div className="flex items-center gap-2">
-            <Shield size={16} className="text-sited-blue" />
-            <span>100% refundable deposit</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Zap size={16} className="text-sited-blue" />
-            <span>Live in 2 weeks</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Shield size={16} className="text-sited-blue" />
-            <span>No lock-in contracts</span>
-          </div>
-        </motion.div>
+        {/* Social Proof */}
+        <SocialProofSection />
       </div>
     </div>
   );
