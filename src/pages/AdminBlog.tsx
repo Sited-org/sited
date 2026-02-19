@@ -348,16 +348,23 @@ export default function AdminBlog() {
                   <input type="file" accept="image/*" className="hidden" onChange={insertImageInContent} disabled={imageUploading} />
                 </label>
                 <div className="w-px bg-border mx-1" />
-                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyLeft")} className="h-8 px-2 text-xs">Left</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyCenter")} className="h-8 px-2 text-xs">Center</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyRight")} className="h-8 px-2 text-xs">Right</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyLeft")} className="h-8 px-2 text-xs" title="Align Left">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyCenter")} className="h-8 px-2 text-xs" title="Align Center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyRight")} className="h-8 px-2 text-xs" title="Align Right">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+                </Button>
                 <div className="w-px bg-border mx-1" />
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("removeFormat")} className="h-8 px-2 text-xs">Clear</Button>
               </div>
 
               <div
                 contentEditable
-                className="min-h-[300px] w-full rounded-b-lg border border-border bg-background p-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring overflow-auto
+                dir="ltr"
+                className="min-h-[300px] w-full rounded-b-lg border border-border bg-background p-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring overflow-auto text-left
                   [&_b]:font-bold [&_strong]:font-bold [&_i]:italic [&_em]:italic [&_u]:underline
                   [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-3
                   [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-2

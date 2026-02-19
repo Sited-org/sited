@@ -37,9 +37,11 @@ const Index = () => {
       <section className="relative min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-6xl sm:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase">
-            Need a great
+            Need a
             <br />
-            <span className="text-sited-blue">website?</span>
+            <span className="text-sited-blue">smashing</span>
+            <br />
+            website?
           </h1>
           <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
