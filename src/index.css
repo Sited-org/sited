@@ -155,3 +155,11 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Auto-scroll animation for website showcases */
+@keyframes scrollSite {
+  0% { transform: translateY(0); }
+  45% { transform: translateY(-66%); }
+  55% { transform: translateY(-66%); }
+  100% { transform: translateY(0); }
+}

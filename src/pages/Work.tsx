@@ -6,6 +6,9 @@ import { usePublicTestimonials, Testimonial } from "@/hooks/useTestimonials";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
+import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
+import { ScrollTextTestimonials } from "@/components/work/ScrollTextTestimonials";
+import { VideoTestimonials } from "@/components/work/VideoTestimonials";
 
 /* ── Fallback data ── */
 const fallbackProjects: ProjectDisplay[] = [
@@ -336,6 +339,15 @@ const Work = () => {
 
         {/* ━━ SCROLLING QUOTE TICKER ━━ */}
         <QuoteTicker quotes={tickerQuotes} />
+
+        {/* ━━ BLOCK 1: WEBSITE SHOWCASE GRID ━━ */}
+        <WebsiteShowcaseGrid />
+
+        {/* ━━ BLOCK 2: SCROLL-ANIMATED TEXT TESTIMONIALS ━━ */}
+        <ScrollTextTestimonials />
+
+        {/* ━━ BLOCK 3: VIDEO TESTIMONIALS ━━ */}
+        <VideoTestimonials />
 
         {/* ━━ PROJECTS ━━ */}
         <section id="projects" className="py-16 sm:py-24 bg-background">
