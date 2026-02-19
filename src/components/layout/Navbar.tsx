@@ -115,7 +115,7 @@ export const Navbar = () => {
 
           <div className="hidden md:block">
             <Button variant="hero" size="sm" onClick={() => setCtaOpen(true)}>
-              Start a Project
+              Get a Quote
             </Button>
             <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
           </div>
@@ -174,7 +174,7 @@ export const Navbar = () => {
                 transition={{ delay: 0.3 }}
               >
                 <Button variant="hero" size="lg" onClick={() => { setIsMobileMenuOpen(false); setCtaOpen(true); }}>
-                  Start a Project
+                  Get a Quote
                 </Button>
               </motion.div>
             </motion.nav>

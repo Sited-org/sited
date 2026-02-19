@@ -47,7 +47,7 @@ const Index = () => {
               onClick={() => setCtaOpen(true)}
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-colors shadow-elevated"
             >
-              {hero.primary_cta_label} <ArrowRight size={20} />
+              Get a Quote <ArrowRight size={20} />
             </button>
             <Link
               to="/work"
@@ -191,7 +191,7 @@ const Index = () => {
                     onClick={() => setCtaOpen(true)}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
                   >
-                    {card.cta_label} <ArrowRight size={14} />
+                    Get a Quote <ArrowRight size={14} />
                   </button>
                 </div>
               </div>
@@ -279,7 +279,7 @@ const Index = () => {
             onClick={() => setCtaOpen(true)}
             className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gold text-foreground font-semibold text-base hover:bg-gold-hover transition-colors"
           >
-            {final_cta.button_label} <ArrowRight size={18} />
+            Get a Quote Today <ArrowRight size={18} />
           </button>
           <p className="mt-3 text-sm text-white/50">
             {final_cta.reassurance}
