@@ -12,9 +12,7 @@ const trustLogos = [
   { name: "Google", sub: "Partner" },
   { name: "Meta", sub: "Business Partner" },
   { name: "Stripe", sub: "Verified" },
-  { name: "Shopify", sub: "Partner" },
-  { name: "WordPress", sub: "Expert" },
-  { name: "HubSpot", sub: "Certified" },
+  { name: "GitHub", sub: "Backed" },
 ];
 
 const reviews = [

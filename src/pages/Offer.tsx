@@ -229,7 +229,9 @@ const Offer = () => {
             <span className="text-5xl sm:text-6xl font-black text-foreground">$49</span>
             <div>
               <p className="text-sm text-muted-foreground">refundable deposit</p>
-              <p className="text-xs text-muted-foreground">{activeTier.totalPrice} total project cost</p>
+              <p className="text-sm text-muted-foreground">
+                Full project from <span className="font-bold text-foreground">{activeTier.totalPrice}</span>
+              </p>
             </div>
           </div>
 
