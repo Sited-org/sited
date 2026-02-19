@@ -172,10 +172,12 @@
   100% { transform: translateY(0); }
 }
 
-/* Iframe scroll — uses CSS custom property for exact distance */
+/* Iframe scroll — uses CSS custom property for exact pixel distance */
 @keyframes scrollIframe {
   0%   { transform: translateY(0); }
-  40%  { transform: translateY(var(--scroll-distance, -70%)); }
-  60%  { transform: translateY(var(--scroll-distance, -70%)); }
+  5%   { transform: translateY(0); }
+  45%  { transform: translateY(var(--scroll-distance, -2000px)); }
+  55%  { transform: translateY(var(--scroll-distance, -2000px)); }
+  95%  { transform: translateY(0); }
   100% { transform: translateY(0); }
 }
