@@ -119,3 +119,9 @@ verify_jwt = false
 
 [functions.create-offer-checkout]
 verify_jwt = false
+
+[functions.create-offer-payment-intent]
+verify_jwt = false
+
+[functions.confirm-offer-payment]
+verify_jwt = false
