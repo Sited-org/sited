@@ -1,36 +1,19 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge } from './LeadStatusBadge';
 import { LeadDetailSheet } from './LeadDetailSheet';
 import type { Lead, LeadStatus } from '@/hooks/useLeads';
+import { ALL_STATUSES, STATUS_LABELS } from '@/hooks/useLeads';
 import { MoreHorizontal, Eye, Phone, Trash2, Mail, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-
-const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
-
-const statusLabels: Record<LeadStatus, string> = {
-  new: 'New Lead',
-  contacted: 'Contacted',
-  booked_call: 'Booked Call',
-  sold: 'Sold',
-  lost: 'Lost',
-};
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -40,22 +23,12 @@ interface LeadsTableProps {
   onMarkContacted: (leadId: string) => Promise<boolean>;
 }
 
-export function LeadsTable({ 
-  leads, 
-  onUpdateStatus, 
-  onUpdateNotes,
-  onDelete,
-  onMarkContacted
-}: LeadsTableProps) {
+export function LeadsTable({ leads, onUpdateStatus, onUpdateNotes, onDelete, onMarkContacted }: LeadsTableProps) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const { canEditLeads } = useAuth();
 
   const getProjectTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      website: 'Website',
-      app: 'App',
-      ai: 'AI Integration',
-    };
+    const labels: Record<string, string> = { website: 'Website', app: 'App', ai: 'AI Integration' };
     return labels[type] || type;
   };
 
@@ -76,9 +49,7 @@ export function LeadsTable({
           <TableBody>
             {leads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  No leads yet
-                </TableCell>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No leads yet</TableCell>
               </TableRow>
             ) : (
               leads.map((lead) => (
@@ -89,19 +60,11 @@ export function LeadsTable({
                       <p className="text-sm text-muted-foreground">{lead.email}</p>
                     </div>
                   </TableCell>
+                  <TableCell><p className="text-sm">{lead.business_name || '-'}</p></TableCell>
+                  <TableCell><p className="text-sm">{getProjectTypeLabel(lead.project_type)}</p></TableCell>
+                  <TableCell><LeadStatusBadge status={lead.status} formData={lead.form_data} /></TableCell>
                   <TableCell>
-                    <p className="text-sm">{lead.business_name || '-'}</p>
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm">{getProjectTypeLabel(lead.project_type)}</p>
-                  </TableCell>
-                  <TableCell>
-                    <LeadStatusBadge status={lead.status} formData={lead.form_data} />
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(lead.created_at), 'MMM d, yyyy')}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{format(new Date(lead.created_at), 'MMM d, yyyy')}</p>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -112,46 +75,31 @@ export function LeadsTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => setSelectedLead(lead)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
+                          <Eye className="h-4 w-4 mr-2" />View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <a href={`mailto:${lead.email}`}>
-                            <Mail className="h-4 w-4 mr-2" />
-                            Send Email
-                          </a>
+                          <a href={`mailto:${lead.email}`}><Mail className="h-4 w-4 mr-2" />Send Email</a>
                         </DropdownMenuItem>
                         {lead.phone && (
                           <DropdownMenuItem asChild>
-                            <a href={`tel:${lead.phone}`}>
-                              <Phone className="h-4 w-4 mr-2" />
-                              Call
-                            </a>
+                            <a href={`tel:${lead.phone}`}><Phone className="h-4 w-4 mr-2" />Call</a>
                           </DropdownMenuItem>
                         )}
                         {canEditLeads && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => onMarkContacted(lead.id)}>
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Mark Contacted
+                              <ExternalLink className="h-4 w-4 mr-2" />Mark Contacted
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            {allStatuses.map((status) => (
-                              <DropdownMenuItem 
-                                key={status}
-                                onClick={() => onUpdateStatus(lead.id, status)}
-                              >
-                                Set as {statusLabels[status]}
+                            {ALL_STATUSES.map((status) => (
+                              <DropdownMenuItem key={status} onClick={() => onUpdateStatus(lead.id, status)}>
+                                Set as {STATUS_LABELS[status]}
                               </DropdownMenuItem>
                             ))}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => onDelete(lead.id)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
+                            <DropdownMenuItem className="text-destructive" onClick={() => onDelete(lead.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" />Delete
                             </DropdownMenuItem>
                           </>
                         )}
@@ -164,14 +112,10 @@ export function LeadsTable({
           </TableBody>
         </Table>
       </div>
-
       <LeadDetailSheet 
-        lead={selectedLead}
-        open={!!selectedLead}
+        lead={selectedLead} open={!!selectedLead}
         onOpenChange={(open) => !open && setSelectedLead(null)}
-        onUpdateStatus={onUpdateStatus}
-        onUpdateNotes={onUpdateNotes}
-        canEdit={canEditLeads}
+        onUpdateStatus={onUpdateStatus} onUpdateNotes={onUpdateNotes} canEdit={canEditLeads}
       />
     </>
   );

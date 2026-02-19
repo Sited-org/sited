@@ -596,6 +596,44 @@ export type Database = {
           },
         ]
       }
+      lead_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_status_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           analytics_status: string | null
@@ -1409,7 +1447,20 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "editor" | "viewer" | "developer" | "sales"
-      lead_status: "new" | "contacted" | "booked_call" | "sold" | "lost"
+      lead_status:
+        | "new"
+        | "contacted"
+        | "booked_call"
+        | "sold"
+        | "lost"
+        | "warm_lead"
+        | "new_lead"
+        | "new_client"
+        | "mbr_sold_dev"
+        | "current_mbr"
+        | "ot_sold_dev"
+        | "current_ot"
+        | "no_show"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1538,7 +1589,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "editor", "viewer", "developer", "sales"],
-      lead_status: ["new", "contacted", "booked_call", "sold", "lost"],
+      lead_status: [
+        "new",
+        "contacted",
+        "booked_call",
+        "sold",
+        "lost",
+        "warm_lead",
+        "new_lead",
+        "new_client",
+        "mbr_sold_dev",
+        "current_mbr",
+        "ot_sold_dev",
+        "current_ot",
+        "no_show",
+      ],
     },
   },
 } as const
