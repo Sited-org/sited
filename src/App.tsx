@@ -9,7 +9,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 
 // Lazy load all other pages for code splitting
-const Services = lazy(() => import("./pages/Services"));
+const Features = lazy(() => import("./pages/Features"));
 const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
 const ContactOffers = lazy(() => import("./pages/ContactOffers"));
@@ -58,7 +58,7 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/services" element={<Services />} />
+            <Route path="/features" element={<Features />} />
             <Route path="/work" element={<Work />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/contact/offers" element={<ContactOffers />} />
