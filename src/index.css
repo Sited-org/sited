@@ -171,3 +171,11 @@
   55% { transform: translateY(-75%); }
   100% { transform: translateY(0); }
 }
+
+/* Iframe scroll — uses CSS custom property for exact distance */
+@keyframes scrollIframe {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(var(--scroll-distance, -70%)); }
+  60%  { transform: translateY(var(--scroll-distance, -70%)); }
+  100% { transform: translateY(0); }
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 
 const clientSites = [
@@ -34,24 +34,28 @@ function useDeviceTier() {
 }
 
 const SITE_COUNTS = { mobile: 4, tablet: 6, laptop: 6, desktop: 12 };
-const IFRAME_W = 1440;
-const IFRAME_H_MULTIPLIER = 3; // 3x viewport height for full-page scroll
 
+/*
+ * Each card renders the client website at 1440px native width inside an iframe,
+ * then CSS-scales it to fit the card. The iframe is 3× viewport height to capture
+ * the full homepage. A CSS animation scrolls the content top-to-bottom.
+ *
+ * Key: the iframe wrapper has explicit pixel dimensions calculated from the card
+ * width, preventing any layout collapse.
+ */
 const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
   const [shouldLoad, setShouldLoad] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [scale, setScale] = useState(0.3);
+  const [cardWidth, setCardWidth] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Compute scale from actual card width
+  // Measure viewport width for scale calculation
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      setScale(entry.contentRect.width / IFRAME_W);
-    });
+    const ro = new ResizeObserver(([entry]) => setCardWidth(entry.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -62,33 +66,37 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setShouldLoad(true); obs.disconnect(); } },
-      { rootMargin: "200px" }
+      { rootMargin: "400px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  // Stagger scroll start by 1s per card
+  // Stagger scroll: each card starts 1s after previous
   useEffect(() => {
     if (!shouldLoad) return;
     const timer = setTimeout(() => setScrollActive(true), index * 1000);
     return () => clearTimeout(timer);
   }, [shouldLoad, index]);
 
-  // The iframe is rendered at 1440px wide, then CSS-scaled to fit the card.
-  // Height = 3x the viewport so scroll covers the full homepage.
-  const iframeH = IFRAME_W * (10 / 16) * IFRAME_H_MULTIPLIER; // 900 * 3 = 2700
+  const NATIVE_W = 1440;
+  const scale = cardWidth > 0 ? cardWidth / NATIVE_W : 0.3;
+  // Viewport height at laptop ratio (16:10)
+  const viewportH = cardWidth * (10 / 16);
+  // iframe height = 3x native viewport to show full page
+  const nativeViewportH = NATIVE_W * (10 / 16); // 900px
+  const iframeH = nativeViewportH * 4; // 3600px to capture full homepage
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]">
         {/* MacBook chrome */}
-        <div className="flex items-center gap-1.5 px-4 py-2 bg-muted/60 border-b border-border">
-          <div className="w-2 h-2 rounded-full bg-destructive/50" />
-          <div className="w-2 h-2 rounded-full bg-gold" />
-          <div className="w-2 h-2 rounded-full bg-accent/50" />
-          <div className="ml-3 flex-1 h-5 bg-background rounded-md flex items-center px-3">
-            <span className="text-[9px] text-muted-foreground truncate">{site.url}</span>
+        <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-muted/60 border-b border-border">
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive/50" />
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gold" />
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-accent/50" />
+          <div className="ml-2 sm:ml-3 flex-1 h-4 sm:h-5 bg-background rounded-md flex items-center px-2 sm:px-3">
+            <span className="text-[8px] sm:text-[9px] text-muted-foreground truncate">{site.url}</span>
           </div>
         </div>
 
@@ -98,24 +106,27 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           className="relative w-full overflow-hidden bg-background"
           style={{ aspectRatio: "16 / 10" }}
         >
-          {shouldLoad ? (
+          {shouldLoad && cardWidth > 0 ? (
             <div
-              className="absolute top-0 left-0 w-full"
+              className="absolute top-0 left-0"
               style={{
-                height: `${IFRAME_H_MULTIPLIER * 100}%`,
+                width: `${cardWidth}px`,
+                height: `${iframeH * scale}px`,
                 animation: scrollActive && !hovered
-                  ? "scrollSiteFull 16s linear infinite"
+                  ? `scrollIframe 16s ease-in-out infinite`
                   : "none",
+                /* The animation scrolls from 0 to -(totalHeight - viewportHeight) */
+                ["--scroll-distance" as any]: `-${iframeH * scale - viewportH}px`,
               }}
             >
               <iframe
                 src={site.url}
                 title={`${site.name} website`}
-                className="pointer-events-none border-0 block"
+                className="pointer-events-none border-0 block origin-top-left"
                 loading="lazy"
                 sandbox="allow-scripts allow-same-origin"
                 style={{
-                  width: `${IFRAME_W}px`,
+                  width: `${NATIVE_W}px`,
                   height: `${iframeH}px`,
                   transform: `scale(${scale})`,
                   transformOrigin: "top left",
@@ -129,7 +140,7 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-300 flex items-center justify-center z-10">
             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
-              <p className="text-white font-black text-base sm:text-lg uppercase tracking-tight">{site.name}</p>
+              <p className="text-white font-black text-sm sm:text-lg uppercase tracking-tight">{site.name}</p>
               <a
                 href={site.url}
                 target="_blank"
@@ -176,10 +187,10 @@ export const WebsiteShowcaseGrid = () => {
           {visibleSites.map((site, i) => (
             <motion.div
               key={site.name}
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: (i % 3) * 0.1 }}
+              viewport={{ once: true, margin: "100px" }}
+              transition={{ duration: 0.4, delay: (i % 3) * 0.08 }}
             >
               <MacBookCard site={site} index={i} />
             </motion.div>
