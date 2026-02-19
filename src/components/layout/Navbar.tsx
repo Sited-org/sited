@@ -10,7 +10,8 @@ const navLinks = [
   { name: "Home", href: "/" },
   { name: "Features", href: "/features" },
   { name: "Our Work", href: "/work" },
-  { name: "Book a Call", href: "/contact" },
+  { name: "Contact", href: "/contact" },
+  { name: "Blog", href: "/blog" },
 ];
 
 const domains = ["au", "co"];

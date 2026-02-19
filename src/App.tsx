@@ -32,6 +32,9 @@ const AdminRequests = lazy(() => import("./pages/AdminRequests"));
 const AdminFinancial = lazy(() => import("./pages/AdminFinancial"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const AdminAnalysisAI = lazy(() => import("./pages/AdminAnalysisAI"));
+const AdminBlog = lazy(() => import("./pages/AdminBlog"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const ClientPortalLogin = lazy(() => import("./pages/ClientPortalLogin"));
 const ClientPortalDashboard = lazy(() => import("./pages/ClientPortalDashboard"));
@@ -68,6 +71,8 @@ const App = () => (
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
             <Route path="/policies" element={<Policies />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             {/* App Onboarding route removed - service no longer offered */}
             {/* AI Onboarding route removed - service no longer offered */}
             {/* Client Portal Routes */}
@@ -93,6 +98,7 @@ const App = () => (
               <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="team" element={<AdminTeam />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="blog" element={<AdminBlog />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
