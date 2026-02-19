@@ -18,6 +18,13 @@ const projectTypeLabels: Record<string, string> = {
   ai: 'AI Integration',
 };
 
+// Check if form_data contains full onboarding details (not just the quick questionnaire)
+function hasFullOnboarding(formData: Record<string, any> | null): boolean {
+  if (!formData) return false;
+  const fullFields = ['industry', 'businessDescription', 'targetAudience', 'primaryGoal', 'designStyle', 'budget', 'timeline'];
+  return fullFields.some(f => formData[f] && String(formData[f]).trim() !== '');
+}
+
 interface ProjectTabProps {
   lead: any;
   canEdit: boolean;
@@ -247,13 +254,15 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
               </div>
             </div>
 
-            {/* Form Responses - Categorized Display */}
+            {/* Basic Capture Data */}
             {lead.form_data && Object.keys(lead.form_data).length > 0 && (
               <>
                 <Separator />
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <label className="text-sm font-medium text-muted-foreground">Project Details</label>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {lead.form_data?.business_category ? 'Questionnaire Responses' : 'Project Details'}
+                    </label>
                     {canEdit && (
                       <div className="flex items-center gap-2">
                         {isEditingForm && (
@@ -296,6 +305,45 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                       </Button>
                     </div>
                   )}
+                </div>
+              </>
+            )}
+
+            {/* Full Onboarding Section */}
+            {canEdit && !hasFullOnboarding(lead.form_data) && (
+              <>
+                <Separator />
+                <div className="p-4 rounded-lg border border-dashed border-border bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Full Onboarding Form</p>
+                      <p className="text-xs text-muted-foreground">
+                        Complete during the booked call — adds design preferences, technical requirements & more.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingForm(true);
+                        // Seed the full onboarding fields into editedFormData
+                        setEditedFormData(prev => ({
+                          ...prev,
+                          industry: prev.industry || '',
+                          businessDescription: prev.businessDescription || '',
+                          targetAudience: prev.targetAudience || '',
+                          primaryGoal: prev.primaryGoal || '',
+                          designStyle: prev.designStyle || '',
+                          currentWebsite: prev.currentWebsite || '',
+                          budget: prev.budget || '',
+                          timeline: prev.timeline || '',
+                        }));
+                      }}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Add Details
+                    </Button>
+                  </div>
                 </div>
               </>
             )}

@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { User, Building2, Globe, Target, Palette, Settings, Calendar, FileText } from 'lucide-react';
+import { User, Building2, Globe, Target, Palette, Settings, Calendar, FileText, ClipboardList } from 'lucide-react';
 
 interface FormResponsesDisplayProps {
   formData: Record<string, any>;
@@ -9,8 +9,48 @@ interface FormResponsesDisplayProps {
   onFieldChange?: (key: string, value: string) => void;
 }
 
+// Questions map for the quick questionnaire (service/retail/professional)
+const SERVICE_QUESTION_LABELS = [
+  'How many services do you offer?',
+  'How many suburbs do you service?',
+  'Do you have your own images?',
+  'How soon do you need your website?',
+];
+const RETAIL_QUESTION_LABELS = [
+  'How many locations do you have?',
+  'Do you sell online?',
+  'Do you have your own product images?',
+  'How soon do you need your website?',
+];
+const PROFESSIONAL_QUESTION_LABELS = [
+  'What best describes your practice?',
+  'How many service areas do you cover?',
+  'Do you have professional headshots & images?',
+  'How soon do you need your website?',
+];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  service: 'Service Business',
+  retail: 'Retail Business',
+  professional: 'Professional Services',
+};
+
+function getQuestionLabels(category: string): string[] {
+  if (category === 'service') return SERVICE_QUESTION_LABELS;
+  if (category === 'retail') return RETAIL_QUESTION_LABELS;
+  if (category === 'professional') return PROFESSIONAL_QUESTION_LABELS;
+  return [];
+}
+
 // Define categories with their fields, colors, and icons
 const FIELD_CATEGORIES = {
+  questionnaire: {
+    label: 'Quick Questionnaire',
+    icon: ClipboardList,
+    color: 'bg-sited-blue/10 border-sited-blue/20 text-sited-blue',
+    badgeColor: 'bg-sited-blue/10 text-sited-blue',
+    fields: ['business_category', 'questionnaire_answers', 'source', 'contactInfoOnly'],
+  },
   contact: {
     label: 'Contact Information',
     icon: User,
@@ -62,6 +102,9 @@ const FIELD_CATEGORIES = {
   }
 };
 
+// Fields to hide from generic display (internal flags)
+const HIDDEN_FIELDS = ['partial', 'contactInfoOnly', 'source'];
+
 const formatKey = (key: string) => {
   return key
     .replace(/([A-Z])/g, ' $1')
@@ -78,11 +121,12 @@ const formatValue = (value: any): string => {
   if (typeof value === 'object') {
     return JSON.stringify(value);
   }
-  // Format specific values for better readability
   const str = String(value);
   if (str === 'yes') return '✓ Yes';
   if (str === 'no') return '✗ No';
   if (str === 'need-help') return '? Need Help';
+  if (str === 'true') return '✓ Yes';
+  if (str === 'false') return '✗ No';
   return str;
 };
 
@@ -90,14 +134,22 @@ const categorizeFields = (formData: Record<string, any>) => {
   const categorized: Record<string, { key: string; value: any }[]> = {};
   const processedFields = new Set<string>();
 
-  // Initialize categories
   Object.keys(FIELD_CATEGORIES).forEach(cat => {
     categorized[cat] = [];
   });
 
-  // Categorize known fields
+  // Mark hidden fields as processed so they don't show
+  HIDDEN_FIELDS.forEach(f => processedFields.add(f));
+
+  // Handle questionnaire data specially
+  if (formData.business_category || formData.questionnaire_answers) {
+    categorized.questionnaire = []; // Will be rendered specially
+    processedFields.add('business_category');
+    processedFields.add('questionnaire_answers');
+  }
+
   Object.entries(FIELD_CATEGORIES).forEach(([category, config]) => {
-    if (category === 'other') return; // Skip 'other' for now
+    if (category === 'other' || category === 'questionnaire') return;
     
     config.fields.forEach(field => {
       if (field in formData && !processedFields.has(field)) {
@@ -107,18 +159,53 @@ const categorizeFields = (formData: Record<string, any>) => {
     });
   });
 
-  // Add uncategorized fields to 'other'
   Object.entries(formData).forEach(([key, value]) => {
     if (!processedFields.has(key)) {
       categorized.other.push({ key, value });
     }
   });
 
-  // Remove empty categories
   return Object.fromEntries(
-    Object.entries(categorized).filter(([_, fields]) => fields.length > 0)
+    Object.entries(categorized).filter(([_, fields]) => fields.length > 0 || _ === 'questionnaire')
   );
 };
+
+// Special renderer for the quick questionnaire answers
+function QuestionnaireDisplay({ formData }: { formData: Record<string, any> }) {
+  const category = formData.business_category;
+  const answers: string[] = formData.questionnaire_answers || [];
+  const labels = getQuestionLabels(category);
+
+  if (!category && answers.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border p-4 bg-sited-blue/10 border-sited-blue/20 text-sited-blue">
+      <div className="flex items-center gap-2 mb-3">
+        <ClipboardList className="h-4 w-4" />
+        <span className="text-sm font-semibold">Quick Questionnaire</span>
+        {category && (
+          <Badge variant="outline" className="ml-auto text-xs bg-sited-blue/10 text-sited-blue border-sited-blue/30">
+            {CATEGORY_LABELS[category] || category}
+          </Badge>
+        )}
+      </div>
+      {answers.length > 0 ? (
+        <div className="grid gap-2">
+          {answers.map((answer, i) => (
+            <div key={i} className="flex flex-col sm:flex-row sm:items-start gap-1 text-sm py-1 border-b border-current/10 last:border-0">
+              <span className="font-medium min-w-[200px] opacity-70 text-xs uppercase tracking-wide">
+                {labels[i] || `Question ${i + 1}`}
+              </span>
+              <span className="flex-1 break-words font-semibold">{answer}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm opacity-70">No questionnaire answers recorded</p>
+      )}
+    </div>
+  );
+}
 
 export function FormResponsesDisplay({ 
   formData, 
@@ -128,6 +215,7 @@ export function FormResponsesDisplay({
 }: FormResponsesDisplayProps) {
   const categorizedData = categorizeFields(formData);
   const displayData = isEditing && editedFormData ? editedFormData : formData;
+  const hasQuestionnaire = formData.business_category || formData.questionnaire_answers;
 
   if (Object.keys(formData).length === 0) {
     return (
@@ -137,7 +225,12 @@ export function FormResponsesDisplay({
 
   return (
     <div className="space-y-4">
+      {/* Render questionnaire data specially */}
+      {hasQuestionnaire && <QuestionnaireDisplay formData={formData} />}
+
+      {/* Render other categorized fields */}
       {Object.entries(categorizedData).map(([category, fields]) => {
+        if (category === 'questionnaire') return null; // Already rendered above
         const categoryConfig = FIELD_CATEGORIES[category as keyof typeof FIELD_CATEGORIES];
         const Icon = categoryConfig.icon;
         
@@ -150,12 +243,12 @@ export function FormResponsesDisplay({
               <Icon className="h-4 w-4" />
               <span className="text-sm font-semibold">{categoryConfig.label}</span>
               <Badge variant="outline" className={`ml-auto text-xs ${categoryConfig.badgeColor}`}>
-                {fields.length} {fields.length === 1 ? 'field' : 'fields'}
+                {(fields as any[]).length} {(fields as any[]).length === 1 ? 'field' : 'fields'}
               </Badge>
             </div>
             
             <div className="grid gap-2">
-              {fields.map(({ key }) => {
+              {(fields as { key: string; value: any }[]).map(({ key }) => {
                 const value = displayData[key];
                 
                 if (isEditing && onFieldChange) {

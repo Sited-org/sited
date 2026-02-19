@@ -79,7 +79,7 @@ const SocialProofSection = () => {
         <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Trusted & Certified By
         </p>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+        <div className="flex flex-wrap justify-center gap-3">
           {trustLogos.map((logo, i) => (
             <motion.div
               key={i}
