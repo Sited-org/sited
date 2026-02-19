@@ -124,7 +124,7 @@ const OnboardingBookingDialog = ({
       setLoadingSlots(false);
     };
     fetchSlots();
-  }, [selectedDay, year, currentMonth]);
+  }, [selectedDay, year, monthOffset]);
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
