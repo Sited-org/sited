@@ -62,6 +62,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selectedPaymentItems, setSelectedPaymentItems] = useState<string[]>([]);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [partialPaymentAmount, setPartialPaymentAmount] = useState('');
 
   // Void state
   const [voidOpen, setVoidOpen] = useState(false);
@@ -327,6 +328,14 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       .reduce((sum, t) => sum + Number(t.debit), 0);
   };
 
+  const getEffectivePaymentAmount = () => {
+    const itemsTotal = getSelectedPaymentTotal();
+    if (partialPaymentAmount && parseFloat(partialPaymentAmount) > 0) {
+      return Math.min(parseFloat(partialPaymentAmount), itemsTotal);
+    }
+    return itemsTotal;
+  };
+
   // Calculate available account credit that can be applied to new charges.
   // This is NOT the same as an overall negative balance.
   // We treat any paid credits as a pool that gets consumed by paid debits.
@@ -347,7 +356,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
 
   // Calculate credit to be applied and net charge amount
   const getCreditApplication = () => {
-    const paymentTotal = getSelectedPaymentTotal();
+    const paymentTotal = getEffectivePaymentAmount();
     const availableCredit = getAvailableCredit();
     const creditToApply = Math.min(availableCredit, paymentTotal);
     const netChargeAmount = paymentTotal - creditToApply;
@@ -357,6 +366,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const handleProcessPayment = async () => {
     if (selectedPaymentItems.length === 0) {
       toast.error('Please select at least one item to pay');
+      return;
+    }
+
+    const effectiveAmount = getEffectivePaymentAmount();
+    if (effectiveAmount <= 0) {
+      toast.error('Payment amount must be greater than 0');
       return;
     }
 
@@ -370,19 +385,21 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
 
     setProcessingPayment(true);
     try {
-      const paymentTotal = getSelectedPaymentTotal();
+      const paymentAmount = getEffectivePaymentAmount();
       const selectedItems = transactions.filter(t => selectedPaymentItems.includes(t.id));
       const description = selectedItems.map(t => t.item).join(', ');
+      const isPartial = partialPaymentAmount && parseFloat(partialPaymentAmount) > 0 && parseFloat(partialPaymentAmount) < getSelectedPaymentTotal();
       
       // Get real transaction IDs (not future previews)
-      const realTransactionIds = selectedPaymentItems.filter(id => !id.startsWith('future-'));
+      // Only mark as fully paid if paying the full amount
+      const realTransactionIds = isPartial ? [] : selectedPaymentItems.filter(id => !id.startsWith('future-'));
 
       const { data, error } = await supabase.functions.invoke('charge-saved-card', {
         body: {
           lead_id: lead.id,
-          amount: paymentTotal,
-          description: description,
-          item_description: description,
+          amount: paymentAmount,
+          description: isPartial ? `Partial payment: ${description}` : description,
+          item_description: isPartial ? `Partial payment: ${description}` : description,
           transaction_ids: realTransactionIds,
         },
       });
@@ -395,14 +412,14 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         throw new Error(data?.error || 'Payment was not successful');
       }
       
-      // Show appropriate success message based on credit application
       const successMessage = data.creditApplied > 0 
         ? `$${data.creditApplied.toLocaleString()} credit applied${data.amountCharged > 0 ? `, $${data.amountCharged.toLocaleString()} charged` : ''}`
-        : `Payment of $${paymentTotal.toLocaleString()} processed successfully`;
+        : `Payment of $${paymentAmount.toLocaleString()} processed successfully`;
       
       toast.success(successMessage);
       setPaymentOpen(false);
       setSelectedPaymentItems([]);
+      setPartialPaymentAmount('');
       
       // Refresh transactions to show the new credit entry
       window.location.reload();
@@ -750,6 +767,30 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                       )}
                     </div>
 
+                    {/* Partial Payment Amount */}
+                    {selectedPaymentItems.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Payment Amount (leave empty to pay full amount)</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            placeholder={`${getSelectedPaymentTotal().toLocaleString()} (full amount)`}
+                            value={partialPaymentAmount}
+                            onChange={(e) => setPartialPaymentAmount(e.target.value)}
+                            min="0"
+                            max={getSelectedPaymentTotal()}
+                            step="0.01"
+                          />
+                        </div>
+                        {partialPaymentAmount && parseFloat(partialPaymentAmount) > 0 && parseFloat(partialPaymentAmount) < getSelectedPaymentTotal() && (
+                          <p className="text-xs text-muted-foreground">
+                            Partial payment — remaining ${(getSelectedPaymentTotal() - parseFloat(partialPaymentAmount)).toLocaleString()} will stay outstanding
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Payment Summary with Credit Application */}
                     {(() => {
                       const { paymentTotal, availableCredit, creditToApply, netChargeAmount } = getCreditApplication();
@@ -760,7 +801,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                             <span>{selectedPaymentItems.length}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span>Total Charges:</span>
+                            <span>{partialPaymentAmount && parseFloat(partialPaymentAmount) > 0 && parseFloat(partialPaymentAmount) < getSelectedPaymentTotal() ? 'Partial Amount:' : 'Total Charges:'}</span>
                             <span>${paymentTotal.toLocaleString()}</span>
                           </div>
                           
