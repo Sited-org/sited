@@ -20,7 +20,7 @@ const statusColors: Record<string, string> = {
 
 function getBookingsForDate(bookings: Booking[], date: Date) {
   const dateStr = date.toISOString().split('T')[0];
-  return bookings.filter(b => b.booking_date === dateStr);
+  return bookings.filter(b => b.booking_date === dateStr && b.status !== 'cancelled');
 }
 
 function MonthView({ currentDate, bookings, onBookingClick, onDateClick }: Omit<CalendarViewProps, 'viewMode' | 'config'>) {
