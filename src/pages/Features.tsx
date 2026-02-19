@@ -14,22 +14,46 @@ const valueBlocks = [
   {
     icon: TrendingUp,
     title: "More Leads",
-    description: "Websites designed to convert visitors into real enquiries — not just look pretty.",
+    accent: "Every page is built to convert.",
+    description: "A beautiful website means nothing if it doesn't bring in business. We design every element — from headlines to call-to-actions — around one goal: turning visitors into paying customers. Strategic layouts, clear messaging, and fast load times mean your site works as hard as you do.",
+    stats: [
+      { value: "3x", label: "More enquiries on average" },
+      { value: "< 2s", label: "Page load time" },
+      { value: "40%", label: "Higher conversion rates" },
+    ],
   },
   {
     icon: Search,
     title: "Dominant SEO",
-    description: "Rank higher than your competitors. We build SEO into every page from day one.",
+    accent: "Be found before your competitors.",
+    description: "We don't bolt SEO on at the end — it's baked into the foundation. Proper heading structures, optimised metadata, lightning-fast performance scores, and clean code that Google loves. Whether it's local search or industry keywords, your site is built to rank and stay ranked.",
+    stats: [
+      { value: "Page 1", label: "Google rankings" },
+      { value: "95+", label: "Performance score" },
+      { value: "100%", label: "SEO best practices" },
+    ],
   },
   {
     icon: Clock,
     title: "Less Work",
-    description: "Automated systems handle the repetitive stuff so you can focus on delivering.",
+    accent: "Automate the stuff you hate doing.",
+    description: "Manual follow-ups, chasing invoices, updating spreadsheets — it all adds up. We build systems that handle the repetitive admin so you don't have to. Automated emails, built-in CRMs, client portals, and invoicing that runs itself. Less busywork, more breathing room.",
+    stats: [
+      { value: "10+", label: "Hours saved per week" },
+      { value: "Zero", label: "Spreadsheets needed" },
+      { value: "24/7", label: "Systems working for you" },
+    ],
   },
   {
     icon: Sparkles,
     title: "More Time Doing What You're Good At",
-    description: "Stop juggling tools. We build one system that handles it all.",
+    accent: "Focus on your craft, not your website.",
+    description: "You started your business because you're great at what you do — not because you love wrestling with technology. We take the entire digital side off your plate: design, development, hosting, updates, and support. You focus on your clients. We handle the rest.",
+    stats: [
+      { value: "100%", label: "Managed for you" },
+      { value: "Same day", label: "Support responses" },
+      { value: "Unlimited", label: "Content updates" },
+    ],
   },
 ];
 
@@ -130,31 +154,58 @@ const Features = () => {
         </section>
 
         {/* Value Blocks */}
-        <section className="bg-background">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {valueBlocks.map((block, i) => {
-                const Icon = block.icon;
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: i * 0.1 }}
-                    className="bg-card border border-border rounded-xl p-6 text-center"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-sited-blue/15 flex items-center justify-center mx-auto mb-4">
+        {valueBlocks.map((block, i) => {
+          const Icon = block.icon;
+          const isEven = i % 2 === 0;
+          return (
+            <section key={i} className={isEven ? "bg-background" : "bg-card border-y border-border"}>
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-11 h-11 rounded-xl bg-sited-blue/15 flex items-center justify-center">
                       <Icon size={22} className="text-sited-blue" />
                     </div>
-                    <h3 className="text-lg font-bold text-foreground mb-2">{block.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{block.description}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+                    <span className="text-xs uppercase tracking-[0.2em] text-sited-blue font-bold">
+                      0{i + 1}
+                    </span>
+                  </div>
+
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase leading-[0.95]">
+                    {block.title}
+                  </h2>
+                  <p className="mt-3 text-lg sm:text-xl font-semibold text-sited-blue">
+                    {block.accent}
+                  </p>
+                  <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl">
+                    {block.description}
+                  </p>
+
+                  {/* Stats row */}
+                  <div className="mt-8 flex flex-col sm:flex-row gap-4 sm:gap-0 sm:divide-x sm:divide-border">
+                    {block.stats.map((stat, j) => (
+                      <motion.div
+                        key={j}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: 0.2 + j * 0.1 }}
+                        className="sm:px-6 first:sm:pl-0"
+                      >
+                        <p className="text-2xl sm:text-3xl font-black text-foreground">{stat.value}</p>
+                        <p className="text-xs text-muted-foreground font-medium mt-0.5">{stat.label}</p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            </section>
+          );
+        })}
 
         {/* Bold Transition */}
         <section className="bg-sited-blue">
