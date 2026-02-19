@@ -18,6 +18,7 @@ const FUNNEL_NODES: {
   borderColor: string;
 }[] = [
   { id: 'warm_lead', label: 'Warm Lead', shortLabel: 'WL', description: 'Form filled, no deposit', color: 'text-amber-500', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
+  { id: 'discovery_call_booked', label: 'Discovery Call Booked', shortLabel: 'DCB', description: 'Discovery call booked', color: 'text-sky-500', bgColor: 'bg-sky-500/10', borderColor: 'border-sky-500/30' },
   { id: 'new_lead', label: 'New Lead', shortLabel: 'NL', description: 'Deposit paid', color: 'text-blue-500', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/30' },
   { id: 'new_client', label: 'New Client', shortLabel: 'NC', description: 'Call booked', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
   { id: 'no_show', label: 'No Show', shortLabel: 'NS', description: 'Call booked, no show', color: 'text-orange-500', bgColor: 'bg-orange-500/10', borderColor: 'border-orange-500/30' },

@@ -7,7 +7,7 @@ export type LeadStatus =
   | 'warm_lead' | 'new_lead' | 'new_client'
   | 'mbr_sold_dev' | 'current_mbr'
   | 'ot_sold_dev' | 'current_ot'
-  | 'no_show';
+  | 'no_show' | 'discovery_call_booked';
 
 export interface Lead {
   id: string;
@@ -38,6 +38,7 @@ export interface LeadActivity {
 
 export const STATUS_LABELS: Record<string, string> = {
   warm_lead: 'Warm Lead',
+  discovery_call_booked: 'Discovery Call Booked',
   new_lead: 'New Lead',
   new_client: 'New Client',
   no_show: 'No Show',
@@ -54,7 +55,7 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 
 export const ALL_STATUSES: LeadStatus[] = [
-  'warm_lead', 'new_lead', 'new_client', 'no_show',
+  'warm_lead', 'discovery_call_booked', 'new_lead', 'new_client', 'no_show',
   'mbr_sold_dev', 'current_mbr',
   'ot_sold_dev', 'current_ot',
   'lost',

@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, ArrowRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, ArrowRight, Loader2, MapPin, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,39 @@ import { toast } from "sonner";
 
 const DURATION = 20;
 const CALL_LABEL = "Discovery Call";
+
+const AUSTRALIA_TIMEZONES = [
+  { value: "Australia/Sydney", label: "Sydney (AEST/AEDT)", state: "NSW" },
+  { value: "Australia/Melbourne", label: "Melbourne (AEST/AEDT)", state: "VIC" },
+  { value: "Australia/Brisbane", label: "Brisbane (AEST)", state: "QLD" },
+  { value: "Australia/Perth", label: "Perth (AWST)", state: "WA" },
+  { value: "Australia/Adelaide", label: "Adelaide (ACST/ACDT)", state: "SA" },
+  { value: "Australia/Hobart", label: "Hobart (AEST/AEDT)", state: "TAS" },
+  { value: "Australia/Darwin", label: "Darwin (ACST)", state: "NT" },
+  { value: "Australia/Lord_Howe", label: "Lord Howe Island", state: "NSW" },
+];
+
+const AUSTRALIA_LOCATIONS = [
+  "Sydney, NSW", "Melbourne, VIC", "Brisbane, QLD", "Perth, WA", "Adelaide, SA",
+  "Gold Coast, QLD", "Canberra, ACT", "Hobart, TAS", "Darwin, NT",
+  "Newcastle, NSW", "Wollongong, NSW", "Sunshine Coast, QLD", "Geelong, VIC",
+  "Townsville, QLD", "Cairns, QLD", "Toowoomba, QLD", "Ballarat, VIC",
+  "Bendigo, VIC", "Launceston, TAS", "Mackay, QLD", "Rockhampton, QLD",
+  "Bunbury, WA", "Bundaberg, QLD", "Hervey Bay, QLD", "Wagga Wagga, NSW",
+  "Mildura, VIC", "Shepparton, VIC", "Gladstone, QLD", "Albury, NSW",
+  "Port Macquarie, NSW", "Tamworth, NSW", "Orange, NSW", "Dubbo, NSW",
+  "Geraldton, WA", "Kalgoorlie, WA", "Alice Springs, NT", "Mount Gambier, SA",
+];
+
+function guessTimezoneFromLocation(location: string): string {
+  const loc = location.toLowerCase();
+  if (loc.includes("wa") || loc.includes("perth") || loc.includes("bunbury") || loc.includes("geraldton") || loc.includes("kalgoorlie")) return "Australia/Perth";
+  if (loc.includes("sa") || loc.includes("adelaide") || loc.includes("mount gambier")) return "Australia/Adelaide";
+  if (loc.includes("nt") || loc.includes("darwin") || loc.includes("alice springs")) return "Australia/Darwin";
+  if (loc.includes("tas") || loc.includes("hobart") || loc.includes("launceston")) return "Australia/Hobart";
+  if (loc.includes("qld") || loc.includes("brisbane") || loc.includes("gold coast") || loc.includes("sunshine coast") || loc.includes("townsville") || loc.includes("cairns") || loc.includes("toowoomba") || loc.includes("mackay") || loc.includes("rockhampton") || loc.includes("bundaberg") || loc.includes("hervey bay") || loc.includes("gladstone")) return "Australia/Brisbane";
+  return "Australia/Sydney";
+}
 
 interface BookingDialogProps {
   open: boolean;
@@ -28,6 +61,10 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
   const [timeSlots, setTimeSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [zoomJoinUrl, setZoomJoinUrl] = useState<string | null>(null);
+  const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -37,6 +74,22 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     businessType: "",
     businessLocation: "",
   });
+
+  const filteredLocations = useMemo(() => {
+    if (!locationQuery.trim()) return AUSTRALIA_LOCATIONS.slice(0, 8);
+    return AUSTRALIA_LOCATIONS.filter(l => l.toLowerCase().includes(locationQuery.toLowerCase())).slice(0, 8);
+  }, [locationQuery]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowLocationDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -67,7 +120,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       const dateStr = new Date(year, currentMonth.getMonth(), selectedDay).toISOString().split('T')[0];
       try {
         const { data, error } = await supabase.functions.invoke('get-available-slots', {
-          body: { date: dateStr, duration_override: DURATION },
+          body: { date: dateStr, duration_override: DURATION, timezone: selectedTimezone },
         });
         if (!error && data) {
           setTimeSlots(data.slots || []);
@@ -79,7 +132,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       setLoadingSlots(false);
     };
     fetchSlots();
-  }, [selectedDay, year, monthOffset]);
+  }, [selectedDay, year, monthOffset, selectedTimezone]);
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
@@ -88,6 +141,14 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
 
   const handleInputChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLocationSelect = (location: string) => {
+    setLocationQuery(location);
+    handleInputChange("businessLocation", location);
+    setShowLocationDropdown(false);
+    // Auto-set timezone
+    setSelectedTimezone(guessTimezoneFromLocation(location));
   };
 
   const isFormValid =
@@ -144,6 +205,11 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
           booking_type: 'discovery',
           business_name: form.businessName.trim(),
+          attendee_phone: form.phone.trim(),
+          attendee_timezone: selectedTimezone,
+          create_lead: true,
+          business_type: form.businessType,
+          business_location: form.businessLocation.trim(),
         },
       });
 
@@ -168,6 +234,8 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       setIsBooked(false);
       setMonthOffset(0);
       setZoomJoinUrl(null);
+      setLocationQuery("");
+      setSelectedTimezone("Australia/Sydney");
       setForm({
         firstName: "",
         lastName: "",
@@ -240,6 +308,24 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                 <p className="text-sm text-muted-foreground mt-1">
                   {DURATION}-minute call to learn about your business and goals. Pick a date and time.
                 </p>
+              </div>
+
+              {/* Timezone Selector */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Globe size={14} className="text-muted-foreground" />
+                  <Label className="text-xs text-muted-foreground">Your timezone</Label>
+                </div>
+                <Select value={selectedTimezone} onValueChange={(v) => { setSelectedTimezone(v); setSelectedTime(null); }}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {AUSTRALIA_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Month Nav */}
@@ -404,9 +490,35 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Business location *</Label>
-                  <Input value={form.businessLocation} onChange={(e) => handleInputChange("businessLocation", e.target.value)} placeholder="City, State" className="h-10 text-sm" />
+                <div className="space-y-1.5" ref={locationRef}>
+                  <Label className="text-xs flex items-center gap-1"><MapPin size={12} /> Business location *</Label>
+                  <div className="relative">
+                    <Input
+                      value={locationQuery || form.businessLocation}
+                      onChange={(e) => {
+                        setLocationQuery(e.target.value);
+                        handleInputChange("businessLocation", e.target.value);
+                        setShowLocationDropdown(true);
+                      }}
+                      onFocus={() => setShowLocationDropdown(true)}
+                      placeholder="Search city..."
+                      className="h-10 text-sm"
+                    />
+                    {showLocationDropdown && filteredLocations.length > 0 && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {filteredLocations.map((loc) => (
+                          <button
+                            key={loc}
+                            type="button"
+                            onClick={() => handleLocationSelect(loc)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg"
+                          >
+                            {loc}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting} variant="hero" size="lg" className="w-full mt-2">
                   {isSubmitting ? "Booking..." : "Confirm Booking"}

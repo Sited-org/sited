@@ -4,6 +4,7 @@ import { STATUS_LABELS } from '@/hooks/useLeads';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   warm_lead: { label: 'Warm Lead', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  discovery_call_booked: { label: 'DCB', className: 'bg-sky-500/10 text-sky-600 border-sky-500/20' },
   new_lead: { label: 'New Lead', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
   new_client: { label: 'New Client', className: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' },
   no_show: { label: 'No Show', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
@@ -24,6 +25,7 @@ const partialConfig = { label: 'Partial', className: 'bg-sky-500/10 text-sky-600
 export const rowBackgroundConfig: Record<string, string> = {
   partial: 'bg-sky-500/5 hover:bg-sky-500/10',
   warm_lead: 'bg-amber-500/5 hover:bg-amber-500/10',
+  discovery_call_booked: 'bg-sky-500/5 hover:bg-sky-500/10',
   new_lead: 'bg-blue-500/5 hover:bg-blue-500/10',
   new_client: 'bg-indigo-500/5 hover:bg-indigo-500/10',
   no_show: 'bg-orange-500/5 hover:bg-orange-500/10',

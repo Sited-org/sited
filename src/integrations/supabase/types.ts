@@ -1536,6 +1536,7 @@ export type Database = {
         | "ot_sold_dev"
         | "current_ot"
         | "no_show"
+        | "discovery_call_booked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1678,6 +1679,7 @@ export const Constants = {
         "ot_sold_dev",
         "current_ot",
         "no_show",
+        "discovery_call_booked",
       ],
     },
   },
