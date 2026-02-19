@@ -70,7 +70,7 @@ const ShowcaseSection = ({
             onClick={onCta}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-sited-blue text-white font-semibold text-sm hover:bg-sited-blue-hover transition-colors"
           >
-            Start a Project <ArrowRight size={16} />
+            Start Here <ArrowRight size={16} />
           </button>
         </motion.div>
         <div className={reversed ? "lg:col-start-1" : ""}>
@@ -101,29 +101,29 @@ const Features = () => {
 
       <div className="overflow-x-hidden w-full">
         {/* Hero */}
-        <section className="min-h-[70vh] flex items-center justify-center relative pt-20">
+        <section className="min-h-screen flex items-center justify-center relative bg-background">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
             <motion.h1
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-5xl sm:text-7xl lg:text-[8rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
+              className="text-6xl sm:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
             >
-              Built to
+              What makes a
               <br />
-              <span className="text-sited-blue">Perform.</span>
+              <span className="text-sited-blue">difference.</span>
             </motion.h1>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="mt-8"
+              className="mt-8 sm:mt-10"
             >
               <button
                 onClick={() => setCtaOpen(true)}
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-colors shadow-elevated"
               >
-                Start a Project <ArrowRight size={20} />
+                Get a Quote <ArrowRight size={20} />
               </button>
             </motion.div>
           </div>
@@ -250,7 +250,7 @@ const Features = () => {
               onClick={() => setCtaOpen(true)}
               className="mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-gold text-foreground font-bold text-lg hover:bg-gold-hover transition-colors"
             >
-              Start a Project <ArrowRight size={20} />
+              Get a Quote Today <ArrowRight size={20} />
             </button>
           </div>
         </section>
