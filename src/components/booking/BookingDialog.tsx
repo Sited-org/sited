@@ -9,22 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const CALL_TYPES = [
-  { value: "discovery", label: "Discovery Call", duration: 20, description: "Quick chat to learn about your business and goals" },
-  { value: "onboarding", label: "Onboarding Call", duration: 45, description: "Deep-dive kickoff session for your project" },
-] as const;
-
-type CallType = typeof CALL_TYPES[number]["value"];
+const DURATION = 20;
+const CALL_LABEL = "Discovery Call";
 
 interface BookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultCallType?: CallType;
 }
 
-const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: BookingDialogProps) => {
-  const [step, setStep] = useState<"type" | "calendar" | "form">("type");
-  const [callType, setCallType] = useState<CallType>(defaultCallType);
+const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
+  const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -43,9 +37,6 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
     businessType: "",
     businessLocation: "",
   });
-
-  const selectedCallType = CALL_TYPES.find(c => c.value === callType)!;
-  const duration = selectedCallType.duration;
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -69,7 +60,6 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
     return true;
   };
 
-  // Fetch available slots when a day is selected
   useEffect(() => {
     if (!selectedDay) return;
     const fetchSlots = async () => {
@@ -77,7 +67,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
       const dateStr = new Date(year, currentMonth.getMonth(), selectedDay).toISOString().split('T')[0];
       try {
         const { data, error } = await supabase.functions.invoke('get-available-slots', {
-          body: { date: dateStr, duration_override: duration },
+          body: { date: dateStr, duration_override: DURATION },
         });
         if (!error && data) {
           setTimeSlots(data.slots || []);
@@ -89,14 +79,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
       setLoadingSlots(false);
     };
     fetchSlots();
-  }, [selectedDay, year, currentMonth, duration]);
-
-  // Reset calendar when call type changes
-  useEffect(() => {
-    setSelectedDay(null);
-    setSelectedTime(null);
-    setTimeSlots([]);
-  }, [callType]);
+  }, [selectedDay, year, currentMonth]);
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
@@ -133,8 +116,8 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
       business_location: form.businessLocation.trim(),
       booking_date: dateStr,
       booking_time: selectedTime,
-      booking_type: callType,
-      duration_minutes: duration,
+      booking_type: 'discovery',
+      duration_minutes: DURATION,
     }).select('id').single();
 
     if (error) {
@@ -143,7 +126,6 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
       return;
     }
 
-    // Create Zoom meeting + send confirmation email
     try {
       const [timePart, ampm] = selectedTime!.split(' ');
       const [hStr, mStr] = timePart.split(':');
@@ -155,12 +137,13 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
       const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
-          topic: `${selectedCallType.label} – ${form.businessName.trim()}`,
+          topic: `Discovery Call – ${form.businessName.trim()}`,
           start_time: startDate.toISOString(),
-          duration,
+          duration: DURATION,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: callType,
+          booking_type: 'discovery',
+          business_name: form.businessName.trim(),
         },
       });
 
@@ -178,8 +161,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
-      setStep("type");
-      setCallType(defaultCallType);
+      setStep("calendar");
       setSelectedDay(null);
       setSelectedTime(null);
       setHoveredDay(null);
@@ -201,7 +183,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 border-border/50 bg-card overflow-hidden max-h-[90vh] overflow-y-auto">
-        <DialogTitle className="sr-only">Book a Consultation</DialogTitle>
+        <DialogTitle className="sr-only">Book a Discovery Call</DialogTitle>
 
         <AnimatePresence mode="wait">
           {isBooked ? (
@@ -221,7 +203,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
               </motion.div>
               <p className="text-lg font-semibold text-green-500 mb-1">Booked</p>
               <p className="text-sm text-muted-foreground text-center">
-                {monthName} {selectedDay}, {year} at {selectedTime} — {duration} min {selectedCallType.label}
+                {monthName} {selectedDay}, {year} at {selectedTime} — {DURATION} min {CALL_LABEL}
               </p>
               {zoomJoinUrl ? (
                 <a
@@ -245,52 +227,6 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
               </Button>
             </motion.div>
 
-          ) : step === "type" ? (
-            <motion.div
-              key="type"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="p-6 sm:p-8"
-            >
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold">Book a Call</h3>
-                <p className="text-sm text-muted-foreground mt-1">Choose the type of consultation you need.</p>
-              </div>
-
-              <div className="space-y-3">
-                {CALL_TYPES.map((type) => (
-                  <motion.button
-                    key={type.value}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => {
-                      setCallType(type.value);
-                      setStep("calendar");
-                    }}
-                    className="w-full text-left p-5 rounded-xl border border-border/50 hover:border-foreground/20 hover:bg-muted/50 transition-all group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground group-hover:text-foreground">
-                          {type.label}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          {type.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                          {type.duration} min
-                        </span>
-                        <ArrowRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-                      </div>
-                    </div>
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-
           ) : step === "calendar" ? (
             <motion.div
               key="calendar"
@@ -299,20 +235,11 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
               exit={{ opacity: 0, x: -20 }}
               className="p-6 sm:p-8"
             >
-              <button
-                onClick={() => { setStep("type"); setSelectedDay(null); setSelectedTime(null); }}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-              >
-                <ChevronLeft size={16} />
-                Back
-              </button>
-
               <div className="mb-6">
-                <h3 className="text-lg font-semibold">
-                  {selectedCallType.label}
-                  <span className="text-sm font-normal text-muted-foreground ml-2">({duration} min)</span>
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">Pick a date and time that works for you.</p>
+                <h3 className="text-lg font-semibold">{CALL_LABEL}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {DURATION}-minute call to learn about your business and goals. Pick a date and time.
+                </p>
               </div>
 
               {/* Month Nav */}
@@ -387,7 +314,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
                     className="overflow-hidden"
                   >
                     <div className="pt-6 mt-6 border-t border-border/50">
-                      <p className="text-sm text-muted-foreground mb-3">Available times ({duration} min)</p>
+                      <p className="text-sm text-muted-foreground mb-3">Available times ({DURATION} min)</p>
                       {loadingSlots ? (
                         <div className="flex items-center justify-center py-6">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -437,7 +364,7 @@ const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: Bo
               <div className="mb-1">
                 <h3 className="text-lg font-semibold">Your Details</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {selectedCallType.label} · {monthName} {selectedDay}, {year} at {selectedTime} · {duration} min
+                  {CALL_LABEL} · {monthName} {selectedDay}, {year} at {selectedTime} · {DURATION} min
                 </p>
               </div>
 
