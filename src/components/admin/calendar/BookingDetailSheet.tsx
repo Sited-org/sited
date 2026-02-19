@@ -95,12 +95,12 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) setRescheduleMode(false); onOpenChange(o); }}>
-      <SheetContent className="sm:max-w-md">
-        <SheetHeader>
+      <SheetContent className="sm:max-w-md flex flex-col h-full overflow-hidden">
+        <SheetHeader className="shrink-0">
           <SheetTitle className="text-left">Booking Details</SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6 overflow-y-auto flex-1 pr-1 pb-6">
           {/* Status */}
           <div className="flex items-center gap-2">
             <Badge variant={statusVariant[booking.status] || 'outline'} className="capitalize">

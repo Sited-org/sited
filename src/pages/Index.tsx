@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star } from "lucide-react";
 import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
+import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestimonials";
 
 const Index = () => {
   usePageSEO({
@@ -182,6 +183,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* VIDEO TESTIMONIALS */}
+      <HomepageVideoTestimonials />
 
       {/* 6. WHY PEOPLE STAY */}
       <section className="bg-card border-y border-border">
