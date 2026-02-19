@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const clientSites = [
   { name: "Hunter Insight", url: "https://hunterinsight.com.au" },
@@ -35,16 +34,31 @@ function useDeviceTier() {
 }
 
 const SITE_COUNTS = { mobile: 4, tablet: 6, laptop: 6, desktop: 12 };
+const IFRAME_W = 1440;
+const IFRAME_H_MULTIPLIER = 3; // 3x viewport height for full-page scroll
 
 const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
   const [shouldLoad, setShouldLoad] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.3);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Lazy load iframe when card is near viewport
+  // Compute scale from actual card width
   useEffect(() => {
-    const el = ref.current;
+    const el = viewportRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setScale(entry.contentRect.width / IFRAME_W);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Lazy load when near viewport
+  useEffect(() => {
+    const el = cardRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setShouldLoad(true); obs.disconnect(); } },
@@ -54,17 +68,21 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     return () => obs.disconnect();
   }, []);
 
-  // Stagger scroll start: each card starts 1s after the previous
+  // Stagger scroll start by 1s per card
   useEffect(() => {
     if (!shouldLoad) return;
     const timer = setTimeout(() => setScrollActive(true), index * 1000);
     return () => clearTimeout(timer);
   }, [shouldLoad, index]);
 
+  // The iframe is rendered at 1440px wide, then CSS-scaled to fit the card.
+  // Height = 3x the viewport so scroll covers the full homepage.
+  const iframeH = IFRAME_W * (10 / 16) * IFRAME_H_MULTIPLIER; // 900 * 3 = 2700
+
   return (
-    <div ref={ref} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]">
-        {/* MacBook chrome bar */}
+        {/* MacBook chrome */}
         <div className="flex items-center gap-1.5 px-4 py-2 bg-muted/60 border-b border-border">
           <div className="w-2 h-2 rounded-full bg-destructive/50" />
           <div className="w-2 h-2 rounded-full bg-gold" />
@@ -74,13 +92,17 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           </div>
         </div>
 
-        {/* Scrolling website viewport */}
-        <div className="relative w-full aspect-[4/3] overflow-hidden bg-background">
+        {/* 16:10 laptop viewport */}
+        <div
+          ref={viewportRef}
+          className="relative w-full overflow-hidden bg-background"
+          style={{ aspectRatio: "16 / 10" }}
+        >
           {shouldLoad ? (
             <div
-              className="absolute inset-0 w-full"
+              className="absolute top-0 left-0 w-full"
               style={{
-                height: "400%",
+                height: `${IFRAME_H_MULTIPLIER * 100}%`,
                 animation: scrollActive && !hovered
                   ? "scrollSiteFull 16s linear infinite"
                   : "none",
@@ -89,14 +111,14 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
               <iframe
                 src={site.url}
                 title={`${site.name} website`}
-                className="w-full h-full pointer-events-none border-0"
+                className="pointer-events-none border-0 block"
                 loading="lazy"
                 sandbox="allow-scripts allow-same-origin"
                 style={{
-                  transform: "scale(0.25)",
+                  width: `${IFRAME_W}px`,
+                  height: `${iframeH}px`,
+                  transform: `scale(${scale})`,
                   transformOrigin: "top left",
-                  width: "400%",
-                  height: "400%",
                 }}
               />
             </div>
