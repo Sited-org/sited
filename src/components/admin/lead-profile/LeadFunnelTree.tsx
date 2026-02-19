@@ -7,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import type { LeadStatus } from '@/hooks/useLeads';
 
-// Define the funnel tree structure
 const FUNNEL_NODES: {
   id: LeadStatus;
   label: string;
@@ -18,7 +17,7 @@ const FUNNEL_NODES: {
   borderColor: string;
 }[] = [
   { id: 'warm_lead', label: 'Warm Lead', shortLabel: 'WL', description: 'Form filled, no deposit', color: 'text-amber-500', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
-  { id: 'discovery_call_booked', label: 'Discovery Call Booked', shortLabel: 'DCB', description: 'Discovery call booked', color: 'text-sky-500', bgColor: 'bg-sky-500/10', borderColor: 'border-sky-500/30' },
+  { id: 'discovery_call_booked', label: 'Discovery Call Booked', shortLabel: 'DCB', description: 'Discovery call booked, no deposit', color: 'text-sky-500', bgColor: 'bg-sky-500/10', borderColor: 'border-sky-500/30' },
   { id: 'new_lead', label: 'New Lead', shortLabel: 'NL', description: 'Deposit paid', color: 'text-blue-500', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/30' },
   { id: 'new_client', label: 'New Client', shortLabel: 'NC', description: 'Call booked', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
   { id: 'no_show', label: 'No Show', shortLabel: 'NS', description: 'Call booked, no show', color: 'text-orange-500', bgColor: 'bg-orange-500/10', borderColor: 'border-orange-500/30' },
@@ -74,13 +73,6 @@ export function LeadFunnelTree({
 
   const selectedNode = getNodeConfig(currentStatus);
 
-  // Build the tree layout
-  // Level 0: Warm Lead
-  // Level 1: New Lead
-  // Level 2: New Client
-  // Level 3 split: NS | MBR Sold (Dev) | OT Sold (Dev) | Lost
-  // Level 4: Current MBR | Current OT
-
   const renderNode = (nodeId: LeadStatus, isActive: boolean, onClick?: () => void) => {
     const node = getNodeConfig(nodeId);
     const isSelected = currentStatus === nodeId;
@@ -114,28 +106,27 @@ export function LeadFunnelTree({
     );
   };
 
-  // Determine which nodes in the main trunk are "active" (passed through)
-  const mainTrunk: LeadStatus[] = ['warm_lead', 'new_lead', 'new_client'];
+  // Both WL and DCB are entry-level, leading to NL
+  const entryStatuses: LeadStatus[] = ['warm_lead', 'discovery_call_booked'];
+  const mainTrunk: LeadStatus[] = ['new_lead', 'new_client'];
+  const isEntryStatus = entryStatuses.includes(currentStatus);
   const trunkIndex = mainTrunk.indexOf(currentStatus);
-  const isPastTrunk = !mainTrunk.includes(currentStatus);
-  
-  // Determine active states
+  const isPastEntry = !isEntryStatus && !mainTrunk.includes(currentStatus) ? true : trunkIndex >= 0;
+
   const isNodeActive = (nodeId: LeadStatus): boolean => {
     if (nodeId === currentStatus) return true;
+    // Entry nodes are active if current is entry or past entry
+    if (entryStatuses.includes(nodeId)) {
+      return nodeId === currentStatus || isPastEntry;
+    }
     const ti = mainTrunk.indexOf(nodeId);
     if (ti >= 0) {
       if (trunkIndex >= 0) return ti <= trunkIndex;
-      return isPastTrunk; // all trunk nodes are active if we're past them
+      if (isEntryStatus) return false;
+      return true; // past trunk (in branch)
     }
     return false;
   };
-
-  const connectorLine = (vertical: boolean = true) => (
-    <div className={cn(
-      vertical ? "w-0.5 h-6 mx-auto" : "h-0.5 flex-1",
-      "bg-border"
-    )} />
-  );
 
   return (
     <Card>
@@ -158,13 +149,23 @@ export function LeadFunnelTree({
 
         {/* Tree visualization */}
         <div className="flex flex-col items-center gap-0">
-          {/* Level 0: Warm Lead */}
-          {renderNode('warm_lead', isNodeActive('warm_lead'), () => onStatusChange('warm_lead'))}
-          {connectorLine()}
+          {/* Level 0: WL and DCB side by side */}
+          <div className="flex items-start gap-3">
+            {renderNode('warm_lead', isNodeActive('warm_lead'), () => onStatusChange('warm_lead'))}
+            {renderNode('discovery_call_booked', isNodeActive('discovery_call_booked'), () => onStatusChange('discovery_call_booked'))}
+          </div>
+          
+          {/* Converging connector */}
+          <div className="relative w-[260px] h-6">
+            <div className="absolute top-0 left-1/4 w-0.5 h-3 bg-border" />
+            <div className="absolute top-0 right-1/4 w-0.5 h-3 bg-border" />
+            <div className="absolute top-3 left-1/4 right-1/4 h-0.5 bg-border" />
+            <div className="absolute top-3 left-1/2 -translate-x-px w-0.5 h-3 bg-border" />
+          </div>
           
           {/* Level 1: New Lead */}
           {renderNode('new_lead', isNodeActive('new_lead'), () => onStatusChange('new_lead'))}
-          {connectorLine()}
+          <div className="w-0.5 h-6 bg-border mx-auto" />
           
           {/* Level 2: New Client */}
           {renderNode('new_client', isNodeActive('new_client'), () => onStatusChange('new_client'))}

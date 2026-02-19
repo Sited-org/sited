@@ -10,7 +10,7 @@ import { Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
 type ViewMode = 'month' | 'week' | 'day';
 
 export default function AdminCalendar() {
-  const { bookings, calendarConfig, loading, updateBookingStatus, updateCalendarConfig } = useBookings();
+  const { bookings, calendarConfig, loading, updateBookingStatus, updateCalendarConfig, refreshBookings } = useBookings();
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -106,6 +106,7 @@ export default function AdminCalendar() {
         open={!!selectedBooking}
         onOpenChange={(open) => !open && setSelectedBooking(null)}
         onUpdateStatus={updateBookingStatus}
+        onRefresh={refreshBookings}
       />
 
       {/* Settings */}

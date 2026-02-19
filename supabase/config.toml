@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.create-zoom-meeting]
 verify_jwt = false
+
+[functions.manage-booking]
+verify_jwt = true

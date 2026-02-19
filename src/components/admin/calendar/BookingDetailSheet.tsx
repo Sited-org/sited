@@ -1,15 +1,21 @@
+import { useState } from 'react';
 import { type Booking } from '@/hooks/useBookings';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink, Video } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink, Video, CalendarX, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BookingDetailSheetProps {
   booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdateStatus: (id: string, status: string) => Promise<boolean>;
+  onRefresh?: () => void;
 }
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -19,7 +25,12 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
   completed: 'secondary',
 };
 
-export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus }: BookingDetailSheetProps) {
+export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus, onRefresh }: BookingDetailSheetProps) {
+  const [rescheduleMode, setRescheduleMode] = useState(false);
+  const [newDate, setNewDate] = useState('');
+  const [newTime, setNewTime] = useState('');
+  const [processing, setProcessing] = useState(false);
+
   if (!booking) return null;
 
   const handleStatus = async (status: string) => {
@@ -27,8 +38,63 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
     onOpenChange(false);
   };
 
+  const handleCancel = async () => {
+    setProcessing(true);
+    try {
+      // Delete the Zoom meeting
+      if (booking.zoom_meeting_id) {
+        await supabase.functions.invoke('manage-booking', {
+          body: { action: 'cancel', booking_id: booking.id, zoom_meeting_id: booking.zoom_meeting_id },
+        });
+      }
+      await onUpdateStatus(booking.id, 'cancelled');
+      toast.success('Booking cancelled and client notified');
+      onOpenChange(false);
+      onRefresh?.();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to cancel booking');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!newDate || !newTime) {
+      toast.error('Please select a new date and time');
+      return;
+    }
+    setProcessing(true);
+    try {
+      const startTime = `${newDate}T${newTime}:00`;
+      await supabase.functions.invoke('manage-booking', {
+        body: {
+          action: 'reschedule',
+          booking_id: booking.id,
+          zoom_meeting_id: booking.zoom_meeting_id || null,
+          new_date: newDate,
+          new_time: newTime,
+          new_start_time: startTime,
+          duration: booking.duration_minutes || 20,
+          attendee_email: booking.email,
+          attendee_name: `${booking.first_name} ${booking.last_name}`,
+          booking_type: booking.booking_type,
+        },
+      });
+      toast.success('Booking rescheduled and client notified');
+      setRescheduleMode(false);
+      onOpenChange(false);
+      onRefresh?.();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to reschedule booking');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(o) => { if (!o) setRescheduleMode(false); onOpenChange(o); }}>
       <SheetContent className="sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="text-left">Booking Details</SheetTitle>
@@ -128,18 +194,47 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
 
           <Separator />
 
+          {/* Reschedule form */}
+          {rescheduleMode && (
+            <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
+              <h4 className="text-sm font-medium">Reschedule to:</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">New Date</Label>
+                  <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs">New Time</Label>
+                  <Input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleReschedule} disabled={processing}>
+                  {processing ? 'Rescheduling...' : 'Confirm Reschedule'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setRescheduleMode(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            {booking.status === 'pending' && (
+            {(booking.status === 'pending' || booking.status === 'confirmed') && !rescheduleMode && (
               <>
-                <Button size="sm" onClick={() => handleStatus('confirmed')}>Confirm</Button>
-                <Button size="sm" variant="destructive" onClick={() => handleStatus('cancelled')}>Cancel</Button>
-              </>
-            )}
-            {booking.status === 'confirmed' && (
-              <>
-                <Button size="sm" onClick={() => handleStatus('completed')}>Mark Complete</Button>
-                <Button size="sm" variant="destructive" onClick={() => handleStatus('cancelled')}>Cancel</Button>
+                {booking.status === 'pending' && (
+                  <Button size="sm" onClick={() => handleStatus('confirmed')}>Confirm</Button>
+                )}
+                {booking.status === 'confirmed' && (
+                  <Button size="sm" onClick={() => handleStatus('completed')}>Mark Complete</Button>
+                )}
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => { setRescheduleMode(true); setNewDate(booking.booking_date); setNewTime(booking.booking_time); }}>
+                  <RefreshCw className="h-3 w-3" />
+                  Reschedule
+                </Button>
+                <Button size="sm" variant="destructive" className="gap-1" onClick={handleCancel} disabled={processing}>
+                  <CalendarX className="h-3 w-3" />
+                  {processing ? 'Cancelling...' : 'Cancel Booking'}
+                </Button>
               </>
             )}
             {(booking.status === 'cancelled' || booking.status === 'completed') && (
