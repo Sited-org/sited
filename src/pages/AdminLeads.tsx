@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useLeads, LeadStatus, Lead } from '@/hooks/useLeads';
+import { useLeads, ALL_STATUSES, STATUS_LABELS } from '@/hooks/useLeads';
+import type { LeadStatus, Lead } from '@/hooks/useLeads';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,42 +11,21 @@ import { LeadStatusBadge, isPartialLead, getLeadRowBackground } from '@/componen
 import { Search, Download, Eye, Calendar } from 'lucide-react';
 import { format, isAfter, isBefore, parseISO, startOfDay, endOfDay } from 'date-fns';
 
-const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
-
-const statusLabels: Record<string, string> = {
-  partial: 'Partial',
-  new: 'New Lead',
-  contacted: 'New Lead',
-  booked_call: 'Call Booked',
-  sold: 'Sold',
-  lost: 'Lost',
-};
-
 const projectTypeLabels: Record<string, string> = {
-  website: 'Website',
-  app: 'App',
-  ai: 'AI Integration',
+  website: 'Website', app: 'App', ai: 'AI Integration',
 };
 
 function exportToCSV(leads: Lead[]) {
   const headers = ['Lead #', 'Name', 'Email', 'Phone', 'Business', 'Project Type', 'Status', 'Created At', 'Notes'];
   const rows = leads.map(lead => [
-    lead.lead_number || '',
-    lead.name || '',
-    lead.email,
-    lead.phone || '',
-    lead.business_name || '',
-    lead.project_type,
-    lead.status,
-    new Date(lead.created_at).toLocaleDateString(),
-    lead.notes || '',
+    lead.lead_number || '', lead.name || '', lead.email, lead.phone || '',
+    lead.business_name || '', lead.project_type, lead.status,
+    new Date(lead.created_at).toLocaleDateString(), lead.notes || '',
   ]);
-
   const csvContent = [
     headers.join(','),
     ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
   ].join('\n');
-
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -72,7 +52,6 @@ export default function AdminLeads() {
       lead.phone?.includes(search) ||
       String(lead.lead_number).includes(search);
     
-    // Status filter with partial support
     let matchesStatus = true;
     if (statusFilter === 'partial') {
       matchesStatus = isPartialLead(lead.form_data);
@@ -82,14 +61,9 @@ export default function AdminLeads() {
     
     const matchesProject = projectFilter === 'all' || lead.project_type === projectFilter;
     
-    // Date filtering
     let matchesDate = true;
-    if (dateFrom) {
-      matchesDate = matchesDate && isAfter(parseISO(lead.created_at), startOfDay(parseISO(dateFrom)));
-    }
-    if (dateTo) {
-      matchesDate = matchesDate && isBefore(parseISO(lead.created_at), endOfDay(parseISO(dateTo)));
-    }
+    if (dateFrom) matchesDate = matchesDate && isAfter(parseISO(lead.created_at), startOfDay(parseISO(dateFrom)));
+    if (dateTo) matchesDate = matchesDate && isBefore(parseISO(lead.created_at), endOfDay(parseISO(dateTo)));
     
     return matchesSearch && matchesStatus && matchesProject && matchesDate;
   });
@@ -113,22 +87,17 @@ export default function AdminLeads() {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name, email, business, phone, or lead #..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            className="pl-10" 
-          />
+          <Input placeholder="Search by name, email, business, phone, or lead #..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="partial">{statusLabels.partial}</SelectItem>
-            {allStatuses.filter(s => s !== 'contacted').map(s => (
-              <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
+            <SelectItem value="partial">Partial</SelectItem>
+            {ALL_STATUSES.map(s => (
+              <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -145,21 +114,9 @@ export default function AdminLeads() {
         </Select>
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Input 
-            type="date" 
-            value={dateFrom} 
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="w-[140px]"
-            placeholder="From"
-          />
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px]" />
           <span className="text-muted-foreground">to</span>
-          <Input 
-            type="date" 
-            value={dateTo} 
-            onChange={(e) => setDateTo(e.target.value)}
-            className="w-[140px]"
-            placeholder="To"
-          />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px]" />
         </div>
       </div>
 
@@ -184,9 +141,7 @@ export default function AdminLeads() {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No leads found
-                </TableCell>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No leads found</TableCell>
               </TableRow>
             ) : (
               filteredLeads.map((lead) => (
@@ -213,9 +168,7 @@ export default function AdminLeads() {
                     {format(new Date(lead.created_at), 'MMM d, yyyy')}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
                   </TableCell>
                 </TableRow>
               ))

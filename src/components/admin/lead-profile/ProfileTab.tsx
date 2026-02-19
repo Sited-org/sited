@@ -2,26 +2,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink, Code, Package } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, CreditCard, MapPin, ExternalLink, Code, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 import { supabase } from '@/integrations/supabase/client';
-
-type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
-
-const allStatuses: LeadStatus[] = ['new', 'booked_call', 'sold', 'lost'];
-const statusLabels: Record<LeadStatus | 'partial', string> = {
-  partial: 'Partial',
-  new: 'New Lead',
-  contacted: 'New Lead',
-  booked_call: 'Call Booked',
-  sold: 'Sold',
-  lost: 'Lost',
-};
+import { LeadFunnelTree } from './LeadFunnelTree';
+import type { LeadStatus } from '@/hooks/useLeads';
 
 interface ProfileTabProps {
   lead: any;
@@ -42,33 +30,30 @@ interface ProfileTabProps {
   notes: string;
   setNotes: (v: string) => void;
   canEdit: boolean;
+  onSave: () => void;
+  saving: boolean;
+  hasUnsavedChanges: boolean;
 }
 
 export function ProfileTab({
   lead,
-  name,
-  setName,
-  email,
-  setEmail,
-  phone,
-  setPhone,
-  businessName,
-  setBusinessName,
-  websiteUrl,
-  setWebsiteUrl,
-  billingAddress,
-  setBillingAddress,
-  status,
-  setStatus,
-  notes,
-  setNotes,
+  name, setName,
+  email, setEmail,
+  phone, setPhone,
+  businessName, setBusinessName,
+  websiteUrl, setWebsiteUrl,
+  billingAddress, setBillingAddress,
+  status, setStatus,
+  notes, setNotes,
   canEdit,
+  onSave,
+  saving,
+  hasUnsavedChanges,
 }: ProfileTabProps) {
   const { rawTransactions } = useTransactions(lead.id);
   const { memberships } = useMemberships();
   const [assignedDevName, setAssignedDevName] = useState<string | null>(null);
 
-  // Find active membership from recurring transactions
   const activeMembershipTransaction = rawTransactions.find(t => t.is_recurring);
   const activeMembership = activeMembershipTransaction 
     ? memberships.find(m => m.name === activeMembershipTransaction.item)
@@ -96,21 +81,12 @@ export function ProfileTab({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Name</label>
-                <Input 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  disabled={!canEdit}
-                  className="mt-1"
-                />
+                <Input value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} className="mt-1" />
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Email</label>
                 <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    disabled={!canEdit}
-                  />
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} disabled={!canEdit} />
                   <Button variant="outline" size="icon" asChild>
                     <a href={`mailto:${email}`}><Mail className="h-4 w-4" /></a>
                   </Button>
@@ -119,11 +95,7 @@ export function ProfileTab({
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Phone</label>
                 <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={phone} 
-                    onChange={(e) => setPhone(e.target.value)} 
-                    disabled={!canEdit}
-                  />
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!canEdit} />
                   {phone && (
                     <Button variant="outline" size="icon" asChild>
                       <a href={`tel:${phone}`}><Phone className="h-4 w-4" /></a>
@@ -134,11 +106,7 @@ export function ProfileTab({
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Business Name</label>
                 <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={businessName} 
-                    onChange={(e) => setBusinessName(e.target.value)} 
-                    disabled={!canEdit}
-                  />
+                  <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)} disabled={!canEdit} />
                   <Building2 className="h-9 w-9 p-2 text-muted-foreground" />
                 </div>
               </div>
@@ -149,12 +117,7 @@ export function ProfileTab({
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Website URL</label>
                 <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={websiteUrl} 
-                    onChange={(e) => setWebsiteUrl(e.target.value)} 
-                    disabled={!canEdit}
-                    placeholder="https://example.com"
-                  />
+                  <Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} disabled={!canEdit} placeholder="https://example.com" />
                   {websiteUrl && (
                     <Button variant="outline" size="icon" asChild>
                       <a href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`} target="_blank" rel="noopener noreferrer">
@@ -167,12 +130,7 @@ export function ProfileTab({
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Billing Address</label>
                 <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={billingAddress} 
-                    onChange={(e) => setBillingAddress(e.target.value)} 
-                    disabled={!canEdit}
-                    placeholder="123 Main St, City, State"
-                  />
+                  <Input value={billingAddress} onChange={(e) => setBillingAddress(e.target.value)} disabled={!canEdit} placeholder="123 Main St, City, State" />
                   <MapPin className="h-9 w-9 p-2 text-muted-foreground" />
                 </div>
               </div>
@@ -199,9 +157,7 @@ export function ProfileTab({
                     {activeMembership.name} - ${activeMembership.price}/{activeMembership.billing_interval}
                   </span>
                 ) : activeMembershipTransaction ? (
-                  <span className="font-medium">
-                    {activeMembershipTransaction.item} (Custom)
-                  </span>
+                  <span className="font-medium">{activeMembershipTransaction.item} (Custom)</span>
                 ) : (
                   <span className="text-muted-foreground">No active membership</span>
                 )}
@@ -216,71 +172,23 @@ export function ProfileTab({
             <CardTitle className="text-lg">Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <Textarea 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              disabled={!canEdit}
-              placeholder="Add notes about this lead..."
-              rows={6}
-            />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={!canEdit} placeholder="Add notes about this lead..." rows={6} />
           </CardContent>
         </Card>
       </div>
 
       {/* Sidebar */}
       <div className="space-y-6">
-        {/* Progress Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Progress Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Current Status</label>
-              <div className="mt-2">
-                <LeadStatusBadge status={status} formData={lead.form_data} />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Change Status</label>
-              <Select value={status} onValueChange={(v) => setStatus(v as LeadStatus)} disabled={!canEdit}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {allStatuses.map((s) => (
-                    <SelectItem key={s} value={s}>{statusLabels[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Status Progress */}
-            <div className="space-y-2 pt-2">
-              {(() => {
-                const isPartial = isPartialLead(lead.form_data);
-                const displayStatuses: (LeadStatus | 'partial')[] = isPartial 
-                  ? ['partial', 'new', 'booked_call', 'sold', 'lost']
-                  : ['new', 'booked_call', 'sold', 'lost'];
-                const currentStatus = isPartial ? 'partial' : (status === 'contacted' ? 'new' : status);
-                const currentIdx = displayStatuses.indexOf(currentStatus);
-                
-                return displayStatuses.map((s, idx) => {
-                  const isComplete = idx <= currentIdx;
-                  const isCurrent = idx === currentIdx;
-                  return (
-                    <div key={s} className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${isComplete ? 'bg-primary' : 'bg-muted'} ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`} />
-                      <span className={`text-sm ${isComplete ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {statusLabels[s]}
-                      </span>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Lead Funnel Tree (replaces Progress Overview) */}
+        <LeadFunnelTree
+          leadId={lead.id}
+          currentStatus={status}
+          onStatusChange={setStatus}
+          canEdit={canEdit}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onSave={onSave}
+          saving={saving}
+        />
 
         {/* Timeline */}
         <Card>

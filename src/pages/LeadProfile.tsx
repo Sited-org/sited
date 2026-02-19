@@ -14,8 +14,7 @@ import { CardTab } from '@/components/admin/lead-profile/CardTab';
 import { SettingsTab } from '@/components/admin/lead-profile/SettingsTab';
 import { RequestsTab } from '@/components/admin/lead-profile/RequestsTab';
 import { format } from 'date-fns';
-
-type LeadStatus = 'new' | 'contacted' | 'booked_call' | 'sold' | 'lost';
+import type { LeadStatus } from '@/hooks/useLeads';
 
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
@@ -35,14 +34,16 @@ export default function LeadProfile() {
   const [businessName, setBusinessName] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
-  const [status, setStatus] = useState<LeadStatus>('new');
+  const [status, setStatus] = useState<LeadStatus>('warm_lead');
   const [notes, setNotes] = useState('');
   const [dealAmount, setDealAmount] = useState('0');
+
+  // Track original status for change detection
+  const [originalStatus, setOriginalStatus] = useState<LeadStatus>('warm_lead');
 
   useEffect(() => {
     async function fetchLead() {
       if (!id) return;
-      
       const { data, error } = await supabase
         .from('leads')
         .select('*')
@@ -63,28 +64,37 @@ export default function LeadProfile() {
       setWebsiteUrl(data.website_url || '');
       setBillingAddress(data.billing_address || '');
       setStatus(data.status as LeadStatus);
+      setOriginalStatus(data.status as LeadStatus);
       setNotes(data.notes || '');
       setDealAmount(String(data.deal_amount || 0));
       setLoading(false);
     }
-
     fetchLead();
   }, [id, navigate, toast]);
+
+  const hasUnsavedChanges = lead && (
+    name !== (lead.name || '') ||
+    email !== (lead.email || '') ||
+    phone !== (lead.phone || '') ||
+    businessName !== (lead.business_name || '') ||
+    websiteUrl !== (lead.website_url || '') ||
+    billingAddress !== (lead.billing_address || '') ||
+    status !== originalStatus ||
+    notes !== (lead.notes || '') ||
+    dealAmount !== String(lead.deal_amount || 0)
+  );
 
   const handleSave = async () => {
     if (!id || !canEdit) return;
     setSaving(true);
 
-    // If status is being changed away from 'new', clear the partial flag in form_data
     const currentFormData = lead.form_data || {};
-    const updatedFormData = (status !== 'new' || lead.status !== status) && currentFormData.partial === true
+    const updatedFormData = currentFormData.partial === true
       ? { ...currentFormData, partial: false }
       : currentFormData;
 
     const updates: any = {
-      name,
-      email,
-      phone,
+      name, email, phone,
       business_name: businessName,
       website_url: websiteUrl,
       billing_address: billingAddress,
@@ -94,31 +104,33 @@ export default function LeadProfile() {
       form_data: updatedFormData,
     };
 
-    // Set deal_closed_at when status changes to sold
-    if (status === 'sold' && lead.status !== 'sold') {
+    if (['mbr_sold_dev', 'ot_sold_dev', 'current_mbr', 'current_ot'].includes(status) && !lead.deal_closed_at) {
       updates.deal_closed_at = new Date().toISOString();
     }
 
-    const { error } = await supabase
-      .from('leads')
-      .update(updates)
-      .eq('id', id);
+    const { error } = await supabase.from('leads').update(updates).eq('id', id);
 
     if (error) {
       toast({ title: 'Error saving', description: error.message, variant: 'destructive' });
     } else {
+      // Log status change to history
+      if (status !== originalStatus) {
+        await supabase.from('lead_status_history').insert({
+          lead_id: id,
+          from_status: originalStatus,
+          to_status: status,
+        });
+      }
       toast({ title: 'Lead updated' });
       setLead({ ...lead, ...updates });
+      setOriginalStatus(status);
     }
     setSaving(false);
   };
 
   if (loading) {
-    return (
-      <div className="animate-pulse text-muted-foreground p-8">Loading lead...</div>
-    );
+    return <div className="animate-pulse text-muted-foreground p-8">Loading lead...</div>;
   }
-
   if (!lead) return null;
 
   return (
@@ -138,7 +150,7 @@ export default function LeadProfile() {
           </p>
         </div>
         {canEdit && (
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || !hasUnsavedChanges}>
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>
@@ -177,23 +189,18 @@ export default function LeadProfile() {
         <TabsContent value="profile" className="mt-6">
           <ProfileTab
             lead={lead}
-            name={name}
-            setName={setName}
-            email={email}
-            setEmail={setEmail}
-            phone={phone}
-            setPhone={setPhone}
-            businessName={businessName}
-            setBusinessName={setBusinessName}
-            websiteUrl={websiteUrl}
-            setWebsiteUrl={setWebsiteUrl}
-            billingAddress={billingAddress}
-            setBillingAddress={setBillingAddress}
-            status={status}
-            setStatus={setStatus}
-            notes={notes}
-            setNotes={setNotes}
+            name={name} setName={setName}
+            email={email} setEmail={setEmail}
+            phone={phone} setPhone={setPhone}
+            businessName={businessName} setBusinessName={setBusinessName}
+            websiteUrl={websiteUrl} setWebsiteUrl={setWebsiteUrl}
+            billingAddress={billingAddress} setBillingAddress={setBillingAddress}
+            status={status} setStatus={setStatus}
+            notes={notes} setNotes={setNotes}
             canEdit={canEdit}
+            onSave={handleSave}
+            saving={saving}
+            hasUnsavedChanges={!!hasUnsavedChanges}
           />
         </TabsContent>
 
@@ -206,12 +213,7 @@ export default function LeadProfile() {
         </TabsContent>
 
         <TabsContent value="payments" className="mt-6">
-          <PaymentsTab 
-            lead={lead} 
-            dealAmount={dealAmount}
-            setDealAmount={setDealAmount}
-            canEdit={canEdit} 
-          />
+          <PaymentsTab lead={lead} dealAmount={dealAmount} setDealAmount={setDealAmount} canEdit={canEdit} />
         </TabsContent>
 
         <TabsContent value="card" className="mt-6">

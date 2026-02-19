@@ -12,7 +12,7 @@ export default function SalesDashboard() {
 
   const recentLeads = useMemo(() => {
     return [...leads]
-      .filter(l => ['new', 'contacted', 'booked_call'].includes(l.status))
+      .filter(l => ['warm_lead', 'new_lead', 'new_client', 'new', 'contacted', 'booked_call'].includes(l.status))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 8);
   }, [leads]);

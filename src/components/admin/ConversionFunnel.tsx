@@ -1,32 +1,29 @@
 import { useMemo } from 'react';
-import type { Lead, LeadStatus } from '@/hooks/useLeads';
+import type { Lead } from '@/hooks/useLeads';
+import { ALL_STATUSES, STATUS_LABELS } from '@/hooks/useLeads';
 import { cn } from '@/lib/utils';
 
 interface ConversionFunnelProps {
   leads: Lead[];
 }
 
-const funnelStages: { status: LeadStatus[]; label: string; color: string }[] = [
-  { status: ['new'], label: 'New Leads', color: 'bg-blue-500' },
-  { status: ['contacted'], label: 'Contacted', color: 'bg-purple-500' },
-  { status: ['booked_call'], label: 'Booked Call', color: 'bg-amber-500' },
-  { status: ['sold'], label: 'Sold', color: 'bg-green-500' },
-  { status: ['lost'], label: 'Lost', color: 'bg-red-500' },
+const funnelStages: { statuses: string[]; label: string; color: string }[] = [
+  { statuses: ['warm_lead', 'new', 'contacted'], label: 'Warm Leads', color: 'bg-amber-500' },
+  { statuses: ['new_lead'], label: 'New Leads', color: 'bg-blue-500' },
+  { statuses: ['new_client', 'booked_call'], label: 'New Clients', color: 'bg-indigo-500' },
+  { statuses: ['mbr_sold_dev', 'ot_sold_dev', 'sold'], label: 'Sold', color: 'bg-purple-500' },
+  { statuses: ['current_mbr', 'current_ot'], label: 'Delivered', color: 'bg-green-500' },
+  { statuses: ['no_show'], label: 'No Show', color: 'bg-orange-500' },
+  { statuses: ['lost'], label: 'Lost', color: 'bg-red-500' },
 ];
 
 export function ConversionFunnel({ leads }: ConversionFunnelProps) {
   const funnelData = useMemo(() => {
     const total = leads.length || 1;
-    
     return funnelStages.map(stage => {
-      const count = leads.filter(lead => stage.status.includes(lead.status)).length;
+      const count = leads.filter(lead => stage.statuses.includes(lead.status)).length;
       const percentage = (count / total) * 100;
-      
-      return {
-        ...stage,
-        count,
-        percentage: Math.round(percentage),
-      };
+      return { ...stage, count, percentage: Math.round(percentage) };
     });
   }, [leads]);
 
@@ -34,22 +31,16 @@ export function ConversionFunnel({ leads }: ConversionFunnelProps) {
 
   return (
     <div className="space-y-4">
-      {funnelData.map((stage, index) => {
+      {funnelData.map((stage) => {
         const width = Math.max((stage.count / maxCount) * 100, 10);
-        
         return (
           <div key={stage.label} className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">{stage.label}</span>
-              <span className="text-muted-foreground">
-                {stage.count} ({stage.percentage}%)
-              </span>
+              <span className="text-muted-foreground">{stage.count} ({stage.percentage}%)</span>
             </div>
             <div className="h-8 bg-muted rounded-lg overflow-hidden">
-              <div
-                className={cn("h-full rounded-lg transition-all duration-500", stage.color)}
-                style={{ width: `${width}%` }}
-              />
+              <div className={cn("h-full rounded-lg transition-all duration-500", stage.color)} style={{ width: `${width}%` }} />
             </div>
           </div>
         );

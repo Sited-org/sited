@@ -85,7 +85,7 @@ serve(async (req) => {
     let leadId: string;
 
     const leadUpdate = {
-      status: "sold",
+      status: "new_lead",
       name,
       phone: phone || null,
       membership_tier: config.label,

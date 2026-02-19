@@ -180,9 +180,9 @@ export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
     const totalLeads = leads.length;
     const newLeadsThisWeek = leads.filter(l => new Date(l.created_at) >= weekStart).length;
     const activeLeads = leads.filter(l => 
-      ['new', 'contacted', 'booked_call'].includes(l.status)
+      ['warm_lead', 'new_lead', 'new_client', 'new', 'contacted', 'booked_call'].includes(l.status)
     ).length;
-    const soldLeads = leads.filter(l => l.status === 'sold');
+    const soldLeads = leads.filter(l => ['mbr_sold_dev', 'current_mbr', 'ot_sold_dev', 'current_ot', 'sold'].includes(l.status));
     const lostLeads = leads.filter(l => l.status === 'lost');
     const closedLeads = soldLeads.length + lostLeads.length;
     const conversionRate = closedLeads > 0 ? Math.round((soldLeads.length / closedLeads) * 100) : 0;
@@ -203,7 +203,7 @@ export function useDashboardMetrics(leads: Lead[], selectedMonth?: Date) {
     const totalDealValue = soldLeads.reduce((sum, l) => sum + (Number(l.deal_amount) || 0), 0);
     const avgDealSize = soldLeads.length > 0 ? Math.round(totalDealValue / soldLeads.length) : 0;
     const pipelineValue = leads
-      .filter(l => ['new', 'contacted', 'booked_call'].includes(l.status))
+      .filter(l => ['warm_lead', 'new_lead', 'new_client', 'new', 'contacted', 'booked_call'].includes(l.status))
       .reduce((sum, l) => sum + (Number(l.deal_amount) || 0), 0);
 
     return {

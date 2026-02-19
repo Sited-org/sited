@@ -1,34 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format } from 'date-fns';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
+  Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { LeadStatusBadge } from './LeadStatusBadge';
 import type { Lead, LeadStatus } from '@/hooks/useLeads';
+import { ALL_STATUSES, STATUS_LABELS } from '@/hooks/useLeads';
 import { Mail, Phone, Building, Calendar, FileText } from 'lucide-react';
-
-const allStatuses: LeadStatus[] = ['new', 'contacted', 'booked_call', 'sold', 'lost'];
-
-const statusLabels: Record<LeadStatus, string> = {
-  new: 'New Lead',
-  contacted: 'Contacted',
-  booked_call: 'Booked Call',
-  sold: 'Sold',
-  lost: 'Lost',
-};
+import { useEffect } from 'react';
 
 interface LeadDetailSheetProps {
   lead: Lead | null;
@@ -39,21 +24,12 @@ interface LeadDetailSheetProps {
   canEdit: boolean;
 }
 
-export function LeadDetailSheet({ 
-  lead, 
-  open, 
-  onOpenChange,
-  onUpdateStatus,
-  onUpdateNotes,
-  canEdit
-}: LeadDetailSheetProps) {
+export function LeadDetailSheet({ lead, open, onOpenChange, onUpdateStatus, onUpdateNotes, canEdit }: LeadDetailSheetProps) {
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (lead) {
-      setNotes(lead.notes || '');
-    }
+    if (lead) setNotes(lead.notes || '');
   }, [lead]);
 
   if (!lead) return null;
@@ -65,11 +41,7 @@ export function LeadDetailSheet({
   };
 
   const getProjectTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      website: 'Website',
-      app: 'App',
-      ai: 'AI Integration',
-    };
+    const labels: Record<string, string> = { website: 'Website', app: 'App', ai: 'AI Integration' };
     return labels[type] || type;
   };
 
@@ -82,26 +54,18 @@ export function LeadDetailSheet({
             <LeadStatusBadge status={lead.status} />
           </SheetTitle>
         </SheetHeader>
-
         <div className="mt-6 space-y-6">
-          {/* Contact Info */}
           <div className="space-y-4">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Contact Information
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Contact Information</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <a href={`mailto:${lead.email}`} className="text-sm hover:underline">
-                  {lead.email}
-                </a>
+                <a href={`mailto:${lead.email}`} className="text-sm hover:underline">{lead.email}</a>
               </div>
               {lead.phone && (
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a href={`tel:${lead.phone}`} className="text-sm hover:underline">
-                    {lead.phone}
-                  </a>
+                  <a href={`tel:${lead.phone}`} className="text-sm hover:underline">{lead.phone}</a>
                 </div>
               )}
               {lead.business_name && (
@@ -116,70 +80,42 @@ export function LeadDetailSheet({
               </div>
               <div className="flex items-center gap-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  Submitted {format(new Date(lead.created_at), 'MMM d, yyyy \'at\' h:mm a')}
-                </span>
+                <span className="text-sm">Submitted {format(new Date(lead.created_at), 'MMM d, yyyy \'at\' h:mm a')}</span>
               </div>
             </div>
           </div>
 
-          {/* Status */}
           {canEdit && (
             <div className="space-y-3">
               <Label>Status</Label>
-              <Select 
-                value={lead.status} 
-                onValueChange={(value) => onUpdateStatus(lead.id, value as LeadStatus)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={lead.status} onValueChange={(value) => onUpdateStatus(lead.id, value as LeadStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {allStatuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {statusLabels[status]}
-                    </SelectItem>
+                  {ALL_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          {/* Notes */}
           <div className="space-y-3">
             <Label>Notes</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add notes about this lead..."
-              rows={4}
-              disabled={!canEdit}
-            />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add notes about this lead..." rows={4} disabled={!canEdit} />
             {canEdit && (
-              <Button 
-                size="sm" 
-                onClick={handleSaveNotes}
-                disabled={isSaving || notes === (lead.notes || '')}
-              >
+              <Button size="sm" onClick={handleSaveNotes} disabled={isSaving || notes === (lead.notes || '')}>
                 {isSaving ? 'Saving...' : 'Save Notes'}
               </Button>
             )}
           </div>
 
-          {/* Form Data */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Form Responses
-            </h3>
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Form Responses</h3>
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               {Object.entries(lead.form_data).map(([key, value]) => (
                 <div key={key} className="text-sm">
-                  <span className="text-muted-foreground capitalize">
-                    {key.replace(/_/g, ' ')}:
-                  </span>{' '}
-                  <span className="font-medium">
-                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                  </span>
+                  <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                  <span className="font-medium">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
                 </div>
               ))}
             </div>
