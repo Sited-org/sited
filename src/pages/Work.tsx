@@ -282,7 +282,7 @@ const Work = () => {
             >
               Don't take
               <br />
-              our <span className="text-sited-blue">word</span> for it.
+              <span className="text-sited-blue">our</span> word for it.
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}

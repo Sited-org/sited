@@ -83,7 +83,7 @@ serve(async (req) => {
               ${description ? `<p style="margin: 0; color: #64748b; line-height: 1.6;">${description}</p>` : '<p style="margin: 0; color: #94a3b8; font-style: italic;">No description provided</p>'}
               
               <div style="margin-top: 30px; text-align: center;">
-                <a href="${Deno.env.get("SITE_URL") || "https://sited.au"}/admin/requests" style="display: inline-block; background: #3B82F6; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Request</a>
+                <a href="${Deno.env.get("SITE_URL") || "https://sited.co"}/admin/requests" style="display: inline-block; background: #3B82F6; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 600;">View Request</a>
               </div>
             </div>
             <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">

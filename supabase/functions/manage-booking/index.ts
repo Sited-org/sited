@@ -45,12 +45,12 @@ function buildCancellationEmail(p: { name: string; typeLabel: string; date: stri
             If you'd like to rebook, please visit our website or reply to this email. We're happy to find a time that works for you.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-            <a href="https://sited.com.au/contact" target="_blank" style="display:inline-block;background-color:#141414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
+            <a href="https://sited.co/contact" target="_blank" style="display:inline-block;background-color:#141414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
               Rebook a Call →
             </a>
           </td></tr></table>
         </td></tr>
-        <tr><td style="padding:20px;text-align:center;"><p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.com.au · 0459 909 810</p></td></tr>
+        <tr><td style="padding:20px;text-align:center;"><p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p></td></tr>
       </table>
     </td></tr>
   </table>
@@ -95,7 +95,7 @@ function buildRescheduleEmail(p: { name: string; typeLabel: string; oldDate: str
             If this doesn't work for you, reply to this email or call <strong>0459 909 810</strong>.
           </p>
         </td></tr>
-        <tr><td style="padding:20px;text-align:center;"><p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.com.au · 0459 909 810</p></td></tr>
+        <tr><td style="padding:20px;text-align:center;"><p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p></td></tr>
       </table>
     </td></tr>
   </table>

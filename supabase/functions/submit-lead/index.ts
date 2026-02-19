@@ -141,7 +141,45 @@ serve(async (req) => {
 
     console.log(`Lead created successfully: ${lead.id}`);
 
-    // Trigger notification (don't wait for it)
+    // Send branded instant notification to hello@sited.co
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (RESEND_API_KEY) {
+      const projectLabel = { website: "Website", app: "App", ai: "AI" }[project_type] || project_type;
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+        body: JSON.stringify({
+          from: "Sited <hello@sited.co>",
+          to: ["hello@sited.co"],
+          subject: `🔔 New ${projectLabel} Lead: ${name}`,
+          html: `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f8f8;padding:40px 20px;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+<tr><td style="background:#141414;padding:28px 40px;border-radius:16px 16px 0 0;text-align:center;">
+<h1 style="color:#fff;font-size:22px;font-weight:800;margin:0;">SITED</h1>
+<p style="color:#a1a1aa;font-size:12px;margin:6px 0 0;letter-spacing:0.5px;">NEW LEAD ALERT</p>
+</td></tr>
+<tr><td style="background:#fff;padding:36px 40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+<h2 style="color:#141414;font-size:20px;font-weight:700;margin:0 0 8px;">New ${projectLabel} Lead 🚀</h2>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:20px;margin:16px 0;">
+<tr><td>
+<p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>👤</strong>&nbsp; ${name}</p>
+<p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>📧</strong>&nbsp; <a href="mailto:${email}" style="color:#3b82f6;">${email}</a></p>
+${phone ? `<p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>📱</strong>&nbsp; ${phone}</p>` : ''}
+${business_name ? `<p style="color:#141414;font-size:14px;margin:0;"><strong>🏢</strong>&nbsp; ${business_name}</p>` : ''}
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<a href="https://sited.co/admin/leads" target="_blank" style="display:inline-block;background:#141414;color:#fff;font-size:15px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">View in Dashboard →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px;text-align:center;"><p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p></td></tr>
+</table></td></tr></table></body></html>`,
+        }),
+      }).catch(err => console.error('Failed to send hello@ notification:', err));
+    }
+
+    // Trigger detailed notification (don't wait for it)
     fetch(`${supabaseUrl}/functions/v1/send-lead-notification`, {
       method: 'POST',
       headers: {

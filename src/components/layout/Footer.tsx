@@ -47,7 +47,7 @@ export const Footer = () => {
             <div className="flex items-center gap-6">
               {[
                 { label: "Features", href: "/features" },
-                { label: "Our Work", href: "/work" },
+                { label: "Portfolio", href: "/portfolio" },
                 { label: "Book a Call", href: "/contact" },
               ].map((item) => (
                 <Link

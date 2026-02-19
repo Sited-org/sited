@@ -84,7 +84,7 @@ function buildConfirmationEmail(p: { attendeeName: string; date: string; time: s
         </td></tr>
         <!-- Footer -->
         <tr><td style="padding:24px 40px;text-align:center;">
-          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.com.au · 0459 909 810</p>
+          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p>
         </td></tr>
       </table>
     </td></tr>
@@ -122,7 +122,7 @@ function buildReminderEmail(p: { attendeeName: string; date: string; time: strin
           </table>
         </td></tr>
         <tr><td style="padding:20px;text-align:center;">
-          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.com.au · 0459 909 810</p>
+          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p>
         </td></tr>
       </table>
     </td></tr>
