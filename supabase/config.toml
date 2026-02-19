@@ -116,3 +116,6 @@ verify_jwt = true
 
 [functions.capture-site-screenshots]
 verify_jwt = false
+
+[functions.create-offer-checkout]
+verify_jwt = false
