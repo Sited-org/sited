@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 
 // Lazy load all other pages for code splitting
 const Features = lazy(() => import("./pages/Features"));
+const CustomWebsites = lazy(() => import("./pages/CustomWebsites"));
 const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
 const ContactOffers = lazy(() => import("./pages/ContactOffers"));
@@ -63,6 +64,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/features" element={<Features />} />
+            <Route path="/custom-websites" element={<CustomWebsites />} />
             <Route path="/portfolio" element={<Work />} />
             <Route path="/work" element={<Work />} /> {/* Redirect compatibility */}
             <Route path="/contact" element={<Contact />} />
