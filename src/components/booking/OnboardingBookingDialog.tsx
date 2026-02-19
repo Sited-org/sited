@@ -150,7 +150,7 @@ const OnboardingBookingDialog = ({
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
     const dateStr = bookingDate.toISOString().split("T")[0];
 
-    const { error } = await supabase.from("bookings").insert({
+    const { data: insertData, error } = await supabase.from("bookings").insert({
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
       email: form.email.trim(),
@@ -160,16 +160,47 @@ const OnboardingBookingDialog = ({
       business_location: form.businessLocation.trim(),
       booking_date: dateStr,
       booking_time: selectedTime,
+      booking_type: 'onboarding',
+      duration_minutes: DURATION,
       notes: `Onboarding call — ${tierName} (45 min)`,
-    });
-
-    setIsSubmitting(false);
+    }).select('id').single();
 
     if (error) {
+      setIsSubmitting(false);
       toast.error("Something went wrong. Please try again.");
       return;
     }
 
+    // Create Zoom meeting + send confirmation email
+    let joinUrl: string | null = null;
+    try {
+      const [timePart, ampm] = selectedTime!.split(' ');
+      const [hStr, mStr] = timePart.split(':');
+      let hours = parseInt(hStr);
+      if (ampm === 'PM' && hours !== 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+
+      const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
+        body: {
+          booking_id: insertData.id,
+          topic: `Onboarding Call – ${form.businessName.trim()}`,
+          start_time: startDate.toISOString(),
+          duration: DURATION,
+          attendee_email: form.email.trim(),
+          attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+          booking_type: 'onboarding',
+        },
+      });
+
+      if (zoomData?.zoom_join_url) {
+        joinUrl = zoomData.zoom_join_url;
+      }
+    } catch (e) {
+      console.error('Zoom meeting creation failed:', e);
+    }
+
+    setIsSubmitting(false);
     setIsBooked(true);
   };
 

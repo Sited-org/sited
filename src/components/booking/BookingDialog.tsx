@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, ArrowRight, X, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, ArrowRight, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,41 +9,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const BUSINESS_TYPES = [
-  "Trades & Construction",
-  "Professional Services",
-  "Health & Wellness",
-  "Hospitality & Food",
-  "Retail & E-commerce",
-  "Real Estate",
-  "Creative & Media",
-  "Education & Training",
-  "Technology",
-  "Non-Profit",
-  "Other",
-];
+const CALL_TYPES = [
+  { value: "discovery", label: "Discovery Call", duration: 20, description: "Quick chat to learn about your business and goals" },
+  { value: "onboarding", label: "Onboarding Call", duration: 45, description: "Deep-dive kickoff session for your project" },
+] as const;
 
-interface TimeSlot {
-  time: string;
-  available: boolean;
-}
+type CallType = typeof CALL_TYPES[number]["value"];
 
 interface BookingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultCallType?: CallType;
 }
 
-const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
-  const [step, setStep] = useState<"calendar" | "form">("calendar");
+const BookingDialog = ({ open, onOpenChange, defaultCallType = "discovery" }: BookingDialogProps) => {
+  const [step, setStep] = useState<"type" | "calendar" | "form">("type");
+  const [callType, setCallType] = useState<CallType>(defaultCallType);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [timeSlots, setTimeSlots] = useState<{ time: string; available: boolean }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [meetingDuration, setMeetingDuration] = useState(20);
+  const [zoomJoinUrl, setZoomJoinUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -54,14 +44,15 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     businessLocation: "",
   });
 
+  const selectedCallType = CALL_TYPES.find(c => c.value === callType)!;
+  const duration = selectedCallType.duration;
+
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   const monthName = currentMonth.toLocaleString("default", { month: "long" });
   const year = currentMonth.getFullYear();
   const daysInMonth = new Date(year, currentMonth.getMonth() + 1, 0).getDate();
-  const firstDayOfWeek = (currentMonth.getDay() + 6) % 7; // Monday = 0
-
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const firstDayOfWeek = (currentMonth.getDay() + 6) % 7;
 
   const calendarDates = useMemo(() => {
     const dates: (number | null)[] = [];
@@ -73,8 +64,8 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
   const isDateAvailable = (date: number) => {
     const d = new Date(year, currentMonth.getMonth(), date);
     const dayOfWeek = d.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) return false; // No weekends
-    if (monthOffset === 0 && date <= today.getDate()) return false; // No past dates
+    if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+    if (monthOffset === 0 && date <= today.getDate()) return false;
     return true;
   };
 
@@ -86,11 +77,10 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       const dateStr = new Date(year, currentMonth.getMonth(), selectedDay).toISOString().split('T')[0];
       try {
         const { data, error } = await supabase.functions.invoke('get-available-slots', {
-          body: { date: dateStr },
+          body: { date: dateStr, duration_override: duration },
         });
         if (!error && data) {
           setTimeSlots(data.slots || []);
-          if (data.config?.meeting_duration_minutes) setMeetingDuration(data.config.meeting_duration_minutes);
           if (!data.available) setTimeSlots([]);
         }
       } catch {
@@ -99,7 +89,14 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       setLoadingSlots(false);
     };
     fetchSlots();
-  }, [selectedDay, year, currentMonth]);
+  }, [selectedDay, year, currentMonth, duration]);
+
+  // Reset calendar when call type changes
+  useEffect(() => {
+    setSelectedDay(null);
+    setSelectedTime(null);
+    setTimeSlots([]);
+  }, [callType]);
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
@@ -119,8 +116,6 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     form.businessType &&
     form.businessLocation.trim();
 
-  const [zoomJoinUrl, setZoomJoinUrl] = useState<string | null>(null);
-
   const handleSubmit = async () => {
     if (!isFormValid || !selectedDay || !selectedTime) return;
     setIsSubmitting(true);
@@ -138,6 +133,8 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       business_location: form.businessLocation.trim(),
       booking_date: dateStr,
       booking_time: selectedTime,
+      booking_type: callType,
+      duration_minutes: duration,
     }).select('id').single();
 
     if (error) {
@@ -146,24 +143,24 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       return;
     }
 
-    // Create Zoom meeting
+    // Create Zoom meeting + send confirmation email
     try {
-      // Parse time like "9:00 AM" to ISO start_time
       const [timePart, ampm] = selectedTime!.split(' ');
       const [hStr, mStr] = timePart.split(':');
       let hours = parseInt(hStr);
       if (ampm === 'PM' && hours !== 12) hours += 12;
       if (ampm === 'AM' && hours === 12) hours = 0;
       const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
-      
+
       const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
-          topic: `Discovery Call – ${form.businessName.trim()}`,
+          topic: `${selectedCallType.label} – ${form.businessName.trim()}`,
           start_time: startDate.toISOString(),
-          duration: meetingDuration,
+          duration,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+          booking_type: callType,
         },
       });
 
@@ -172,7 +169,6 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       }
     } catch (e) {
       console.error('Zoom meeting creation failed:', e);
-      // Booking still succeeded, just no Zoom link
     }
 
     setIsSubmitting(false);
@@ -181,9 +177,9 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
 
   const handleClose = () => {
     onOpenChange(false);
-    // Reset after close animation
     setTimeout(() => {
-      setStep("calendar");
+      setStep("type");
+      setCallType(defaultCallType);
       setSelectedDay(null);
       setSelectedTime(null);
       setHoveredDay(null);
@@ -205,7 +201,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg p-0 gap-0 border-border/50 bg-card overflow-hidden max-h-[90vh] overflow-y-auto">
-        <DialogTitle className="sr-only">Book a 20-Minute Consultation</DialogTitle>
+        <DialogTitle className="sr-only">Book a Consultation</DialogTitle>
 
         <AnimatePresence mode="wait">
           {isBooked ? (
@@ -225,7 +221,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
               </motion.div>
               <p className="text-lg font-semibold text-green-500 mb-1">Booked</p>
               <p className="text-sm text-muted-foreground text-center">
-                {monthName} {selectedDay}, {year} at {selectedTime}
+                {monthName} {selectedDay}, {year} at {selectedTime} — {duration} min {selectedCallType.label}
               </p>
               {zoomJoinUrl ? (
                 <a
@@ -241,10 +237,60 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                   We'll send a confirmation with meeting details to {form.email}.
                 </p>
               )}
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                A confirmation email with your Zoom link has been sent.
+              </p>
               <Button variant="outline" className="mt-6" onClick={handleClose}>
                 Close
               </Button>
             </motion.div>
+
+          ) : step === "type" ? (
+            <motion.div
+              key="type"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="p-6 sm:p-8"
+            >
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold">Book a Call</h3>
+                <p className="text-sm text-muted-foreground mt-1">Choose the type of consultation you need.</p>
+              </div>
+
+              <div className="space-y-3">
+                {CALL_TYPES.map((type) => (
+                  <motion.button
+                    key={type.value}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => {
+                      setCallType(type.value);
+                      setStep("calendar");
+                    }}
+                    className="w-full text-left p-5 rounded-xl border border-border/50 hover:border-foreground/20 hover:bg-muted/50 transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground group-hover:text-foreground">
+                          {type.label}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {type.description}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                          {type.duration} min
+                        </span>
+                        <ArrowRight size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+
           ) : step === "calendar" ? (
             <motion.div
               key="calendar"
@@ -253,8 +299,19 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
               exit={{ opacity: 0, x: -20 }}
               className="p-6 sm:p-8"
             >
+              <button
+                onClick={() => { setStep("type"); setSelectedDay(null); setSelectedTime(null); }}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+              >
+                <ChevronLeft size={16} />
+                Back
+              </button>
+
               <div className="mb-6">
-                <h3 className="text-lg font-semibold">Book a {meetingDuration}-Minute Call</h3>
+                <h3 className="text-lg font-semibold">
+                  {selectedCallType.label}
+                  <span className="text-sm font-normal text-muted-foreground ml-2">({duration} min)</span>
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">Pick a date and time that works for you.</p>
               </div>
 
@@ -269,9 +326,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                 >
                   <ChevronLeft size={18} className="text-muted-foreground" />
                 </motion.button>
-                <span className="text-sm font-semibold">
-                  {monthName} {year}
-                </span>
+                <span className="text-sm font-semibold">{monthName} {year}</span>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
@@ -285,10 +340,8 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
 
               {/* Day Headers */}
               <div className="grid grid-cols-7 gap-1 mb-2">
-                {days.map((d) => (
-                  <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">
-                    {d}
-                  </div>
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                  <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">{d}</div>
                 ))}
               </div>
 
@@ -305,12 +358,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                       key={date}
                       onHoverStart={() => available && setHoveredDay(date)}
                       onHoverEnd={() => setHoveredDay(null)}
-                      onClick={() => {
-                        if (available) {
-                          setSelectedDay(date);
-                          setSelectedTime(null);
-                        }
-                      }}
+                      onClick={() => { if (available) { setSelectedDay(date); setSelectedTime(null); } }}
                       whileHover={available ? { scale: 1.1 } : {}}
                       whileTap={available ? { scale: 0.95 } : {}}
                       disabled={!available}
@@ -339,14 +387,12 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                     className="overflow-hidden"
                   >
                     <div className="pt-6 mt-6 border-t border-border/50">
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Available times ({meetingDuration} min)
-                      </p>
+                      <p className="text-sm text-muted-foreground mb-3">Available times ({duration} min)</p>
                       {loadingSlots ? (
                         <div className="flex items-center justify-center py-6">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                         </div>
-                      ) : timeSlots.length === 0 ? (
+                      ) : timeSlots.filter(s => s.available).length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">No available times for this date</p>
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
@@ -371,6 +417,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                 )}
               </AnimatePresence>
             </motion.div>
+
           ) : (
             <motion.div
               key="form"
@@ -390,7 +437,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
               <div className="mb-1">
                 <h3 className="text-lg font-semibold">Your Details</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {monthName} {selectedDay}, {year} at {selectedTime}
+                  {selectedCallType.label} · {monthName} {selectedDay}, {year} at {selectedTime} · {duration} min
                 </p>
               </div>
 
@@ -398,56 +445,25 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">First name *</Label>
-                    <Input
-                      value={form.firstName}
-                      onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      placeholder="First name"
-                      className="h-10 text-sm"
-                    />
+                    <Input value={form.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} placeholder="First name" className="h-10 text-sm" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Last name *</Label>
-                    <Input
-                      value={form.lastName}
-                      onChange={(e) => handleInputChange("lastName", e.target.value)}
-                      placeholder="Last name"
-                      className="h-10 text-sm"
-                    />
+                    <Input value={form.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} placeholder="Last name" className="h-10 text-sm" />
                   </div>
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Email *</Label>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="you@example.com"
-                    className="h-10 text-sm"
-                  />
+                  <Input type="email" value={form.email} onChange={(e) => handleInputChange("email", e.target.value)} placeholder="you@example.com" className="h-10 text-sm" />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Phone *</Label>
-                  <Input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="0400 000 000"
-                    className="h-10 text-sm"
-                  />
+                  <Input type="tel" value={form.phone} onChange={(e) => handleInputChange("phone", e.target.value)} placeholder="0400 000 000" className="h-10 text-sm" />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Business name *</Label>
-                  <Input
-                    value={form.businessName}
-                    onChange={(e) => handleInputChange("businessName", e.target.value)}
-                    placeholder="Your business name"
-                    className="h-10 text-sm"
-                  />
+                  <Input value={form.businessName} onChange={(e) => handleInputChange("businessName", e.target.value)} placeholder="Your business name" className="h-10 text-sm" />
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Business type *</Label>
                   <Select value={form.businessType} onValueChange={(v) => handleInputChange("businessType", v)}>
@@ -455,32 +471,17 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                       <SelectValue placeholder="Select your industry" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-50">
-                      {BUSINESS_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
+                      {["Trades & Construction","Professional Services","Health & Wellness","Hospitality & Food","Retail & E-commerce","Real Estate","Creative & Media","Education & Training","Technology","Non-Profit","Other"].map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-1.5">
                   <Label className="text-xs">Business location *</Label>
-                  <Input
-                    value={form.businessLocation}
-                    onChange={(e) => handleInputChange("businessLocation", e.target.value)}
-                    placeholder="City, State"
-                    className="h-10 text-sm"
-                  />
+                  <Input value={form.businessLocation} onChange={(e) => handleInputChange("businessLocation", e.target.value)} placeholder="City, State" className="h-10 text-sm" />
                 </div>
-
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!isFormValid || isSubmitting}
-                  variant="hero"
-                  size="lg"
-                  className="w-full mt-2"
-                >
+                <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting} variant="hero" size="lg" className="w-full mt-2">
                   {isSubmitting ? "Booking..." : "Confirm Booking"}
                   <ArrowRight size={16} />
                 </Button>
