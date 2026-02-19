@@ -99,18 +99,15 @@ const Contact = () => {
       {/* GOOGLE REVIEWS BANNER */}
       <section className="py-4 sm:py-5 bg-foreground overflow-hidden">
         <div className="flex animate-marquee whitespace-nowrap">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 mx-8 sm:mx-12">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} size={14} className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" />
-                ))}
+          {Array.from({ length: 4 }).map((_, setIndex) => (
+            ["GREAT SITES", "NO BS", "GET LEADS", "TRUSTED SERVICE", "GREAT SEO", "RANK BETTER"].map((phrase, i) => (
+              <div key={`${setIndex}-${i}`} className="flex items-center gap-6 mx-6 sm:mx-8">
+                <span className="text-sm font-black text-background uppercase tracking-[0.2em]">
+                  {phrase}
+                </span>
+                <span className="text-sited-blue text-lg">✦</span>
               </div>
-              <span className="text-sm font-bold text-background uppercase tracking-wider">
-                5-Star Google Reviews
-              </span>
-              <span className="text-background/40">•</span>
-            </div>
+            ))
           ))}
         </div>
       </section>

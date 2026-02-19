@@ -203,16 +203,16 @@ const ContactOffers = () => {
                   <Check className="h-8 w-8 text-sited-blue" />
                 </div>
                 <div>
-                  <h1 className="text-3xl sm:text-4xl font-bold text-foreground">You're all set!</h1>
+                  <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Perfect!</h1>
                   <p className="text-muted-foreground mt-3 max-w-sm mx-auto">
-                    We'll review your answers and match you with the right solution. You'll hear from us within 24 hours.
+                    We've got everything we need. Check out what we've prepared for you.
                   </p>
                 </div>
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/offer")}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-sited-blue text-white font-semibold hover:bg-sited-blue-hover transition-colors"
                 >
-                  Back to Home <ArrowRight size={16} />
+                  See Your Offer <ArrowRight size={16} />
                 </button>
               </motion.div>
             )}
