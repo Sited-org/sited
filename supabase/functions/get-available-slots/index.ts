@@ -38,10 +38,6 @@ async function getZoomBusyRanges(date: string, timezone: string): Promise<{ star
   try {
     const accessToken = await getZoomAccessToken();
 
-    // Fetch meetings for the date range
-    const from = `${date}T00:00:00Z`;
-    const to = `${date}T23:59:59Z`;
-
     const response = await fetch(
       `https://api.zoom.us/v2/users/me/meetings?type=upcoming&page_size=100&from=${date}&to=${date}`,
       {
@@ -56,20 +52,14 @@ async function getZoomBusyRanges(date: string, timezone: string): Promise<{ star
 
     const data = await response.json();
     const meetings: ZoomMeeting[] = data.meetings || [];
-
-    // Convert each meeting to minute ranges in the target timezone
     const busyRanges: { startMin: number; endMin: number }[] = [];
 
     for (const meeting of meetings) {
       if (!meeting.start_time) continue;
 
       const startDate = new Date(meeting.start_time);
-      // Convert to the target timezone
       const tzStart = new Date(startDate.toLocaleString('en-US', { timeZone: timezone }));
-      const meetingDate = tzStart.toISOString().split('T')[0];
 
-      // Only include meetings on the requested date
-      // Compare using the localized date
       const localYear = tzStart.getFullYear();
       const localMonth = String(tzStart.getMonth() + 1).padStart(2, '0');
       const localDay = String(tzStart.getDate()).padStart(2, '0');
@@ -86,8 +76,72 @@ async function getZoomBusyRanges(date: string, timezone: string): Promise<{ star
     return busyRanges;
   } catch (error) {
     console.error('Error fetching Zoom busy times:', error);
-    return []; // Fail open — don't block all slots if Zoom is unreachable
+    return [];
   }
+}
+
+/**
+ * Convert a time (hours, minutes) from one timezone to another on a given date.
+ * Returns { hours, minutes, dateShift } where dateShift is -1, 0, or +1.
+ */
+function convertTimeBetweenTimezones(
+  date: string,
+  hours: number,
+  minutes: number,
+  fromTz: string,
+  toTz: string
+): { hours: number; minutes: number; dateStr: string } {
+  // Build a reference date in the source timezone
+  // We use a trick: format a known UTC time in both TZs and compare
+  const [year, month, day] = date.split('-').map(Number);
+  
+  // Create a date string that represents the time in the source timezone
+  // Use Intl to find the UTC offset for each timezone on this date
+  const refDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+  
+  // Get the time in the source timezone for our reference UTC date
+  const fromStr = refDate.toLocaleString('en-US', { timeZone: fromTz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const toStr = refDate.toLocaleString('en-US', { timeZone: toTz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  
+  // Parse offset difference by creating dates in each timezone
+  // More reliable approach: find the offset of each TZ at this point in time
+  const fromParts = new Date(refDate.toLocaleString('en-US', { timeZone: fromTz }));
+  const toParts = new Date(refDate.toLocaleString('en-US', { timeZone: toTz }));
+  
+  // The difference between fromParts and toParts gives us the offset difference
+  const offsetDiffMs = toParts.getTime() - fromParts.getTime();
+  
+  // Apply offset to get the target time
+  const sourceMinutes = hours * 60 + minutes;
+  const targetMinutes = sourceMinutes + Math.round(offsetDiffMs / 60000);
+  
+  // Handle day overflow/underflow
+  let targetDay = day;
+  let adjustedMinutes = targetMinutes;
+  
+  if (targetMinutes < 0) {
+    adjustedMinutes = targetMinutes + 1440;
+    targetDay--;
+  } else if (targetMinutes >= 1440) {
+    adjustedMinutes = targetMinutes - 1440;
+    targetDay++;
+  }
+  
+  const targetH = Math.floor(adjustedMinutes / 60);
+  const targetM = adjustedMinutes % 60;
+  
+  // Build adjusted date string
+  const adjMonth = String(month).padStart(2, '0');
+  const adjDay = String(targetDay).padStart(2, '0');
+  const targetDateStr = `${year}-${adjMonth}-${adjDay}`;
+  
+  return { hours: targetH, minutes: targetM, dateStr: targetDateStr };
+}
+
+function formatTimeStr(h: number, m: number): string {
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${displayH}:${m.toString().padStart(2, '0')} ${period}`;
 }
 
 serve(async (req) => {
@@ -120,10 +174,12 @@ serve(async (req) => {
       timezone: "Australia/Sydney",
     };
 
-    const timezone = config.timezone || "Australia/Sydney";
+    const adminTimezone = config.timezone || "Australia/Sydney";
+    const effectiveClientTz = clientTimezone || adminTimezone;
 
-    // Check if day is available
-    const d = new Date(date + 'T00:00:00');
+    // Check if day is available using local date parsing (avoid UTC shift)
+    const [yr, mo, dy] = date.split('-').map(Number);
+    const d = new Date(yr, mo - 1, dy);
     const dayOfWeek = d.getDay();
     if (!config.available_days.includes(dayOfWeek)) {
       return new Response(JSON.stringify({ slots: [], available: false }), {
@@ -138,41 +194,49 @@ serve(async (req) => {
         .select('booking_time, status')
         .eq('booking_date', date)
         .neq('status', 'cancelled'),
-      getZoomBusyRanges(date, timezone),
+      getZoomBusyRanges(date, adminTimezone),
     ]);
 
     const bookedTimes = new Set((bookingsResult.data || []).map(b => b.booking_time));
 
     const meetingDuration = duration_override ? Number(duration_override) : config.meeting_duration_minutes;
 
-    // Generate available slots
+    // Generate slots in ADMIN timezone
     const [startH, startM] = config.available_hours_start.split(':').map(Number);
     const [endH, endM] = config.available_hours_end.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
     const totalSlotMinutes = config.buffer_before_minutes + meetingDuration + config.buffer_after_minutes;
 
-    const slots: { time: string; available: boolean }[] = [];
+    const slots: { time: string; available: boolean; adminTime?: string }[] = [];
     let current = startMinutes;
 
     while (current + meetingDuration <= endMinutes) {
-      const h = Math.floor(current / 60);
-      const m = current % 60;
-      const period = h >= 12 ? 'PM' : 'AM';
-      const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      const timeStr = `${displayH}:${m.toString().padStart(2, '0')} ${period}`;
+      const adminH = Math.floor(current / 60);
+      const adminM = current % 60;
+      const adminTimeStr = formatTimeStr(adminH, adminM);
 
-      // Check if slot overlaps with any Zoom busy range
+      // Check Zoom conflicts (in admin timezone)
       const slotStart = current;
       const slotEnd = current + meetingDuration;
       const zoomConflict = zoomBusyRanges.some(
         range => slotStart < range.endMin && slotEnd > range.startMin
       );
 
-      slots.push({
-        time: timeStr,
-        available: !bookedTimes.has(timeStr) && !zoomConflict,
-      });
+      const isAvailable = !bookedTimes.has(adminTimeStr) && !zoomConflict;
+
+      // Convert slot time from admin TZ to client TZ
+      if (adminTimezone === effectiveClientTz) {
+        // No conversion needed
+        slots.push({ time: adminTimeStr, available: isAvailable });
+      } else {
+        const converted = convertTimeBetweenTimezones(date, adminH, adminM, adminTimezone, effectiveClientTz);
+        // Only include if the converted time is still on the same date
+        if (converted.dateStr === date) {
+          const clientTimeStr = formatTimeStr(converted.hours, converted.minutes);
+          slots.push({ time: clientTimeStr, available: isAvailable, adminTime: adminTimeStr });
+        }
+      }
 
       current += totalSlotMinutes;
     }
@@ -181,6 +245,8 @@ serve(async (req) => {
       slots,
       available: true,
       config: { meeting_duration_minutes: meetingDuration },
+      adminTimezone,
+      clientTimezone: effectiveClientTz,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
