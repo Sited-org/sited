@@ -1,40 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play } from "lucide-react";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 
 const videoTestimonials = [
-  {
-    name: "Ben Brown",
-    business: "Ingle & Brown Conveyancing",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
-  {
-    name: "Client Showcase",
-    business: "Sited Portfolio Reel",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
-  {
-    name: "Beata Fuller",
-    business: "Wisdom Education",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
-  {
-    name: "Daniel Verwoert",
-    business: "Hunter Insight",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
-  {
-    name: "Sarah Mitchell",
-    business: "Bloom Floristry",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
-  {
-    name: "Marcus Chen",
-    business: "Urban Fitness",
-    vimeoUrl: "https://vimeo.com/1162967169",
-  },
+  { name: "Ben Brown", business: "Ingle & Brown Conveyancing", vimeoUrl: "https://vimeo.com/1162967169" },
+  { name: "Client Showcase", business: "Sited Portfolio Reel", vimeoUrl: "https://vimeo.com/1162967169" },
+  { name: "Beata Fuller", business: "Wisdom Education", vimeoUrl: "https://vimeo.com/1162967169" },
+  { name: "Daniel Verwoert", business: "Hunter Insight", vimeoUrl: "https://vimeo.com/1162967169" },
+  { name: "Sarah Mitchell", business: "Bloom Floristry", vimeoUrl: "https://vimeo.com/1162967169" },
+  { name: "Marcus Chen", business: "Urban Fitness", vimeoUrl: "https://vimeo.com/1162967169" },
 ];
+
+function useVideoCount() {
+  const [count, setCount] = useState(4);
+  useEffect(() => {
+    const check = () => {
+      const w = window.innerWidth;
+      if (w < 640) setCount(3);
+      else if (w < 1024) setCount(4);
+      else setCount(4);
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return count;
+}
 
 const VideoCard = ({ video }: { video: (typeof videoTestimonials)[0] }) => {
   const [playing, setPlaying] = useState(false);
@@ -52,10 +44,7 @@ const VideoCard = ({ video }: { video: (typeof videoTestimonials)[0] }) => {
             allowFullScreen
           />
         ) : (
-          <div
-            className="w-full h-full relative cursor-pointer group"
-            onClick={() => setPlaying(true)}
-          >
+          <div className="w-full h-full relative cursor-pointer group" onClick={() => setPlaying(true)}>
             <img
               src={thumbnail}
               alt={`${video.business} testimonial`}
@@ -83,40 +72,45 @@ const VideoCard = ({ video }: { video: (typeof videoTestimonials)[0] }) => {
   );
 };
 
-export const VideoTestimonials = () => (
-  <section className="py-16 sm:py-24 bg-background">
-    <div className="w-[92%] max-w-[1400px] mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7 }}
-        className="text-center mb-12"
-      >
-        <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">
-          See & Hear It From Them
-        </p>
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase">
-          Video <span className="text-sited-blue">Testimonials</span>
-        </h2>
-        <p className="mt-3 text-muted-foreground max-w-md mx-auto">
-          Real clients. Real stories. Hit play and hear it straight from them.
-        </p>
-      </motion.div>
+export const VideoTestimonials = () => {
+  const count = useVideoCount();
+  const visible = videoTestimonials.slice(0, count);
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-        {videoTestimonials.map((video, i) => (
-          <motion.div
-            key={video.name + i}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ duration: 0.5, delay: (i % 2) * 0.1 }}
-          >
-            <VideoCard video={video} />
-          </motion.div>
-        ))}
+  return (
+    <section className="py-16 sm:py-24 bg-background">
+      <div className="w-[92%] max-w-[1400px] mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="text-center mb-12"
+        >
+          <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">
+            See & Hear It From Them
+          </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase">
+            Video <span className="text-sited-blue">Testimonials</span>
+          </h2>
+          <p className="mt-3 text-muted-foreground max-w-md mx-auto">
+            Real clients. Real stories. Hit play and hear it straight from them.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+          {visible.map((video, i) => (
+            <motion.div
+              key={video.name + i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: (i % 2) * 0.1 }}
+            >
+              <VideoCard video={video} />
+            </motion.div>
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
