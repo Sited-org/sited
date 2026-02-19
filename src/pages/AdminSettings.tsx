@@ -14,7 +14,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMemberships, Membership, MembershipInsert } from '@/hooks/useMemberships';
 import { useTestimonials, useCreateTestimonial, useUpdateTestimonial, useDeleteTestimonial, Testimonial, TestimonialInsert } from '@/hooks/useTestimonials';
-import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key, Upload, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, CreditCard, Star, User, Settings, GripVertical, Mail, Globe, Package, Shield, Key, Upload, Loader2, Home } from 'lucide-react';
+import HomepageSettingsTab from '@/components/admin/settings/HomepageSettingsTab';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
 import MailSettingsTab from '@/components/admin/settings/MailSettingsTab';
 import ServicesSettingsTab from '@/components/admin/settings/ServicesSettingsTab';
@@ -334,6 +335,10 @@ export default function AdminSettings() {
           <TabsTrigger value="security" className="gap-2 flex-1 min-w-[100px]">
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Security</span>
+          </TabsTrigger>
+          <TabsTrigger value="homepage" className="gap-2 flex-1 min-w-[100px]">
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Homepage</span>
           </TabsTrigger>
         </TabsList>
 
@@ -953,6 +958,11 @@ export default function AdminSettings() {
         {/* Security Tab */}
         <TabsContent value="security" className="mt-6">
           <SecuritySettingsTab />
+        </TabsContent>
+
+        {/* Homepage Tab */}
+        <TabsContent value="homepage" className="mt-6">
+          <HomepageSettingsTab />
         </TabsContent>
 
       </Tabs>
