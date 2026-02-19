@@ -202,8 +202,15 @@ const ContactOffers = () => {
   const handleTrickAnswer = async () => {
     setSubmitting(true);
     try {
+      const leadName = sessionStorage.getItem("lead_name") || "";
+      const leadEmail = sessionStorage.getItem("lead_email") || "";
+      const leadPhone = sessionStorage.getItem("lead_phone") || "";
+      
       await supabase.functions.invoke("save-partial-lead", {
         body: {
+          name: leadName,
+          email: leadEmail,
+          phone: leadPhone || null,
           project_type: "website",
           form_data: {
             source: "offers_flow",

@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { LeadStatusBadge, isPartialLead } from '@/components/admin/LeadStatusBadge';
-import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink, Code } from 'lucide-react';
+import { Mail, Phone, Building2, Calendar, FileText, CreditCard, Globe, MapPin, ExternalLink, Code, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
@@ -178,6 +178,17 @@ export function ProfileTab({
               </div>
             </div>
             
+            {/* Product (Purchased Tier) */}
+            {lead.membership_tier && (
+              <div className="pt-4 border-t border-border/40">
+                <label className="text-sm font-medium text-muted-foreground">Product</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">{lead.membership_tier}</span>
+                </div>
+              </div>
+            )}
+
             {/* Membership Info */}
             <div className="pt-4 border-t border-border/40">
               <label className="text-sm font-medium text-muted-foreground">Membership</label>

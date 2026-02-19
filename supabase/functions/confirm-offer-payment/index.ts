@@ -7,6 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Tier pricing & billing schedule
+const TIER_CONFIG: Record<string, { label: string; totalPrice: number; remainingDays: number }> = {
+  "basic-deposit": { label: "Basic Blue", totalPrice: 549, remainingDays: 7 },
+  "gold": { label: "Gold Package", totalPrice: 649, remainingDays: 14 },
+  "platinum": { label: "Platinum Package", totalPrice: 1199, remainingDays: 14 },
+};
+
+const DEPOSIT_AMOUNT = 49;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -18,6 +27,14 @@ serve(async (req) => {
     if (!paymentIntentId || !name || !email || !tier) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const config = TIER_CONFIG[tier];
+    if (!config) {
+      return new Response(
+        JSON.stringify({ error: `Invalid tier: ${tier}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -36,60 +53,78 @@ serve(async (req) => {
       );
     }
 
-    // Create/update lead as sold
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const tierLabels: Record<string, string> = {
-      "basic-deposit": "Basic Blue",
-      "gold": "Gold Package",
-      "platinum": "Platinum Package",
-    };
+    const customerId = paymentIntent.customer as string;
+
+    // Save the payment method from this PaymentIntent for future charges
+    let paymentMethodId: string | null = null;
+    if (paymentIntent.payment_method) {
+      paymentMethodId = paymentIntent.payment_method as string;
+      // Attach to customer if not already
+      try {
+        await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+      } catch (_e) {
+        // Already attached — fine
+      }
+      await stripe.customers.update(customerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      });
+    }
+
+    const now = new Date();
 
     // Check if lead already exists
     const { data: existingLead } = await supabase
       .from("leads")
-      .select("id")
+      .select("id, form_data")
       .eq("email", email)
       .maybeSingle();
 
     let leadId: string;
 
+    const leadUpdate = {
+      status: "sold",
+      name,
+      phone: phone || null,
+      membership_tier: config.label,
+      stripe_customer_id: customerId,
+      stripe_payment_method_id: paymentMethodId,
+      deal_amount: config.totalPrice,
+      deal_closed_at: now.toISOString(),
+    };
+
     if (existingLead) {
-      // Update existing lead to sold
+      // Merge form_data — preserve questionnaire answers, add offer info
+      const existingFormData = (existingLead.form_data as Record<string, unknown>) || {};
+      const mergedFormData = {
+        ...existingFormData,
+        partial: false,
+        offer_tier: tier,
+        offer_tier_label: config.label,
+        payment_intent_id: paymentIntentId,
+      };
+
       const { error: updateError } = await supabase
         .from("leads")
-        .update({
-          status: "sold",
-          name,
-          phone: phone || null,
-          membership_tier: tierLabels[tier] || tier,
-          stripe_customer_id: paymentIntent.customer as string,
-          deal_amount: 49,
-          deal_closed_at: new Date().toISOString(),
-        })
+        .update({ ...leadUpdate, form_data: mergedFormData })
         .eq("id", existingLead.id);
 
       if (updateError) throw updateError;
       leadId = existingLead.id;
     } else {
-      // Create new lead as sold
       const { data: newLead, error: insertError } = await supabase
         .from("leads")
         .insert({
-          name,
+          ...leadUpdate,
           email,
-          phone: phone || null,
           project_type: "website",
-          status: "sold",
-          membership_tier: tierLabels[tier] || tier,
-          stripe_customer_id: paymentIntent.customer as string,
-          deal_amount: 49,
-          deal_closed_at: new Date().toISOString(),
           form_data: {
             source: "offer_page",
-            tier,
+            offer_tier: tier,
+            offer_tier_label: config.label,
             payment_intent_id: paymentIntentId,
           },
         })
@@ -100,15 +135,65 @@ serve(async (req) => {
       leadId = newLead.id;
     }
 
+    // --- Record $49 deposit as a completed paid transaction ---
+    await supabase.from("transactions").insert({
+      lead_id: leadId,
+      item: `${config.label} — Deposit`,
+      credit: DEPOSIT_AMOUNT,
+      debit: 0,
+      status: "completed",
+      invoice_status: "paid",
+      payment_method: "stripe",
+      notes: `Stripe PI: ${paymentIntentId}`,
+      transaction_date: now.toISOString(),
+    });
+
+    // --- Create pending charge for remaining balance ---
+    const remainingAmount = config.totalPrice - DEPOSIT_AMOUNT;
+    if (remainingAmount > 0) {
+      const dueDate = new Date(now);
+      dueDate.setDate(dueDate.getDate() + config.remainingDays);
+
+      await supabase.from("transactions").insert({
+        lead_id: leadId,
+        item: `${config.label} — Remaining Balance`,
+        credit: 0,
+        debit: remainingAmount,
+        status: "completed",
+        invoice_status: "not_sent",
+        payment_method: null,
+        notes: `Due ${config.remainingDays} days from deposit (${dueDate.toISOString().split("T")[0]}). Auto-charge scheduled.`,
+        transaction_date: dueDate.toISOString(),
+      });
+    }
+
+    // Also record the deposit as a debit line (the product charge)
+    await supabase.from("transactions").insert({
+      lead_id: leadId,
+      item: `${config.label} — Deposit Charge`,
+      credit: 0,
+      debit: DEPOSIT_AMOUNT,
+      status: "completed",
+      invoice_status: "paid",
+      payment_method: "stripe",
+      notes: `Stripe PI: ${paymentIntentId}`,
+      transaction_date: now.toISOString(),
+    });
+
     // Log activity
     await supabase.from("lead_activities").insert({
       lead_id: leadId,
       action: "offer_payment_received",
       details: {
         tier,
-        amount: 49,
+        tier_label: config.label,
+        deposit_amount: DEPOSIT_AMOUNT,
+        total_price: config.totalPrice,
+        remaining_amount: remainingAmount,
+        remaining_due_days: config.remainingDays,
         currency: "aud",
         payment_intent_id: paymentIntentId,
+        payment_method_saved: !!paymentMethodId,
       },
     });
 
