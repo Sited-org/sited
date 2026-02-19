@@ -192,13 +192,22 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentF
         ) : (
           <>
             <Lock size={14} />
-            Pay $49 — Secure My Website
+            Secure My Website — Pay $49
           </>
         )}
       </button>
 
-      <p className="text-[11px] text-center text-muted-foreground">
-        Your $49 deposit is fully refundable. Secure checkout powered by Stripe.
+      <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+        <p className="text-sm font-bold text-foreground">
+          🛡️ 100% Money-Back Guarantee
+        </p>
+        <p className="text-[12px] text-muted-foreground mt-1">
+          Not happy? Your $49 deposit is <span className="font-bold text-foreground">fully refunded</span> — no questions asked.
+        </p>
+      </div>
+
+      <p className="text-[11px] text-center text-muted-foreground mt-3">
+        Secure checkout powered by Stripe.
       </p>
     </form>
   );

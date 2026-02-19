@@ -230,7 +230,7 @@ const Offer = () => {
             <div>
               <p className="text-sm text-muted-foreground">refundable deposit</p>
               <p className="text-sm text-muted-foreground">
-                Full project from <span className="font-bold text-foreground">{activeTier.totalPrice}</span>
+                Full project <span className="font-bold text-foreground">{activeTier.totalPrice}</span>
               </p>
             </div>
           </div>
@@ -253,7 +253,7 @@ const Offer = () => {
               onClick={() => setShowPayment(true)}
               className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider transition-colors"
             >
-              Secure Your Website — $49
+              Secure Your Website — $49 ({activeTier.totalPrice})
               <ArrowRight size={16} />
             </motion.button>
           )}
