@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
 const clientSites = [
-  { name: "Hunter Insight", url: "https://hunterinsight.com.au" },
-  { name: "Ingle & Brown", url: "https://inglebrown.sited.co" },
-  { name: "Wisdom Education", url: "https://wisdomeducation.org" },
+  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
+  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
+  { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
   { name: "Bloom Floristry", url: "https://bloomfloristry.com" },
   { name: "Urban Fitness", url: "https://urbanfitness.com" },
   { name: "Coastal Realty", url: "https://coastalrealty.com" },
@@ -73,7 +73,9 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     return () => clearTimeout(timer);
   }, [loaded, index]);
 
-  const screenshotUrl = `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
+  const screenshotUrl = site.screenshot
+    ? site.screenshot
+    : `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
