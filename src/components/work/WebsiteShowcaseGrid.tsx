@@ -83,9 +83,8 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   const scale = cardWidth > 0 ? cardWidth / NATIVE_W : 0.3;
   // Viewport height at laptop ratio (16:10)
   const viewportH = cardWidth * (10 / 16);
-  // iframe height = 3x native viewport to show full page
-  const nativeViewportH = NATIVE_W * (10 / 16); // 900px
-  const iframeH = nativeViewportH * 4; // 3600px to capture full homepage
+  // iframe height = full homepage length at native width
+  const iframeH = 8000; // 8000px captures most full homepages
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
