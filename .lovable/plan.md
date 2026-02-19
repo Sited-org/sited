@@ -1,60 +1,86 @@
 
 
-# Fix: Replace Iframes with Full-Page Screenshots
+# Root Cause: thum.io Cannot Render Your React Sites
 
-## The Problem
-CSS `100vh` inside an iframe equals the iframe element's height. Setting the iframe to 12,000px causes hero sections to stretch to 12,000px. This is an inherent browser limitation -- not something fixable by changing dimensions or by modifying the client websites.
+## The Problem (confirmed with evidence)
 
-## The Solution
-Replace the live iframes with **full-page screenshot images** from a screenshot API. A screenshot captures the page as it renders in a real browser (with correct `100vh = ~900px`), and the resulting image can be freely scrolled via CSS animation.
+thum.io returns **completely blank white images** for hunterinsight.com.au, inglebrown.sited.co, and wisdomeducation.org. These are React single-page applications that require JavaScript execution to render content. thum.io's free capture engine does not wait for JavaScript to execute, so it captures a blank `<div id="root"></div>` page.
 
-## Implementation
+This is not a CSS, dimension, or scroll issue. The screenshots are literally empty white images being displayed in the MacBook frames.
 
-### Step 1: Switch to Screenshot-Based Rendering
-Update `MacBookCard` in `WebsiteShowcaseGrid.tsx`:
-- Remove the iframe element entirely
-- Use the `thum.io` API (already referenced in the fallback code) to fetch a full-page screenshot at 1440px width
-- URL format: `https://image.thum.io/get/width/1440/fullpage/noanimate/{site.url}`
-- Render the screenshot as an `<img>` tag inside the scrolling wrapper
+## The Fix: Hybrid Screenshot Strategy
 
-### Step 2: Scroll the Screenshot Image
-- The image will be full-page height, naturally containing the entire homepage
-- The existing CSS `scrollIframe` keyframe animation will translate the image upward, revealing the full page
-- `--scroll-distance` will be calculated from the image's natural height minus the viewport window height
-- Pause-on-hover behavior stays identical
+Since thum.io works fine for static/server-rendered sites but fails on your React SPAs, the fix uses a two-tier approach:
 
-### Step 3: Loading States
-- Show a skeleton/pulse placeholder while the screenshot loads
-- Use the `onLoad` event on the `<img>` to detect when it's ready
-- Stagger the scroll start by 1s per card (unchanged)
+### Tier 1: Store static full-page screenshots for your 3 Sited-built websites
+- Upload pre-captured full-page screenshots (PNG/WebP) of Hunter Insight, Ingle Brown, and Wisdom Education to the project's file storage
+- These screenshots will be taken at 1440px width, capturing the entire homepage
+- The component will reference these stored images directly instead of calling thum.io
 
-### Step 4: Cleanup
-- Remove iframe-related state (`iframeRef`, `iframeFailed`, iframe error detection logic)
-- Remove the `sandbox` attribute handling
-- Keep the `thum.io` URL pattern already in the codebase
+### Tier 2: Keep thum.io for all other client sites
+- The remaining 9 sites (Bloom Floristry, Urban Fitness, etc.) are either static sites or placeholder URLs
+- thum.io works fine for these, so no change needed
 
-## What This Fixes
-- Hero sections render at their correct height (as seen on a real desktop browser)
-- Buttons, text, and spacing all match the live website exactly
-- The full homepage is captured and scrollable
-- No dependency on iframe embedding permissions (X-Frame-Options no longer matters)
+### Implementation Details
 
-## Trade-off
-- Screenshots are static snapshots, not live content -- but for a portfolio showcase this is actually preferable (consistent, fast, no loading jank)
-- Screenshots may be cached/delayed by a few hours by the thum.io service
+**Step 1: Create an edge function to capture screenshots**
+Build a `capture-screenshot` edge function that uses a proper headless browser API (via microlink.io's free API endpoint) to capture full-page screenshots of the 3 problematic sites. Store the results in file storage.
 
-## Technical Details
+Alternatively (simpler and more reliable): add a `screenshotUrl` override field to the `clientSites` array, allowing you to specify a custom image URL for any site where thum.io fails.
 
-```text
-Before (iframe):
-  iframe height: 12000px --> 100vh = 12000px --> hero stretches
+**Step 2: Update the clientSites data structure**
 
-After (screenshot):
-  Real browser captures page --> 100vh = 900px --> hero is correct
-  Image scrolled via CSS translateY animation
+```typescript
+const clientSites = [
+  { 
+    name: "Hunter Insight", 
+    url: "https://hunterinsight.com.au",
+    // Override: use stored screenshot instead of thum.io
+    screenshot: "/screenshots/hunterinsight-full.webp" 
+  },
+  { 
+    name: "Ingle & Brown", 
+    url: "https://inglebrown.sited.co",
+    screenshot: "/screenshots/inglebrown-full.webp" 
+  },
+  { 
+    name: "Wisdom Education", 
+    url: "https://wisdomeducation.org",
+    screenshot: "/screenshots/wisdomeducation-full.webp" 
+  },
+  // These use thum.io (no screenshot override)
+  { name: "Bloom Floristry", url: "https://bloomfloristry.com" },
+  // ... rest unchanged
+];
 ```
 
-Key code change in `MacBookCard`:
-- Replace `<iframe>` with `<img src={screenshotUrl} />` inside the scrolling wrapper
-- Calculate scroll distance from the image's rendered height vs. the 16:10 viewport
-- Everything else (MacBook chrome, hover overlay, stagger, responsive counts) stays the same
+**Step 3: Update MacBookCard to use the override**
+
+```typescript
+const screenshotUrl = site.screenshot 
+  ? site.screenshot 
+  : `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
+```
+
+**Step 4: Capture and store the screenshots**
+Create a one-time edge function `capture-site-screenshots` that:
+1. Calls `https://api.microlink.io/?url={site}&screenshot=true&fullPage=true&viewport.width=1440` for each of the 3 sites
+2. Downloads the resulting screenshot image
+3. Stores it in the project's file storage bucket
+4. Returns the public URLs
+
+The component then loads these stored images directly -- fast, reliable, and always correct.
+
+### Why This Works
+- Microlink.io's free API uses a real headless Chromium browser that fully executes JavaScript
+- The captured screenshots will show the sites exactly as they appear on a desktop browser (correct 100vh, all buttons, all content)
+- Stored screenshots load instantly (no external API call on every page view)
+- The scroll animation works identically since it just animates a tall image
+
+### Files to Create/Edit
+- `supabase/functions/capture-site-screenshots/index.ts` -- one-time capture function
+- `src/components/work/WebsiteShowcaseGrid.tsx` -- add screenshot override logic
+- Storage bucket for screenshots
+
+### Alternative (simpler, no edge function)
+If you prefer, you can manually take full-page screenshots of the 3 sites using Chrome DevTools (Ctrl+Shift+P > "Capture full size screenshot"), save them as WebP files, and place them in the `public/screenshots/` folder. The component change is the same -- just reference the local files instead of thum.io.
