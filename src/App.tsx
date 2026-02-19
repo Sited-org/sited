@@ -14,7 +14,7 @@ const Work = lazy(() => import("./pages/Work"));
 const Contact = lazy(() => import("./pages/Contact"));
 // About page removed - content merged into Work page
 // Pricing page removed
-const WebsiteOnboarding = lazy(() => import("./pages/WebsiteOnboarding"));
+// WebsiteOnboarding removed — all CTAs now use popup lead capture
 // AppOnboarding removed - service no longer offered
 // AI Onboarding removed - service no longer offered
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -62,7 +62,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             {/* About route removed - content merged into Work page */}
             {/* Pricing route removed */}
-            <Route path="/onboarding/website" element={<WebsiteOnboarding />} />
+            {/* /onboarding/website removed — popup CTA replaces it */}
             <Route path="/policies" element={<Policies />} />
             {/* App Onboarding route removed - service no longer offered */}
             {/* AI Onboarding route removed - service no longer offered */}

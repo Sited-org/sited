@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, MessageSquare, Heart, Wrench, Shield, Quote } from "lucide-react";
-import { WebsiteShowcase } from "@/components/home/WebsiteShowcase";
+import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote } from "lucide-react";
 import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
+import { TestimonialShowcase } from "@/components/home/TestimonialShowcase";
+import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
+import heroBg from "@/assets/hero-bg.mp4";
 
 const Index = () => {
   usePageSEO({
@@ -13,6 +16,7 @@ const Index = () => {
   });
 
   const { content, loading } = useHomepageContent();
+  const [ctaOpen, setCtaOpen] = useState(false);
 
   if (loading || !content) {
     return (
@@ -24,50 +28,58 @@ const Index = () => {
     );
   }
 
-  const { hero, proof_bar, more_of_everything, trusted_by, who_we_help, why_stay, services, results, process, final_cta } = content;
+  const { hero, proof_bar, more_of_everything, why_stay, services, results, process, final_cta } = content;
 
   return (
     <Layout>
-      {/* 1. HERO — Bold visual impact */}
-      <section className="relative overflow-hidden bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 sm:pb-16">
-          {/* Giant headline */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h1 className="text-5xl sm:text-7xl lg:text-[6.5rem] font-black tracking-tighter leading-[0.9] text-foreground uppercase">
-              Need a great
-              <br />
-              <span className="text-sited-blue">website?</span>
-            </h1>
-            <p className="mt-4 sm:mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto">
-              {hero.subheadline}
-            </p>
-            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to={hero.primary_cta_link}
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-colors shadow-elevated"
-              >
-                {hero.primary_cta_label} <ArrowRight size={20} />
-              </Link>
-              <Link
-                to={hero.secondary_cta_link}
-                className="inline-flex items-center gap-2 text-base font-medium text-foreground underline decoration-gold decoration-2 underline-offset-4 hover:decoration-gold-hover transition-colors"
-              >
-                {hero.secondary_cta_label}
-              </Link>
-            </div>
+      {/* Lead Capture Dialog */}
+      <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
+
+      {/* 1. HERO — Full-screen video background */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background">
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          preload="auto"
+        >
+          <source src={heroBg} type="video/mp4" />
+        </video>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-background/60" />
+
+        <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="text-6xl sm:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase">
+            Need a great
+            <br />
+            <span className="text-sited-blue">website?</span>
+          </h1>
+          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => setCtaOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-colors shadow-elevated"
+            >
+              {hero.primary_cta_label} <ArrowRight size={20} />
+            </button>
+            <Link
+              to="/work"
+              className="inline-flex items-center gap-2 text-base font-medium text-foreground underline decoration-gold decoration-2 underline-offset-4 hover:decoration-gold-hover transition-colors"
+            >
+              {hero.secondary_cta_label}
+            </Link>
           </div>
 
-          {/* Auto-scrolling website showcase */}
-          <WebsiteShowcase />
-
-          {/* Mini social proof under showcase */}
-          <div className="mt-10 sm:mt-14 max-w-3xl mx-auto">
-            <p className="text-xs font-semibold tracking-widest text-center text-muted-foreground mb-4 uppercase">
+          {/* Mini social proof */}
+          <div className="mt-10 sm:mt-14">
+            <p className="text-xs font-semibold tracking-widest text-muted-foreground mb-4 uppercase">
               {hero.social_proof_label}
             </p>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
               {hero.mini_testimonials.slice(0, 3).map((t, i) => (
-                <div key={i} className="flex items-start gap-3 bg-card border border-border rounded-xl p-4">
+                <div key={i} className="flex items-start gap-3 bg-card/80 backdrop-blur border border-border rounded-xl p-4">
                   <div className="w-8 h-8 rounded-full bg-gold/40 flex items-center justify-center shrink-0">
                     <span className="text-xs font-bold text-foreground">{t.name?.[0] || "?"}</span>
                   </div>
@@ -95,7 +107,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 3. CLIENT WEBSITES GRID — Visual showcase */}
+      {/* 3. CLIENT WEBSITES GRID */}
       <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
           <div className="text-center mb-10">
@@ -110,15 +122,22 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 4. MORE OF EVERYTHING — Compact visual */}
+      {/* 4. FEATURED TESTIMONIAL */}
       <section className="bg-card border-y border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <TestimonialShowcase />
+        </div>
+      </section>
+
+      {/* 5. MORE OF EVERYTHING */}
+      <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
             {more_of_everything.title}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {more_of_everything.items.map((item, i) => (
-              <div key={i} className="bg-background border border-border rounded-xl p-5 flex gap-4">
+              <div key={i} className="bg-card border border-border rounded-xl p-5 flex gap-4">
                 <div className="w-1.5 bg-sited-blue/40 rounded-full shrink-0" />
                 <div>
                   <p className="font-semibold text-foreground text-sm">{item.bold}</p>
@@ -130,8 +149,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 5. WHY PEOPLE STAY */}
-      <section className="bg-background">
+      {/* 6. WHY PEOPLE STAY */}
+      <section className="bg-card border-y border-border">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
             {why_stay.heading}
@@ -141,7 +160,7 @@ const Index = () => {
               const icons = [MessageSquare, Heart, Wrench, Shield];
               const Icon = icons[i] || Shield;
               return (
-                <div key={i} className="bg-card border border-border rounded-xl p-5 text-center">
+                <div key={i} className="bg-background border border-border rounded-xl p-5 text-center">
                   <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
                     <Icon size={18} className="text-foreground" />
                   </div>
@@ -154,25 +173,25 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 6. SERVICES — Visual cards */}
-      <section className="bg-card border-y border-border">
+      {/* 7. SERVICES */}
+      <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
             {services.heading}
           </h2>
           <div className="grid md:grid-cols-3 gap-5">
             {services.cards.map((card, i) => (
-              <div key={i} className="bg-background border border-border rounded-xl overflow-hidden flex flex-col">
+              <div key={i} className="bg-card border border-border rounded-xl overflow-hidden flex flex-col">
                 <div className="h-2 bg-sited-blue/30" />
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
                   <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
-                  <Link
-                    to={card.cta_link}
+                  <button
+                    onClick={() => setCtaOpen(true)}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
                   >
                     {card.cta_label} <ArrowRight size={14} />
-                  </Link>
+                  </button>
                 </div>
               </div>
             ))}
@@ -180,8 +199,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 7. RESULTS — Polaroid cards */}
-      <section className="bg-background">
+      {/* 8. RESULTS */}
+      <section className="bg-card border-y border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
             {results.heading}
@@ -190,7 +209,7 @@ const Index = () => {
             {results.cards.map((card, i) => (
               <div
                 key={i}
-                className="bg-card border-2 border-sited-blue/20 rounded-xl p-6 shadow-soft relative"
+                className="bg-background border-2 border-sited-blue/20 rounded-xl p-6 shadow-soft relative"
                 style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
               >
                 <Quote size={18} className="text-sited-blue mb-3" />
@@ -204,7 +223,7 @@ const Index = () => {
           </div>
 
           {/* Testimonial strip */}
-          <div className="mt-12 bg-card border border-border rounded-xl p-6 sm:p-8">
+          <div className="mt-12 bg-background border border-border rounded-xl p-6 sm:p-8">
             <p className="text-xs font-semibold tracking-widest text-center text-muted-foreground mb-4 uppercase">
               {results.testimonial_strip_heading}
             </p>
@@ -219,8 +238,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 8. PROCESS — Simple steps */}
-      <section className="bg-card border-y border-border">
+      {/* 9. PROCESS */}
+      <section className="bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
             {process.heading}
@@ -246,7 +265,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 9. FINAL CTA */}
+      {/* 10. FINAL CTA */}
       <section className="bg-sited-blue">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-18 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
@@ -255,12 +274,12 @@ const Index = () => {
           <p className="mt-3 text-base text-white/80 max-w-xl mx-auto">
             {final_cta.body}
           </p>
-          <Link
-            to={final_cta.button_link}
+          <button
+            onClick={() => setCtaOpen(true)}
             className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gold text-foreground font-semibold text-base hover:bg-gold-hover transition-colors"
           >
             {final_cta.button_label} <ArrowRight size={18} />
-          </Link>
+          </button>
           <p className="mt-3 text-sm text-white/50">
             {final_cta.reassurance}
           </p>
