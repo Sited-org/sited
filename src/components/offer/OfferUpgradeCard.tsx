@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Check } from "lucide-react";
 import type { TierConfig } from "@/pages/Offer";
+import FeatureWithInfo from "@/components/offer/FeatureInfo";
 
 interface OfferUpgradeCardProps {
   tier: TierConfig;
@@ -32,7 +33,7 @@ const OfferUpgradeCard = ({ tier, isActive, onUpgrade, label }: OfferUpgradeCard
         {tier.features.slice(0, 3).map((feature, i) => (
           <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
             <Check size={12} className="text-sited-blue flex-shrink-0 mt-0.5" />
-            <span>{feature}</span>
+            <FeatureWithInfo feature={feature} compact />
           </div>
         ))}
         {tier.features.length > 3 && (
