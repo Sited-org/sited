@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePageSEO } from "@/hooks/usePageSEO";
+import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 type BusinessCategory = "service" | "retail" | "professional" | null;
 
@@ -167,6 +168,15 @@ const ContactOffers = () => {
   const [answers, setAnswers] = useState<string[]>([]);
   const [showTrick, setShowTrick] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showLeadCapture, setShowLeadCapture] = useState(false);
+
+  // Gate: require lead capture popup to have been completed first
+  useEffect(() => {
+    const leadCaptured = sessionStorage.getItem("lead_captured");
+    if (!leadCaptured) {
+      setShowLeadCapture(true);
+    }
+  }, []);
 
   const questions = getQuestionsForCategory(category);
   const totalSteps = category ? questions.length + 2 : 1; // +1 category step, +1 trick question
@@ -207,6 +217,7 @@ const ContactOffers = () => {
       console.error("Error saving questionnaire:", err);
     }
     setSubmitting(false);
+    sessionStorage.setItem("questionnaire_complete", "true");
     navigate("/offer");
   };
 
@@ -372,6 +383,21 @@ const ContactOffers = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Lead capture gate dialog */}
+      <LeadCaptureDialog
+        open={showLeadCapture}
+        onOpenChange={(open) => {
+          if (!open) {
+            // If they close without completing, redirect home
+            const captured = sessionStorage.getItem("lead_captured");
+            if (!captured) {
+              navigate("/");
+            }
+          }
+          setShowLeadCapture(open);
+        }}
+      />
     </div>
   );
 };

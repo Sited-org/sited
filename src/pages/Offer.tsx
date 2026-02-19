@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronDown } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
@@ -81,12 +82,21 @@ const TIERS: Record<string, TierConfig> = {
 };
 
 const Offer = () => {
+  const navigate = useNavigate();
   const { content, loading } = useOfferContent();
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+
+  // Gate: require questionnaire completion
+  useEffect(() => {
+    const complete = sessionStorage.getItem("questionnaire_complete");
+    if (!complete) {
+      navigate("/contact/offers", { replace: true });
+    }
+  }, [navigate]);
 
   usePageSEO({
     title: "Secure Your Website | Sited — $49 Deposit",

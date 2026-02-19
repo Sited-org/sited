@@ -68,6 +68,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
     }
     setSubmitting(false);
     toast.success("Great! Let's learn more about your business.");
+    sessionStorage.setItem("lead_captured", "true");
     onOpenChange(false);
     resetForm();
     navigate("/contact/offers");
