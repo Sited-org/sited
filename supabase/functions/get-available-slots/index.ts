@@ -96,7 +96,7 @@ serve(async (req) => {
   }
 
   try {
-    const { date, duration_override } = await req.json();
+    const { date, duration_override, timezone: clientTimezone } = await req.json();
     if (!date) throw new Error('Date is required');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
