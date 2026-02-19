@@ -13,6 +13,8 @@ export interface Booking {
   business_location: string;
   booking_date: string;
   booking_time: string;
+  booking_type: string;
+  duration_minutes: number;
   status: string;
   notes: string | null;
   google_calendar_event_id: string | null;
