@@ -7,6 +7,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
+import ScrollBlueShape from "@/components/common/ScrollBlueShape";
 import { format } from "date-fns";
 
 type Tier = {
@@ -364,6 +365,9 @@ const CustomWebsites = () => {
           </motion.div>
         </div>
       </section>
+
+      {/* Scroll-driven blue shape */}
+      <ScrollBlueShape />
 
       {/* How it works */}
       <section className="section-padding">
