@@ -10,6 +10,7 @@ import ClientPortalMockup from "@/components/services/ClientPortalMockup";
 import InvoiceMockup from "@/components/services/InvoiceMockup";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 const valueBlocks = [
   {
@@ -160,8 +161,10 @@ const Features = () => {
         {valueBlocks.map((block, i) => {
           const Icon = block.icon;
           const isEven = i % 2 === 0;
+          // Wrap alternating blocks in ThemeSwitchSection for the dark→light scroll effect
+          const Wrapper = !isEven ? ThemeSwitchSection : "section" as any;
           return (
-            <section key={i} className={isEven ? "bg-background" : "bg-card border-y border-border"}>
+            <Wrapper key={i} className={isEven ? "bg-background" : "bg-card border-y border-border"}>
               <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
                 <motion.div
                   initial={{ opacity: 0, y: 40 }}
@@ -206,7 +209,7 @@ const Features = () => {
                   </div>
                 </motion.div>
               </div>
-            </section>
+            </Wrapper>
           );
         })}
 
@@ -227,14 +230,14 @@ const Features = () => {
           </div>
         </section>
 
-        {/* Mockup Showcases */}
+        {/* Mockup Showcases — always white so the genuine feature is visible */}
         <ShowcaseSection
           label="CRM Systems"
           title="A CRM Built Around You"
           description="We build CRMs around your actual processes — your pipeline, your categories, your reporting. A system your team will actually use."
           onCta={() => setCtaOpen(true)}
         >
-          <CRMMockup />
+          <div className="force-light"><CRMMockup /></div>
         </ShowcaseSection>
 
         <Divider />
@@ -246,7 +249,7 @@ const Features = () => {
           onCta={() => setCtaOpen(true)}
           reversed
         >
-          <ClientProfileMockup />
+          <div className="force-light"><ClientProfileMockup /></div>
         </ShowcaseSection>
 
         <Divider />
@@ -257,7 +260,7 @@ const Features = () => {
           description="Clean design, clear messaging, fast loading — built to turn visitors into enquiries. Custom-built for your brand, delivered in days."
           onCta={() => setCtaOpen(true)}
         >
-          <CalendarMockup />
+          <div className="force-light"><CalendarMockup /></div>
         </ShowcaseSection>
 
         <Divider />
@@ -269,7 +272,7 @@ const Features = () => {
           onCta={() => setCtaOpen(true)}
           reversed
         >
-          <ClientPortalMockup />
+          <div className="force-light"><ClientPortalMockup /></div>
         </ShowcaseSection>
 
         <Divider />
@@ -280,7 +283,7 @@ const Features = () => {
           description="Automated invoicing, instant card payments, and bank transfers — all built into your system. No chasing, no delays."
           onCta={() => setCtaOpen(true)}
         >
-          <InvoiceMockup />
+          <div className="force-light"><InvoiceMockup /></div>
         </ShowcaseSection>
 
         {/* Final CTA */}
