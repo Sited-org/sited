@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
+import BookingDialog from "@/components/booking/BookingDialog";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -54,6 +55,7 @@ export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -113,16 +115,15 @@ export const Navbar = () => {
 
           {/* Desktop CTA buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <a href="tel:0459909810">
-              <Button variant="outline" size="sm" className="border-[hsl(var(--sited-blue))] text-[hsl(var(--sited-blue))] hover:bg-[hsl(var(--sited-blue))] hover:text-white">
-                <Phone size={14} />
-                Call Now
-              </Button>
-            </a>
+            <Button variant="outline" size="sm" className="border-[hsl(var(--sited-blue))] text-[hsl(var(--sited-blue))] hover:bg-[hsl(var(--sited-blue))] hover:text-white" onClick={() => setBookOpen(true)}>
+              <CalendarCheck size={14} />
+              Book
+            </Button>
             <Button variant="hero" size="sm" onClick={() => setCtaOpen(true)}>
               Get a Quote
             </Button>
             <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
+            <BookingDialog open={bookOpen} onOpenChange={setBookOpen} />
           </div>
 
           {/* Mobile Menu Button */}
@@ -136,16 +137,16 @@ export const Navbar = () => {
         </nav>
 
         {/* Mobile CTA Strip — below header, mobile only */}
-        <div className="md:hidden flex w-full border-t border-border/30">
+        <div className="md:hidden flex flex-col w-full border-t border-border/30">
           <button
             onClick={() => setCtaOpen(true)}
-            className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--sited-blue))]/80 backdrop-blur-md transition-colors hover:bg-[hsl(var(--sited-blue))]"
+            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--sited-blue))]/80 backdrop-blur-md transition-colors hover:bg-[hsl(var(--sited-blue))]"
           >
             Get a Quote
           </button>
           <a
             href="tel:0459909810"
-            className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--gold))]/80 backdrop-blur-md text-center transition-colors hover:bg-[hsl(var(--gold))]"
+            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--gold))]/80 backdrop-blur-md text-center transition-colors hover:bg-[hsl(var(--gold))] border-t border-white/10"
           >
             Call Now 0459 909 810
           </a>

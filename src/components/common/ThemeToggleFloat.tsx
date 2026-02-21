@@ -68,15 +68,21 @@ export const ThemeToggleFloat = () => {
     // After expansion completes, flip theme & fade out overlay
     const timer = setTimeout(() => {
       setIsDark((p) => !p);
+      // Quick fade-out at full expansion — no shrinking circle
       requestAnimationFrame(() => {
-        overlay.style.transition = "opacity 0.3s ease";
+        overlay.style.transition = "opacity 0.35s ease";
         overlay.style.opacity = "0";
         setTimeout(() => {
-        overlay.style.transform = "scale(0)";
-          overlay.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease";
-          overlay.style.opacity = "";
-          setExpanding(false);
-        }, 300);
+          // Reset for next use (hidden, scaled to 0)
+          overlay.style.transition = "none";
+          overlay.style.transform = "scale(0)";
+          // Restore the expansion transition for the next toggle
+          requestAnimationFrame(() => {
+            overlay.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease";
+            overlay.style.opacity = "0";
+            setExpanding(false);
+          });
+        }, 350);
       });
     }, 500);
 
