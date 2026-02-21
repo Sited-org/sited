@@ -1,13 +1,8 @@
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 import { createPortal } from "react-dom";
 
-/**
- * Floating sun/moon toggle — bottom-right, 10% larger than original.
- * On click a liquid bubble expands from the button to fill the viewport,
- * then the theme flips and the bubble contracts back.
- */
 export const ThemeToggleFloat = () => {
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains("dark")
@@ -48,33 +43,29 @@ export const ThemeToggleFloat = () => {
     const cy = rect.top + rect.height / 2;
     const targetDark = !isDark;
 
-    // Phase 1: expand
     setBubble({ phase: "expanding", x: cx, y: cy, targetDark });
   }, [isDark]);
 
-  /* Drive the two-phase animation via effects */
   useEffect(() => {
     if (!bubble) return;
     if (bubble.phase === "expanding") {
-      // After expansion finishes → flip theme, start contraction
       const t = setTimeout(() => {
         setIsDark(bubble.targetDark);
         setBubble((prev) => (prev ? { ...prev, phase: "contracting" } : null));
-      }, 520);
+      }, 600);
       return () => clearTimeout(t);
     }
     if (bubble.phase === "contracting") {
       const t = setTimeout(() => {
         setBubble(null);
         animating.current = false;
-      }, 520);
+      }, 600);
       return () => clearTimeout(t);
     }
   }, [bubble?.phase]);
 
   const maxR = bubble ? getMaxRadius(bubble.x, bubble.y) : 0;
 
-  // Bubble colour = the INCOMING theme's background
   const bubbleColor = bubble
     ? bubble.targetDark
       ? "hsl(220, 15%, 5%)"
@@ -117,7 +108,6 @@ export const ThemeToggleFloat = () => {
         </AnimatePresence>
       </motion.button>
 
-      {/* Liquid bubble overlay via portal */}
       {bubble &&
         createPortal(
           <BubbleOverlay
@@ -133,10 +123,6 @@ export const ThemeToggleFloat = () => {
   );
 };
 
-/**
- * Liquid bubble overlay with SVG turbulence for a real fluid feel.
- * Uses feTurbulence + feDisplacementMap to distort the edge of the circle.
- */
 const BubbleOverlay = ({
   x,
   y,
@@ -150,44 +136,40 @@ const BubbleOverlay = ({
   color: string;
   phase: "expanding" | "contracting";
 }) => {
-  const [mounted, setMounted] = useState(false);
-  const turbRef = useRef<SVGAnimateElement>(null);
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setMounted(true));
+  // Pre-calculate droplet positions so they don't change on re-render
+  const droplets = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 8 + (i * 0.3);
+      const dist = maxR * 0.12 * (0.4 + (i % 3) * 0.3);
+      return {
+        dx: Math.cos(angle) * dist,
+        dy: Math.sin(angle) * dist,
+        size: 5 + (i % 4) * 4,
+        delay: 0.02 + i * 0.03,
+      };
     });
-  }, []);
+  }, [maxR]);
 
-  const scale = phase === "expanding" ? (mounted ? 1 : 0) : 0;
-  // Turbulence intensity fades as bubble fills (more wobble at edges)
-  const turbScale = phase === "expanding" ? (mounted ? 18 : 60) : 60;
+  const diameter = maxR * 2.4;
+  const filterId = "liquid-bubble-filter";
 
   return (
     <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
-      {/* SVG filter for liquid distortion */}
+      {/* SVG filter for organic wobbly edges */}
       <svg width="0" height="0" style={{ position: "absolute" }}>
         <defs>
-          <filter id="liquid-bubble" x="-20%" y="-20%" width="140%" height="140%">
+          <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
             <feTurbulence
               type="fractalNoise"
-              baseFrequency="0.015 0.025"
-              numOctaves={3}
-              seed={42}
+              baseFrequency="0.012 0.02"
+              numOctaves={4}
+              seed={12}
               result="noise"
-            >
-              <animate
-                ref={turbRef}
-                attributeName="baseFrequency"
-                values="0.015 0.025;0.02 0.035;0.015 0.025"
-                dur="1.2s"
-                repeatCount="1"
-              />
-            </feTurbulence>
+            />
             <feDisplacementMap
               in="SourceGraphic"
               in2="noise"
-              scale={turbScale}
+              scale={phase === "expanding" ? 35 : 25}
               xChannelSelector="R"
               yChannelSelector="G"
             />
@@ -195,61 +177,81 @@ const BubbleOverlay = ({
         </defs>
       </svg>
 
-      <div
+      {/* Main bubble */}
+      <motion.div
+        initial={phase === "expanding" ? { scale: 0 } : { scale: 1 }}
+        animate={phase === "expanding" ? { scale: 1 } : { scale: 0 }}
+        transition={{
+          duration: 0.55,
+          ease: [0.22, 1, 0.36, 1],
+        }}
         style={{
           position: "absolute",
           left: x,
           top: y,
-          width: maxR * 2.2,
-          height: maxR * 2.2,
-          marginLeft: -maxR * 1.1,
-          marginTop: -maxR * 1.1,
+          width: diameter,
+          height: diameter,
+          marginLeft: -diameter / 2,
+          marginTop: -diameter / 2,
           borderRadius: "50%",
           backgroundColor: color,
-          transform: `scale(${scale})`,
-          transition: "transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)",
           transformOrigin: "center",
           willChange: "transform",
-          filter: "url(#liquid-bubble)",
+          filter: `url(#${filterId})`,
         }}
       />
 
-      {/* Small trailing droplets */}
-      {mounted && phase === "expanding" && (
-        <>
-          {[...Array(5)].map((_, i) => {
-            const angle = (Math.PI * 2 * i) / 5 + Math.random() * 0.5;
-            const dist = maxR * 0.15 * (0.5 + Math.random());
-            const dx = Math.cos(angle) * dist;
-            const dy = Math.sin(angle) * dist;
-            const size = 6 + Math.random() * 10;
-            return (
-              <div
-                key={i}
-                style={{
-                  position: "absolute",
-                  left: x + dx - size / 2,
-                  top: y + dy - size / 2,
-                  width: size,
-                  height: size,
-                  borderRadius: "50%",
-                  backgroundColor: color,
-                  opacity: 0,
-                  animation: `droplet-pop 0.6s ${0.05 + i * 0.04}s ease-out forwards`,
-                }}
-              />
-            );
-          })}
-        </>
-      )}
+      {/* Droplets that trail behind the expanding bubble */}
+      {phase === "expanding" &&
+        droplets.map((d, i) => (
+          <motion.div
+            key={i}
+            initial={{ scale: 0, opacity: 0.9 }}
+            animate={{
+              scale: [0, 1.6, 0],
+              opacity: [0.9, 0.5, 0],
+            }}
+            transition={{
+              duration: 0.5,
+              delay: d.delay,
+              ease: "easeOut",
+            }}
+            style={{
+              position: "absolute",
+              left: x + d.dx - d.size / 2,
+              top: y + d.dy - d.size / 2,
+              width: d.size,
+              height: d.size,
+              borderRadius: "50%",
+              backgroundColor: color,
+              willChange: "transform, opacity",
+            }}
+          />
+        ))}
 
-      <style>{`
-        @keyframes droplet-pop {
-          0% { transform: scale(0); opacity: 0.8; }
-          50% { transform: scale(1.4); opacity: 0.5; }
-          100% { transform: scale(0); opacity: 0; }
-        }
-      `}</style>
+      {/* Secondary ring that lags slightly for depth */}
+      <motion.div
+        initial={phase === "expanding" ? { scale: 0, opacity: 0.3 } : { scale: 0.95, opacity: 0 }}
+        animate={phase === "expanding" ? { scale: 0.95, opacity: 0 } : { scale: 0, opacity: 0.3 }}
+        transition={{
+          duration: 0.65,
+          ease: [0.22, 1, 0.36, 1],
+          delay: 0.05,
+        }}
+        style={{
+          position: "absolute",
+          left: x,
+          top: y,
+          width: diameter * 0.85,
+          height: diameter * 0.85,
+          marginLeft: -diameter * 0.85 / 2,
+          marginTop: -diameter * 0.85 / 2,
+          borderRadius: "50%",
+          border: `2px solid ${color}`,
+          transformOrigin: "center",
+          willChange: "transform, opacity",
+        }}
+      />
     </div>
   );
 };
