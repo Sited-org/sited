@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { ThemeToggleFloat } from '@/components/common/ThemeToggleFloat';
 
 import { ClipboardList, Wallet, CalendarDays, Sparkles } from 'lucide-react';
 
@@ -67,7 +68,7 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="h-screen bg-background flex overflow-hidden">
+    <div className="h-screen bg-background flex overflow-hidden max-w-full">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -78,7 +79,7 @@ export default function AdminLayout() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border overflow-hidden transform transition-transform duration-200 ease-in-out lg:transform-none",
+        "fixed lg:static inset-y-0 left-0 z-50 w-64 shrink-0 bg-card border-r border-border overflow-y-auto overflow-x-hidden transform transition-transform duration-200 ease-in-out lg:transform-none",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
@@ -164,7 +165,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 h-screen overflow-hidden flex flex-col">
+      <main className="flex-1 min-w-0 h-screen overflow-hidden flex flex-col max-w-full">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-30 bg-background border-b border-border p-4 flex items-center gap-4">
           <button
@@ -178,10 +179,11 @@ export default function AdminLayout() {
           </span>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <div className="flex-1 overflow-y-auto overflow-x-auto p-6 lg:p-8">
           <Outlet />
         </div>
       </main>
+      <ThemeToggleFloat />
     </div>
   );
 }
