@@ -1,21 +1,27 @@
 import { useEffect, useRef } from "react";
 
-interface Particle {
+interface Bubble {
   x: number;
   y: number;
-  size: number;
+  r: number;       // radius
+  baseR: number;
   speedX: number;
   speedY: number;
   opacity: number;
+  phase: number;    // for gentle pulsing
+  phaseSpeed: number;
 }
 
+/**
+ * Faded floating bubbles background — subtle, realistic, works on both themes.
+ * Renders soft translucent circles that drift and pulse gently.
+ */
 export const FloatingParticles = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -23,63 +29,65 @@ export const FloatingParticles = () => {
     if (prefersReduced) return;
 
     let animId: number;
-    const particles: Particle[] = [];
-    const PARTICLE_COUNT = 60;
+    const bubbles: Bubble[] = [];
+    const BUBBLE_COUNT = 18;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth * window.devicePixelRatio;
       canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
 
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.push({
-        x: Math.random() * canvas.offsetWidth,
-        y: Math.random() * canvas.offsetHeight,
-        size: Math.random() * 2 + 0.5,
-        speedX: (Math.random() - 0.5) * 0.3,
-        speedY: (Math.random() - 0.5) * 0.3,
-        opacity: Math.random() * 0.4 + 0.1,
+    const w = () => canvas.offsetWidth;
+    const h = () => canvas.offsetHeight;
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      const baseR = 20 + Math.random() * 60;
+      bubbles.push({
+        x: Math.random() * w(),
+        y: Math.random() * h(),
+        r: baseR,
+        baseR,
+        speedX: (Math.random() - 0.5) * 0.15,
+        speedY: -0.05 - Math.random() * 0.12, // drift upward gently
+        opacity: 0.03 + Math.random() * 0.05,
+        phase: Math.random() * Math.PI * 2,
+        phaseSpeed: 0.003 + Math.random() * 0.005,
       });
     }
 
     const draw = () => {
-      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-      const blueColor = getComputedStyle(document.documentElement)
-        .getPropertyValue("--sited-blue").trim();
+      ctx.clearRect(0, 0, w(), h());
 
-      for (const p of particles) {
-        p.x += p.speedX;
-        p.y += p.speedY;
+      const isDark = document.documentElement.classList.contains("dark");
+      // Use a neutral colour that works on both themes
+      const baseColor = isDark ? "255, 255, 255" : "0, 0, 0";
 
-        if (p.x < 0) p.x = canvas.offsetWidth;
-        if (p.x > canvas.offsetWidth) p.x = 0;
-        if (p.y < 0) p.y = canvas.offsetHeight;
-        if (p.y > canvas.offsetHeight) p.y = 0;
+      for (const b of bubbles) {
+        b.x += b.speedX;
+        b.y += b.speedY;
+        b.phase += b.phaseSpeed;
+
+        // Gentle pulse
+        b.r = b.baseR + Math.sin(b.phase) * (b.baseR * 0.12);
+
+        // Wrap around
+        if (b.y + b.r < 0) { b.y = h() + b.r; b.x = Math.random() * w(); }
+        if (b.x < -b.r) b.x = w() + b.r;
+        if (b.x > w() + b.r) b.x = -b.r;
+
+        // Draw soft gradient bubble
+        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        grad.addColorStop(0, `rgba(${baseColor}, ${b.opacity * 0.8})`);
+        grad.addColorStop(0.5, `rgba(${baseColor}, ${b.opacity * 0.3})`);
+        grad.addColorStop(1, `rgba(${baseColor}, 0)`);
 
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${blueColor}, ${p.opacity})`;
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
         ctx.fill();
-      }
-
-      // Draw connections
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `hsla(${blueColor}, ${0.08 * (1 - dist / 120)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
       }
 
       animId = requestAnimationFrame(draw);

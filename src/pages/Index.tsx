@@ -65,7 +65,7 @@ const Index = () => {
           >
             Need a
             <br />
-            <span className="text-sited-blue">smashing</span>
+            <span className="text-sited-blue">killer</span>
             <br />
             website?
           </motion.h1>
