@@ -12,7 +12,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
-import ScrollBlueShape from "@/components/common/ScrollBlueShape";
+import { ScrollReveal } from "@/components/common/ScrollReveal";
 
 const valueBlocks = [
   {
@@ -80,13 +80,7 @@ const ShowcaseSection = ({
   <section className="py-16 sm:py-24 lg:py-32 relative">
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
       <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reversed ? "lg:grid-flow-dense" : ""}`}>
-        <motion.div
-          initial={{ opacity: 0, x: reversed ? 40 : -40 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className={reversed ? "lg:col-start-2" : ""}
-        >
+        <ScrollReveal direction={reversed ? "right" : "left"} className={reversed ? "lg:col-start-2" : ""}>
           <span className="text-xs uppercase tracking-[0.2em] text-sited-blue font-semibold">{label}</span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mt-3 mb-4 text-foreground">
             {title}
@@ -100,10 +94,10 @@ const ShowcaseSection = ({
           >
             See Offer <ArrowRight size={16} />
           </button>
-        </motion.div>
-        <div className={reversed ? "lg:col-start-1" : ""}>
+        </ScrollReveal>
+        <ScrollReveal direction={reversed ? "left" : "right"} delay={0.15} className={reversed ? "lg:col-start-1" : ""}>
           {children}
-        </div>
+        </ScrollReveal>
       </div>
     </div>
   </section>
@@ -217,8 +211,7 @@ const Features = () => {
           );
         })}
 
-        {/* Scroll-driven blue shape */}
-        <ScrollBlueShape />
+        {/* Spacer removed — ScrollBlueShape deleted */}
 
         {/* Bold Transition */}
         <section className="bg-sited-blue">

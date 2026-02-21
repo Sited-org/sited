@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon } from "lucide-react";
 
 /**
- * Floating sun/moon toggle with an expanding splat bubble overlay
+ * Floating sun/moon toggle with an expanding circle overlay
  * that fills the viewport to transition the theme.
  */
 export const ThemeToggleFloat = () => {
@@ -14,7 +14,6 @@ export const ThemeToggleFloat = () => {
   const btnRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Apply theme class
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -27,17 +26,17 @@ export const ThemeToggleFloat = () => {
     if (expanding) return;
 
     const btn = btnRef.current;
-    if (!btn) {
+    const overlay = overlayRef.current;
+    if (!btn || !overlay) {
       setIsDark((p) => !p);
       return;
     }
 
-    // Get button position for expansion origin
     const rect = btn.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
 
-    // Calculate radius needed to cover entire viewport
+    // Radius to cover entire viewport from button center
     const maxDist = Math.max(
       Math.hypot(cx, cy),
       Math.hypot(window.innerWidth - cx, cy),
@@ -45,13 +44,7 @@ export const ThemeToggleFloat = () => {
       Math.hypot(window.innerWidth - cx, window.innerHeight - cy)
     );
 
-    const overlay = overlayRef.current;
-    if (!overlay) {
-      setIsDark((p) => !p);
-      return;
-    }
-
-    // Position overlay at button center
+    // Position overlay centered on button
     overlay.style.left = `${cx}px`;
     overlay.style.top = `${cy}px`;
     overlay.style.width = `${maxDist * 2}px`;
@@ -59,24 +52,22 @@ export const ThemeToggleFloat = () => {
     overlay.style.marginLeft = `${-maxDist}px`;
     overlay.style.marginTop = `${-maxDist}px`;
 
-    // Set the overlay to the INCOMING theme colour
-    const incomingBg = isDark
-      ? "hsl(0, 0%, 100%)" // switching to light
-      : "hsl(220, 15%, 5%)"; // switching to dark
-    overlay.style.backgroundColor = incomingBg;
+    // Set overlay to the INCOMING theme colour
+    overlay.style.backgroundColor = isDark
+      ? "hsl(0, 0%, 100%)"       // switching to light
+      : "hsl(220, 15%, 5%)";     // switching to dark
 
     setExpanding(true);
 
-    // Scale up with CSS transition
+    // Expand the circle
     requestAnimationFrame(() => {
       overlay.style.transform = "scale(1)";
       overlay.style.opacity = "1";
     });
 
-    // After expansion, flip theme & hide overlay
+    // After expansion completes, flip theme & fade out overlay
     const timer = setTimeout(() => {
       setIsDark((p) => !p);
-      // Small delay to let the theme apply, then hide overlay
       requestAnimationFrame(() => {
         overlay.style.transition = "opacity 0.3s ease";
         overlay.style.opacity = "0";
@@ -87,37 +78,23 @@ export const ThemeToggleFloat = () => {
           setExpanding(false);
         }, 300);
       });
-    }, 600);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [isDark, expanding]);
 
   return (
     <>
-      {/* Expanding overlay */}
+      {/* Expanding circle overlay */}
       <div
         ref={overlayRef}
         className="fixed z-[999] rounded-full pointer-events-none"
         style={{
           transform: "scale(0)",
           opacity: "0",
-          transition: "transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease",
-          clipPath: `url(#splat-clip)`,
+          transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease",
         }}
       />
-
-      {/* SVG filter for organic splat edges */}
-      <svg className="fixed w-0 h-0" aria-hidden="true">
-        <defs>
-          <filter id="splat-warp">
-            <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" seed="2" />
-            <feDisplacementMap in="SourceGraphic" scale="30" />
-          </filter>
-          <clipPath id="splat-clip" clipPathUnits="objectBoundingBox">
-            <circle cx="0.5" cy="0.5" r="0.5" style={{ filter: "url(#splat-warp)" }} />
-          </clipPath>
-        </defs>
-      </svg>
 
       {/* Toggle button */}
       <motion.button
