@@ -8,6 +8,7 @@ import BookingDialog from "@/components/booking/BookingDialog";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
+import { ScrollReveal } from "@/components/common/ScrollReveal";
 
 const Contact = () => {
   usePageSEO({
@@ -145,32 +146,30 @@ const Contact = () => {
                 icon: Users,
                 title: "500+ Happy Clients",
                 desc: "We've built websites for tradies, consultants, gyms, restaurants, real estate agents — you name it.",
+                dir: "left" as const,
               },
               {
                 icon: Clock,
                 title: "Fast Turnaround",
                 desc: "Most websites are live within 2 weeks. No months of back-and-forth. We move when you move.",
+                dir: "up" as const,
               },
               {
                 icon: Shield,
                 title: "No Lock-In Contracts",
                 desc: "Stay because you want to, not because you have to. We earn your business every month.",
+                dir: "right" as const,
               },
-            ].map((item, i) => (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-card border border-border rounded-2xl p-8 text-center scroll-border-blue"
-              >
-                <div className="w-12 h-12 rounded-xl bg-sited-blue/10 flex items-center justify-center mx-auto mb-4">
-                  <item.icon size={24} className="text-sited-blue" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
+            ].map((item: { icon: typeof Users; title: string; desc: string; dir: "left" | "up" | "right" }, i: number) => (
+              <ScrollReveal key={item.title} delay={i * 0.1} direction={item.dir}>
+                <div className="bg-card border border-border rounded-2xl p-8 text-center scroll-border-blue h-full">
+                  <div className="w-12 h-12 rounded-xl bg-sited-blue/10 flex items-center justify-center mx-auto mb-4">
+                    <item.icon size={24} className="text-sited-blue" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </motion.div>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>

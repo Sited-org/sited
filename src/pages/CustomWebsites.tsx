@@ -7,7 +7,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
-import ScrollBlueShape from "@/components/common/ScrollBlueShape";
+import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { format } from "date-fns";
 
 type Tier = {
@@ -222,7 +222,7 @@ const CustomWebsites = () => {
               No matter which package you choose, these come standard.
             </motion.p>
           </motion.div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { icon: Paintbrush, label: "Custom design", desc: "Built from scratch for your brand" },
               { icon: Smartphone, label: "Mobile ready", desc: "Perfect on every screen size" },
@@ -233,13 +233,15 @@ const CustomWebsites = () => {
               { icon: Lock, label: "SSL secured", desc: "Safe and trusted by browsers" },
               { icon: Headphones, label: "Ongoing support", desc: "We're here when you need us" },
             ].map((item, i) => (
-              <motion.div key={item.label} variants={fadeUp} custom={i} className="p-4 rounded-xl border border-border bg-card text-center">
-                <item.icon size={24} className="mx-auto text-sited-blue mb-2" />
-                <p className="text-sm font-bold text-foreground">{item.label}</p>
-                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-              </motion.div>
+              <ScrollReveal key={item.label} delay={i * 0.06} direction={i % 2 === 0 ? "left" : "right"}>
+                <div className="p-4 rounded-xl border border-border bg-card text-center h-full">
+                  <item.icon size={24} className="mx-auto text-sited-blue mb-2" />
+                  <p className="text-sm font-bold text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                </div>
+              </ScrollReveal>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -366,8 +368,7 @@ const CustomWebsites = () => {
         </div>
       </section>
 
-      {/* Scroll-driven blue shape */}
-      <ScrollBlueShape />
+      {/* Spacer removed — ScrollBlueShape deleted */}
 
       {/* How it works */}
       <section className="section-padding">
@@ -377,19 +378,21 @@ const CustomWebsites = () => {
               Simple. Straightforward. Sorted.
             </motion.h2>
           </motion.div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { step: "01", title: "Tell us about your business", desc: "A quick discovery call to understand your goals, your customers, and what success looks like for you." },
               { step: "02", title: "We build it around results", desc: "Your site is designed and developed with one focus — turning visitors into customers." },
               { step: "03", title: "Launch and grow", desc: "Go live with confidence. We manage, maintain, and optimise so you can focus on running your business." },
             ].map((item, i) => (
-              <motion.div key={item.step} variants={fadeUp} custom={i} className="text-center p-6 rounded-xl border border-border bg-card">
-                <span className="text-4xl font-black text-sited-blue/20">{item.step}</span>
-                <h3 className="text-lg font-black text-foreground mt-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground mt-2">{item.desc}</p>
-              </motion.div>
+              <ScrollReveal key={item.step} delay={i * 0.1} direction={i === 1 ? "up" : i === 0 ? "left" : "right"}>
+                <div className="text-center p-6 rounded-xl border border-border bg-card h-full">
+                  <span className="text-4xl font-black text-sited-blue/20">{item.step}</span>
+                  <h3 className="text-lg font-black text-foreground mt-2">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{item.desc}</p>
+                </div>
+              </ScrollReveal>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
