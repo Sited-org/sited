@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
@@ -16,18 +16,14 @@ const navLinks = [
 ];
 
 const domains = ["au", "co"];
+const domainColors = ["text-[hsl(var(--sited-blue))]", "text-[hsl(var(--gold))]"];
 
 const AnimatedLogo = () => {
   const [domainIndex, setDomainIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setDomainIndex((prev) => (prev + 1) % domains.length);
-        setIsAnimating(false);
-      }, 200);
+      setDomainIndex((prev) => (prev + 1) % domains.length);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -45,7 +41,7 @@ const AnimatedLogo = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="text-muted-foreground"
+          className={cn("font-semibold", domainColors[domainIndex])}
         >
           {domains[domainIndex]}
         </motion.span>
@@ -115,7 +111,14 @@ export const Navbar = () => {
             ))}
           </ul>
 
-          <div className="hidden md:block">
+          {/* Desktop CTA buttons */}
+          <div className="hidden md:flex items-center gap-3">
+            <a href="tel:0459909810">
+              <Button variant="outline" size="sm" className="border-[hsl(var(--sited-blue))] text-[hsl(var(--sited-blue))] hover:bg-[hsl(var(--sited-blue))] hover:text-white">
+                <Phone size={14} />
+                Call Now
+              </Button>
+            </a>
             <Button variant="hero" size="sm" onClick={() => setCtaOpen(true)}>
               Get a Quote
             </Button>
@@ -131,6 +134,22 @@ export const Navbar = () => {
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </nav>
+
+        {/* Mobile CTA Strip — below header, mobile only */}
+        <div className="md:hidden flex w-full border-t border-border/30">
+          <button
+            onClick={() => setCtaOpen(true)}
+            className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--sited-blue))]/80 backdrop-blur-md transition-colors hover:bg-[hsl(var(--sited-blue))]"
+          >
+            Get a Quote
+          </button>
+          <a
+            href="tel:0459909810"
+            className="flex-1 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--gold))]/80 backdrop-blur-md text-center transition-colors hover:bg-[hsl(var(--gold))]"
+          >
+            Call Now 0459 909 810
+          </a>
+        </div>
       </motion.header>
 
       {/* Mobile Menu */}
