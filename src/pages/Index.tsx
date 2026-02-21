@@ -8,6 +8,7 @@ import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestimonials";
 import { FloatingParticles } from "@/components/home/FloatingParticles";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 const fadeUp = {
@@ -224,8 +225,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 5. MORE OF EVERYTHING */}
-      <section className="bg-background">
+      {/* 5. MORE OF EVERYTHING — switches to light on scroll */}
+      <ThemeSwitchSection className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
             initial="hidden"
@@ -257,7 +258,7 @@ const Index = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* VIDEO TESTIMONIALS */}
       <HomepageVideoTestimonials />
@@ -343,8 +344,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* 8. RESULTS */}
-      <section className="border-y border-border relative overflow-hidden">
+      {/* 8. RESULTS — switches to light on scroll */}
+      <ThemeSwitchSection className="border-y border-border relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--surface-elevated))] to-background" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
@@ -402,7 +403,7 @@ const Index = () => {
             })}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* 9. PROCESS */}
       <section className="bg-background">
