@@ -198,7 +198,13 @@
 
 /* ── Theme-switch sections: auto light-on-scroll ── */
 .theme-switch-section {
-  transition: background-color 0.6s ease, color 0.4s ease;
+  transition: background-color 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              color 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.theme-switch-section * {
+  transition: color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dark .theme-switch-section.light-section-active {
   --background: 0 0% 100%;
@@ -217,17 +223,28 @@
   color: hsl(0 0% 8%);
 }
 
-/* ── Force-light wrapper (for mockups) ── */
+/* ── Force-light wrapper (for mockups — always white) ── */
+.force-light,
+.force-light * {
+  --background: 0 0% 100% !important;
+  --foreground: 0 0% 8% !important;
+  --card: 0 0% 99% !important;
+  --card-foreground: 0 0% 8% !important;
+  --muted: 0 0% 94% !important;
+  --muted-foreground: 0 0% 45% !important;
+  --border: 0 0% 90% !important;
+  --surface-elevated: 0 0% 98% !important;
+  --accent: 158 45% 85% !important;
+  --accent-foreground: 158 45% 25% !important;
+  --primary: 0 0% 8% !important;
+  --primary-foreground: 0 0% 100% !important;
+  --secondary: 0 0% 96% !important;
+  --secondary-foreground: 0 0% 8% !important;
+  --gold: 30 38% 76% !important;
+  --sited-blue: 202 74% 69% !important;
+  color-scheme: light !important;
+}
 .force-light {
-  --background: 0 0% 100%;
-  --foreground: 0 0% 8%;
-  --card: 0 0% 99%;
-  --card-foreground: 0 0% 8%;
-  --muted: 0 0% 94%;
-  --muted-foreground: 0 0% 45%;
-  --border: 0 0% 90%;
-  --surface-elevated: 0 0% 98%;
-  --accent: 158 45% 85%;
-  --accent-foreground: 158 45% 25%;
-  color-scheme: light;
+  background-color: hsl(0 0% 100%) !important;
+  color: hsl(0 0% 8%) !important;
 }
