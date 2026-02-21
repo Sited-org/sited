@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -10,6 +10,7 @@ import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestim
 import { FloatingParticles } from "@/components/home/FloatingParticles";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useScrollBorders } from "@/hooks/useScrollBorders";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -31,6 +32,8 @@ const Index = () => {
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollBorders(pageRef);
 
   if (loading || !content) {
     return (
@@ -46,6 +49,7 @@ const Index = () => {
 
   return (
     <Layout>
+      <div ref={pageRef}>
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 
       {/* 1. HERO */}
@@ -247,7 +251,7 @@ const Index = () => {
                 custom={i}
                 variants={fadeUp}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="bg-card border border-border rounded-xl p-5 flex gap-4 hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
+                className="bg-card border border-border rounded-xl p-5 flex gap-4 scroll-border-blue hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
               >
                 <div className="w-1.5 bg-sited-blue/40 rounded-full shrink-0" />
                 <div>
@@ -289,7 +293,7 @@ const Index = () => {
                   custom={i}
                   variants={fadeUp}
                   whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
-                  className="bg-card border border-border rounded-xl p-5 text-center hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
+                  className="bg-card border border-border rounded-xl p-5 text-center scroll-border-gold hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
                 >
                   <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
                     <Icon size={18} className="text-gold" />
@@ -325,7 +329,7 @@ const Index = () => {
                 custom={i}
                 variants={fadeUp}
                 whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
+                className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col scroll-border-blue hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
               >
                 <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
                 <div className="p-6 flex flex-col flex-1">
@@ -373,7 +377,7 @@ const Index = () => {
                   custom={i}
                   variants={fadeUp}
                   whileHover={{ y: -4, rotate: 0, transition: { duration: 0.3 } }}
-                  className="bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden hover:border-sited-blue/30 transition-all duration-300"
+                  className="bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden scroll-border-blue hover:border-sited-blue/30 transition-all duration-300"
                   style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
                 >
                   {/* Glow accent */}
@@ -481,6 +485,7 @@ const Index = () => {
         <Link to="/policies" className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors">
           Privacy Policy & Terms
         </Link>
+      </div>
       </div>
     </Layout>
   );

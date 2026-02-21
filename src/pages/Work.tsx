@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Play, ExternalLink, Quote, Star, ChevronDown } from "lucide-react";
 import { usePublicTestimonials, Testimonial } from "@/hooks/useTestimonials";
+import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -132,7 +133,7 @@ const ProjectCard = ({
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.7, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} rounded-2xl sm:rounded-3xl overflow-hidden border border-border bg-card shadow-soft hover:shadow-elevated transition-shadow duration-500`}>
+      <div className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} rounded-2xl sm:rounded-3xl overflow-hidden border border-border bg-card shadow-soft scroll-border-blue hover:shadow-elevated transition-shadow duration-500`}>
         {/* Media */}
         <div className="relative w-full lg:w-[60%] aspect-video overflow-hidden flex-shrink-0 bg-muted">
           {vimeoId && showPlayer ? (
@@ -234,6 +235,8 @@ const Work = () => {
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
   const { data: dbTestimonials, isLoading } = usePublicTestimonials();
   const heroRef = useRef(null);
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollBorders(pageRef);
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -262,7 +265,7 @@ const Work = () => {
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 
-      <div className="overflow-x-hidden w-full">
+      <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* ━━ HERO ━━ */}
         <section ref={heroRef} className="relative min-h-screen flex items-center justify-center bg-background">
           <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
