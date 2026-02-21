@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -7,6 +7,17 @@ import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star } from "l
 import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestimonials";
+import { FloatingParticles } from "@/components/home/FloatingParticles";
+import { motion, useScroll, useTransform } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay: i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] },
+  }),
+};
 
 const Index = () => {
   usePageSEO({
@@ -16,12 +27,16 @@ const Index = () => {
 
   const { content, loading } = useHomepageContent();
   const [ctaOpen, setCtaOpen] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.7], [1, 0.95]);
 
   if (loading || !content) {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-sited-blue border-t-transparent rounded-full animate-spin" />
         </div>
       </Layout>
     );
@@ -31,25 +46,41 @@ const Index = () => {
 
   return (
     <Layout>
-      {/* Lead Capture Dialog */}
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 
       {/* 1. HERO */}
-      <section className="relative min-h-screen flex items-center justify-center bg-background">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-6xl sm:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase">
+      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-[hsl(var(--surface-elevated))]" />
+        {/* Subtle radial glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,hsl(var(--sited-blue)/0.08)_0%,transparent_70%)]" />
+        <FloatingParticles />
+
+        <motion.div style={{ opacity: heroOpacity, scale: heroScale }} className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="text-6xl sm:text-8xl lg:text-[9rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
+          >
             Need a
             <br />
             <span className="text-sited-blue">smashing</span>
             <br />
             website?
-          </h1>
-          <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3 }}
+            className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
             <button
               onClick={() => setCtaOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-colors shadow-elevated"
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-sited-blue text-white font-bold text-lg hover:bg-sited-blue-hover transition-all duration-300 shadow-elevated hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.3)]"
             >
-              Get a Quote <ArrowRight size={20} />
+              Get a Quote <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
             <Link
               to="/portfolio"
@@ -57,10 +88,15 @@ const Index = () => {
             >
               See what we've done for others
             </Link>
-          </div>
+          </motion.div>
 
           {/* Social proof stats */}
-          <div className="mt-10 sm:mt-14">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.6 }}
+            className="mt-10 sm:mt-14"
+          >
             <p className="text-xs font-semibold tracking-widest text-muted-foreground mb-5 uppercase">
               {hero.social_proof_label}
             </p>
@@ -93,18 +129,26 @@ const Index = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* 2. PROOF BAR */}
-      <section className="bg-gold/10 border-y border-gold/20">
+      <section className="bg-sited-blue/10 border-y border-sited-blue/20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0 sm:divide-x sm:divide-foreground/15">
             {proof_bar.items.map((item, i) => (
-              <p key={i} className="text-sm text-foreground font-medium text-center sm:px-6">
+              <motion.p
+                key={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="text-sm text-foreground font-medium text-center sm:px-6"
+              >
                 {item}
-              </p>
+              </motion.p>
             ))}
           </div>
         </div>
@@ -113,24 +157,36 @@ const Index = () => {
       {/* 3. CLIENT WEBSITES GRID */}
       <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-          <div className="text-center mb-10">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-center mb-10"
+          >
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
               Websites we've built
             </h2>
             <p className="mt-3 text-muted-foreground max-w-md mx-auto">
               Real sites for real businesses — all designed, built, and managed by Sited.
             </p>
-          </div>
+          </motion.div>
           <ClientWebsiteGrid />
         </div>
       </section>
 
       {/* 4. FOUNDER VIDEO INTRO */}
-      <section className="bg-card border-y border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+      <section className="border-y border-border relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--surface-elevated))] to-background" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <div className="flex flex-col lg:flex-row gap-8 items-center">
-            {/* Video - 2/3 */}
-            <div className="w-full lg:w-2/3 rounded-2xl overflow-hidden bg-muted aspect-video flex items-center justify-center border border-border shadow-soft">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7 }}
+              className="w-full lg:w-2/3 rounded-2xl overflow-hidden bg-card aspect-video flex items-center justify-center border border-border shadow-elevated"
+            >
               <div className="text-center text-muted-foreground p-8">
                 <div className="w-16 h-16 rounded-full bg-sited-blue/20 flex items-center justify-center mx-auto mb-3">
                   <ArrowRight size={24} className="text-sited-blue" />
@@ -138,9 +194,14 @@ const Index = () => {
                 <p className="text-sm font-medium">Founder video placeholder</p>
                 <p className="text-xs mt-1">Landscape video from Andrew will go here</p>
               </div>
-            </div>
-            {/* Intro - 1/3 */}
-            <div className="w-full lg:w-1/3">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+              className="w-full lg:w-1/3"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-14 h-14 rounded-full bg-sited-blue/20 border-2 border-sited-blue flex items-center justify-center">
                   <span className="text-lg font-black text-sited-blue">AF</span>
@@ -159,7 +220,7 @@ const Index = () => {
                 ))}
                 <span className="text-xs text-muted-foreground ml-1.5">500+ websites delivered</span>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -167,18 +228,33 @@ const Index = () => {
       {/* 5. MORE OF EVERYTHING */}
       <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10"
+          >
             {more_of_everything.title}
-          </h2>
+          </motion.h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {more_of_everything.items.map((item, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl p-5 flex gap-4">
+              <motion.div
+                key={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                className="bg-card border border-border rounded-xl p-5 flex gap-4 hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
+              >
                 <div className="w-1.5 bg-sited-blue/40 rounded-full shrink-0" />
                 <div>
                   <p className="font-semibold text-foreground text-sm">{item.bold}</p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.supporting}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -188,23 +264,39 @@ const Index = () => {
       <HomepageVideoTestimonials />
 
       {/* 6. WHY PEOPLE STAY */}
-      <section className="bg-card border-y border-border">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
+      <section className="border-y border-border relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--surface-elevated))] to-background" />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10"
+          >
             {why_stay.heading}
-          </h2>
+          </motion.h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {why_stay.reasons.map((r, i) => {
               const icons = [MessageSquare, Heart, Wrench, Shield];
               const Icon = icons[i] || Shield;
               return (
-                <div key={i} className="bg-background border border-border rounded-xl p-5 text-center">
+                <motion.div
+                  key={i}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={i}
+                  variants={fadeUp}
+                  whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                  className="bg-card border border-border rounded-xl p-5 text-center hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
+                >
                   <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
-                    <Icon size={18} className="text-foreground" />
+                    <Icon size={18} className="text-gold" />
                   </div>
                   <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -214,13 +306,28 @@ const Index = () => {
       {/* 7. SERVICES */}
       <section className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10"
+          >
             {services.heading}
-          </h2>
+          </motion.h2>
           <div className="grid md:grid-cols-3 gap-5">
             {services.cards.map((card, i) => (
-              <div key={i} className="bg-card border border-border rounded-xl overflow-hidden flex flex-col">
-                <div className="h-2 bg-sited-blue/30" />
+              <motion.div
+                key={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                whileHover={{ y: -6, transition: { duration: 0.25 } }}
+                className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
+              >
+                <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
                   <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
@@ -228,21 +335,28 @@ const Index = () => {
                     onClick={() => setCtaOpen(true)}
                     className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
                   >
-                    Get a Quote <ArrowRight size={14} />
+                    Get a Quote <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* 8. RESULTS */}
-      <section className="bg-card border-y border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
+      <section className="border-y border-border relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--surface-elevated))] to-background" />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10"
+          >
             {results.heading}
-          </h2>
+          </motion.h2>
           <div className="grid md:grid-cols-3 gap-6">
             {results.cards.map((card, i) => {
               const stockPhotos = [
@@ -250,22 +364,25 @@ const Index = () => {
                 "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
                 "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face",
               ];
-              const bgColors = [
-                "bg-sited-blue/10 border-sited-blue/30",
-                "bg-[hsl(var(--gold))]/10 border-[hsl(var(--gold))]/30",
-                "bg-accent/30 border-accent/50",
-              ];
               return (
-                <div
+                <motion.div
                   key={i}
-                  className={`${bgColors[i]} border-2 rounded-2xl p-6 shadow-soft relative overflow-hidden`}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={i}
+                  variants={fadeUp}
+                  whileHover={{ y: -4, rotate: 0, transition: { duration: 0.3 } }}
+                  className="bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden hover:border-sited-blue/30 transition-all duration-300"
                   style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
                 >
+                  {/* Glow accent */}
+                  <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-sited-blue/5 blur-2xl" />
                   <div className="flex items-center gap-3 mb-4">
                     <img
                       src={stockPhotos[i]}
                       alt="Client"
-                      className="w-11 h-11 rounded-full object-cover border-2 border-background shadow-sm"
+                      className="w-11 h-11 rounded-full object-cover border-2 border-border shadow-sm"
                       loading="lazy"
                     />
                     <div>
@@ -277,12 +394,11 @@ const Index = () => {
                       </div>
                     </div>
                   </div>
-                  <Quote size={16} className="text-sited-blue mb-2" />
+                  <Quote size={16} className="text-sited-blue/50 mb-2" />
                   <p className="text-sm font-medium text-foreground leading-relaxed">
                     "{card.quote}"
                   </p>
-                  <div className="absolute top-3 right-3 w-4 h-4 bg-[hsl(var(--gold))]/30 rounded-full" />
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -292,48 +408,71 @@ const Index = () => {
       {/* 9. PROCESS */}
       <section className="bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center mb-10"
+          >
             {process.heading}
-          </h2>
+          </motion.h2>
           <div className="space-y-0">
             {process.steps.map((step, i) => (
-              <div key={i} className="flex gap-4">
+              <motion.div
+                key={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={i}
+                variants={fadeUp}
+                className="flex gap-4"
+              >
                 <div className="flex flex-col items-center">
-                  <div className="w-9 h-9 rounded-full bg-sited-blue text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-sited-blue text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-[0_0_12px_hsl(var(--sited-blue)/0.3)]">
                     {i + 1}
                   </div>
                   {i < process.steps.length - 1 && (
-                    <div className="w-px flex-1 bg-sited-blue/20 my-1" />
+                    <div className="w-px flex-1 bg-gradient-to-b from-sited-blue/30 to-transparent my-1" />
                   )}
                 </div>
                 <div className="pb-8">
                   <h3 className="font-semibold text-foreground text-sm">{step.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
       {/* 10. FINAL CTA */}
-      <section className="bg-sited-blue">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-18 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
-            {final_cta.heading}
-          </h2>
-          <p className="mt-3 text-base text-white/80 max-w-xl mx-auto">
-            {final_cta.body}
-          </p>
-          <button
-            onClick={() => setCtaOpen(true)}
-            className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gold text-foreground font-semibold text-base hover:bg-gold-hover transition-colors"
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-sited-blue via-[hsl(202,80%,45%)] to-sited-blue" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--gold)/0.15)_0%,transparent_60%)]" />
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-18 text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
           >
-            Get a Quote Today <ArrowRight size={18} />
-          </button>
-          <p className="mt-3 text-sm text-white/50">
-            {final_cta.reassurance}
-          </p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+              {final_cta.heading}
+            </h2>
+            <p className="mt-3 text-base text-white/70 max-w-xl mx-auto">
+              {final_cta.body}
+            </p>
+            <button
+              onClick={() => setCtaOpen(true)}
+              className="mt-6 inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gold text-background font-semibold text-base hover:bg-gold-hover transition-all duration-300 shadow-elevated"
+            >
+              Get a Quote Today <ArrowRight size={18} />
+            </button>
+            <p className="mt-3 text-sm text-white/40">
+              {final_cta.reassurance}
+            </p>
+          </motion.div>
         </div>
       </section>
 
