@@ -12,6 +12,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
+import ScrollBlueShape from "@/components/common/ScrollBlueShape";
 
 const valueBlocks = [
   {
@@ -215,6 +216,9 @@ const Features = () => {
             </Wrapper>
           );
         })}
+
+        {/* Scroll-driven blue shape */}
+        <ScrollBlueShape />
 
         {/* Bold Transition */}
         <section className="bg-sited-blue">
