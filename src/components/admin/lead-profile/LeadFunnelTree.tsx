@@ -83,7 +83,7 @@ export function LeadFunnelTree({
         onClick={() => canEdit && onClick?.()}
         disabled={!canEdit}
         className={cn(
-          "relative px-3 py-2 rounded-lg border-2 transition-all text-left min-w-[120px]",
+          "relative px-2.5 py-2 rounded-lg border-2 transition-all text-left w-full min-w-0",
           isSelected
             ? `${node.bgColor} ${node.borderColor} ring-2 ring-offset-1 ring-offset-background ${node.borderColor.replace('border-', 'ring-')}`
             : isActive
@@ -177,21 +177,21 @@ export function LeadFunnelTree({
           </div>
           
           {/* Level 3: Branch split */}
-          <div className="grid grid-cols-4 gap-2 w-full max-w-[520px] mt-2">
-            <div className="flex flex-col items-center">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-[560px] mt-2">
+            <div className="flex flex-col items-center gap-2">
               {renderNode('no_show', isNodeActive('no_show'), () => onStatusChange('no_show'))}
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-2">
               {renderNode('mbr_sold_dev', isNodeActive('mbr_sold_dev'), () => onStatusChange('mbr_sold_dev'))}
-              <div className="w-0.5 h-4 bg-border" />
+              <div className="w-0.5 h-3 bg-border" />
               {renderNode('current_mbr', isNodeActive('current_mbr'), () => onStatusChange('current_mbr'))}
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-2">
               {renderNode('ot_sold_dev', isNodeActive('ot_sold_dev'), () => onStatusChange('ot_sold_dev'))}
-              <div className="w-0.5 h-4 bg-border" />
+              <div className="w-0.5 h-3 bg-border" />
               {renderNode('current_ot', isNodeActive('current_ot'), () => onStatusChange('current_ot'))}
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center gap-2">
               {renderNode('lost', isNodeActive('lost'), () => onStatusChange('lost'))}
             </div>
           </div>

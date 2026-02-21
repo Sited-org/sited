@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FormResponsesDisplay } from './FormResponsesDisplay';
 import { WorkflowTracker } from './WorkflowTracker';
 import { UploadedFilesDialog } from './UploadedFilesDialog';
+import { OnboardingFormDialog } from './OnboardingFormDialog';
 
 const projectTypeLabels: Record<string, string> = {
   website: 'Website',
@@ -35,6 +36,7 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [editedFormData, setEditedFormData] = useState<Record<string, any>>({ ...lead.form_data });
   const [isSavingForm, setIsSavingForm] = useState(false);
+  const [onboardingDialogOpen, setOnboardingDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // AI Prompt state
@@ -324,25 +326,17 @@ export function ProjectTab({ lead, canEdit, onLeadUpdate }: ProjectTabProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setIsEditingForm(true);
-                        // Seed the full onboarding fields into editedFormData
-                        setEditedFormData(prev => ({
-                          ...prev,
-                          industry: prev.industry || '',
-                          businessDescription: prev.businessDescription || '',
-                          targetAudience: prev.targetAudience || '',
-                          primaryGoal: prev.primaryGoal || '',
-                          designStyle: prev.designStyle || '',
-                          currentWebsite: prev.currentWebsite || '',
-                          budget: prev.budget || '',
-                          timeline: prev.timeline || '',
-                        }));
-                      }}
+                      onClick={() => setOnboardingDialogOpen(true)}
                     >
                       <Pencil className="h-4 w-4 mr-1" />
                       Add Details
                     </Button>
+                    <OnboardingFormDialog
+                      open={onboardingDialogOpen}
+                      onOpenChange={setOnboardingDialogOpen}
+                      lead={lead}
+                      onLeadUpdate={onLeadUpdate}
+                    />
                   </div>
                 </div>
               </>
