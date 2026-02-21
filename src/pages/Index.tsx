@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -27,10 +27,9 @@ const Index = () => {
 
   const { content, loading } = useHomepageContent();
   const [ctaOpen, setCtaOpen] = useState(false);
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 0.7], [1, 0.95]);
+  const { scrollYProgress } = useScroll();
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.95]);
 
   if (loading || !content) {
     return (
@@ -49,7 +48,7 @@ const Index = () => {
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 
       {/* 1. HERO */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-[hsl(var(--surface-elevated))]" />
         {/* Subtle radial glow */}
