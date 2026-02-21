@@ -3,18 +3,20 @@ import { useEffect, useRef } from "react";
 interface Bubble {
   x: number;
   y: number;
-  r: number;       // radius
+  r: number;
   baseR: number;
   speedX: number;
   speedY: number;
   opacity: number;
-  phase: number;    // for gentle pulsing
+  phase: number;
   phaseSpeed: number;
+  wobble: number;
+  wobbleSpeed: number;
 }
 
 /**
- * Faded floating bubbles background — subtle, realistic, works on both themes.
- * Renders soft translucent circles that drift and pulse gently.
+ * Realistic floating soap bubbles — semi-transparent with rainbow sheen,
+ * gentle drift upward, subtle wobble. Works on both light & dark themes.
  */
 export const FloatingParticles = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -25,12 +27,11 @@ export const FloatingParticles = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     let animId: number;
     const bubbles: Bubble[] = [];
-    const BUBBLE_COUNT = 18;
+    const COUNT = 14;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth * window.devicePixelRatio;
@@ -43,50 +44,81 @@ export const FloatingParticles = () => {
     const w = () => canvas.offsetWidth;
     const h = () => canvas.offsetHeight;
 
-    for (let i = 0; i < BUBBLE_COUNT; i++) {
-      const baseR = 20 + Math.random() * 60;
+    for (let i = 0; i < COUNT; i++) {
+      const baseR = 18 + Math.random() * 45;
       bubbles.push({
         x: Math.random() * w(),
         y: Math.random() * h(),
         r: baseR,
         baseR,
-        speedX: (Math.random() - 0.5) * 0.15,
-        speedY: -0.05 - Math.random() * 0.12, // drift upward gently
-        opacity: 0.03 + Math.random() * 0.05,
+        speedX: (Math.random() - 0.5) * 0.12,
+        speedY: -0.04 - Math.random() * 0.08,
+        opacity: 0.06 + Math.random() * 0.08,
         phase: Math.random() * Math.PI * 2,
-        phaseSpeed: 0.003 + Math.random() * 0.005,
+        phaseSpeed: 0.004 + Math.random() * 0.004,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.01 + Math.random() * 0.015,
       });
     }
 
     const draw = () => {
       ctx.clearRect(0, 0, w(), h());
-
       const isDark = document.documentElement.classList.contains("dark");
-      // Use a neutral colour that works on both themes
-      const baseColor = isDark ? "255, 255, 255" : "0, 0, 0";
 
       for (const b of bubbles) {
-        b.x += b.speedX;
+        b.x += b.speedX + Math.sin(b.wobble) * 0.15;
         b.y += b.speedY;
         b.phase += b.phaseSpeed;
+        b.wobble += b.wobbleSpeed;
+        b.r = b.baseR + Math.sin(b.phase) * (b.baseR * 0.08);
 
-        // Gentle pulse
-        b.r = b.baseR + Math.sin(b.phase) * (b.baseR * 0.12);
+        // Wrap
+        if (b.y + b.r < -10) { b.y = h() + b.r + 10; b.x = Math.random() * w(); }
+        if (b.x < -b.r - 10) b.x = w() + b.r;
+        if (b.x > w() + b.r + 10) b.x = -b.r;
 
-        // Wrap around
-        if (b.y + b.r < 0) { b.y = h() + b.r; b.x = Math.random() * w(); }
-        if (b.x < -b.r) b.x = w() + b.r;
-        if (b.x > w() + b.r) b.x = -b.r;
+        // Soap bubble: thin ring with rainbow-ish sheen
+        const x = b.x;
+        const y = b.y;
+        const r = b.r;
 
-        // Draw soft gradient bubble
-        const grad = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-        grad.addColorStop(0, `rgba(${baseColor}, ${b.opacity * 0.8})`);
-        grad.addColorStop(0.5, `rgba(${baseColor}, ${b.opacity * 0.3})`);
-        grad.addColorStop(1, `rgba(${baseColor}, 0)`);
-
+        // Outer soft glow
+        const glow = ctx.createRadialGradient(x, y, r * 0.85, x, y, r * 1.1);
+        glow.addColorStop(0, `rgba(${isDark ? "180,210,255" : "100,160,220"}, 0)`);
+        glow.addColorStop(0.7, `rgba(${isDark ? "180,210,255" : "100,160,220"}, ${b.opacity * 0.4})`);
+        glow.addColorStop(1, `rgba(${isDark ? "180,210,255" : "100,160,220"}, 0)`);
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
+        ctx.arc(x, y, r * 1.1, 0, Math.PI * 2);
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // Bubble body — very faint fill
+        const body = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 0, x, y, r);
+        body.addColorStop(0, `rgba(255,255,255, ${isDark ? 0.04 : 0.06})`);
+        body.addColorStop(0.6, `rgba(${isDark ? "160,200,255" : "180,210,240"}, ${b.opacity * 0.25})`);
+        body.addColorStop(1, `rgba(${isDark ? "120,170,255" : "140,180,220"}, ${b.opacity * 0.15})`);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = body;
+        ctx.fill();
+
+        // Thin ring edge
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${isDark ? "200,220,255" : "150,180,210"}, ${b.opacity * 0.6})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // Highlight / light reflection (top-left)
+        ctx.beginPath();
+        ctx.ellipse(x - r * 0.25, y - r * 0.3, r * 0.18, r * 0.1, -0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255, ${isDark ? 0.12 : 0.2})`;
+        ctx.fill();
+
+        // Small secondary highlight
+        ctx.beginPath();
+        ctx.arc(x - r * 0.1, y - r * 0.45, r * 0.06, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255, ${isDark ? 0.08 : 0.15})`;
         ctx.fill();
       }
 

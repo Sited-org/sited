@@ -2,11 +2,12 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ArrowRight, Calendar, Star, Phone, Mail, Shield, Users, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
+import { useScrollBorders } from "@/hooks/useScrollBorders";
 
 const Contact = () => {
   usePageSEO({
@@ -17,9 +18,12 @@ const Contact = () => {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
   const { data: testimonials } = usePublicTestimonials();
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollBorders(pageRef);
 
   return (
     <Layout hideFooter>
+      <div ref={pageRef}>
       {/* HERO */}
       <section className="relative min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
@@ -159,7 +163,7 @@ const Contact = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-card border border-border rounded-2xl p-8 text-center"
+                className="bg-card border border-border rounded-2xl p-8 text-center scroll-border-blue"
               >
                 <div className="w-12 h-12 rounded-xl bg-sited-blue/10 flex items-center justify-center mx-auto mb-4">
                   <item.icon size={24} className="text-sited-blue" />
@@ -281,6 +285,7 @@ const Contact = () => {
 
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
+      </div>
     </Layout>
   );
 };

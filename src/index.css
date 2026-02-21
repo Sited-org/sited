@@ -140,6 +140,28 @@
   .container-tight {
     @apply max-w-5xl mx-auto px-4 sm:px-6;
   }
+
+  /* Scroll-triggered accent borders — blue pop */
+  .scroll-border-blue {
+    border-color: hsl(var(--border));
+    transition: border-color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .scroll-border-blue.in-view {
+    border-color: hsl(var(--sited-blue) / 0.4);
+    box-shadow: 0 0 20px hsl(var(--sited-blue) / 0.06);
+  }
+
+  /* Scroll-triggered accent borders — gold pop */
+  .scroll-border-gold {
+    border-color: hsl(var(--border));
+    transition: border-color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .scroll-border-gold.in-view {
+    border-color: hsl(var(--gold) / 0.5);
+    box-shadow: 0 0 20px hsl(var(--gold) / 0.08);
+  }
 }
 
 /* Custom scrollbar */

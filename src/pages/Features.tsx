@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { motion } from "framer-motion";
 import { ArrowRight, TrendingUp, Search, Clock, Sparkles } from "lucide-react";
@@ -11,6 +11,7 @@ import InvoiceMockup from "@/components/services/InvoiceMockup";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
+import { useScrollBorders } from "@/hooks/useScrollBorders";
 
 const valueBlocks = [
   {
@@ -121,13 +122,15 @@ const Features = () => {
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const pageRef = useRef<HTMLDivElement>(null);
+  useScrollBorders(pageRef);
 
   return (
     <Layout>
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 
-      <div className="overflow-x-hidden w-full">
+      <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* Hero */}
         <section className="min-h-screen flex items-center justify-center relative bg-background">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
