@@ -24,7 +24,7 @@ const Contact = () => {
 
   return (
     <Layout hideFooter>
-      <div ref={pageRef}>
+      <div ref={pageRef} className="overflow-x-hidden w-full">
       {/* HERO */}
       <section className="relative min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
@@ -196,33 +196,28 @@ const Contact = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {testimonials.slice(0, 6).map((t, index) => (
-                <motion.div
-                  key={t.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
-                  className="bg-card border border-border rounded-2xl p-6 sm:p-8 flex flex-col h-full"
-                >
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={16}
-                        className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm sm:text-base text-foreground leading-relaxed flex-1 mb-6">
-                    "{t.testimonial_text}"
-                  </p>
-                  <div className="border-t border-border pt-4">
-                    <p className="font-bold text-sm">{t.testimonial_author}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.testimonial_role}{t.business_name ? ` · ${t.business_name}` : ""}
+                <ScrollReveal key={t.id} delay={index * 0.08} direction="up">
+                  <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 flex flex-col h-full">
+                    <div className="flex gap-0.5 mb-4">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={16}
+                          className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]"
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed flex-1 mb-6">
+                      "{t.testimonial_text}"
                     </p>
+                    <div className="border-t border-border pt-4">
+                      <p className="font-bold text-sm">{t.testimonial_author}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.testimonial_role}{t.business_name ? ` · ${t.business_name}` : ""}
+                      </p>
+                    </div>
                   </div>
-                </motion.div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -232,12 +227,7 @@ const Contact = () => {
       {/* BOTTOM CTA */}
       <section className="py-20 sm:py-28 bg-foreground text-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <ScrollReveal direction="scale">
             <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight uppercase">
               Let's make it <span className="text-sited-blue">happen</span>
             </h2>
@@ -278,7 +268,7 @@ const Contact = () => {
                 hello@sited.com
               </a>
             </div>
-          </motion.div>
+          </ScrollReveal>
         </div>
       </section>
 

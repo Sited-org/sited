@@ -11,6 +11,7 @@ import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
 import { ScrollTextTestimonials } from "@/components/work/ScrollTextTestimonials";
 import { VideoTestimonials } from "@/components/work/VideoTestimonials";
+import { ScrollReveal } from "@/components/common/ScrollReveal";
 
 /* ── Fallback data ── */
 const fallbackProjects: ProjectDisplay[] = [
@@ -316,29 +317,36 @@ const Work = () => {
         <section className="bg-sited-blue">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-0 sm:divide-x sm:divide-white/20">
-              <div className="sm:px-8 text-center">
-                <p className="text-2xl sm:text-3xl font-black text-white">500+</p>
-                <p className="text-xs text-white/70 font-semibold mt-0.5">Websites Delivered</p>
-              </div>
-              <div className="sm:px-8 text-center">
-                <p className="text-2xl sm:text-3xl font-black text-white">7 Years</p>
-                <p className="text-xs text-white/70 font-semibold mt-0.5">In The Industry</p>
-              </div>
-              <div className="sm:px-8 text-center">
-                <div className="flex items-center justify-center gap-1.5">
-                  <span className="text-2xl sm:text-3xl font-black text-white">5.0</span>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} size={14} className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" />
-                    ))}
+              {[
+                { val: "500+", label: "Websites Delivered" },
+                { val: "7 Years", label: "In The Industry" },
+              ].map((s, i) => (
+                <ScrollReveal key={s.label} delay={i * 0.1} direction="up">
+                  <div className="sm:px-8 text-center">
+                    <p className="text-2xl sm:text-3xl font-black text-white">{s.val}</p>
+                    <p className="text-xs text-white/70 font-semibold mt-0.5">{s.label}</p>
                   </div>
+                </ScrollReveal>
+              ))}
+              <ScrollReveal delay={0.2} direction="up">
+                <div className="sm:px-8 text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="text-2xl sm:text-3xl font-black text-white">5.0</span>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} size={14} className="fill-[hsl(var(--gold))] text-[hsl(var(--gold))]" />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/70 font-semibold mt-0.5">Google Reviews</p>
                 </div>
-                <p className="text-xs text-white/70 font-semibold mt-0.5">Google Reviews</p>
-              </div>
-              <div className="sm:px-8 text-center">
-                <p className="text-2xl sm:text-3xl font-black text-white">100%</p>
-                <p className="text-xs text-white/70 font-semibold mt-0.5">Client Satisfaction</p>
-              </div>
+              </ScrollReveal>
+              <ScrollReveal delay={0.3} direction="up">
+                <div className="sm:px-8 text-center">
+                  <p className="text-2xl sm:text-3xl font-black text-white">100%</p>
+                  <p className="text-xs text-white/70 font-semibold mt-0.5">Client Satisfaction</p>
+                </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
@@ -377,46 +385,34 @@ const Work = () => {
         {/* ━━ WHY SITED TRANSITION ━━ */}
         <section className="bg-card border-y border-border">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-            <motion.h2
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase leading-tight"
-            >
-              We don't just build it
-              <br />
-              <span className="text-sited-blue">and disappear.</span>
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="mt-4 text-base text-muted-foreground max-w-lg mx-auto"
-            >
-              Every client gets ongoing monitoring, monthly improvements, and same-day support.
-              That's why they stay — and that's why they refer us.
-            </motion.p>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4"
-            >
-              {[
-                { val: "< 3 days", label: "Average delivery" },
-                { val: "Same day", label: "Support response" },
-                { val: "Monthly", label: "Improvements" },
-                { val: "Unlimited", label: "Content updates" },
-              ].map((s) => (
-                <div key={s.label} className="bg-background border border-border rounded-xl p-4">
-                  <p className="text-xl sm:text-2xl font-black text-sited-blue">{s.val}</p>
-                  <p className="text-xs text-muted-foreground font-medium mt-1">{s.label}</p>
-                </div>
-              ))}
-            </motion.div>
+            <ScrollReveal direction="up">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase leading-tight">
+                We don't just build it
+                <br />
+                <span className="text-sited-blue">and disappear.</span>
+              </h2>
+            </ScrollReveal>
+            <ScrollReveal delay={0.1} direction="up">
+              <p className="mt-4 text-base text-muted-foreground max-w-lg mx-auto">
+                Every client gets ongoing monitoring, monthly improvements, and same-day support.
+                That's why they stay — and that's why they refer us.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2} direction="up">
+              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { val: "< 3 days", label: "Average delivery" },
+                  { val: "Same day", label: "Support response" },
+                  { val: "Monthly", label: "Improvements" },
+                  { val: "Unlimited", label: "Content updates" },
+                ].map((s) => (
+                  <div key={s.label} className="bg-background border border-border rounded-xl p-4">
+                    <p className="text-xl sm:text-2xl font-black text-sited-blue">{s.val}</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-1">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 

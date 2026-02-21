@@ -11,6 +11,7 @@ import { FloatingParticles } from "@/components/home/FloatingParticles";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
+import { ScrollReveal } from "@/components/common/ScrollReveal";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -49,7 +50,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <div ref={pageRef}>
+      <div ref={pageRef} className="overflow-x-hidden w-full">
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 
       {/* 1. HERO */}
@@ -142,17 +143,11 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-0 sm:divide-x sm:divide-foreground/15">
             {proof_bar.items.map((item, i) => (
-              <motion.p
-                key={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="text-sm text-foreground font-medium text-center sm:px-6"
-              >
-                {item}
-              </motion.p>
+              <ScrollReveal key={i} delay={i * 0.08} direction="up">
+                <p className="text-sm text-foreground font-medium text-center sm:px-6">
+                  {item}
+                </p>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -285,22 +280,18 @@ const Index = () => {
               const icons = [MessageSquare, Heart, Wrench, Shield];
               const Icon = icons[i] || Shield;
               return (
-                <motion.div
-                  key={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={i}
-                  variants={fadeUp}
-                  whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
-                  className="bg-card border border-border rounded-xl p-5 text-center scroll-border-gold hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
-                    <Icon size={18} className="text-gold" />
-                  </div>
-                  <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
-                </motion.div>
+                <ScrollReveal key={i} delay={i * 0.08} direction={i % 2 === 0 ? "left" : "right"}>
+                  <motion.div
+                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
+                    className="bg-card border border-border rounded-xl p-5 text-center scroll-border-gold hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
+                      <Icon size={18} className="text-gold" />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
+                  </motion.div>
+                </ScrollReveal>
               );
             })}
           </div>
@@ -321,28 +312,24 @@ const Index = () => {
           </motion.h2>
           <div className="grid md:grid-cols-3 gap-5">
             {services.cards.map((card, i) => (
-              <motion.div
-                key={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col scroll-border-blue hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
-              >
-                <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
-                  <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
-                  <button
-                    onClick={() => setCtaOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
-                  >
-                    Get a Quote <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-              </motion.div>
+              <ScrollReveal key={i} delay={i * 0.1} direction="up">
+                <motion.div
+                  whileHover={{ y: -6, transition: { duration: 0.25 } }}
+                  className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col scroll-border-blue hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
+                >
+                  <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
+                  <div className="p-6 flex flex-col flex-1">
+                    <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
+                    <button
+                      onClick={() => setCtaOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
+                    >
+                      Get a Quote <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                </motion.div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -423,15 +410,8 @@ const Index = () => {
           </motion.h2>
           <div className="space-y-0">
             {process.steps.map((step, i) => (
-              <motion.div
-                key={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                className="flex gap-4"
-              >
+              <ScrollReveal key={i} delay={i * 0.08} direction="up">
+                <div className="flex gap-4">
                 <div className="flex flex-col items-center">
                   <div className="w-9 h-9 rounded-full bg-sited-blue text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-[0_0_12px_hsl(var(--sited-blue)/0.3)]">
                     {i + 1}
@@ -444,7 +424,8 @@ const Index = () => {
                   <h3 className="font-semibold text-foreground text-sm">{step.title}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
                 </div>
-              </motion.div>
+                </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -455,12 +436,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-sited-blue via-[hsl(202,80%,45%)] to-sited-blue" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--gold)/0.15)_0%,transparent_60%)]" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-18 text-center">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-          >
+          <ScrollReveal direction="scale">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               {final_cta.heading}
             </h2>
@@ -476,7 +452,7 @@ const Index = () => {
             <p className="mt-3 text-sm text-white/40">
               {final_cta.reassurance}
             </p>
-          </motion.div>
+          </ScrollReveal>
         </div>
       </section>
 
