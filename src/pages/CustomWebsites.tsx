@@ -439,7 +439,9 @@ const CustomWebsites = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testTestimonials.map((testimonial, i) => (
-              <TestimonialCard key={i} testimonial={testimonial} index={i} />
+              <ScrollReveal key={i} delay={i * 0.1} direction="up">
+                <TestimonialCard testimonial={testimonial} index={i} />
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -458,9 +460,9 @@ const CustomWebsites = () => {
               </motion.p>
             </motion.div>
 
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {recentPosts.map((post, i) => (
-                <motion.div key={post.id} variants={fadeUp} custom={i}>
+                <ScrollReveal key={post.id} delay={i * 0.1} direction="up">
                   <Link
                     to={`/blog/${post.slug}`}
                     className="group block rounded-2xl border border-border bg-card overflow-hidden hover:border-sited-blue/30 transition-all"
@@ -501,9 +503,9 @@ const CustomWebsites = () => {
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </ScrollReveal>
               ))}
-            </motion.div>
+            </div>
           </div>
         </section>
       )}
@@ -511,13 +513,8 @@ const CustomWebsites = () => {
       {/* Final CTA */}
       <section className="section-padding">
         <div className="container-tight">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="text-center max-w-2xl mx-auto"
-          >
+          <ScrollReveal direction="scale">
+            <div className="text-center max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
               Your next customer is one click away.
             </h2>
@@ -544,7 +541,8 @@ const CustomWebsites = () => {
                 <Phone size={16} />
               </motion.button>
             </div>
-          </motion.div>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 

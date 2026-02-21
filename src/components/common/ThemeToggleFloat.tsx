@@ -72,8 +72,8 @@ export const ThemeToggleFloat = () => {
         overlay.style.transition = "opacity 0.3s ease";
         overlay.style.opacity = "0";
         setTimeout(() => {
-          overlay.style.transform = "scale(0)";
-          overlay.style.transition = "";
+        overlay.style.transform = "scale(0)";
+          overlay.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease";
           overlay.style.opacity = "";
           setExpanding(false);
         }, 300);
