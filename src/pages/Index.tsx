@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, ReactNode } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -12,6 +12,36 @@ import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
+
+/** Scroll-position-driven card: translates & fades based on viewport scroll, fully reversible */
+function ScrollCard({ children, className, index, accent = "blue" }: { children: ReactNode; className?: string; index: number; accent?: "blue" | "gold" }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
+  // Alternate directions based on index
+  const directions = [[-60, 0], [60, 0], [0, 40], [0, -40]];
+  const [xFrom, yFrom] = directions[index % directions.length];
+  const x = useTransform(scrollYProgress, [0, 1], [xFrom, 0]);
+  const y = useTransform(scrollYProgress, [0, 1], [yFrom, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.3, 1], [0, 0.4, 1]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
+  // Glow intensity tied to scroll
+  const glowOpacity = useTransform(scrollYProgress, [0.5, 1], [0, 1]);
+  const borderColor = accent === "blue" ? "var(--sited-blue)" : "var(--gold)";
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ x, y, opacity, scale }}
+      className={className}
+    >
+      <motion.div
+        style={{ opacity: glowOpacity, boxShadow: `0 0 28px hsl(${borderColor} / 0.18)`, borderColor: `hsl(${borderColor} / 0.45)` }}
+        className="absolute inset-0 rounded-xl pointer-events-none border transition-none"
+      />
+      {children}
+    </motion.div>
+  );
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -241,16 +271,7 @@ const Index = () => {
               const moeIcons = [TrendingUp, Users, Search, Smartphone, BarChart3, Zap];
               const MoeIcon = moeIcons[i % moeIcons.length];
               return (
-                <motion.div
-                  key={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={i}
-                  variants={fadeUp}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                  className="bg-card border border-border rounded-xl p-5 flex gap-4 scroll-border-blue hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
-                >
+                <ScrollCard key={i} index={i} accent="blue" className="relative bg-card border border-border rounded-xl p-5 flex gap-4 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300">
                   <div className="w-10 h-10 rounded-lg bg-sited-blue/15 flex items-center justify-center shrink-0">
                     <MoeIcon size={20} className="text-sited-blue" strokeWidth={2.5} />
                   </div>
@@ -258,7 +279,7 @@ const Index = () => {
                     <p className="font-semibold text-foreground text-sm">{item.bold}</p>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.supporting}</p>
                   </div>
-                </motion.div>
+                </ScrollCard>
               );
             })}
           </div>
@@ -287,18 +308,13 @@ const Index = () => {
               const Icon = icons[i] || Shield;
               const isBlue = i % 2 === 0;
               return (
-                <ScrollReveal key={i} delay={i * 0.08} direction={i % 2 === 0 ? "left" : "right"}>
-                  <motion.div
-                    whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
-                    className={`bg-card border border-border rounded-xl p-5 text-center ${isBlue ? 'scroll-border-blue' : 'scroll-border-gold'} hover:shadow-[0_0_24px_hsl(var(${isBlue ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}
-                  >
-                    <div className={`w-10 h-10 rounded-lg ${isBlue ? 'bg-sited-blue/15' : 'bg-gold/20'} flex items-center justify-center mx-auto mb-3`}>
-                      <Icon size={18} className={isBlue ? 'text-sited-blue' : 'text-gold'} strokeWidth={2.5} />
-                    </div>
-                    <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
-                  </motion.div>
-                </ScrollReveal>
+                <ScrollCard key={i} index={i} accent={isBlue ? "blue" : "gold"} className={`relative bg-card border border-border rounded-xl p-5 text-center hover:shadow-[0_0_24px_hsl(var(${isBlue ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}>
+                  <div className={`w-10 h-10 rounded-lg ${isBlue ? 'bg-sited-blue/15' : 'bg-gold/20'} flex items-center justify-center mx-auto mb-3`}>
+                    <Icon size={18} className={isBlue ? 'text-sited-blue' : 'text-gold'} strokeWidth={2.5} />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
+                </ScrollCard>
               );
             })}
           </div>
@@ -319,24 +335,19 @@ const Index = () => {
           </motion.h2>
           <div className="grid md:grid-cols-3 gap-5">
             {services.cards.map((card, i) => (
-              <ScrollReveal key={i} delay={i * 0.1} direction="up">
-                <motion.div
-                  whileHover={{ y: -6, transition: { duration: 0.25 } }}
-                  className="group bg-card border border-border rounded-xl overflow-hidden flex flex-col scroll-border-blue hover:border-sited-blue/40 hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300"
-                >
-                  <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
-                  <div className="p-6 flex flex-col flex-1">
-                    <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
-                    <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
-                    <button
-                      onClick={() => setCtaOpen(true)}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
-                    >
-                      Get a Quote <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
-                </motion.div>
-              </ScrollReveal>
+              <ScrollCard key={i} index={i} accent={i === 1 ? "gold" : "blue"} className="relative group bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300">
+                <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
+                <div className="p-6 flex flex-col flex-1">
+                  <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
+                  <p className="text-sm text-muted-foreground flex-1 mb-4">{card.description}</p>
+                  <button
+                    onClick={() => setCtaOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-sited-blue hover:text-sited-blue-hover transition-colors"
+                  >
+                    Get a Quote <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </ScrollCard>
             ))}
           </div>
         </div>
@@ -363,16 +374,11 @@ const Index = () => {
                 "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face",
               ];
               return (
-                <motion.div
+                <ScrollCard
                   key={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  custom={i}
-                  variants={fadeUp}
-                  whileHover={{ y: -4, rotate: 0, transition: { duration: 0.3 } }}
-                  className={`bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden ${i % 2 === 0 ? 'scroll-border-blue' : 'scroll-border-gold'} hover:shadow-[0_0_24px_hsl(var(${i % 2 === 0 ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}
-                  style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
+                  index={i}
+                  accent={i % 2 === 0 ? "blue" : "gold"}
+                  className="relative bg-card border border-border rounded-2xl p-6 shadow-soft overflow-hidden transition-all duration-500"
                 >
                   {/* Glow accent */}
                   <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-sited-blue/5 blur-2xl" />
@@ -396,7 +402,7 @@ const Index = () => {
                   <p className="text-sm font-medium text-foreground leading-relaxed">
                     "{card.quote}"
                   </p>
-                </motion.div>
+                </ScrollCard>
               );
             })}
           </div>
