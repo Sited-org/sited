@@ -64,7 +64,13 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
       });
 
       await supabase.functions.invoke("send-lead-notification", {
-        body: { name: result.data.name, email: result.data.email, phone: result.data.phone || null, project_type: "website" },
+        body: {
+          name: result.data.name,
+          email: result.data.email,
+          phone: result.data.phone || null,
+          projectType: "website",
+          formData: { contactInfoOnly: true, source: "cta_popup", business_name: result.data.businessName },
+        },
       });
     } catch (err) {
       console.error("Error saving partial lead:", err);
