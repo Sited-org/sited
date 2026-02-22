@@ -11,6 +11,7 @@ import { z } from "zod";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
+  businessName: z.string().trim().min(1, "Business name is required").max(200),
   email: z.string().trim().email("Invalid email").max(255),
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
@@ -26,18 +27,20 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [name, setName] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
   const resetForm = () => {
     setName("");
+    setBusinessName("");
     setEmail("");
     setPhone("");
     setErrors({});
   };
 
   const handleContactSubmit = async () => {
-    const result = contactSchema.safeParse({ name, email, phone });
+    const result = contactSchema.safeParse({ name, businessName, email, phone });
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach((e) => {
@@ -56,7 +59,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
           email: result.data.email,
           phone: result.data.phone || null,
           project_type: "website",
-          form_data: { contactInfoOnly: true, source: "cta_popup" },
+          form_data: { contactInfoOnly: true, source: "cta_popup", business_name: result.data.businessName },
         },
       });
 
@@ -70,6 +73,7 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
     toast.success("Great! Let's learn more about your business.");
     sessionStorage.setItem("lead_captured", "true");
     sessionStorage.setItem("lead_name", result.data.name);
+    sessionStorage.setItem("lead_business_name", result.data.businessName);
     sessionStorage.setItem("lead_email", result.data.email);
     sessionStorage.setItem("lead_phone", result.data.phone || "");
     onOpenChange(false);
@@ -84,14 +88,14 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
-        <DialogTitle className="sr-only">Get Started</DialogTitle>
+      <DialogContent className="w-[80%] sm:w-full sm:max-w-md p-0 gap-0 overflow-hidden rounded-3xl">
+        <DialogTitle className="sr-only">Instant Quote</DialogTitle>
 
         <div className="p-6 sm:p-8">
           <div className="space-y-5">
             <div>
-              <h3 className="text-xl font-bold text-foreground">Let's get started</h3>
-              <p className="text-sm text-muted-foreground mt-1">Quick details so we can get back to you.</p>
+              <h3 className="text-xl font-bold text-foreground uppercase tracking-wide">Instant Quote</h3>
+              <p className="text-sm text-muted-foreground mt-1">Complete this short questionnaire, get an instant offer specific to you!</p>
             </div>
             <div className="space-y-3">
               <div>
@@ -104,6 +108,17 @@ export function LeadCaptureDialog({ open, onOpenChange }: LeadCaptureDialogProps
                   className="mt-1"
                 />
                 {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+              </div>
+              <div>
+                <Label htmlFor="lc-business">Business Name *</Label>
+                <Input
+                  id="lc-business"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Your business name"
+                  className="mt-1"
+                />
+                {errors.businessName && <p className="text-xs text-destructive mt-1">{errors.businessName}</p>}
               </div>
               <div>
                 <Label htmlFor="lc-email">Email *</Label>
