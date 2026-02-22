@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, TrendingUp, Search, Clock, Sparkles } from "lucide-react";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import CalendarMockup from "@/components/services/CalendarMockup";
@@ -12,7 +12,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
-import { ScrollReveal } from "@/components/common/ScrollReveal";
+import { ScrollSlideIn, ScrollRotateIn, ScrollZoomIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
 
 const valueBlocks = [
   {
@@ -80,7 +80,7 @@ const ShowcaseSection = ({
   <section className="py-16 sm:py-24 lg:py-32 relative">
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
       <div className={`grid lg:grid-cols-2 gap-10 lg:gap-16 items-center ${reversed ? "lg:grid-flow-dense" : ""}`}>
-        <ScrollReveal direction={reversed ? "right" : "left"} className={reversed ? "lg:col-start-2" : ""}>
+        <ScrollSlideIn from={reversed ? "right" : "left"} className={reversed ? "lg:col-start-2" : ""}>
           <span className="text-xs uppercase tracking-[0.2em] text-sited-blue font-semibold">{label}</span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mt-3 mb-4 text-foreground">
             {title}
@@ -94,10 +94,10 @@ const ShowcaseSection = ({
           >
             See Offer <ArrowRight size={16} />
           </button>
-        </ScrollReveal>
-        <ScrollReveal direction={reversed ? "left" : "right"} delay={0.15} className={reversed ? "lg:col-start-1" : ""}>
+        </ScrollSlideIn>
+        <ScrollRotateIn degrees={reversed ? -6 : 6} className={reversed ? "lg:col-start-1" : ""}>
           {children}
-        </ScrollReveal>
+        </ScrollRotateIn>
       </div>
     </div>
   </section>
@@ -159,17 +159,11 @@ const Features = () => {
         {valueBlocks.map((block, i) => {
           const Icon = block.icon;
           const isEven = i % 2 === 0;
-          // Wrap alternating blocks in ThemeSwitchSection for the dark→light scroll effect
           const Wrapper = !isEven ? ThemeSwitchSection : "section" as any;
           return (
             <Wrapper key={i} className={isEven ? "bg-background" : "bg-card border-y border-border"}>
               <div className="max-w-5xl mx-auto px-4 sm:px-6 py-20 sm:py-28">
-                <motion.div
-                  initial={{ opacity: 0, y: 40 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-80px" }}
-                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                >
+                <ScrollSlideIn from={isEven ? "left" : "right"}>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-11 h-11 rounded-xl bg-sited-blue/15 flex items-center justify-center">
                       <Icon size={22} className="text-sited-blue" />
@@ -192,20 +186,13 @@ const Features = () => {
                   {/* Stats row */}
                   <div className="mt-8 flex flex-col sm:flex-row gap-4 sm:gap-0 sm:divide-x sm:divide-border">
                     {block.stats.map((stat, j) => (
-                      <motion.div
-                        key={j}
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.2 + j * 0.1 }}
-                        className="sm:px-6 first:sm:pl-0"
-                      >
+                      <ScrollStaggerItem key={j} index={j} className="sm:px-6 first:sm:pl-0">
                         <p className="text-2xl sm:text-3xl font-black text-foreground">{stat.value}</p>
                         <p className="text-xs text-muted-foreground font-medium mt-0.5">{stat.label}</p>
-                      </motion.div>
+                      </ScrollStaggerItem>
                     ))}
                   </div>
-                </motion.div>
+                </ScrollSlideIn>
               </div>
             </Wrapper>
           );

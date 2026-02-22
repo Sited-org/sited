@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Calendar, Star, Phone, Mail, Shield, Users, Clock } from "lucide-react";
 import { useState, useRef } from "react";
 import { usePageSEO } from "@/hooks/usePageSEO";
@@ -8,7 +8,7 @@ import BookingDialog from "@/components/booking/BookingDialog";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
-import { ScrollReveal } from "@/components/common/ScrollReveal";
+import { ScrollZoomIn, ScrollStaggerItem, ScrollParallax } from "@/components/common/ScrollAnimations";
 
 const Contact = () => {
   usePageSEO({
@@ -146,30 +146,27 @@ const Contact = () => {
                 icon: Users,
                 title: "500+ Happy Clients",
                 desc: "We've built websites for tradies, consultants, gyms, restaurants, real estate agents — you name it.",
-                dir: "left" as const,
               },
               {
                 icon: Clock,
                 title: "Fast Turnaround",
                 desc: "Most websites are live within 2 weeks. No months of back-and-forth. We move when you move.",
-                dir: "up" as const,
               },
               {
                 icon: Shield,
                 title: "No Lock-In Contracts",
                 desc: "Stay because you want to, not because you have to. We earn your business every month.",
-                dir: "right" as const,
               },
-            ].map((item: { icon: typeof Users; title: string; desc: string; dir: "left" | "up" | "right" }, i: number) => (
-              <ScrollReveal key={item.title} delay={i * 0.1} direction={item.dir}>
+            ].map((item, i) => (
+              <ScrollZoomIn key={item.title}>
                 <div className="bg-card border border-border rounded-2xl p-8 text-center scroll-border-blue h-full">
                   <div className="w-12 h-12 rounded-xl bg-sited-blue/10 flex items-center justify-center mx-auto mb-4">
                     <item.icon size={24} className="text-sited-blue" />
                   </div>
                   <h3 className="text-lg font-bold text-foreground mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
-              </ScrollReveal>
+              </ScrollZoomIn>
             ))}
           </div>
         </div>
@@ -196,7 +193,7 @@ const Contact = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {testimonials.slice(0, 6).map((t, index) => (
-                <ScrollReveal key={t.id} delay={index * 0.08} direction="up">
+                <ScrollStaggerItem key={t.id} index={index}>
                   <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 flex flex-col h-full">
                     <div className="flex gap-0.5 mb-4">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -217,17 +214,16 @@ const Contact = () => {
                       </p>
                     </div>
                   </div>
-                </ScrollReveal>
+                </ScrollStaggerItem>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* BOTTOM CTA */}
       <section className="py-20 sm:py-28 bg-foreground text-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <ScrollReveal direction="scale">
+          <ScrollZoomIn>
             <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight uppercase">
               Let's make it <span className="text-sited-blue">happen</span>
             </h2>
@@ -268,7 +264,7 @@ const Contact = () => {
                 hello@sited.com
               </a>
             </div>
-          </ScrollReveal>
+          </ScrollZoomIn>
         </div>
       </section>
 
