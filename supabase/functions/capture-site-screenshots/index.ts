@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
         console.log(`Capturing screenshot for ${site.name}...`);
 
         // Use microlink.io to capture full-page screenshot with JS execution
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&viewport.width=1440&viewport.height=900&waitForTimeout=5000`;
+        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=8000&waitUntil=networkidle0`;
 
         const response = await fetch(microlinkUrl);
         const data = await response.json();

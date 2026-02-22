@@ -60,7 +60,7 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
 
   useEffect(() => {
     if (!loaded) return;
-    const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
+    const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
     return () => clearTimeout(timer);
   }, [loaded, index]);
 

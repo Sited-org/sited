@@ -69,7 +69,7 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   // Stagger scroll start after image loads
   useEffect(() => {
     if (!loaded) return;
-    const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
+    const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
     return () => clearTimeout(timer);
   }, [loaded, index]);
 
