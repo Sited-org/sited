@@ -1,76 +1,44 @@
 
-# Plan: Scroll Reveals, Mobile Hardening, and Theme Toggle Fix
 
-## 1. Fix Theme Toggle Consistency
+## Animation Timing & Ingle Brown Screenshot Fix
 
-**Problem**: After the first toggle, the overlay's CSS `transition` property gets manually overwritten (line 72: `opacity 0.3s ease`) and then cleared (line 76: `""`). On subsequent toggles, the expansion transition (`transform 0.5s cubic-bezier(...)`) is missing because the inline style from JSX only applies on mount.
+### 1. Animation Start Time (both components)
 
-**Fix**: Instead of clearing `transition` to `""`, explicitly restore the full base transition string every time:
+**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+
+Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+
+- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
+- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+
+### 2. Ingle Brown Screenshot Issue
+
+The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
+
+**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
+
+- Add `&scroll=true` to the microlink URL to handle sticky headers properly
+- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
+- After updating the function, re-run it to generate a corrected screenshot
+
+### Technical Details
+
+**WebsiteShowcaseGrid.tsx (line 72):**
 ```
-overlay.style.transition = "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease";
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
 ```
-This ensures every toggle cycle starts with the correct expansion transition.
 
----
-
-## 2. Prevent Horizontal Scrolling Site-Wide
-
-Add a global CSS rule to `index.css`:
-```css
-html, body {
-  overflow-x: hidden;
-  max-width: 100vw;
-}
+**SocialProofSection.tsx (line 63):**
 ```
-Also audit existing `overflow-x-hidden` on page wrappers -- some pages already have it (Features, Work) but Index and Contact do not. Add `overflow-x-hidden w-full` to the outer wrapper div on Index and Contact as well.
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+```
 
----
+**capture-site-screenshots/index.ts (line 33):**
+Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
 
-## 3. Add ScrollReveal to More Sections
-
-Wrap additional elements across pages with the existing `ScrollReveal` component. Specific placements:
-
-### Index (`/`)
-- Proof bar items: wrap each item with ScrollReveal (direction: up, staggered delay)
-- Client Websites Grid heading + grid: wrap in ScrollReveal
-- "Why People Stay" cards: wrap each card with ScrollReveal (alternating left/right)
-- Services cards: wrap each card with ScrollReveal (staggered up)
-- Process steps: wrap each step with ScrollReveal (direction: up, staggered)
-- Final CTA section: wrap in ScrollReveal (direction: scale)
-
-### Work (`/portfolio`)
-- Hero subtitle and CTA buttons: wrap in ScrollReveal
-- Social proof strip stats: wrap each stat in ScrollReveal
-- "Why Sited" transition heading/text: wrap in ScrollReveal
-- Bottom CTA: wrap in ScrollReveal
-
-### Contact (`/contact`)
-- Hero text block: already using motion -- convert to ScrollReveal for consistency
-- Testimonial cards: wrap each in ScrollReveal (staggered, direction: up)
-- Bottom CTA block: wrap in ScrollReveal
-
-### Custom Websites (`/custom-websites`)
-- Hero section heading: already animated
-- Tier showcase cards: already have motion -- these are fine
-- Testimonial section: wrap cards in ScrollReveal
-- Blog posts section: wrap each post card in ScrollReveal
-- Final CTA: wrap in ScrollReveal
-
----
-
-## 4. Technical Details
-
-### Files to Edit
-1. **`src/components/common/ThemeToggleFloat.tsx`** -- Fix the transition reset on line 76
-2. **`src/index.css`** -- Add `overflow-x: hidden` to `html, body`
-3. **`src/pages/Index.tsx`** -- Import ScrollReveal, wrap proof bar items, "Why People Stay" cards, services cards, process steps, and final CTA; add `overflow-x-hidden` to outer div
-4. **`src/pages/Work.tsx`** -- Wrap social proof stats, "Why Sited" section content, and bottom CTA in ScrollReveal
-5. **`src/pages/Contact.tsx`** -- Add `overflow-x-hidden` to outer div, wrap testimonial cards and bottom CTA in ScrollReveal
-6. **`src/pages/CustomWebsites.tsx`** -- Wrap testimonial cards, blog post cards, and final CTA in ScrollReveal
-
-### Approach
-- Use the existing `ScrollReveal` component everywhere -- no new components needed
-- Stagger delays within groups (0.05-0.1s increments) for a cascading effect
-- Use directional variety: headings from "up", cards from alternating "left"/"right", CTAs from "scale"
-- Keep `once: true` on all reveals so they only animate in once
-- All ScrollReveal wrappers use `overflow-hidden` implicitly through the parent page wrapper, preventing any horizontal scroll from off-screen initial positions
