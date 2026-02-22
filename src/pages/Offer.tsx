@@ -224,16 +224,12 @@ const Offer = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-10 sm:mb-14"
         >
-          <p className="text-xs sm:text-sm uppercase tracking-[0.25em] text-sited-blue font-black mb-3">
-            YOUR CUSTOM OFFER
-          </p>
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter text-foreground uppercase leading-[0.9]">
-            YOUR WEBSITE<br />
-            <span className="text-sited-blue">IS READY</span>
+            YOUR WEBSITE,<br />
+            <span className="text-sited-blue">IN 7 DAYS</span>
           </h1>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Secure your website with a <span className="font-black text-foreground">$49 fully refundable deposit</span>.{" "}
-            Don't love it? <span className="font-black text-foreground">Get every cent back.</span> No risk. No lock-in.
+            We'll build your website in <span className="font-black text-foreground">7 Days</span> — If you don't love it, we'll refund your deposit! <span className="font-black text-foreground">No Risk, No Lock-In!</span>
           </p>
         </motion.div>
 
@@ -264,11 +260,14 @@ const Offer = () => {
 
               <div className="mb-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-foreground">$549</span>
+                  <span className="text-4xl font-black text-foreground">$49</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-lg font-black text-foreground">Total: $549</span>
                   <span className="text-sm text-muted-foreground line-through">$1,399</span>
                 </div>
                 <p className="text-xs font-black text-green-500 mt-1">SAVE $850</p>
-                <p className="text-xs text-muted-foreground mt-1">Just $49 refundable deposit today</p>
               </div>
 
               {/* Features */}
@@ -380,11 +379,14 @@ const Offer = () => {
                         <div className="p-4 space-y-4">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-black text-foreground">{TIERS.gold.totalPrice}</span>
+                              <span className="text-3xl font-black text-foreground">$49</span>
+                              <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
+                            </div>
+                            <div className="mt-1 flex items-baseline gap-2">
+                              <span className="text-base font-black text-foreground">Total: {TIERS.gold.totalPrice}</span>
                               <span className="text-sm text-muted-foreground line-through">{TIERS.gold.usualPrice}</span>
                             </div>
                             <p className="text-xs font-black text-green-500 mt-1">SAVE {TIERS.gold.savings}</p>
-                            <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
                           </div>
 
                           <div className="space-y-2">
@@ -473,11 +475,14 @@ const Offer = () => {
                         <div className="p-4 space-y-4">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-black text-foreground">{TIERS.platinum.totalPrice}</span>
+                              <span className="text-3xl font-black text-foreground">$49</span>
+                              <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
+                            </div>
+                            <div className="mt-1 flex items-baseline gap-2">
+                              <span className="text-base font-black text-foreground">Total: {TIERS.platinum.totalPrice}</span>
                               <span className="text-sm text-muted-foreground line-through">{TIERS.platinum.usualPrice}</span>
                             </div>
                             <p className="text-xs font-black text-green-500 mt-1">SAVE {TIERS.platinum.savings}</p>
-                            <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
                           </div>
 
                           <div className="space-y-2">
@@ -603,7 +608,11 @@ const Offer = () => {
                     {isActive ? (
                       <div className="mb-4">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-3xl sm:text-4xl font-black text-foreground">{tier.totalPrice}</span>
+                          <span className="text-3xl sm:text-4xl font-black text-foreground">$49</span>
+                          <span className="text-xs font-bold text-muted-foreground uppercase">Deposit</span>
+                        </div>
+                        <div className="mt-1 flex items-baseline gap-2">
+                          <span className="text-base font-black text-foreground">Total: {tier.totalPrice}</span>
                           <span className="text-sm text-muted-foreground line-through">{tier.usualPrice}</span>
                         </div>
                         <p className="text-xs font-black text-green-500 mt-1">SAVE {tier.savings}</p>
@@ -683,12 +692,15 @@ const Offer = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-foreground">{activeTier.totalPrice}</span>
-                    <span className="text-lg text-muted-foreground line-through">{activeTier.usualPrice}</span>
+                  <div className="flex items-baseline gap-2 justify-end">
+                    <span className="text-5xl font-black text-foreground">$49</span>
+                    <span className="text-sm font-bold text-muted-foreground uppercase">Deposit</span>
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2 justify-end">
+                    <span className="text-xl font-black text-foreground">Total: {activeTier.totalPrice}</span>
+                    <span className="text-base text-muted-foreground line-through">{activeTier.usualPrice}</span>
                   </div>
                   <p className="text-sm font-black text-green-500">YOU SAVE {activeTier.savings}</p>
-                  <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
                 </div>
               </div>
 
