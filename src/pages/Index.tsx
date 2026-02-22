@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { Link } from "react-router-dom";
-import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star } from "lucide-react";
+import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star, TrendingUp, Users, Search, Smartphone, BarChart3, Zap } from "lucide-react";
 import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestimonials";
@@ -237,24 +237,30 @@ const Index = () => {
             {more_of_everything.title}
           </motion.h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {more_of_everything.items.map((item, i) => (
-              <motion.div
-                key={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                custom={i}
-                variants={fadeUp}
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="bg-card border border-border rounded-xl p-5 flex gap-4 scroll-border-blue hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
-              >
-                <div className="w-1.5 bg-sited-blue/40 rounded-full shrink-0" />
-                <div>
-                  <p className="font-semibold text-foreground text-sm">{item.bold}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.supporting}</p>
-                </div>
-              </motion.div>
-            ))}
+            {more_of_everything.items.map((item, i) => {
+              const moeIcons = [TrendingUp, Users, Search, Smartphone, BarChart3, Zap];
+              const MoeIcon = moeIcons[i % moeIcons.length];
+              return (
+                <motion.div
+                  key={i}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  custom={i}
+                  variants={fadeUp}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  className="bg-card border border-border rounded-xl p-5 flex gap-4 scroll-border-blue hover:border-sited-blue/30 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-sited-blue/15 flex items-center justify-center shrink-0">
+                    <MoeIcon size={20} className="text-sited-blue" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{item.bold}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.supporting}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </ThemeSwitchSection>
@@ -279,14 +285,15 @@ const Index = () => {
             {why_stay.reasons.map((r, i) => {
               const icons = [MessageSquare, Heart, Wrench, Shield];
               const Icon = icons[i] || Shield;
+              const isBlue = i % 2 === 0;
               return (
                 <ScrollReveal key={i} delay={i * 0.08} direction={i % 2 === 0 ? "left" : "right"}>
                   <motion.div
                     whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.2 } }}
-                    className="bg-card border border-border rounded-xl p-5 text-center scroll-border-gold hover:border-gold/30 hover:shadow-[0_0_20px_hsl(var(--gold)/0.1)] transition-all duration-300"
+                    className={`bg-card border border-border rounded-xl p-5 text-center ${isBlue ? 'scroll-border-blue' : 'scroll-border-gold'} hover:shadow-[0_0_24px_hsl(var(${isBlue ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}
                   >
-                    <div className="w-10 h-10 rounded-lg bg-gold/20 flex items-center justify-center mx-auto mb-3">
-                      <Icon size={18} className="text-gold" />
+                    <div className={`w-10 h-10 rounded-lg ${isBlue ? 'bg-sited-blue/15' : 'bg-gold/20'} flex items-center justify-center mx-auto mb-3`}>
+                      <Icon size={18} className={isBlue ? 'text-sited-blue' : 'text-gold'} strokeWidth={2.5} />
                     </div>
                     <h3 className="font-semibold text-foreground text-sm mb-1">{r.title}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">{r.description}</p>
@@ -364,7 +371,7 @@ const Index = () => {
                   custom={i}
                   variants={fadeUp}
                   whileHover={{ y: -4, rotate: 0, transition: { duration: 0.3 } }}
-                  className="bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden scroll-border-blue hover:border-sited-blue/30 transition-all duration-300"
+                  className={`bg-card border border-border rounded-2xl p-6 shadow-soft relative overflow-hidden ${i % 2 === 0 ? 'scroll-border-blue' : 'scroll-border-gold'} hover:shadow-[0_0_24px_hsl(var(${i % 2 === 0 ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}
                   style={{ transform: `rotate(${i === 1 ? -1 : i === 2 ? 1 : 0}deg)` }}
                 >
                   {/* Glow accent */}
