@@ -251,7 +251,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg p-0 gap-0 border-border/50 bg-card overflow-hidden max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[92vw] sm:max-w-lg p-0 gap-0 border-border/50 bg-card overflow-hidden max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogTitle className="sr-only">Book a Discovery Call</DialogTitle>
 
         <AnimatePresence mode="wait">
