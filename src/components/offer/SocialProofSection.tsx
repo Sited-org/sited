@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star, Globe, Users, Award, ShieldCheck } from "lucide-react";
 
@@ -36,6 +37,97 @@ const reviews = [
   },
 ];
 
+const showcaseSites = [
+  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
+  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
+];
+
+const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index: number }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [scrollActive, setScrollActive] = useState(false);
+  const [scrollDistance, setScrollDistance] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const viewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setViewportH(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
+    return () => clearTimeout(timer);
+  }, [loaded, index]);
+
+  return (
+    <div className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]">
+        {/* MacBook chrome */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/60 border-b border-border">
+          <div className="w-1.5 h-1.5 rounded-full bg-destructive/50" />
+          <div className="w-1.5 h-1.5 rounded-full bg-gold" />
+          <div className="w-1.5 h-1.5 rounded-full bg-accent/50" />
+          <div className="ml-2 flex-1 h-4 bg-background rounded-md flex items-center px-2">
+            <span className="text-[8px] text-muted-foreground truncate">{site.url}</span>
+          </div>
+        </div>
+
+        {/* Viewport */}
+        <div
+          ref={viewportRef}
+          className="relative w-full overflow-hidden bg-background"
+          style={{ aspectRatio: "16 / 10" }}
+        >
+          <div
+            className="absolute top-0 left-0 w-full will-change-transform"
+            style={{
+              animation: scrollActive && !hovered && scrollDistance > 0
+                ? `scrollIframe 20s ease-in-out infinite`
+                : "none",
+              ["--scroll-distance" as string]: `-${scrollDistance}px`,
+            }}
+          >
+            <img
+              src={site.screenshot}
+              alt={`${site.name} website screenshot`}
+              className="w-full h-auto block"
+              loading="lazy"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                const dist = img.offsetHeight - viewportH;
+                setScrollDistance(dist > 0 ? dist : 0);
+                setLoaded(true);
+              }}
+            />
+          </div>
+
+          {!loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
+
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-300 flex items-center justify-center z-10">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
+              <p className="text-white font-black text-xs sm:text-sm uppercase tracking-tight">{site.name}</p>
+              <a
+                href={site.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block px-3 py-1 bg-sited-blue text-white text-[10px] font-bold rounded-full hover:bg-sited-blue-hover transition-colors"
+              >
+                Visit Site →
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SocialProofSection = () => {
   return (
     <motion.div
@@ -72,6 +164,25 @@ const SocialProofSection = () => {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Website Showcase — 2 side-by-side */}
+      <div className="space-y-4">
+        <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Live Client Websites
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:gap-5">
+          {showcaseSites.map((site, i) => (
+            <motion.div
+              key={site.name}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 + i * 0.15 }}
+            >
+              <MiniMacBookCard site={site} index={i} />
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Trusted By Logos */}
