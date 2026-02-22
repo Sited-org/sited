@@ -20,7 +20,7 @@ export const Layout = ({ children, hideFooter = false }: LayoutProps) => {
     <div className="min-h-screen flex flex-col">
       <ThemeToggleFloat />
       <Navbar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-[140px] md:pt-0">{children}</main>
       {!hideFooter && <Footer />}
     </div>
   );

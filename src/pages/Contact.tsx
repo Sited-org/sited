@@ -26,7 +26,7 @@ const Contact = () => {
     <Layout hideFooter>
       <div ref={pageRef} className="overflow-x-hidden w-full">
       {/* HERO */}
-      <section className="relative min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">
+      <section className="relative min-h-[calc(85vh-140px)] md:min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

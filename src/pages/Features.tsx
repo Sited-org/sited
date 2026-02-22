@@ -127,7 +127,7 @@ const Features = () => {
 
       <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* Hero */}
-        <section className="min-h-screen flex items-center justify-center relative bg-background">
+        <section className="min-h-[calc(100vh-140px)] md:min-h-screen flex items-center justify-center relative bg-background">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
             <motion.h1
               initial={{ opacity: 0, y: 40 }}

@@ -140,13 +140,13 @@ export const Navbar = () => {
         <div className="md:hidden flex flex-col w-full border-t border-border/30">
           <button
             onClick={() => setCtaOpen(true)}
-            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--sited-blue))]/80 backdrop-blur-md transition-colors hover:bg-[hsl(var(--sited-blue))]"
+            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--sited-blue))]/60 backdrop-blur-xl transition-colors hover:bg-[hsl(var(--sited-blue))]/80"
           >
             Get a Quote
           </button>
           <a
             href="tel:0459909810"
-            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--gold))]/80 backdrop-blur-md text-center transition-colors hover:bg-[hsl(var(--gold))] border-t border-white/10"
+            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[hsl(var(--gold))]/60 backdrop-blur-xl text-center transition-colors hover:bg-[hsl(var(--gold))]/80 border-t border-white/10"
           >
             Call Now 0459 909 810
           </a>
