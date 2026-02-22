@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronDown } from "lucide-react";
+import { Check, ArrowRight, Shield, Zap, Star, Crown } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
@@ -302,13 +302,13 @@ const Offer = () => {
             transition={{ delay: 0.3 }}
             className="mt-14"
           >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-border" />
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <ChevronDown size={14} />
-                Want more?
+            <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center mb-6">
+              <p className="text-sm font-bold uppercase tracking-wider text-primary mb-2">
+                🚀 Want even more results?
               </p>
-              <div className="flex-1 h-px bg-border" />
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                Based on your answers, you may find more value in one of our premium packages — built for businesses that want to maximise leads and conversions.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
