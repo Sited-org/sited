@@ -19,7 +19,7 @@ const Blog = () => {
   return (
     <Layout>
       {/* Hero */}
-      <section className="pt-32 pb-16 sm:pt-40 sm:pb-20 bg-background">
+      <section className="pt-8 pb-16 sm:pt-40 sm:pb-20 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

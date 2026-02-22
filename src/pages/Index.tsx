@@ -54,7 +54,7 @@ const Index = () => {
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 
       {/* 1. HERO */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex items-center justify-center overflow-hidden">
         {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-[hsl(var(--surface-elevated))]" />
         {/* Subtle radial glow */}

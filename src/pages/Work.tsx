@@ -268,7 +268,7 @@ const Work = () => {
 
       <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* ━━ HERO ━━ */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center justify-center bg-background">
+        <section ref={heroRef} className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex items-center justify-center bg-background">
           <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
             <motion.p
               initial={{ opacity: 0, y: 20 }}
