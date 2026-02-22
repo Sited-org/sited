@@ -26,11 +26,11 @@ function ScrollCard({ children, className, index, accent = "blue", colorBlock = 
   const glowOpacity = useTransform(scrollYProgress, [0.5, 1], [0, 1]);
   const borderColor = accent === "blue" ? "var(--sited-blue)" : "var(--gold)";
 
-  // Color block: sweeps in from a side then fades as card settles
-  const blockScale = useTransform(scrollYProgress, [0.1, 0.5, 0.85], [0, 1, 0]);
-  const blockOpacity = useTransform(scrollYProgress, [0.1, 0.45, 0.85], [0, 0.55, 0]);
-  const blockPositions = ["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"];
-  const blockOrigins = ["origin-top-left", "origin-top-right", "origin-bottom-left", "origin-bottom-right"];
+  // Color block: starts as solid fill behind card, shrinks to a border outline
+  const blockInset = useTransform(scrollYProgress, [0.15, 0.7], [0, -3]);
+  const blockBorderWidth = useTransform(scrollYProgress, [0.15, 0.7], [100, 3]);
+  const blockOpacity = useTransform(scrollYProgress, [0, 0.15, 0.85, 1], [0, 1, 1, 0.6]);
+  const accentColor = accent === "blue" ? "hsl(var(--sited-blue))" : "hsl(var(--gold))";
 
   return (
     <motion.div
@@ -43,11 +43,20 @@ function ScrollCard({ children, className, index, accent = "blue", colorBlock = 
         style={{ opacity: glowOpacity, boxShadow: `0 0 28px hsl(${borderColor} / 0.18)`, borderColor: `hsl(${borderColor} / 0.45)` }}
         className="absolute inset-0 rounded-xl pointer-events-none border transition-none"
       />
-      {/* Colour block sweep */}
+      {/* Solid colour block → border */}
       {colorBlock && (
         <motion.div
-          style={{ opacity: blockOpacity, scale: blockScale }}
-          className={`absolute ${blockPositions[index % 4]} w-full h-full rounded-xl pointer-events-none ${blockOrigins[index % 4]} ${accent === "blue" ? "bg-[hsl(var(--sited-blue)/0.15)]" : "bg-[hsl(var(--gold)/0.18)]"}`}
+          style={{
+            opacity: blockOpacity,
+            top: blockInset,
+            left: blockInset,
+            right: blockInset,
+            bottom: blockInset,
+            borderWidth: blockBorderWidth,
+            borderColor: accentColor,
+            borderStyle: "solid",
+          }}
+          className="absolute rounded-xl pointer-events-none z-0"
         />
       )}
       {children}
