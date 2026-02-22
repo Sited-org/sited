@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollSlideIn } from "@/components/common/ScrollAnimations";
 
 const Blog = () => {
   usePageSEO({
@@ -58,13 +59,7 @@ const Blog = () => {
           ) : posts && posts.length > 0 ? (
             <div className="space-y-10">
               {posts.map((post, index) => (
-                <motion.article
-                  key={post.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                >
+                <ScrollSlideIn key={post.id} from={index % 2 === 0 ? "left" : "right"}>
                   <Link
                     to={`/blog/${post.slug}`}
                     className="group block bg-card border border-border rounded-2xl overflow-hidden hover:border-sited-blue/40 transition-all duration-300 hover:shadow-elevated"
@@ -124,7 +119,7 @@ const Blog = () => {
                       </div>
                     </div>
                   </Link>
-                </motion.article>
+                </ScrollSlideIn>
               ))}
             </div>
           ) : (

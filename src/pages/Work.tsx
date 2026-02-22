@@ -11,7 +11,7 @@ import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
 import { ScrollTextTestimonials } from "@/components/work/ScrollTextTestimonials";
 import { VideoTestimonials } from "@/components/work/VideoTestimonials";
-import { ScrollReveal } from "@/components/common/ScrollReveal";
+import { ScrollParallax, ScrollSlideIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
 
 /* ── Fallback data ── */
 const fallbackProjects: ProjectDisplay[] = [
@@ -128,12 +128,7 @@ const ProjectCard = ({
   const isEven = index % 2 === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.7, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <ScrollSlideIn from={isEven ? "left" : "right"}>
       <div className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} rounded-2xl sm:rounded-3xl overflow-hidden border border-border bg-card shadow-soft scroll-border-blue hover:shadow-elevated transition-shadow duration-500`}>
         {/* Media */}
         <div className="relative w-full lg:w-[60%] aspect-video overflow-hidden flex-shrink-0 bg-muted">
@@ -217,7 +212,7 @@ const ProjectCard = ({
           </div>
         </div>
       </div>
-    </motion.div>
+    </ScrollSlideIn>
   );
 };
 
@@ -321,14 +316,14 @@ const Work = () => {
                 { val: "500+", label: "Websites Delivered" },
                 { val: "7 Years", label: "In The Industry" },
               ].map((s, i) => (
-                <ScrollReveal key={s.label} delay={i * 0.1} direction="up">
+                <ScrollStaggerItem key={s.label} index={i}>
                   <div className="sm:px-8 text-center">
                     <p className="text-2xl sm:text-3xl font-black text-white">{s.val}</p>
                     <p className="text-xs text-white/70 font-semibold mt-0.5">{s.label}</p>
                   </div>
-                </ScrollReveal>
+                </ScrollStaggerItem>
               ))}
-              <ScrollReveal delay={0.2} direction="up">
+              <ScrollStaggerItem index={2}>
                 <div className="sm:px-8 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <span className="text-2xl sm:text-3xl font-black text-white">5.0</span>
@@ -340,13 +335,13 @@ const Work = () => {
                   </div>
                   <p className="text-xs text-white/70 font-semibold mt-0.5">Google Reviews</p>
                 </div>
-              </ScrollReveal>
-              <ScrollReveal delay={0.3} direction="up">
+              </ScrollStaggerItem>
+              <ScrollStaggerItem index={3}>
                 <div className="sm:px-8 text-center">
                   <p className="text-2xl sm:text-3xl font-black text-white">100%</p>
                   <p className="text-xs text-white/70 font-semibold mt-0.5">Client Satisfaction</p>
                 </div>
-              </ScrollReveal>
+              </ScrollStaggerItem>
             </div>
           </div>
         </section>
@@ -385,34 +380,34 @@ const Work = () => {
         {/* ━━ WHY SITED TRANSITION ━━ */}
         <section className="bg-card border-y border-border">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
-            <ScrollReveal direction="up">
+            <ScrollSlideIn from="left">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase leading-tight">
                 We don't just build it
                 <br />
                 <span className="text-sited-blue">and disappear.</span>
               </h2>
-            </ScrollReveal>
-            <ScrollReveal delay={0.1} direction="up">
+            </ScrollSlideIn>
+            <ScrollSlideIn from="right">
               <p className="mt-4 text-base text-muted-foreground max-w-lg mx-auto">
                 Every client gets ongoing monitoring, monthly improvements, and same-day support.
                 That's why they stay — and that's why they refer us.
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.2} direction="up">
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  { val: "< 3 days", label: "Average delivery" },
-                  { val: "Same day", label: "Support response" },
-                  { val: "Monthly", label: "Improvements" },
-                  { val: "Unlimited", label: "Content updates" },
-                ].map((s) => (
-                  <div key={s.label} className="bg-background border border-border rounded-xl p-4">
+            </ScrollSlideIn>
+            <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { val: "< 3 days", label: "Average delivery" },
+                { val: "Same day", label: "Support response" },
+                { val: "Monthly", label: "Improvements" },
+                { val: "Unlimited", label: "Content updates" },
+              ].map((s, i) => (
+                <ScrollStaggerItem key={s.label} index={i}>
+                  <div className="bg-background border border-border rounded-xl p-4">
                     <p className="text-xl sm:text-2xl font-black text-sited-blue">{s.val}</p>
                     <p className="text-xs text-muted-foreground font-medium mt-1">{s.label}</p>
                   </div>
-                ))}
-              </div>
-            </ScrollReveal>
+                </ScrollStaggerItem>
+              ))}
+            </div>
           </div>
         </section>
 
