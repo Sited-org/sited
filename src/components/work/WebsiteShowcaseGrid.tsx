@@ -77,9 +77,23 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     ? site.screenshot
     : `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
 
+  const [tapped, setTapped] = useState(false);
+
+  const handleCardClick = () => {
+    // On mobile/touch: toggle overlay on tap
+    if (window.matchMedia("(hover: none)").matches) {
+      setTapped((prev) => !prev);
+    }
+  };
+
+  const showOverlay = hovered || tapped;
+
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-      <div className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]">
+      <div
+        className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]"
+        onClick={handleCardClick}
+      >
         {/* MacBook chrome */}
         <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-muted/60 border-b border-border">
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive/50" />
@@ -100,7 +114,7 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
             <div
               className="absolute top-0 left-0 w-full will-change-transform"
               style={{
-                animation: scrollActive && !hovered && scrollDistance > 0
+                animation: scrollActive && !hovered && !tapped && scrollDistance > 0
                   ? `scrollIframe 20s ease-in-out infinite`
                   : "none",
                 ["--scroll-distance" as string]: `-${scrollDistance}px`,
@@ -128,14 +142,23 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
             <div className="absolute inset-0 bg-muted animate-pulse" />
           )}
 
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/60 transition-all duration-300 flex items-center justify-center z-10">
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-center">
+          {/* Overlay — desktop: hover, mobile: tap */}
+          <div
+            className={`absolute inset-0 transition-all duration-300 flex items-center justify-center z-10 ${
+              showOverlay ? "bg-foreground/60" : "bg-foreground/0"
+            }`}
+          >
+            <div
+              className={`transition-opacity duration-300 text-center ${
+                showOverlay ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
               <p className="text-white font-black text-sm sm:text-lg uppercase tracking-tight">{site.name}</p>
               <a
                 href={site.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="mt-2 inline-block px-4 py-1.5 bg-sited-blue text-white text-xs font-bold rounded-full hover:bg-sited-blue-hover transition-colors"
               >
                 Visit Site →
