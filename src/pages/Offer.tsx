@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, TrendingUp, Bot, Globe, BarChart3, Users, Lock } from "lucide-react";
+import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, TrendingUp, Bot, Globe, BarChart3, Users, Lock, Sparkles } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
@@ -47,7 +47,7 @@ const TIERS: Record<string, TierConfig> = {
       "Calendar integration",
       "Email integration",
     ],
-    accentClass: "border-sited-blue/30 bg-sited-blue/5",
+    accentClass: "border-sited-blue/40 bg-sited-blue/5",
     badgeClass: "bg-sited-blue text-white",
   },
   gold: {
@@ -68,8 +68,8 @@ const TIERS: Record<string, TierConfig> = {
       "Calendar integration",
       "Email integration",
     ],
-    accentClass: "border-yellow-500/30 bg-yellow-500/5",
-    badgeClass: "bg-yellow-500 text-black",
+    accentClass: "border-gold/40 bg-gold/5",
+    badgeClass: "bg-gold text-foreground",
   },
   platinum: {
     id: "platinum",
@@ -88,8 +88,8 @@ const TIERS: Record<string, TierConfig> = {
       "Any custom integrations",
       "Priority support & delivery",
     ],
-    accentClass: "border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-purple-900/10",
-    badgeClass: "bg-purple-600 text-white",
+    accentClass: "border-gray-300/50 dark:border-gray-400/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/30 dark:via-gray-600/20 dark:to-gray-500/10",
+    badgeClass: "bg-gradient-to-r from-gray-300 via-white to-gray-300 dark:from-gray-500 dark:via-gray-300 dark:to-gray-500 text-gray-900",
     popular: true,
   },
 };
@@ -127,10 +127,13 @@ const UPGRADE_BENEFITS = [
   },
 ];
 
+/* Silver shimmer for Platinum card */
+const silverShimmer = "bg-[linear-gradient(110deg,hsl(0_0%_85%)_0%,hsl(0_0%_95%)_45%,hsl(0_0%_100%)_50%,hsl(0_0%_95%)_55%,hsl(0_0%_85%)_100%)] dark:bg-[linear-gradient(110deg,hsl(0_0%_35%)_0%,hsl(0_0%_50%)_45%,hsl(0_0%_65%)_50%,hsl(0_0%_50%)_55%,hsl(0_0%_35%)_100%)]";
+
 const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
-  const [selectedTier, setSelectedTier] = useState<string>("platinum");
+  const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
@@ -196,15 +199,17 @@ const Offer = () => {
 
   const activeTier = TIERS[selectedTier];
   const Icon = activeTier.icon;
+  const isPlatinum = selectedTier === "platinum";
+  const isGold = selectedTier === "gold";
 
   return (
     <div className="min-h-screen bg-background">
       {/* Urgency Banner */}
-      <div className="bg-gradient-to-r from-purple-600 via-sited-blue to-purple-600 text-white text-center py-3 px-4">
+      <div className="bg-foreground text-background text-center py-3 px-4">
         <p className="text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2">
-          <Flame size={16} className="animate-pulse" />
+          <Flame size={16} className="animate-pulse text-gold" />
           {content.urgency_text || "LIMITED TIME — SAVE UP TO $1,360"}
-          <Flame size={16} className="animate-pulse" />
+          <Flame size={16} className="animate-pulse text-gold" />
         </p>
       </div>
 
@@ -220,14 +225,12 @@ const Offer = () => {
             YOUR CUSTOM OFFER
           </p>
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tighter text-foreground uppercase leading-[0.9]">
-            CHOOSE YOUR<br />
-            <span className="bg-gradient-to-r from-purple-500 to-sited-blue bg-clip-text text-transparent">
-              GROWTH PLAN
-            </span>
+            YOUR WEBSITE<br />
+            <span className="text-sited-blue">IS READY</span>
           </h1>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-            Every package starts with a <span className="font-black text-foreground">$49 refundable deposit</span>. 
-            No risk. No lock-in. Just results.
+            Secure your website with a <span className="font-black text-foreground">$49 fully refundable deposit</span>.{" "}
+            Don't love it? <span className="font-black text-foreground">Get every cent back.</span> No risk. No lock-in.
           </p>
         </motion.div>
 
@@ -236,7 +239,8 @@ const Offer = () => {
           {Object.values(TIERS).map((tier, idx) => {
             const TIcon = tier.icon;
             const isActive = selectedTier === tier.id;
-            const isPlatinum = tier.id === "platinum";
+            const isTierPlatinum = tier.id === "platinum";
+            const isTierGold = tier.id === "gold";
 
             return (
               <motion.div
@@ -247,25 +251,31 @@ const Offer = () => {
                 onClick={() => { setSelectedTier(tier.id); setShowPayment(false); }}
                 className={`relative cursor-pointer rounded-2xl border-2 p-5 sm:p-6 transition-all duration-300 ${
                   isActive
-                    ? isPlatinum
-                      ? "border-purple-500 bg-gradient-to-br from-purple-500/15 to-purple-900/15 shadow-lg shadow-purple-500/20 scale-[1.02]"
+                    ? isTierPlatinum
+                      ? "border-gray-400 dark:border-gray-300 shadow-lg shadow-gray-400/20 dark:shadow-gray-300/10 scale-[1.02] " + activeTier.accentClass
                       : `${tier.accentClass} shadow-lg scale-[1.02]`
                     : "border-border bg-card hover:border-muted-foreground/30 hover:shadow-md"
                 }`}
               >
-                {/* Popular badge */}
-                {isPlatinum && (
+                {/* Badges */}
+                {isTierPlatinum && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider shadow-lg">
-                      <Crown size={10} />
-                      Most Popular
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
+                      <Sparkles size={10} />
+                      Premium
                     </span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div className={`p-2 rounded-lg ${isPlatinum ? "bg-purple-500/20" : "bg-muted"}`}>
-                    <TIcon size={20} className={isPlatinum ? "text-purple-400" : "text-foreground"} />
+                  <div className={`p-2 rounded-lg ${
+                    isTierPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
+                    isTierGold ? "bg-gold/20" : "bg-sited-blue/10"
+                  }`}>
+                    <TIcon size={20} className={
+                      isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
+                      isTierGold ? "text-gold" : "text-sited-blue"
+                    } />
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-foreground">{tier.name}</h3>
@@ -273,18 +283,28 @@ const Offer = () => {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl sm:text-4xl font-black text-foreground">{tier.totalPrice}</span>
-                    <span className="text-sm text-muted-foreground line-through">{tier.usualPrice}</span>
+                {/* Show price only if this tier is selected */}
+                {isActive ? (
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl sm:text-4xl font-black text-foreground">{tier.totalPrice}</span>
+                      <span className="text-sm text-muted-foreground line-through">{tier.usualPrice}</span>
+                    </div>
+                    <p className="text-xs font-black text-green-500 mt-1">SAVE {tier.savings}</p>
                   </div>
-                  <p className="text-xs font-black text-green-500 mt-1">SAVE {tier.savings}</p>
-                </div>
+                ) : (
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-muted-foreground">Select to see pricing</p>
+                  </div>
+                )}
 
                 <div className="space-y-2 mb-4">
                   {tier.features.slice(0, 4).map((f, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <Check size={14} className={`flex-shrink-0 mt-0.5 ${isPlatinum ? "text-purple-400" : "text-sited-blue"}`} />
+                      <Check size={14} className={`flex-shrink-0 mt-0.5 ${
+                        isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
+                        isTierGold ? "text-gold" : "text-sited-blue"
+                      }`} />
                       <span>{f}</span>
                     </div>
                   ))}
@@ -297,9 +317,11 @@ const Offer = () => {
 
                 <div className={`w-full py-2.5 rounded-lg text-center text-xs font-black uppercase tracking-wider transition-colors ${
                   isActive
-                    ? isPlatinum
-                      ? "bg-purple-600 text-white"
-                      : "bg-sited-blue text-white"
+                    ? isTierPlatinum
+                      ? `${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`
+                      : isTierGold
+                        ? "bg-gold text-foreground"
+                        : "bg-sited-blue text-white"
                     : "bg-muted text-muted-foreground"
                 }`}>
                   {isActive ? "Selected" : "Select Plan"}
@@ -316,21 +338,27 @@ const Offer = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
           className={`rounded-2xl border-2 p-6 sm:p-8 ${
-            selectedTier === "platinum"
-              ? "border-purple-500/50 bg-gradient-to-br from-purple-500/10 to-purple-900/10"
+            isPlatinum
+              ? "border-gray-400/50 dark:border-gray-300/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5"
               : activeTier.accentClass
           }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${selectedTier === "platinum" ? "bg-purple-500/20" : "bg-background/80"}`}>
-                <Icon size={28} className={selectedTier === "platinum" ? "text-purple-400" : "text-foreground"} />
+              <div className={`p-2.5 rounded-xl ${
+                isPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
+                isGold ? "bg-gold/20" : "bg-sited-blue/10"
+              }`}>
+                <Icon size={28} className={
+                  isPlatinum ? "text-gray-500 dark:text-gray-300" :
+                  isGold ? "text-gold" : "text-sited-blue"
+                } />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-2xl sm:text-3xl font-black text-foreground">{activeTier.name}</h2>
                   {activeTier.popular && (
-                    <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
                       Best Value
                     </span>
                   )}
@@ -349,35 +377,58 @@ const Offer = () => {
           </div>
 
           {/* Full Feature List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
             {activeTier.features.map((feature, i) => (
               <div
                 key={i}
                 className={`flex items-start gap-2.5 text-sm text-foreground p-3 rounded-xl border transition-colors ${
-                  selectedTier === "platinum"
-                    ? "bg-purple-500/5 border-purple-500/20"
-                    : "bg-background/60 border-border/50"
+                  isPlatinum
+                    ? "bg-gray-200/30 dark:bg-gray-600/10 border-gray-300/30 dark:border-gray-500/20"
+                    : isGold
+                      ? "bg-gold/5 border-gold/20"
+                      : "bg-sited-blue/5 border-sited-blue/20"
                 }`}
               >
-                <Check size={16} className={`flex-shrink-0 mt-0.5 ${selectedTier === "platinum" ? "text-purple-400" : "text-sited-blue"}`} />
+                <Check size={16} className={`flex-shrink-0 mt-0.5 ${
+                  isPlatinum ? "text-gray-500 dark:text-gray-300" :
+                  isGold ? "text-gold" : "text-sited-blue"
+                }`} />
                 <FeatureWithInfo feature={feature} />
               </div>
             ))}
           </div>
 
-          {/* CTA */}
+          {/* ═══ REFUND GUARANTEE CALLOUT ═══ */}
+          <div className="mb-6 rounded-xl border-2 border-sited-blue/30 bg-sited-blue/5 dark:bg-sited-blue/10 p-5">
+            <div className="flex items-start gap-3">
+              <Shield size={24} className="text-sited-blue flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-sm font-black text-foreground uppercase tracking-wide mb-1">
+                  100% Money-Back Guarantee
+                </h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  If you <span className="font-black text-foreground">don't love</span> the website we build — you get a{" "}
+                  <span className="font-black text-sited-blue">full refund of your $49 deposit</span>. No questions asked.
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                  If you <span className="font-black text-foreground">love it</span> and want to work with us — we deliver your completed project within{" "}
+                  <span className="font-black text-foreground">7 days or earlier</span>. Then you simply pay the remaining balance for your package.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA — Bouncing Blue */}
           {!showPayment && (
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => setShowPayment(true)}
-              className={`w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg ${
-                selectedTier === "platinum"
-                  ? "bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white shadow-purple-500/30"
-                  : "bg-sited-blue hover:bg-sited-blue-hover text-white"
-              }`}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
             >
-              Secure Your {activeTier.name} Website — $49 Deposit
+              Secure Your Website — $49 Deposit
               <ArrowRight size={16} />
             </motion.button>
           )}
@@ -408,11 +459,11 @@ const Offer = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Guarantee */}
+        {/* Small guarantee reminder */}
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <Shield size={16} className="text-sited-blue" />
-            <span className="font-bold">100% Money-Back Guarantee</span> — Not happy? Full refund, no questions asked.
+            <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
           </div>
         </div>
 
@@ -424,13 +475,13 @@ const Offer = () => {
             transition={{ delay: 0.3 }}
             className="mt-16"
           >
-            <div className="rounded-2xl border-2 border-dashed border-purple-500/40 bg-gradient-to-br from-purple-500/10 to-purple-900/5 p-6 sm:p-8 text-center mb-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider mb-3">
+            <div className="rounded-2xl border-2 border-dashed border-gold/40 bg-gold/5 p-6 sm:p-8 text-center mb-8">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold text-foreground text-[10px] font-black uppercase tracking-wider mb-3">
                 <TrendingUp size={12} />
-                Recommended Upgrade
+                Worth Exploring
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-foreground mb-2">
-                Based on your answers, Platinum could be the better fit.
+                Based on your answers, you may find more value in one of these packages!
               </h3>
               <p className="text-muted-foreground text-sm max-w-lg mx-auto">
                 Businesses that invest in premium tools see <span className="font-black text-foreground">3-5x more leads</span> and save 
@@ -447,10 +498,10 @@ const Offer = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex gap-4 p-4 sm:p-5 rounded-xl border border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10 transition-colors"
+                    className="flex gap-4 p-4 sm:p-5 rounded-xl border border-gold/20 bg-gold/5 hover:bg-gold/10 transition-colors"
                   >
-                    <div className="p-2.5 rounded-lg bg-purple-500/20 h-fit">
-                      <BIcon size={20} className="text-purple-400" />
+                    <div className="p-2.5 rounded-lg bg-gold/20 h-fit">
+                      <BIcon size={20} className="text-gold" />
                     </div>
                     <div>
                       <h4 className="text-sm font-black text-foreground mb-1">{benefit.title}</h4>
@@ -458,7 +509,7 @@ const Offer = () => {
                       <div className="mt-2 flex gap-1.5">
                         {benefit.tiers.map((t) => (
                           <span key={t} className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                            t === "platinum" ? "bg-purple-600/20 text-purple-400" : "bg-yellow-500/20 text-yellow-600"
+                            t === "platinum" ? "bg-gray-300/30 dark:bg-gray-500/20 text-gray-600 dark:text-gray-300" : "bg-gold/20 text-gold-hover"
                           }`}>
                             {t}
                           </span>
@@ -475,10 +526,10 @@ const Offer = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => { setSelectedTier("platinum"); setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-purple-500/30 transition-all"
+                className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg transition-all ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500 hover:shadow-xl`}
               >
-                <Crown size={16} />
-                Switch to Platinum — Save $1,360
+                <Sparkles size={16} />
+                Explore Platinum — Save $1,360
                 <ChevronRight size={16} />
               </motion.button>
             </div>
@@ -502,8 +553,8 @@ const Offer = () => {
                   <tr className="border-b border-border">
                     <th className="text-left p-4 text-xs font-black uppercase tracking-wider text-muted-foreground">Feature</th>
                     <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-sited-blue">Blue</th>
-                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-yellow-500">Gold</th>
-                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-purple-500 bg-purple-500/5">Platinum</th>
+                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gold">Gold</th>
+                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-700/20">Platinum</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -531,14 +582,14 @@ const Offer = () => {
                          <span className="text-xs font-bold text-sited-blue">{row.blue}</span>}
                       </td>
                       <td className="p-3 sm:p-4 text-center">
-                        {row.gold === true ? <Check size={16} className="mx-auto text-yellow-500" /> :
+                        {row.gold === true ? <Check size={16} className="mx-auto text-gold" /> :
                          row.gold === false ? <span className="text-muted-foreground/40">—</span> :
-                         <span className="text-xs font-bold text-yellow-500">{row.gold}</span>}
+                         <span className="text-xs font-bold text-gold">{row.gold}</span>}
                       </td>
-                      <td className="p-3 sm:p-4 text-center bg-purple-500/5">
-                        {row.plat === true ? <Check size={16} className="mx-auto text-purple-500" /> :
+                      <td className="p-3 sm:p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
+                        {row.plat === true ? <Check size={16} className="mx-auto text-gray-500 dark:text-gray-300" /> :
                          row.plat === false ? <span className="text-muted-foreground/40">—</span> :
-                         <span className="text-xs font-bold text-purple-500">{row.plat}</span>}
+                         <span className="text-xs font-bold text-gray-500 dark:text-gray-300">{row.plat}</span>}
                       </td>
                     </tr>
                   ))}
@@ -554,8 +605,8 @@ const Offer = () => {
                       <br />
                       <span className="text-[10px] text-muted-foreground line-through">$1,699</span>
                     </td>
-                    <td className="p-4 text-center bg-purple-500/5">
-                      <span className="text-sm font-black text-purple-500">$1,199</span>
+                    <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
+                      <span className="text-sm font-black text-gray-600 dark:text-gray-200">$1,199</span>
                       <br />
                       <span className="text-[10px] text-muted-foreground line-through">$2,559</span>
                     </td>
@@ -568,16 +619,17 @@ const Offer = () => {
           {/* Bottom CTA */}
           <div className="mt-8 text-center">
             <motion.button
+              animate={{ y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => { setSelectedTier("platinum"); setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-purple-500/30 transition-all"
+              onClick={() => { setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-sited-blue/30 transition-all"
             >
-              <Crown size={16} />
-              Get Platinum — Dominate Your Market
+              Secure Your Website — $49
               <ArrowRight size={16} />
             </motion.button>
-            <p className="text-xs text-muted-foreground mt-3">Only $49 deposit • 100% refundable • No lock-in</p>
+            <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
           </div>
         </motion.div>
 
