@@ -334,7 +334,7 @@ const Offer = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* Step 2: Subtle Upsell Nudge */}
+            {/* Step 2: Upsell Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -342,145 +342,200 @@ const Offer = () => {
               className="mb-6"
             >
               <div className="rounded-xl border border-dashed border-gold/40 bg-gold/5 p-4 text-center mb-4">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold text-foreground text-[10px] font-black uppercase tracking-wider mb-2">
-                  <TrendingUp size={10} />
-                  Worth Exploring
-                </div>
                 <p className="text-sm font-black text-foreground mb-1">
-                  Want more from your website?
+                  Based on your answers, this may be better for you
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Based on your answers, businesses like yours see <span className="font-bold text-foreground">3-5x more leads</span> with these packages.
+                  Businesses like yours see <span className="font-bold text-foreground">3-5x more leads</span> & save <span className="font-bold text-foreground">35% more time</span> with these packages
                 </p>
               </div>
 
+              {/* Gold Expandable */}
               <div className="space-y-3">
-                <OfferUpgradeCard
-                  tier={TIERS.gold}
-                  isActive={selectedTier === "gold"}
-                  onUpgrade={() => { setSelectedTier("gold"); setShowPayment(false); }}
-                  label="Explore Gold"
-                />
-                <OfferUpgradeCard
-                  tier={TIERS.platinum}
-                  isActive={selectedTier === "platinum"}
-                  onUpgrade={() => { setSelectedTier("platinum"); setShowPayment(false); }}
-                  label="Explore Platinum"
-                />
-              </div>
-            </motion.div>
-
-            {/* Step 3: Expanded Gold/Platinum detail + payment (if selected) */}
-            <AnimatePresence>
-              {selectedTier !== "basic-deposit" && (
-                <motion.div
-                  key={selectedTier}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.3 }}
-                  className={`rounded-2xl border-2 p-6 mb-6 ${
-                    isPlatinum
-                      ? "border-gray-400/50 dark:border-gray-300/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5"
-                      : activeTier.accentClass
-                  }`}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`p-2.5 rounded-xl ${
-                      isPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" : "bg-gold/20"
-                    }`}>
-                      <Icon size={24} className={
-                        isPlatinum ? "text-gray-500 dark:text-gray-300" : "text-gold"
-                      } />
+                {/* Gold Card */}
+                <div className="rounded-xl border border-gold/40 bg-gold/5 overflow-hidden">
+                  <button
+                    onClick={() => { setSelectedTier(selectedTier === "gold" ? "basic-deposit" : "gold"); setShowPayment(false); }}
+                    className="w-full flex items-center gap-3 p-4 text-left"
+                  >
+                    <div className="p-1.5 rounded-lg bg-gold/20">
+                      <Star size={18} className="text-gold" />
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-black text-foreground">{activeTier.name}</h2>
-                      <p className="text-xs text-muted-foreground">{activeTier.tagline}</p>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-black text-foreground">Gold</h3>
+                      <p className="text-xs text-muted-foreground">{TIERS.gold.tagline}</p>
                     </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-black text-foreground">{activeTier.totalPrice}</span>
-                      <span className="text-sm text-muted-foreground line-through">{activeTier.usualPrice}</span>
-                    </div>
-                    <p className="text-xs font-black text-green-500 mt-1">SAVE {activeTier.savings}</p>
-                    <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
-                  </div>
-
-                  <div className="space-y-2.5 mb-6">
-                    {activeTier.features.map((f, i) => (
-                      <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
-                        <Check size={16} className={`flex-shrink-0 mt-0.5 ${
-                          isPlatinum ? "text-gray-500 dark:text-gray-300" : "text-gold"
-                        }`} />
-                        <FeatureWithInfo feature={f} />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Guarantee */}
-                  <div className="rounded-xl border border-sited-blue/30 bg-sited-blue/5 p-4 mb-6">
-                    <div className="flex items-start gap-2.5">
-                      <Shield size={20} className="text-sited-blue flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          <span className="font-black text-foreground">Don't love it?</span> Full $49 refund — no questions asked.{" "}
-                          <span className="font-black text-foreground">Love it?</span> Pay the remaining within 7 days of delivery.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CTA for selected upgrade */}
-                  {!showPayment && (
-                    <motion.button
-                      animate={{ y: [0, -6, 0] }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setShowPayment(true)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
-                    >
-                      Secure Your Website — $49
-                      <ArrowRight size={16} />
-                    </motion.button>
-                  )}
+                    <ChevronRight size={16} className={`text-muted-foreground transition-transform duration-300 ${selectedTier === "gold" ? "rotate-90" : ""}`} />
+                  </button>
 
                   <AnimatePresence>
-                    {showPayment && (
+                    {selectedTier === "gold" && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.4 }}
+                        transition={{ duration: 0.3 }}
+                        className="border-t border-gold/20"
                       >
-                        <Elements stripe={stripePromise}>
-                          <OfferPaymentForm
-                            tier={selectedTier}
-                            tierName={activeTier.name}
-                            onSuccess={(info) => {
-                              setCustomerInfo(info);
-                              setPaymentComplete(true);
-                              setShowBookingDialog(true);
-                            }}
-                            onCancel={() => setShowPayment(false)}
-                          />
-                        </Elements>
+                        <div className="p-4 space-y-4">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black text-foreground">{TIERS.gold.totalPrice}</span>
+                              <span className="text-sm text-muted-foreground line-through">{TIERS.gold.usualPrice}</span>
+                            </div>
+                            <p className="text-xs font-black text-green-500 mt-1">SAVE {TIERS.gold.savings}</p>
+                            <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            {TIERS.gold.features.map((f, i) => (
+                              <div key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                <Check size={14} className="flex-shrink-0 mt-0.5 text-gold" />
+                                <FeatureWithInfo feature={f} />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="rounded-lg border border-sited-blue/30 bg-sited-blue/5 p-3">
+                            <div className="flex items-start gap-2">
+                              <Shield size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-black text-foreground">Don't love it?</span> Full $49 refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
+                              </p>
+                            </div>
+                          </div>
+
+                          {!showPayment && (
+                            <motion.button
+                              animate={{ y: [0, -6, 0] }}
+                              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => setShowPayment(true)}
+                              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+                            >
+                              Secure Your Website — $49
+                              <ArrowRight size={16} />
+                            </motion.button>
+                          )}
+
+                          <AnimatePresence>
+                            {showPayment && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                              >
+                                <Elements stripe={stripePromise}>
+                                  <OfferPaymentForm
+                                    tier="gold"
+                                    tierName="Gold"
+                                    onSuccess={(info) => { setCustomerInfo(info); setPaymentComplete(true); setShowBookingDialog(true); }}
+                                    onCancel={() => setShowPayment(false)}
+                                  />
+                                </Elements>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
+                </div>
 
-                  {/* Back to Blue */}
+                {/* Platinum Card */}
+                <div className="rounded-xl border border-gray-300/50 dark:border-gray-400/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5 overflow-hidden">
                   <button
-                    onClick={() => { setSelectedTier("basic-deposit"); setShowPayment(false); }}
-                    className="w-full mt-4 text-xs text-muted-foreground font-medium hover:text-foreground transition-colors"
+                    onClick={() => { setSelectedTier(selectedTier === "platinum" ? "basic-deposit" : "platinum"); setShowPayment(false); }}
+                    className="w-full flex items-center gap-3 p-4 text-left"
                   >
-                    ← Back to Blue
+                    <div className="p-1.5 rounded-lg bg-gray-300/30 dark:bg-gray-500/20">
+                      <Crown size={18} className="text-gray-500 dark:text-gray-300" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-black text-foreground">Platinum</h3>
+                        <Sparkles size={12} className="text-gray-400" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">{TIERS.platinum.tagline}</p>
+                    </div>
+                    <ChevronRight size={16} className={`text-muted-foreground transition-transform duration-300 ${selectedTier === "platinum" ? "rotate-90" : ""}`} />
                   </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+
+                  <AnimatePresence>
+                    {selectedTier === "platinum" && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="border-t border-gray-300/30 dark:border-gray-500/20"
+                      >
+                        <div className="p-4 space-y-4">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-3xl font-black text-foreground">{TIERS.platinum.totalPrice}</span>
+                              <span className="text-sm text-muted-foreground line-through">{TIERS.platinum.usualPrice}</span>
+                            </div>
+                            <p className="text-xs font-black text-green-500 mt-1">SAVE {TIERS.platinum.savings}</p>
+                            <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            {TIERS.platinum.features.map((f, i) => (
+                              <div key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                <Check size={14} className="flex-shrink-0 mt-0.5 text-gray-500 dark:text-gray-300" />
+                                <FeatureWithInfo feature={f} />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="rounded-lg border border-sited-blue/30 bg-sited-blue/5 p-3">
+                            <div className="flex items-start gap-2">
+                              <Shield size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                              <p className="text-xs text-muted-foreground">
+                                <span className="font-black text-foreground">Don't love it?</span> Full $49 refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
+                              </p>
+                            </div>
+                          </div>
+
+                          {!showPayment && (
+                            <motion.button
+                              animate={{ y: [0, -6, 0] }}
+                              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => setShowPayment(true)}
+                              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+                            >
+                              Secure Your Website — $49
+                              <ArrowRight size={16} />
+                            </motion.button>
+                          )}
+
+                          <AnimatePresence>
+                            {showPayment && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                              >
+                                <Elements stripe={stripePromise}>
+                                  <OfferPaymentForm
+                                    tier="platinum"
+                                    tierName="Platinum"
+                                    onSuccess={(info) => { setCustomerInfo(info); setPaymentComplete(true); setShowBookingDialog(true); }}
+                                    onCancel={() => setShowPayment(false)}
+                                  />
+                                </Elements>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Bottom guarantee reminder */}
             <div className="text-center mb-8">
