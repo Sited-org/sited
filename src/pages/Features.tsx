@@ -12,7 +12,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
-import { ScrollSlideIn, ScrollRotateIn, ScrollZoomIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
+import { ScrollSlideIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
 
 const valueBlocks = [
   {
@@ -61,6 +61,26 @@ const valueBlocks = [
   },
 ];
 
+// Animated hint for interactive mockups
+const InteractiveHint = () => (
+  <motion.div
+    className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/80 backdrop-blur-sm shadow-lg pointer-events-none"
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: [0, 1, 1, 0], y: [8, 0, 0, -4] }}
+    transition={{ duration: 3, delay: 2, repeat: Infinity, repeatDelay: 5, ease: "easeInOut" }}
+  >
+    <motion.div
+      animate={{ y: [0, -3, 0] }}
+      transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 0.3 }}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 19V5M5 12l7-7 7 7" />
+      </svg>
+    </motion.div>
+    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Try it</span>
+  </motion.div>
+);
+
 // Reusable showcase section
 const ShowcaseSection = ({
   children,
@@ -95,9 +115,10 @@ const ShowcaseSection = ({
             See Offer <ArrowRight size={16} />
           </button>
         </ScrollSlideIn>
-        <ScrollRotateIn degrees={reversed ? -6 : 6} className={reversed ? "lg:col-start-1" : ""}>
+        <div className={`relative ${reversed ? "lg:col-start-1" : ""}`}>
           {children}
-        </ScrollRotateIn>
+          <InteractiveHint />
+        </div>
       </div>
     </div>
   </section>
