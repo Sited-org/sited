@@ -14,19 +14,23 @@ import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
 
 /** Scroll-position-driven card: translates & fades based on viewport scroll, fully reversible */
-function ScrollCard({ children, className, index, accent = "blue" }: { children: ReactNode; className?: string; index: number; accent?: "blue" | "gold" }) {
+function ScrollCard({ children, className, index, accent = "blue", colorBlock = false }: { children: ReactNode; className?: string; index: number; accent?: "blue" | "gold"; colorBlock?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "center center"] });
-  // Alternate directions based on index
   const directions = [[-60, 0], [60, 0], [0, 40], [0, -40]];
   const [xFrom, yFrom] = directions[index % directions.length];
   const x = useTransform(scrollYProgress, [0, 1], [xFrom, 0]);
   const y = useTransform(scrollYProgress, [0, 1], [yFrom, 0]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 1], [0, 0.4, 1]);
   const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
-  // Glow intensity tied to scroll
   const glowOpacity = useTransform(scrollYProgress, [0.5, 1], [0, 1]);
   const borderColor = accent === "blue" ? "var(--sited-blue)" : "var(--gold)";
+
+  // Color block: sweeps in from a side then fades as card settles
+  const blockScale = useTransform(scrollYProgress, [0.1, 0.5, 0.85], [0, 1, 0]);
+  const blockOpacity = useTransform(scrollYProgress, [0.1, 0.45, 0.85], [0, 0.55, 0]);
+  const blockPositions = ["top-0 left-0", "top-0 right-0", "bottom-0 left-0", "bottom-0 right-0"];
+  const blockOrigins = ["origin-top-left", "origin-top-right", "origin-bottom-left", "origin-bottom-right"];
 
   return (
     <motion.div
@@ -34,10 +38,18 @@ function ScrollCard({ children, className, index, accent = "blue" }: { children:
       style={{ x, y, opacity, scale }}
       className={className}
     >
+      {/* Glow border overlay */}
       <motion.div
         style={{ opacity: glowOpacity, boxShadow: `0 0 28px hsl(${borderColor} / 0.18)`, borderColor: `hsl(${borderColor} / 0.45)` }}
         className="absolute inset-0 rounded-xl pointer-events-none border transition-none"
       />
+      {/* Colour block sweep */}
+      {colorBlock && (
+        <motion.div
+          style={{ opacity: blockOpacity, scale: blockScale }}
+          className={`absolute ${blockPositions[index % 4]} w-full h-full rounded-xl pointer-events-none ${blockOrigins[index % 4]} ${accent === "blue" ? "bg-[hsl(var(--sited-blue)/0.15)]" : "bg-[hsl(var(--gold)/0.18)]"}`}
+        />
+      )}
       {children}
     </motion.div>
   );
@@ -271,7 +283,7 @@ const Index = () => {
               const moeIcons = [TrendingUp, Users, Search, Smartphone, BarChart3, Zap];
               const MoeIcon = moeIcons[i % moeIcons.length];
               return (
-                <ScrollCard key={i} index={i} accent="blue" className="relative bg-card border border-border rounded-xl p-5 flex gap-4 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300">
+                <ScrollCard key={i} index={i} accent="blue" colorBlock={i % 2 === 0} className="relative bg-card border border-border rounded-xl p-5 flex gap-4 hover:shadow-[0_0_20px_hsl(var(--sited-blue)/0.08)] transition-all duration-300">
                   <div className="w-10 h-10 rounded-lg bg-sited-blue/15 flex items-center justify-center shrink-0">
                     <MoeIcon size={20} className="text-sited-blue" strokeWidth={2.5} />
                   </div>
@@ -308,7 +320,7 @@ const Index = () => {
               const Icon = icons[i] || Shield;
               const isBlue = i % 2 === 0;
               return (
-                <ScrollCard key={i} index={i} accent={isBlue ? "blue" : "gold"} className={`relative bg-card border border-border rounded-xl p-5 text-center hover:shadow-[0_0_24px_hsl(var(${isBlue ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}>
+                <ScrollCard key={i} index={i} accent={isBlue ? "blue" : "gold"} colorBlock={i % 2 !== 0} className={`relative bg-card border border-border rounded-xl p-5 text-center hover:shadow-[0_0_24px_hsl(var(${isBlue ? '--sited-blue' : '--gold'})/0.12)] transition-all duration-500`}>
                   <div className={`w-10 h-10 rounded-lg ${isBlue ? 'bg-sited-blue/15' : 'bg-gold/20'} flex items-center justify-center mx-auto mb-3`}>
                     <Icon size={18} className={isBlue ? 'text-sited-blue' : 'text-gold'} strokeWidth={2.5} />
                   </div>
@@ -335,7 +347,7 @@ const Index = () => {
           </motion.h2>
           <div className="grid md:grid-cols-3 gap-5">
             {services.cards.map((card, i) => (
-              <ScrollCard key={i} index={i} accent={i === 1 ? "gold" : "blue"} className="relative group bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300">
+              <ScrollCard key={i} index={i} accent={i === 1 ? "gold" : "blue"} colorBlock={i === 0 || i === 2} className="relative group bg-card border border-border rounded-xl overflow-hidden flex flex-col hover:shadow-[0_0_30px_hsl(var(--sited-blue)/0.1)] transition-all duration-300">
                 <div className="h-1 bg-gradient-to-r from-sited-blue/60 to-sited-blue/20 group-hover:from-sited-blue group-hover:to-sited-blue/50 transition-all duration-300" />
                 <div className="p-6 flex flex-col flex-1">
                   <h3 className="text-base font-semibold text-foreground mb-2">{card.title}</h3>
@@ -378,6 +390,7 @@ const Index = () => {
                   key={i}
                   index={i}
                   accent={i % 2 === 0 ? "blue" : "gold"}
+                  colorBlock={i === 1}
                   className="relative bg-card border border-border rounded-2xl p-6 shadow-soft overflow-hidden transition-all duration-500"
                 >
                   {/* Glow accent */}
