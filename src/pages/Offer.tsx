@@ -6,8 +6,10 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
+import { useIsMobile } from "@/hooks/use-mobile";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import FeatureWithInfo from "@/components/offer/FeatureInfo";
+import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
 import SocialProofSection from "@/components/offer/SocialProofSection";
 import OnboardingBookingDialog from "@/components/booking/OnboardingBookingDialog";
 
@@ -133,6 +135,7 @@ const silverShimmer = "bg-[linear-gradient(110deg,hsl(0_0%_85%)_0%,hsl(0_0%_95%)
 const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
+  const isMobile = useIsMobile();
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
@@ -234,407 +237,661 @@ const Offer = () => {
           </p>
         </motion.div>
 
-        {/* ═══ TIER SELECTOR CARDS ═══ */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-10">
-          {Object.values(TIERS).map((tier, idx) => {
-            const TIcon = tier.icon;
-            const isActive = selectedTier === tier.id;
-            const isTierPlatinum = tier.id === "platinum";
-            const isTierGold = tier.id === "gold";
-
-            return (
-              <motion.div
-                key={tier.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={() => { setSelectedTier(tier.id); setShowPayment(false); }}
-                className={`relative cursor-pointer rounded-2xl border-2 p-5 sm:p-6 transition-all duration-300 ${
-                  isActive
-                    ? isTierPlatinum
-                      ? "border-gray-400 dark:border-gray-300 shadow-lg shadow-gray-400/20 dark:shadow-gray-300/10 scale-[1.02] " + activeTier.accentClass
-                      : `${tier.accentClass} shadow-lg scale-[1.02]`
-                    : "border-border bg-card hover:border-muted-foreground/30 hover:shadow-md"
-                }`}
-              >
-                {/* Badges */}
-                {isTierPlatinum && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
-                      <Sparkles size={10} />
-                      Premium
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className={`p-2 rounded-lg ${
-                    isTierPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
-                    isTierGold ? "bg-gold/20" : "bg-sited-blue/10"
-                  }`}>
-                    <TIcon size={20} className={
-                      isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
-                      isTierGold ? "text-gold" : "text-sited-blue"
-                    } />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-foreground">{tier.name}</h3>
-                    <p className="text-xs text-muted-foreground">{tier.tagline}</p>
-                  </div>
-                </div>
-
-                {/* Show price only if this tier is selected */}
-                {isActive ? (
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl sm:text-4xl font-black text-foreground">{tier.totalPrice}</span>
-                      <span className="text-sm text-muted-foreground line-through">{tier.usualPrice}</span>
-                    </div>
-                    <p className="text-xs font-black text-green-500 mt-1">SAVE {tier.savings}</p>
-                  </div>
-                ) : (
-                  <div className="mb-4">
-                    <p className="text-sm font-bold text-muted-foreground">Select to see pricing</p>
-                  </div>
-                )}
-
-                <div className="space-y-2 mb-4">
-                  {tier.features.slice(0, 4).map((f, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <Check size={14} className={`flex-shrink-0 mt-0.5 ${
-                        isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
-                        isTierGold ? "text-gold" : "text-sited-blue"
-                      }`} />
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                  {tier.features.length > 4 && (
-                    <p className="text-xs text-muted-foreground pl-5 font-medium">
-                      +{tier.features.length - 4} more included
-                    </p>
-                  )}
-                </div>
-
-                <div className={`w-full py-2.5 rounded-lg text-center text-xs font-black uppercase tracking-wider transition-colors ${
-                  isActive
-                    ? isTierPlatinum
-                      ? `${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`
-                      : isTierGold
-                        ? "bg-gold text-foreground"
-                        : "bg-sited-blue text-white"
-                    : "bg-muted text-muted-foreground"
-                }`}>
-                  {isActive ? "Selected" : "Select Plan"}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* ═══ SELECTED TIER DETAIL ═══ */}
-        <motion.div
-          key={selectedTier}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className={`rounded-2xl border-2 p-6 sm:p-8 ${
-            isPlatinum
-              ? "border-gray-400/50 dark:border-gray-300/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5"
-              : activeTier.accentClass
-          }`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${
-                isPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
-                isGold ? "bg-gold/20" : "bg-sited-blue/10"
-              }`}>
-                <Icon size={28} className={
-                  isPlatinum ? "text-gray-500 dark:text-gray-300" :
-                  isGold ? "text-gold" : "text-sited-blue"
-                } />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl sm:text-3xl font-black text-foreground">{activeTier.name}</h2>
-                  {activeTier.popular && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
-                      Best Value
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{activeTier.tagline}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl sm:text-5xl font-black text-foreground">{activeTier.totalPrice}</span>
-                <span className="text-lg text-muted-foreground line-through">{activeTier.usualPrice}</span>
-              </div>
-              <p className="text-sm font-black text-green-500">YOU SAVE {activeTier.savings}</p>
-              <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
-            </div>
-          </div>
-
-          {/* Full Feature List */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-            {activeTier.features.map((feature, i) => (
-              <div
-                key={i}
-                className={`flex items-start gap-2.5 text-sm text-foreground p-3 rounded-xl border transition-colors ${
-                  isPlatinum
-                    ? "bg-gray-200/30 dark:bg-gray-600/10 border-gray-300/30 dark:border-gray-500/20"
-                    : isGold
-                      ? "bg-gold/5 border-gold/20"
-                      : "bg-sited-blue/5 border-sited-blue/20"
-                }`}
-              >
-                <Check size={16} className={`flex-shrink-0 mt-0.5 ${
-                  isPlatinum ? "text-gray-500 dark:text-gray-300" :
-                  isGold ? "text-gold" : "text-sited-blue"
-                }`} />
-                <FeatureWithInfo feature={feature} />
-              </div>
-            ))}
-          </div>
-
-          {/* ═══ REFUND GUARANTEE CALLOUT ═══ */}
-          <div className="mb-6 rounded-xl border-2 border-sited-blue/30 bg-sited-blue/5 dark:bg-sited-blue/10 p-5">
-            <div className="flex items-start gap-3">
-              <Shield size={24} className="text-sited-blue flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-sm font-black text-foreground uppercase tracking-wide mb-1">
-                  100% Money-Back Guarantee
-                </h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  If you <span className="font-black text-foreground">don't love</span> the website we build — you get a{" "}
-                  <span className="font-black text-sited-blue">full refund of your $49 deposit</span>. No questions asked.
-                </p>
-                <p className="text-sm text-muted-foreground leading-relaxed mt-2">
-                  If you <span className="font-black text-foreground">love it</span> and want to work with us — we deliver your completed project within{" "}
-                  <span className="font-black text-foreground">7 days or earlier</span>. Then you simply pay the remaining balance for your package.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA — Bouncing Blue */}
-          {!showPayment && (
-            <motion.button
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setShowPayment(true)}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+        {/* ═══════════════════════════════════════════
+            MOBILE LAYOUT — Linear Sales Funnel
+        ═══════════════════════════════════════════ */}
+        {isMobile ? (
+          <>
+            {/* Step 1: Blue Hero Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-2xl border-2 border-sited-blue/40 bg-sited-blue/5 p-6 mb-6"
             >
-              Secure Your Website — $49 Deposit
-              <ArrowRight size={16} />
-            </motion.button>
-          )}
-
-          {/* Inline Payment */}
-          <AnimatePresence>
-            {showPayment && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <Elements stripe={stripePromise}>
-                  <OfferPaymentForm
-                    tier={selectedTier}
-                    tierName={activeTier.name}
-                    onSuccess={(info) => {
-                      setCustomerInfo(info);
-                      setPaymentComplete(true);
-                      setShowBookingDialog(true);
-                    }}
-                    onCancel={() => setShowPayment(false)}
-                  />
-                </Elements>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-
-        {/* Small guarantee reminder */}
-        <div className="mt-6 text-center">
-          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield size={16} className="text-sited-blue" />
-            <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
-          </div>
-        </div>
-
-        {/* ═══ WHY UPGRADE SECTION ═══ */}
-        {selectedTier === "basic-deposit" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-16"
-          >
-            <div className="rounded-2xl border-2 border-dashed border-gold/40 bg-gold/5 p-6 sm:p-8 text-center mb-8">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold text-foreground text-[10px] font-black uppercase tracking-wider mb-3">
-                <TrendingUp size={12} />
-                Worth Exploring
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-sited-blue/10">
+                  <Zap size={24} className="text-sited-blue" />
+                </div>
+                <div>
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-sited-blue text-white text-[10px] font-black uppercase tracking-wider mb-1">
+                    Recommended
+                  </span>
+                  <h2 className="text-2xl font-black text-foreground">Blue</h2>
+                  <p className="text-xs text-muted-foreground">{TIERS["basic-deposit"].tagline}</p>
+                </div>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-foreground mb-2">
-                Based on your answers, you may find more value in one of these packages!
-              </h3>
-              <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-                Businesses that invest in premium tools see <span className="font-black text-foreground">3-5x more leads</span> and save 
-                <span className="font-black text-foreground"> 15+ hours per week</span> on admin. Here's what you'd unlock:
-              </p>
-            </div>
 
-            <div className="space-y-4">
-              {UPGRADE_BENEFITS.map((benefit, i) => {
-                const BIcon = benefit.icon;
-                return (
+              <div className="mb-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-foreground">$549</span>
+                  <span className="text-sm text-muted-foreground line-through">$1,399</span>
+                </div>
+                <p className="text-xs font-black text-green-500 mt-1">SAVE $850</p>
+                <p className="text-xs text-muted-foreground mt-1">Just $49 refundable deposit today</p>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-2.5 mb-6">
+                {TIERS["basic-deposit"].features.map((f, i) => (
+                  <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                    <Check size={16} className="flex-shrink-0 mt-0.5 text-sited-blue" />
+                    <FeatureWithInfo feature={f} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Guarantee */}
+              <div className="rounded-xl border border-sited-blue/30 bg-sited-blue/5 p-4 mb-6">
+                <div className="flex items-start gap-2.5">
+                  <Shield size={20} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-black text-foreground">Don't love it?</span> Full $49 refund — no questions asked.{" "}
+                      <span className="font-black text-foreground">Love it?</span> Pay the remaining within 7 days of delivery.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              {!showPayment && (
+                <motion.button
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { setSelectedTier("basic-deposit"); setShowPayment(true); }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+                >
+                  Secure Your Website — $49
+                  <ArrowRight size={16} />
+                </motion.button>
+              )}
+
+              <AnimatePresence>
+                {showPayment && selectedTier === "basic-deposit" && (
                   <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
-                    className="flex gap-4 p-4 sm:p-5 rounded-xl border border-gold/20 bg-gold/5 hover:bg-gold/10 transition-colors"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.4 }}
                   >
-                    <div className="p-2.5 rounded-lg bg-gold/20 h-fit">
-                      <BIcon size={20} className="text-gold" />
+                    <Elements stripe={stripePromise}>
+                      <OfferPaymentForm
+                        tier={selectedTier}
+                        tierName="Blue"
+                        onSuccess={(info) => {
+                          setCustomerInfo(info);
+                          setPaymentComplete(true);
+                          setShowBookingDialog(true);
+                        }}
+                        onCancel={() => setShowPayment(false)}
+                      />
+                    </Elements>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Step 2: Subtle Upsell Nudge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-6"
+            >
+              <div className="rounded-xl border border-dashed border-gold/40 bg-gold/5 p-4 text-center mb-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold text-foreground text-[10px] font-black uppercase tracking-wider mb-2">
+                  <TrendingUp size={10} />
+                  Worth Exploring
+                </div>
+                <p className="text-sm font-black text-foreground mb-1">
+                  Want more from your website?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Based on your answers, businesses like yours see <span className="font-bold text-foreground">3-5x more leads</span> with these packages.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <OfferUpgradeCard
+                  tier={TIERS.gold}
+                  isActive={selectedTier === "gold"}
+                  onUpgrade={() => { setSelectedTier("gold"); setShowPayment(false); }}
+                  label="Explore Gold"
+                />
+                <OfferUpgradeCard
+                  tier={TIERS.platinum}
+                  isActive={selectedTier === "platinum"}
+                  onUpgrade={() => { setSelectedTier("platinum"); setShowPayment(false); }}
+                  label="Explore Platinum"
+                />
+              </div>
+            </motion.div>
+
+            {/* Step 3: Expanded Gold/Platinum detail + payment (if selected) */}
+            <AnimatePresence>
+              {selectedTier !== "basic-deposit" && (
+                <motion.div
+                  key={selectedTier}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.3 }}
+                  className={`rounded-2xl border-2 p-6 mb-6 ${
+                    isPlatinum
+                      ? "border-gray-400/50 dark:border-gray-300/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5"
+                      : activeTier.accentClass
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`p-2.5 rounded-xl ${
+                      isPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" : "bg-gold/20"
+                    }`}>
+                      <Icon size={24} className={
+                        isPlatinum ? "text-gray-500 dark:text-gray-300" : "text-gold"
+                      } />
                     </div>
                     <div>
-                      <h4 className="text-sm font-black text-foreground mb-1">{benefit.title}</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{benefit.description}</p>
-                      <div className="mt-2 flex gap-1.5">
-                        {benefit.tiers.map((t) => (
-                          <span key={t} className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                            t === "platinum" ? "bg-gray-300/30 dark:bg-gray-500/20 text-gray-600 dark:text-gray-300" : "bg-gold/20 text-gold-hover"
-                          }`}>
-                            {t}
-                          </span>
-                        ))}
+                      <h2 className="text-2xl font-black text-foreground">{activeTier.name}</h2>
+                      <p className="text-xs text-muted-foreground">{activeTier.tagline}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-foreground">{activeTier.totalPrice}</span>
+                      <span className="text-sm text-muted-foreground line-through">{activeTier.usualPrice}</span>
+                    </div>
+                    <p className="text-xs font-black text-green-500 mt-1">SAVE {activeTier.savings}</p>
+                    <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
+                  </div>
+
+                  <div className="space-y-2.5 mb-6">
+                    {activeTier.features.map((f, i) => (
+                      <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                        <Check size={16} className={`flex-shrink-0 mt-0.5 ${
+                          isPlatinum ? "text-gray-500 dark:text-gray-300" : "text-gold"
+                        }`} />
+                        <FeatureWithInfo feature={f} />
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Guarantee */}
+                  <div className="rounded-xl border border-sited-blue/30 bg-sited-blue/5 p-4 mb-6">
+                    <div className="flex items-start gap-2.5">
+                      <Shield size={20} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          <span className="font-black text-foreground">Don't love it?</span> Full $49 refund — no questions asked.{" "}
+                          <span className="font-black text-foreground">Love it?</span> Pay the remaining within 7 days of delivery.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA for selected upgrade */}
+                  {!showPayment && (
+                    <motion.button
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setShowPayment(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+                    >
+                      Secure Your Website — $49
+                      <ArrowRight size={16} />
+                    </motion.button>
+                  )}
+
+                  <AnimatePresence>
+                    {showPayment && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.4 }}
+                      >
+                        <Elements stripe={stripePromise}>
+                          <OfferPaymentForm
+                            tier={selectedTier}
+                            tierName={activeTier.name}
+                            onSuccess={(info) => {
+                              setCustomerInfo(info);
+                              setPaymentComplete(true);
+                              setShowBookingDialog(true);
+                            }}
+                            onCancel={() => setShowPayment(false)}
+                          />
+                        </Elements>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Back to Blue */}
+                  <button
+                    onClick={() => { setSelectedTier("basic-deposit"); setShowPayment(false); }}
+                    className="w-full mt-4 text-xs text-muted-foreground font-medium hover:text-foreground transition-colors"
+                  >
+                    ← Back to Blue
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Bottom guarantee reminder */}
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Shield size={16} className="text-sited-blue" />
+                <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
+              </div>
+            </div>
+
+            <SocialProofSection />
+          </>
+        ) : (
+          /* ═══════════════════════════════════════════
+              DESKTOP LAYOUT — Original with tier grid
+          ═══════════════════════════════════════════ */
+          <>
+            {/* Tier Selector Cards */}
+            <div className="grid grid-cols-3 gap-5 mb-10">
+              {Object.values(TIERS).map((tier, idx) => {
+                const TIcon = tier.icon;
+                const isActive = selectedTier === tier.id;
+                const isTierPlatinum = tier.id === "platinum";
+                const isTierGold = tier.id === "gold";
+
+                return (
+                  <motion.div
+                    key={tier.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    onClick={() => { setSelectedTier(tier.id); setShowPayment(false); }}
+                    className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all duration-300 ${
+                      isActive
+                        ? isTierPlatinum
+                          ? "border-gray-400 dark:border-gray-300 shadow-lg shadow-gray-400/20 dark:shadow-gray-300/10 scale-[1.02] " + activeTier.accentClass
+                          : `${tier.accentClass} shadow-lg scale-[1.02]`
+                        : "border-border bg-card hover:border-muted-foreground/30 hover:shadow-md"
+                    }`}
+                  >
+                    {isTierPlatinum && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
+                          <Sparkles size={10} />
+                          Premium
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className={`p-2 rounded-lg ${
+                        isTierPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
+                        isTierGold ? "bg-gold/20" : "bg-sited-blue/10"
+                      }`}>
+                        <TIcon size={20} className={
+                          isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
+                          isTierGold ? "text-gold" : "text-sited-blue"
+                        } />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black text-foreground">{tier.name}</h3>
+                        <p className="text-xs text-muted-foreground">{tier.tagline}</p>
+                      </div>
+                    </div>
+
+                    {isActive ? (
+                      <div className="mb-4">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl sm:text-4xl font-black text-foreground">{tier.totalPrice}</span>
+                          <span className="text-sm text-muted-foreground line-through">{tier.usualPrice}</span>
+                        </div>
+                        <p className="text-xs font-black text-green-500 mt-1">SAVE {tier.savings}</p>
+                      </div>
+                    ) : (
+                      <div className="mb-4">
+                        <p className="text-sm font-bold text-muted-foreground">Select to see pricing</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 mb-4">
+                      {tier.features.slice(0, 4).map((f, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <Check size={14} className={`flex-shrink-0 mt-0.5 ${
+                            isTierPlatinum ? "text-gray-500 dark:text-gray-300" :
+                            isTierGold ? "text-gold" : "text-sited-blue"
+                          }`} />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                      {tier.features.length > 4 && (
+                        <p className="text-xs text-muted-foreground pl-5 font-medium">
+                          +{tier.features.length - 4} more included
+                        </p>
+                      )}
+                    </div>
+
+                    <div className={`w-full py-2.5 rounded-lg text-center text-xs font-black uppercase tracking-wider transition-colors ${
+                      isActive
+                        ? isTierPlatinum
+                          ? `${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`
+                          : isTierGold
+                            ? "bg-gold text-foreground"
+                            : "bg-sited-blue text-white"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      {isActive ? "Selected" : "Select Plan"}
                     </div>
                   </motion.div>
                 );
               })}
             </div>
 
-            <div className="mt-8 text-center">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => { setSelectedTier("platinum"); setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg transition-all ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500 hover:shadow-xl`}
-              >
-                <Sparkles size={16} />
-                Explore Platinum — Save $1,360
-                <ChevronRight size={16} />
-              </motion.button>
-            </div>
-          </motion.div>
-        )}
+            {/* Selected Tier Detail */}
+            <motion.div
+              key={selectedTier}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className={`rounded-2xl border-2 p-8 ${
+                isPlatinum
+                  ? "border-gray-400/50 dark:border-gray-300/30 bg-gradient-to-br from-gray-100/80 via-white/90 to-gray-200/60 dark:from-gray-700/20 dark:via-gray-600/10 dark:to-gray-500/5"
+                  : activeTier.accentClass
+              }`}
+            >
+              <div className="flex flex-row items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${
+                    isPlatinum ? "bg-gray-300/30 dark:bg-gray-500/20" :
+                    isGold ? "bg-gold/20" : "bg-sited-blue/10"
+                  }`}>
+                    <Icon size={28} className={
+                      isPlatinum ? "text-gray-500 dark:text-gray-300" :
+                      isGold ? "text-gold" : "text-sited-blue"
+                    } />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-3xl font-black text-foreground">{activeTier.name}</h2>
+                      {activeTier.popular && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500`}>
+                          Best Value
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{activeTier.tagline}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-black text-foreground">{activeTier.totalPrice}</span>
+                    <span className="text-lg text-muted-foreground line-through">{activeTier.usualPrice}</span>
+                  </div>
+                  <p className="text-sm font-black text-green-500">YOU SAVE {activeTier.savings}</p>
+                  <p className="text-xs text-muted-foreground mt-1">$49 refundable deposit today</p>
+                </div>
+              </div>
 
-        {/* Comparison Table */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-16"
-        >
-          <h3 className="text-center text-xl sm:text-2xl font-black text-foreground uppercase tracking-tight mb-6">
-            Compare All Plans
-          </h3>
-          <div className="rounded-2xl border border-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-xs font-black uppercase tracking-wider text-muted-foreground">Feature</th>
-                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-sited-blue">Blue</th>
-                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gold">Gold</th>
-                    <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-700/20">Platinum</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: "Professional Website", blue: true, gold: true, plat: true },
-                    { feature: "High-Converting Funnel", blue: true, gold: true, plat: true },
-                    { feature: "Lead Capture Forms", blue: true, gold: true, plat: true },
-                    { feature: "Lifetime Hosting", blue: true, gold: true, plat: true },
-                    { feature: "SEO Optimisation", blue: "Basic", gold: "Extra", plat: "Premium" },
-                    { feature: "Calendar Integration", blue: true, gold: true, plat: true },
-                    { feature: "Email Integration", blue: true, gold: true, plat: true },
-                    { feature: "Payment Integration", blue: false, gold: true, plat: true },
-                    { feature: "Admin Dashboard", blue: false, gold: true, plat: true },
-                    { feature: "Lead Management CRM", blue: false, gold: true, plat: true },
-                    { feature: "Client Portal", blue: false, gold: false, plat: true },
-                    { feature: "AI Chatbot", blue: false, gold: false, plat: true },
-                    { feature: "Custom Integrations", blue: false, gold: false, plat: true },
-                    { feature: "Priority Support", blue: false, gold: false, plat: true },
-                  ].map((row, i) => (
-                    <tr key={i} className="border-b border-border/50 last:border-0">
-                      <td className="p-3 sm:p-4 text-xs sm:text-sm font-medium text-foreground">{row.feature}</td>
-                      <td className="p-3 sm:p-4 text-center">
-                        {row.blue === true ? <Check size={16} className="mx-auto text-sited-blue" /> :
-                         row.blue === false ? <span className="text-muted-foreground/40">—</span> :
-                         <span className="text-xs font-bold text-sited-blue">{row.blue}</span>}
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {activeTier.features.map((feature, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-start gap-2.5 text-sm text-foreground p-3 rounded-xl border transition-colors ${
+                      isPlatinum
+                        ? "bg-gray-200/30 dark:bg-gray-600/10 border-gray-300/30 dark:border-gray-500/20"
+                        : isGold
+                          ? "bg-gold/5 border-gold/20"
+                          : "bg-sited-blue/5 border-sited-blue/20"
+                    }`}
+                  >
+                    <Check size={16} className={`flex-shrink-0 mt-0.5 ${
+                      isPlatinum ? "text-gray-500 dark:text-gray-300" :
+                      isGold ? "text-gold" : "text-sited-blue"
+                    }`} />
+                    <FeatureWithInfo feature={feature} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Refund Guarantee */}
+              <div className="mb-6 rounded-xl border-2 border-sited-blue/30 bg-sited-blue/5 dark:bg-sited-blue/10 p-5">
+                <div className="flex items-start gap-3">
+                  <Shield size={24} className="text-sited-blue flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-black text-foreground uppercase tracking-wide mb-1">
+                      100% Money-Back Guarantee
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      If you <span className="font-black text-foreground">don't love</span> the website we build — you get a{" "}
+                      <span className="font-black text-sited-blue">full refund of your $49 deposit</span>. No questions asked.
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+                      If you <span className="font-black text-foreground">love it</span> and want to work with us — we deliver your completed project within{" "}
+                      <span className="font-black text-foreground">7 days or earlier</span>. Then you simply pay the remaining balance for your package.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              {!showPayment && (
+                <motion.button
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowPayment(true)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
+                >
+                  Secure Your Website — $49 Deposit
+                  <ArrowRight size={16} />
+                </motion.button>
+              )}
+
+              <AnimatePresence>
+                {showPayment && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <Elements stripe={stripePromise}>
+                      <OfferPaymentForm
+                        tier={selectedTier}
+                        tierName={activeTier.name}
+                        onSuccess={(info) => {
+                          setCustomerInfo(info);
+                          setPaymentComplete(true);
+                          setShowBookingDialog(true);
+                        }}
+                        onCancel={() => setShowPayment(false)}
+                      />
+                    </Elements>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Small guarantee reminder */}
+            <div className="mt-6 text-center">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Shield size={16} className="text-sited-blue" />
+                <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
+              </div>
+            </div>
+
+            {/* Why Upgrade (desktop, when Blue selected) */}
+            {selectedTier === "basic-deposit" && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mt-16"
+              >
+                <div className="rounded-2xl border-2 border-dashed border-gold/40 bg-gold/5 p-8 text-center mb-8">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold text-foreground text-[10px] font-black uppercase tracking-wider mb-3">
+                    <TrendingUp size={12} />
+                    Worth Exploring
+                  </div>
+                  <h3 className="text-2xl font-black text-foreground mb-2">
+                    Based on your answers, you may find more value in one of these packages!
+                  </h3>
+                  <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+                    Businesses that invest in premium tools see <span className="font-black text-foreground">3-5x more leads</span> and save 
+                    <span className="font-black text-foreground"> 15+ hours per week</span> on admin.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {UPGRADE_BENEFITS.map((benefit, i) => {
+                    const BIcon = benefit.icon;
+                    return (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                        className="flex gap-4 p-5 rounded-xl border border-gold/20 bg-gold/5 hover:bg-gold/10 transition-colors"
+                      >
+                        <div className="p-2.5 rounded-lg bg-gold/20 h-fit">
+                          <BIcon size={20} className="text-gold" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-foreground mb-1">{benefit.title}</h4>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{benefit.description}</p>
+                          <div className="mt-2 flex gap-1.5">
+                            {benefit.tiers.map((t) => (
+                              <span key={t} className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                t === "platinum" ? "bg-gray-300/30 dark:bg-gray-500/20 text-gray-600 dark:text-gray-300" : "bg-gold/20 text-gold-hover"
+                              }`}>
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-8 text-center">
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => { setSelectedTier("platinum"); setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg transition-all ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500 hover:shadow-xl`}
+                  >
+                    <Sparkles size={16} />
+                    Explore Platinum — Save $1,360
+                    <ChevronRight size={16} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Comparison Table */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="mt-16"
+            >
+              <h3 className="text-center text-2xl font-black text-foreground uppercase tracking-tight mb-6">
+                Compare All Plans
+              </h3>
+              <div className="rounded-2xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left p-4 text-xs font-black uppercase tracking-wider text-muted-foreground">Feature</th>
+                      <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-sited-blue">Blue</th>
+                      <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gold">Gold</th>
+                      <th className="text-center p-4 text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-300 bg-gray-100/50 dark:bg-gray-700/20">Platinum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { feature: "Professional Website", blue: true, gold: true, plat: true },
+                      { feature: "High-Converting Funnel", blue: true, gold: true, plat: true },
+                      { feature: "Lead Capture Forms", blue: true, gold: true, plat: true },
+                      { feature: "Lifetime Hosting", blue: true, gold: true, plat: true },
+                      { feature: "SEO Optimisation", blue: "Basic", gold: "Extra", plat: "Premium" },
+                      { feature: "Calendar Integration", blue: true, gold: true, plat: true },
+                      { feature: "Email Integration", blue: true, gold: true, plat: true },
+                      { feature: "Payment Integration", blue: false, gold: true, plat: true },
+                      { feature: "Admin Dashboard", blue: false, gold: true, plat: true },
+                      { feature: "Lead Management CRM", blue: false, gold: true, plat: true },
+                      { feature: "Client Portal", blue: false, gold: false, plat: true },
+                      { feature: "AI Chatbot", blue: false, gold: false, plat: true },
+                      { feature: "Custom Integrations", blue: false, gold: false, plat: true },
+                      { feature: "Priority Support", blue: false, gold: false, plat: true },
+                    ].map((row, i) => (
+                      <tr key={i} className="border-b border-border/50 last:border-0">
+                        <td className="p-4 text-sm font-medium text-foreground">{row.feature}</td>
+                        <td className="p-4 text-center">
+                          {row.blue === true ? <Check size={16} className="mx-auto text-sited-blue" /> :
+                           row.blue === false ? <span className="text-muted-foreground/40">—</span> :
+                           <span className="text-xs font-bold text-sited-blue">{row.blue}</span>}
+                        </td>
+                        <td className="p-4 text-center">
+                          {row.gold === true ? <Check size={16} className="mx-auto text-gold" /> :
+                           row.gold === false ? <span className="text-muted-foreground/40">—</span> :
+                           <span className="text-xs font-bold text-gold">{row.gold}</span>}
+                        </td>
+                        <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
+                          {row.plat === true ? <Check size={16} className="mx-auto text-gray-500 dark:text-gray-300" /> :
+                           row.plat === false ? <span className="text-muted-foreground/40">—</span> :
+                           <span className="text-xs font-bold text-gray-500 dark:text-gray-300">{row.plat}</span>}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t-2 border-border bg-muted/30">
+                      <td className="p-4 text-sm font-black text-foreground">Total Price</td>
+                      <td className="p-4 text-center">
+                        <span className="text-sm font-black text-foreground">$549</span>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground line-through">$1,399</span>
                       </td>
-                      <td className="p-3 sm:p-4 text-center">
-                        {row.gold === true ? <Check size={16} className="mx-auto text-gold" /> :
-                         row.gold === false ? <span className="text-muted-foreground/40">—</span> :
-                         <span className="text-xs font-bold text-gold">{row.gold}</span>}
+                      <td className="p-4 text-center">
+                        <span className="text-sm font-black text-foreground">$649</span>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground line-through">$1,699</span>
                       </td>
-                      <td className="p-3 sm:p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
-                        {row.plat === true ? <Check size={16} className="mx-auto text-gray-500 dark:text-gray-300" /> :
-                         row.plat === false ? <span className="text-muted-foreground/40">—</span> :
-                         <span className="text-xs font-bold text-gray-500 dark:text-gray-300">{row.plat}</span>}
+                      <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
+                        <span className="text-sm font-black text-gray-600 dark:text-gray-200">$1,199</span>
+                        <br />
+                        <span className="text-[10px] text-muted-foreground line-through">$2,559</span>
                       </td>
                     </tr>
-                  ))}
-                  <tr className="border-t-2 border-border bg-muted/30">
-                    <td className="p-4 text-sm font-black text-foreground">Total Price</td>
-                    <td className="p-4 text-center">
-                      <span className="text-sm font-black text-foreground">$549</span>
-                      <br />
-                      <span className="text-[10px] text-muted-foreground line-through">$1,399</span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="text-sm font-black text-foreground">$649</span>
-                      <br />
-                      <span className="text-[10px] text-muted-foreground line-through">$1,699</span>
-                    </td>
-                    <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
-                      <span className="text-sm font-black text-gray-600 dark:text-gray-200">$1,199</span>
-                      <br />
-                      <span className="text-[10px] text-muted-foreground line-through">$2,559</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+                  </tbody>
+                </table>
+              </div>
 
-          {/* Bottom CTA */}
-          <div className="mt-8 text-center">
-            <motion.button
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-sited-blue/30 transition-all"
-            >
-              Secure Your Website — $49
-              <ArrowRight size={16} />
-            </motion.button>
-            <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
-          </div>
-        </motion.div>
+              <div className="mt-8 text-center">
+                <motion.button
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-sited-blue/30 transition-all"
+                >
+                  Secure Your Website — $49
+                  <ArrowRight size={16} />
+                </motion.button>
+                <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
+              </div>
+            </motion.div>
 
-        {/* Social Proof */}
-        <SocialProofSection />
+            <SocialProofSection />
+          </>
+        )}
       </div>
     </div>
   );
