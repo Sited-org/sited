@@ -16,24 +16,7 @@ const clientSites = [
   { name: "Silver Lining Co", url: "https://silverliningco.com.au" },
 ];
 
-function useDeviceTier() {
-  const [tier, setTier] = useState<"mobile" | "tablet" | "laptop" | "desktop">("desktop");
-  useEffect(() => {
-    const check = () => {
-      const w = window.innerWidth;
-      if (w < 640) setTier("mobile");
-      else if (w < 1024) setTier("tablet");
-      else if (w < 1440) setTier("laptop");
-      else setTier("desktop");
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-  return tier;
-}
 
-const SITE_COUNTS = { mobile: 4, tablet: 6, laptop: 6, desktop: 12 };
 
 const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
   const [loaded, setLoaded] = useState(false);

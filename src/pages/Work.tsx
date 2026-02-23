@@ -263,41 +263,39 @@ const Work = () => {
 
       <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* ━━ HERO ━━ */}
-        <section ref={heroRef} className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex items-center justify-center bg-background">
+        <section ref={heroRef} className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex flex-col items-center justify-center bg-background">
           <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
             <motion.h1
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-5xl sm:text-7xl lg:text-[8rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
+              className="text-4xl sm:text-6xl lg:text-[7rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
             >
-              Check out our
-              <br />
-              showroom of
+              Showroom of
               <br />
               <span className="text-sited-blue">killer websites</span>
             </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-6 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto"
+          </motion.div>
+
+          {/* Animated scroll prompt */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 0.8 }}
+            className="absolute bottom-8 sm:bottom-12 flex flex-col items-center gap-2"
+          >
+            <motion.span
+              animate={{ opacity: [0.4, 1, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="text-xs text-muted-foreground font-medium uppercase tracking-widest"
             >
-              Scroll down to see live websites, video testimonials, and the businesses we've helped grow.
-            </motion.p>
+              Scroll
+            </motion.span>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.45 }}
-              className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <CTAButton onClick={openCta} label="Get a Quote Today" />
-              <button
-                onClick={() => document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                See the Work <ChevronDown size={16} />
-              </button>
+              <ChevronDown size={20} className="text-muted-foreground" />
             </motion.div>
           </motion.div>
         </section>
