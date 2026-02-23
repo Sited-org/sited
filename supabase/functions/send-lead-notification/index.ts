@@ -21,31 +21,6 @@ const leadSchema = z.object({
 
 type LeadNotificationRequest = z.infer<typeof leadSchema>;
 
-function generateMockupPrompt(leadData: LeadNotificationRequest): string {
-  const formDataText = Object.entries(leadData.formData)
-    .filter(([_, value]) => value !== "" && value !== null && value !== undefined)
-    .map(([key, value]) => {
-      const formattedKey = key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
-      const formattedValue = Array.isArray(value) ? value.join(", ") : String(value);
-      return `- ${formattedKey}: ${formattedValue}`;
-    })
-    .join("\n");
-
-  const projectTypeLabel = {
-    website: "Website",
-    app: "Mobile App",
-    ai: "AI Integration",
-  }[leadData.projectType] || leadData.projectType;
-
-  return `Hi ChatGPT, Please create a high quality prompt for Lovable.ai to create a high quality & functional mock-up using the following information submitted to me through a client submission form:
-
-**Client:** ${leadData.name}
-**Business:** ${leadData.businessName || "Not specified"}
-**Project Type:** ${projectTypeLabel}
-
-**Client Requirements:**
-${formDataText}`;
-}
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -80,9 +55,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending lead notification for:", { name, email, projectType });
 
-    // Generate mockup prompt
-    const mockupPrompt = generateMockupPrompt(leadData);
-
     // Format form data for email
     const formDataHtml = Object.entries(formData)
       .filter(([_, value]) => value !== "" && value !== null && value !== undefined)
@@ -100,9 +72,6 @@ const handler = async (req: Request): Promise<Response> => {
       app: "Mobile App Development",
       ai: "AI Integration",
     }[projectType] || projectType;
-
-    // Convert mockup prompt to HTML-friendly format
-    const mockupPromptHtml = mockupPrompt.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
     // Parse and validate email recipients
     const recipients = notificationEmails
@@ -151,13 +120,6 @@ const handler = async (req: Request): Promise<Response> => {
               </table>
             </div>
 
-            <div style="background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-              <h2 style="margin: 0 0 12px; color: white; font-size: 16px;">📋 ChatGPT Mockup Prompt</h2>
-              <div style="background: #2a2a2a; padding: 15px; border-radius: 6px; font-size: 13px; color: #e0e0e0; line-height: 1.6; font-family: monospace;">
-                ${mockupPromptHtml}
-              </div>
-            </div>
-            
             <div style="text-align: center; margin-top: 25px;">
               <a href="mailto:${email}?subject=Re: Your ${projectTypeLabel} Project Inquiry" style="display: inline-block; background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Reply to Lead</a>
             </div>

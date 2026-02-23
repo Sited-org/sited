@@ -177,6 +177,32 @@ serve(async (req) => {
       },
     });
 
+    // --- SEND EMAILS ---
+    // 1. Send branded receipt email
+    try {
+      await supabase.functions.invoke("send-payment-email", {
+        body: {
+          leadId,
+          amount: DEPOSIT_AMOUNT * 100, // cents
+          description: `${config.label} — Deposit Payment`,
+          stripePaymentIntentId: paymentIntentId,
+        },
+      });
+      console.log("Receipt email sent");
+    } catch (emailErr) {
+      console.error("Failed to send receipt email:", emailErr);
+    }
+
+    // 2. Send onboarding email with next steps + booking link
+    try {
+      await supabase.functions.invoke("send-onboarding-email", {
+        body: { leadId },
+      });
+      console.log("Onboarding email sent");
+    } catch (emailErr) {
+      console.error("Failed to send onboarding email:", emailErr);
+    }
+
     return new Response(
       JSON.stringify({ success: true, leadId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
