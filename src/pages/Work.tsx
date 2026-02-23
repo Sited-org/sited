@@ -264,7 +264,30 @@ const Work = () => {
       <div className="overflow-x-hidden w-full" ref={pageRef}>
         {/* ━━ HERO ━━ */}
         <section ref={heroRef} className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex flex-col items-center justify-center bg-background overflow-hidden">
-          <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          {/* Falling chevron particles background */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {Array.from({ length: 18 }).map((_, i) => {
+              const left = `${5 + (i * 37 + i * i * 13) % 90}%`;
+              const size = 16 + (i % 4) * 8;
+              const duration = 6 + (i % 5) * 2;
+              const delay = (i * 1.3) % 8;
+              return (
+                <motion.div
+                  key={i}
+                  className="absolute"
+                  style={{ left, top: -40 }}
+                  animate={{ y: ["0vh", "110vh"] }}
+                  transition={{ duration, delay, repeat: Infinity, ease: "linear" }}
+                >
+                  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="text-foreground/[0.04] dark:text-foreground/[0.06]" stroke="currentColor">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
             <motion.h1
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
@@ -273,35 +296,7 @@ const Work = () => {
             >
               Showroom of
               <br />
-              <span className="relative inline-block text-sited-blue">
-                killer websites
-                {/* Dripping liquid effect */}
-                <svg className="absolute -bottom-4 sm:-bottom-6 lg:-bottom-10 left-0 w-full h-8 sm:h-12 lg:h-20 overflow-visible pointer-events-none" preserveAspectRatio="none" viewBox="0 0 400 60">
-                  {[
-                    { cx: 45, delay: 0.8, dur: 2.5, h: 35 },
-                    { cx: 110, delay: 1.4, dur: 3.0, h: 45 },
-                    { cx: 160, delay: 0.5, dur: 2.8, h: 30 },
-                    { cx: 215, delay: 1.8, dur: 2.2, h: 50 },
-                    { cx: 280, delay: 1.0, dur: 2.6, h: 38 },
-                    { cx: 330, delay: 2.0, dur: 3.2, h: 42 },
-                    { cx: 370, delay: 0.3, dur: 2.4, h: 28 },
-                  ].map((drip, i) => (
-                    <g key={i}>
-                      {/* Drip trail */}
-                      <rect x={drip.cx - 2} y={0} width={4} rx={2} fill="hsl(var(--sited-blue))">
-                        <animate attributeName="height" values={`0;${drip.h};${drip.h * 0.6}`} dur={`${drip.dur}s`} begin={`${drip.delay}s`} repeatCount="indefinite" keyTimes="0;0.6;1" />
-                        <animate attributeName="opacity" values="0;0.6;0.2" dur={`${drip.dur}s`} begin={`${drip.delay}s`} repeatCount="indefinite" keyTimes="0;0.6;1" />
-                      </rect>
-                      {/* Drip droplet */}
-                      <circle cx={drip.cx} r={4} fill="hsl(var(--sited-blue))">
-                        <animate attributeName="cy" values={`0;${drip.h};${drip.h + 15}`} dur={`${drip.dur}s`} begin={`${drip.delay}s`} repeatCount="indefinite" keyTimes="0;0.6;1" />
-                        <animate attributeName="opacity" values="0;0.7;0" dur={`${drip.dur}s`} begin={`${drip.delay}s`} repeatCount="indefinite" keyTimes="0;0.6;1" />
-                        <animate attributeName="r" values="3;5;2" dur={`${drip.dur}s`} begin={`${drip.delay}s`} repeatCount="indefinite" keyTimes="0;0.6;1" />
-                      </circle>
-                    </g>
-                  ))}
-                </svg>
-              </span>
+              <span className="text-sited-blue">killer websites</span>
             </motion.h1>
 
             <motion.div
@@ -319,7 +314,7 @@ const Work = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.8 }}
-            className="absolute bottom-8 sm:bottom-12 flex flex-col items-center gap-2"
+            className="absolute bottom-8 sm:bottom-12 flex flex-col items-center gap-2 z-10"
           >
             <motion.div
               animate={{ y: [0, 8, 0] }}
