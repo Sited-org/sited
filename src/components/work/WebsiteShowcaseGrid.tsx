@@ -162,10 +162,15 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   );
 };
 
+const INITIAL_VISIBLE = 4;
+const LOAD_MORE_STEP = 4;
+const MAX_LOADS = 3;
+
 export const WebsiteShowcaseGrid = () => {
-  const tier = useDeviceTier();
-  const count = SITE_COUNTS[tier];
-  const visibleSites = clientSites.slice(0, count);
+  const [extraLoads, setExtraLoads] = useState(0);
+  const visibleCount = INITIAL_VISIBLE + extraLoads * LOAD_MORE_STEP;
+  const visibleSites = clientSites.slice(0, visibleCount);
+  const canLoadMore = extraLoads < MAX_LOADS && visibleCount < clientSites.length;
 
   return (
     <section className="py-16 sm:py-24 bg-background">
@@ -201,6 +206,21 @@ export const WebsiteShowcaseGrid = () => {
             </motion.div>
           ))}
         </div>
+
+        {canLoadMore && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-center mt-10"
+          >
+            <button
+              onClick={() => setExtraLoads((prev) => prev + 1)}
+              className="px-8 py-3 rounded-lg border-2 border-border text-foreground font-bold text-sm uppercase tracking-wider hover:bg-muted transition-colors"
+            >
+              See More
+            </button>
+          </motion.div>
+        )}
       </div>
     </section>
   );

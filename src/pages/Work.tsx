@@ -265,23 +265,17 @@ const Work = () => {
         {/* ━━ HERO ━━ */}
         <section ref={heroRef} className="relative min-h-[calc(100vh-140px)] md:min-h-screen flex items-center justify-center bg-background">
           <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-xs sm:text-sm uppercase tracking-[0.25em] text-sited-blue font-bold mb-4"
-            >
-              Real projects. Real results.
-            </motion.p>
             <motion.h1
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
+              transition={{ duration: 0.8 }}
               className="text-5xl sm:text-7xl lg:text-[8rem] font-black tracking-tighter leading-[0.85] text-foreground uppercase"
             >
-              Don't take
+              Check out our
               <br />
-              <span className="text-sited-blue">our</span> word for it.
+              showroom of
+              <br />
+              <span className="text-sited-blue">killer websites</span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
