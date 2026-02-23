@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save, User, FolderOpen, CreditCard, Settings, Wallet, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Save, User, FolderOpen, CreditCard, Settings, Wallet, MessageSquare, Mail } from 'lucide-react';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { ProfileTab } from '@/components/admin/lead-profile/ProfileTab';
 import { ProjectTab } from '@/components/admin/lead-profile/ProjectTab';
@@ -13,6 +13,7 @@ import { PaymentsTab } from '@/components/admin/lead-profile/PaymentsTab';
 import { CardTab } from '@/components/admin/lead-profile/CardTab';
 import { SettingsTab } from '@/components/admin/lead-profile/SettingsTab';
 import { RequestsTab } from '@/components/admin/lead-profile/RequestsTab';
+import { CommunicationsTab } from '@/components/admin/lead-profile/CommunicationsTab';
 import { format } from 'date-fns';
 import type { LeadStatus } from '@/hooks/useLeads';
 
@@ -159,7 +160,7 @@ export default function LeadProfile() {
 
       {/* Tabs */}
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-3xl">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Profile</span>
@@ -171,6 +172,10 @@ export default function LeadProfile() {
           <TabsTrigger value="requests" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             <span className="hidden sm:inline">Requests</span>
+          </TabsTrigger>
+          <TabsTrigger value="communications" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">Comms</span>
           </TabsTrigger>
           <TabsTrigger value="payments" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
@@ -210,6 +215,10 @@ export default function LeadProfile() {
 
         <TabsContent value="requests" className="mt-6">
           <RequestsTab leadId={id!} leadName={name} leadEmail={email} />
+        </TabsContent>
+
+        <TabsContent value="communications" className="mt-6">
+          <CommunicationsTab leadId={id!} leadEmail={email} />
         </TabsContent>
 
         <TabsContent value="payments" className="mt-6">

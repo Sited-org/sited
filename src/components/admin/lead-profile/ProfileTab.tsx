@@ -9,6 +9,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useMemberships } from '@/hooks/useMemberships';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadFunnelTree } from './LeadFunnelTree';
+import { BookingCard } from './BookingCard';
 import type { LeadStatus } from '@/hooks/useLeads';
 
 interface ProfileTabProps {
@@ -239,6 +240,9 @@ export function ProfileTab({
             )}
           </CardContent>
         </Card>
+
+        {/* Booking Card */}
+        <BookingCard leadEmail={email} />
       </div>
     </div>
   );
