@@ -53,11 +53,13 @@ const TestimonialBlock = ({
     target: ref,
     offset: ["start end", "end start"],
   });
-  const x = useTransform(scrollYProgress, [0, 1], [index % 2 === 0 ? -40 : 40, 0]);
-  const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.3, 1, 1, 0.3]);
+  // Sticky-release effect: testimonial lags behind scroll then catches up
+  const y = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [60, 0, 0, -60]);
+  const opacity = useTransform(scrollYProgress, [0, 0.15, 0.4, 0.6, 0.85, 1], [0, 0.6, 1, 1, 0.6, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.97, 1, 1, 0.97]);
 
   return (
-    <motion.div ref={ref} style={{ x, opacity }} className="py-8 sm:py-12 border-b border-border last:border-b-0">
+    <motion.div ref={ref} style={{ y, opacity, scale }} className="py-8 sm:py-12 border-b border-border last:border-b-0">
       <div className="flex flex-col sm:flex-row gap-6 items-start">
         <Quote size={36} className="text-sited-blue/30 shrink-0 mt-1" />
         <div className="flex-1">

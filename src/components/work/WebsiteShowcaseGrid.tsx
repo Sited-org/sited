@@ -154,15 +154,6 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
               }`}
             >
               <p className="text-white font-black text-sm sm:text-lg uppercase tracking-tight">{site.name}</p>
-              <a
-                href={site.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="mt-2 inline-block px-4 py-1.5 bg-sited-blue text-white text-xs font-bold rounded-full hover:bg-sited-blue-hover transition-colors"
-              >
-                Visit Site →
-              </a>
             </div>
           </div>
         </div>
