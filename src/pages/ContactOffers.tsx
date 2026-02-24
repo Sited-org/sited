@@ -226,7 +226,7 @@ const ContactOffers = () => {
     }
     setSubmitting(false);
     sessionStorage.setItem("questionnaire_complete", "true");
-    navigate("/offer");
+    navigate("/offer/checkout");
   };
 
   const goBack = () => {

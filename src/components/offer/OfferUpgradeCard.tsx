@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
-import type { TierConfig } from "@/pages/Offer";
+import type { TierConfig } from "@/pages/OfferCheckout";
 
 interface OfferUpgradeCardProps {
   tier: TierConfig;
