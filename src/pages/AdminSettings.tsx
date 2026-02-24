@@ -45,6 +45,9 @@ const emptyTestimonialForm: TestimonialInsert = {
   is_active: true,
   show_on_homepage: false,
   show_featured: false,
+  homepage_position: null,
+  featured_position: null,
+  portfolio_position: null,
   created_by: null,
 };
 
@@ -214,6 +217,9 @@ export default function AdminSettings() {
       is_active: testimonial.is_active,
       show_on_homepage: testimonial.show_on_homepage,
       show_featured: testimonial.show_featured,
+      homepage_position: testimonial.homepage_position,
+      featured_position: testimonial.featured_position,
+      portfolio_position: testimonial.portfolio_position,
       created_by: testimonial.created_by,
     });
     setTestimonialDialogOpen(true);

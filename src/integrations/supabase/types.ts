@@ -1183,12 +1183,15 @@ export type Database = {
           created_by: string | null
           delivery_time: string | null
           display_order: number
+          featured_position: number | null
+          homepage_position: number | null
           id: string
           is_active: boolean
           metric_1_label: string | null
           metric_1_value: string | null
           metric_2_label: string | null
           metric_2_value: string | null
+          portfolio_position: number | null
           project_type: string
           short_description: string
           show_featured: boolean
@@ -1207,12 +1210,15 @@ export type Database = {
           created_by?: string | null
           delivery_time?: string | null
           display_order?: number
+          featured_position?: number | null
+          homepage_position?: number | null
           id?: string
           is_active?: boolean
           metric_1_label?: string | null
           metric_1_value?: string | null
           metric_2_label?: string | null
           metric_2_value?: string | null
+          portfolio_position?: number | null
           project_type: string
           short_description: string
           show_featured?: boolean
@@ -1231,12 +1237,15 @@ export type Database = {
           created_by?: string | null
           delivery_time?: string | null
           display_order?: number
+          featured_position?: number | null
+          homepage_position?: number | null
           id?: string
           is_active?: boolean
           metric_1_label?: string | null
           metric_1_value?: string | null
           metric_2_label?: string | null
           metric_2_value?: string | null
+          portfolio_position?: number | null
           project_type?: string
           short_description?: string
           show_featured?: boolean
