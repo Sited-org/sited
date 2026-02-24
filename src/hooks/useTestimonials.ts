@@ -22,6 +22,9 @@ export interface Testimonial {
   is_active: boolean;
   show_on_homepage: boolean;
   show_featured: boolean;
+  homepage_position: number | null;
+  featured_position: number | null;
+  portfolio_position: number | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -70,7 +73,8 @@ export function useHomepageTestimonials() {
         .select('*')
         .eq('is_active', true)
         .eq('show_on_homepage', true)
-        .order('display_order', { ascending: true })
+        .not('homepage_position', 'is', null)
+        .order('homepage_position', { ascending: true })
         .limit(3);
 
       if (error) throw error;
@@ -88,7 +92,8 @@ export function useFeaturedTestimonials() {
         .select('*')
         .eq('is_active', true)
         .eq('show_featured', true)
-        .order('display_order', { ascending: true })
+        .not('featured_position', 'is', null)
+        .order('featured_position', { ascending: true })
         .limit(4);
 
       if (error) throw error;
@@ -96,6 +101,31 @@ export function useFeaturedTestimonials() {
     },
   });
 }
+
+export function usePortfolioTestimonials() {
+  return useQuery({
+    queryKey: ['portfolio-testimonials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('is_active', true)
+        .not('portfolio_position', 'is', null)
+        .order('portfolio_position', { ascending: true });
+
+      if (error) throw error;
+      return data as Testimonial[];
+    },
+  });
+}
+
+const invalidateAll = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['testimonials'] });
+  queryClient.invalidateQueries({ queryKey: ['public-testimonials'] });
+  queryClient.invalidateQueries({ queryKey: ['homepage-testimonials'] });
+  queryClient.invalidateQueries({ queryKey: ['featured-testimonials'] });
+  queryClient.invalidateQueries({ queryKey: ['portfolio-testimonials'] });
+};
 
 export function useCreateTestimonial() {
   const queryClient = useQueryClient();
@@ -112,8 +142,7 @@ export function useCreateTestimonial() {
       return data as Testimonial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
-      queryClient.invalidateQueries({ queryKey: ['public-testimonials'] });
+      invalidateAll(queryClient);
       toast.success('Testimonial created successfully');
     },
     onError: (error) => {
@@ -138,8 +167,7 @@ export function useUpdateTestimonial() {
       return data as Testimonial;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
-      queryClient.invalidateQueries({ queryKey: ['public-testimonials'] });
+      invalidateAll(queryClient);
       toast.success('Testimonial updated successfully');
     },
     onError: (error) => {
@@ -161,8 +189,7 @@ export function useDeleteTestimonial() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['testimonials'] });
-      queryClient.invalidateQueries({ queryKey: ['public-testimonials'] });
+      invalidateAll(queryClient);
       toast.success('Testimonial deleted successfully');
     },
     onError: (error) => {

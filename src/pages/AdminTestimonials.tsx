@@ -10,10 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Star } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Star, Briefcase } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { extractVimeoId } from '@/lib/vimeo';
+import { PlacementSection } from '@/components/admin/testimonials/PlacementSection';
 
 const PROJECT_TYPES = ['Website Design'];
 
@@ -36,6 +37,9 @@ const emptyForm: TestimonialInsert = {
   is_active: true,
   show_on_homepage: false,
   show_featured: false,
+  homepage_position: null,
+  featured_position: null,
+  portfolio_position: null,
   created_by: null,
 };
 
@@ -50,10 +54,19 @@ export default function AdminTestimonials() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialInsert>(emptyForm);
 
-  // Only owner and admin can access
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
     return <Navigate to="/admin" replace />;
   }
+
+  // Compute taken positions for each page (excluding the currently edited testimonial)
+  const otherTestimonials = testimonials?.filter(t => t.id !== editingId) || [];
+  const takenPortfolioPositions = otherTestimonials.filter(t => t.portfolio_position != null).map(t => t.portfolio_position!);
+  const takenHomepagePositions = otherTestimonials.filter(t => t.homepage_position != null).map(t => t.homepage_position!);
+  const takenFeaturedPositions = otherTestimonials.filter(t => t.featured_position != null).map(t => t.featured_position!);
+
+  const portfolioCount = testimonials?.filter(t => t.portfolio_position != null).length || 0;
+  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
+  const featuredCount = testimonials?.filter(t => t.show_featured).length || 0;
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -82,21 +95,16 @@ export default function AdminTestimonials() {
       is_active: testimonial.is_active,
       show_on_homepage: testimonial.show_on_homepage,
       show_featured: testimonial.show_featured,
+      homepage_position: testimonial.homepage_position,
+      featured_position: testimonial.featured_position,
+      portfolio_position: testimonial.portfolio_position,
       created_by: testimonial.created_by,
     });
     setIsDialogOpen(true);
   };
 
-  const homepageEditCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
-  const canEnableHomepage = homepageEditCount < 3;
-  const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
-  const featuredEditCount = testimonials?.filter(t => t.show_featured && t.id !== editingId).length || 0;
-  const canEnableFeatured = featuredEditCount < 4;
-  const featuredCount = testimonials?.filter(t => t.show_featured).length || 0;
-
   const handleVimeoUrlChange = (url: string) => {
     updateField('video_url', url);
-    // Auto-generate thumbnail from Vimeo
     const vimeoId = extractVimeoId(url);
     if (vimeoId) {
       updateField('video_thumbnail', `https://vumbnail.com/${vimeoId}.jpg`);
@@ -108,10 +116,18 @@ export default function AdminTestimonials() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Sync toggle flags from position fields
+    const payload = {
+      ...form,
+      is_active: form.portfolio_position != null || form.is_active,
+      show_on_homepage: form.homepage_position != null,
+      show_featured: form.featured_position != null,
+    };
+
     if (editingId) {
-      await updateMutation.mutateAsync({ id: editingId, ...form });
+      await updateMutation.mutateAsync({ id: editingId, ...payload });
     } else {
-      await createMutation.mutateAsync(form);
+      await createMutation.mutateAsync(payload);
     }
     
     setIsDialogOpen(false);
@@ -121,24 +137,6 @@ export default function AdminTestimonials() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-  };
-
-  const handleToggleHomepage = async (testimonial: Testimonial) => {
-    const newValue = !testimonial.show_on_homepage;
-    if (newValue && homepageCount >= 3) {
-      toast.error('Maximum 3 testimonials can be shown on homepage. Disable another first.');
-      return;
-    }
-    await updateMutation.mutateAsync({ id: testimonial.id, show_on_homepage: newValue });
-  };
-
-  const handleToggleFeatured = async (testimonial: Testimonial) => {
-    const newValue = !testimonial.show_featured;
-    if (newValue && featuredCount >= 4) {
-      toast.error('Maximum 4 testimonials can be featured. Disable another first.');
-      return;
-    }
-    await updateMutation.mutateAsync({ id: testimonial.id, show_featured: newValue });
   };
 
   const updateField = (field: keyof TestimonialInsert, value: string | number | boolean | null) => {
@@ -161,17 +159,21 @@ export default function AdminTestimonials() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Testimonials</h1>
-          <p className="text-muted-foreground">Manage testimonials displayed on the Work page</p>
-          <p className="text-sm mt-1 flex items-center gap-4">
-            <span className="inline-flex items-center gap-1.5 text-accent">
+          <p className="text-muted-foreground">Manage website mockup placements across pages</p>
+          <div className="flex items-center gap-4 mt-2 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-primary">
+              <Briefcase className="h-3.5 w-3.5" />
+              Portfolio: {portfolioCount}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-accent-foreground">
               <Home className="h-3.5 w-3.5" />
               Homepage: {homepageCount}/3
             </span>
             <span className="inline-flex items-center gap-1.5 text-sited-blue">
               <Star className="h-3.5 w-3.5" />
-              Featured: {featuredCount}/4
+              Landing: {featuredCount}/4
             </span>
-          </p>
+          </div>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -305,54 +307,69 @@ export default function AdminTestimonials() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="display_order">Display Order</Label>
-                  <Input
-                    id="display_order"
-                    type="number"
-                    value={form.display_order}
-                    onChange={(e) => updateField('display_order', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="flex items-center gap-3 pt-6">
-                  <Switch
-                    id="is_active"
-                    checked={form.is_active}
-                    onCheckedChange={(checked) => updateField('is_active', checked)}
-                  />
-                  <Label htmlFor="is_active">Active (visible on Work page)</Label>
-                </div>
-              </div>
+              {/* ─── Page Placement Sections ─── */}
+              <div className="space-y-3 pt-2">
+                <Label className="text-base font-semibold">Page Placements</Label>
+                <p className="text-xs text-muted-foreground -mt-1">Assign this testimonial to specific pages and choose its display position.</p>
 
-              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                <Switch
-                  id="show_featured"
-                  checked={form.show_featured}
-                  onCheckedChange={(checked) => updateField('show_featured', checked)}
-                  disabled={!canEnableFeatured && !form.show_featured}
+                <PlacementSection
+                  title="Portfolio"
+                  description="Work / Portfolio page showcase"
+                  icon={<Briefcase className="h-4 w-4" />}
+                  enabled={form.portfolio_position != null}
+                  onToggle={(v) => {
+                    if (!v) {
+                      updateField('portfolio_position', null);
+                    }
+                  }}
+                  position={form.portfolio_position}
+                  onPositionChange={(pos) => updateField('portfolio_position', pos)}
+                  maxPositions={10}
+                  takenPositions={takenPortfolioPositions}
+                  accentClass="text-primary"
                 />
-                <div>
-                  <Label htmlFor="show_featured" className="cursor-pointer">Featured (Landing Page)</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {featuredEditCount}/4 slots used. {!canEnableFeatured && !form.show_featured && 'Disable another to enable this.'}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                <Switch
-                  id="show_on_homepage"
-                  checked={form.show_on_homepage}
-                  onCheckedChange={(checked) => updateField('show_on_homepage', checked)}
-                  disabled={!canEnableHomepage && !form.show_on_homepage}
+                <PlacementSection
+                  title="Homepage"
+                  description="Homepage website mockup section (max 3)"
+                  icon={<Home className="h-4 w-4" />}
+                  enabled={form.homepage_position != null}
+                  onToggle={(v) => {
+                    if (!v) {
+                      updateField('homepage_position', null);
+                      updateField('show_on_homepage', false);
+                    }
+                  }}
+                  position={form.homepage_position}
+                  onPositionChange={(pos) => {
+                    updateField('homepage_position', pos);
+                    updateField('show_on_homepage', true);
+                  }}
+                  maxPositions={3}
+                  takenPositions={takenHomepagePositions}
+                  accentClass="text-accent-foreground"
                 />
-                <div>
-                  <Label htmlFor="show_on_homepage" className="cursor-pointer">Show on Homepage</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {homepageEditCount}/3 slots used. {!canEnableHomepage && !form.show_on_homepage && 'Disable another to enable this.'}
-                  </p>
-                </div>
+
+                <PlacementSection
+                  title="Landing Page"
+                  description="Featured on /go landing page (max 4)"
+                  icon={<Star className="h-4 w-4" />}
+                  enabled={form.featured_position != null}
+                  onToggle={(v) => {
+                    if (!v) {
+                      updateField('featured_position', null);
+                      updateField('show_featured', false);
+                    }
+                  }}
+                  position={form.featured_position}
+                  onPositionChange={(pos) => {
+                    updateField('featured_position', pos);
+                    updateField('show_featured', true);
+                  }}
+                  maxPositions={4}
+                  takenPositions={takenFeaturedPositions}
+                  accentClass="text-sited-blue"
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
@@ -378,16 +395,16 @@ export default function AdminTestimonials() {
                   <div className="flex items-center gap-3">
                     <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                     <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
+                      <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
                         {testimonial.business_name}
-                        {!testimonial.is_active && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Hidden</span>
+                        {testimonial.portfolio_position != null && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Portfolio #{testimonial.portfolio_position}</span>
                         )}
-                        {testimonial.show_on_homepage && (
-                          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage</span>
+                        {testimonial.homepage_position != null && (
+                          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage #{testimonial.homepage_position}</span>
                         )}
-                        {testimonial.show_featured && (
-                          <span className="text-xs bg-sited-blue/20 text-sited-blue px-2 py-0.5 rounded">Featured</span>
+                        {testimonial.featured_position != null && (
+                          <span className="text-xs bg-sited-blue/20 text-sited-blue px-2 py-0.5 rounded">Landing #{testimonial.featured_position}</span>
                         )}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>
@@ -408,22 +425,6 @@ export default function AdminTestimonials() {
                         </a>
                       </Button>
                     )}
-                    <Button
-                      variant={testimonial.show_featured ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => handleToggleFeatured(testimonial)}
-                      title={testimonial.show_featured ? "Remove from Featured" : "Add to Featured"}
-                    >
-                      <Star className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={testimonial.show_on_homepage ? "default" : "ghost"}
-                      size="icon"
-                      onClick={() => handleToggleHomepage(testimonial)}
-                      title={testimonial.show_on_homepage ? "Remove from Homepage" : "Add to Homepage"}
-                    >
-                      <Home className="h-4 w-4" />
-                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(testimonial)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
