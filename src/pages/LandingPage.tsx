@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useFeaturedTestimonials } from "@/hooks/useTestimonials";
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -17,8 +18,8 @@ const leadSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
-/* ─── Client sites for auto-scroll showcase ─── */
-const clientSites = [
+/* ─── Fallback client sites ─── */
+const fallbackSites = [
   { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
   { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
   { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
@@ -158,7 +159,7 @@ const StarsRow = () => (
 );
 
 /* ─── MacBook Card (simplified for landing) ─── */
-const MacBookCard = ({ site, index }: { site: typeof clientSites[0]; index: number }) => {
+const MacBookCard = ({ site, index }: { site: { name: string; url: string; screenshot: string }; index: number }) => {
   const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
@@ -245,6 +246,18 @@ const LandingPage = () => {
   const lockInRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const { data: featuredTestimonials } = useFeaturedTestimonials();
+
+  // Build showcase sites from featured testimonials
+  const clientSites = featuredTestimonials && featuredTestimonials.length > 0
+    ? featuredTestimonials
+        .filter(t => t.website_url)
+        .map(t => ({
+          name: t.business_name,
+          url: t.website_url!,
+          screenshot: `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${t.website_url!.replace(/https?:\/\//, '').replace(/\//g, '').replace(/\./g, '')}-full.png`,
+        }))
+    : fallbackSites;
 
   const scrollToForm = () => formRef.current?.scrollIntoView({ behavior: "smooth" });
   const scrollToLockIn = () => lockInRef.current?.scrollIntoView({ behavior: "smooth" });
