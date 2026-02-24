@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Star, ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -28,8 +29,6 @@ const testimonials = [
   { text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.", author: "Ben Brown", role: "Owner, Ingle & Brown Conveyancing" },
   { text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.", author: "Beata Fuller", role: "CEO, Wisdom Education" },
   { text: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.", author: "Sarah Mitchell", role: "Founder, Bloom Floristry" },
-  { text: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and exceeded every expectation.", author: "Marcus Chen", role: "CEO, Urban Fitness" },
-  { text: "The website they built isn't just beautiful — it's become our most effective sales tool. Inquiries have quadrupled since launch.", author: "Elena Rodriguez", role: "Director, Coastal Realty" },
   { text: "From day one, Sited treated our project like it was their own. The attention to detail and speed of delivery was beyond what we expected.", author: "Daniel Verwoert", role: "Owner, Hunter Insight" },
 ];
 
@@ -44,6 +43,7 @@ const stats = [
 
 /* ─── Reusable Lead Form ─── */
 const LeadForm = ({ id, ctaText, source }: { id: string; ctaText: string; source: string }) => {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -82,6 +82,12 @@ const LeadForm = ({ id, ctaText, source }: { id: string; ctaText: string; source
           formData: { source, business_name: result.data.businessName },
         },
       });
+      // Store lead info in session for questionnaire/offer flow
+      sessionStorage.setItem("lead_captured", "true");
+      sessionStorage.setItem("lead_name", result.data.name);
+      sessionStorage.setItem("lead_email", result.data.email);
+      sessionStorage.setItem("lead_phone", result.data.phone);
+      sessionStorage.setItem("lead_business_name", result.data.businessName);
       toast.success("You're in! We'll be in touch shortly.");
       setSubmitted(true);
     } catch {
@@ -90,12 +96,20 @@ const LeadForm = ({ id, ctaText, source }: { id: string; ctaText: string; source
     setSubmitting(false);
   };
 
+  const handleSeeOffer = () => {
+    navigate("/contact/offers");
+  };
+
   if (submitted) {
     return (
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-8">
-        <CheckCircle2 size={48} className="mx-auto text-green-500 mb-4" />
-        <h3 className="text-xl font-bold text-foreground">You're locked in!</h3>
-        <p className="text-muted-foreground mt-2">We'll reach out within 24 hours to kick things off.</p>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-8 space-y-5">
+        <CheckCircle2 size={48} className="mx-auto text-green-500 mb-2" />
+        <h3 className="text-xl font-bold text-foreground">Thanks for your entry!</h3>
+        <p className="text-muted-foreground">Want to see your personalised offer now?</p>
+        <Button onClick={handleSeeOffer} size="lg" className="bg-sited-blue hover:bg-sited-blue-hover text-white font-bold gap-2 px-8">
+          See My Offer <ArrowRight size={16} />
+        </Button>
+        <p className="text-xs text-muted-foreground">Quick questionnaire → Instant offer · No payment required</p>
       </motion.div>
     );
   }
@@ -130,7 +144,7 @@ const LeadForm = ({ id, ctaText, source }: { id: string; ctaText: string; source
         {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
         {ctaText} <ArrowRight className="h-4 w-4 ml-2" />
       </Button>
-      <p className="text-center text-xs text-muted-foreground">No payment required · No commitment · We respond within 24hrs</p>
+      <p className="text-center text-xs text-muted-foreground">Start with a $49 refundable deposit · Delivered in 7 days · 100% money-back guarantee</p>
     </div>
   );
 };
@@ -260,7 +274,7 @@ const LandingPage = () => {
             or Less.
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto">
-            Professional, high-converting websites for just <span className="text-foreground font-bold">$549</span>. No templates. No drag-and-drop. Real custom design, delivered fast.
+            Professional, high-converting websites starting from just a <span className="text-foreground font-bold">$49 deposit</span>. Delivered in 7 days — if you're not happy, <span className="text-foreground font-bold">we refund the $49</span>. No risk.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button onClick={scrollToForm} size="xl" className="bg-sited-blue hover:bg-sited-blue-hover text-white font-bold gap-2 px-10">
@@ -379,9 +393,10 @@ const LandingPage = () => {
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">Only 4 Spots Left</p>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase mb-3">
-              Lock In <span className="text-sited-blue">$549</span> Today
+              Start With Just <span className="text-sited-blue">$49</span>
             </h2>
-            <p className="text-background/60 mb-8 max-w-md mx-auto">This price won't last. Secure your spot in the February batch before it fills up.</p>
+            <p className="text-background/60 mb-2 max-w-md mx-auto">Secure your spot in the February batch. Your $49 deposit is 100% refundable if you're not happy with the result.</p>
+            <p className="text-green-400 text-sm font-bold mb-8">Delivered in 7 days · Full refund if not satisfied</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
             className="bg-background text-foreground rounded-2xl p-6 sm:p-8 shadow-elevated">
