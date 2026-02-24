@@ -21,6 +21,7 @@ export interface Testimonial {
   display_order: number;
   is_active: boolean;
   show_on_homepage: boolean;
+  show_featured: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -71,6 +72,24 @@ export function useHomepageTestimonials() {
         .eq('show_on_homepage', true)
         .order('display_order', { ascending: true })
         .limit(3);
+
+      if (error) throw error;
+      return data as Testimonial[];
+    },
+  });
+}
+
+export function useFeaturedTestimonials() {
+  return useQuery({
+    queryKey: ['featured-testimonials'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*')
+        .eq('is_active', true)
+        .eq('show_featured', true)
+        .order('display_order', { ascending: true })
+        .limit(4);
 
       if (error) throw error;
       return data as Testimonial[];

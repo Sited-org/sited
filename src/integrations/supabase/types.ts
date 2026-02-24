@@ -1191,6 +1191,7 @@ export type Database = {
           metric_2_value: string | null
           project_type: string
           short_description: string
+          show_featured: boolean
           show_on_homepage: boolean
           testimonial_author: string
           testimonial_role: string
@@ -1214,6 +1215,7 @@ export type Database = {
           metric_2_value?: string | null
           project_type: string
           short_description: string
+          show_featured?: boolean
           show_on_homepage?: boolean
           testimonial_author: string
           testimonial_role: string
@@ -1237,6 +1239,7 @@ export type Database = {
           metric_2_value?: string | null
           project_type?: string
           short_description?: string
+          show_featured?: boolean
           show_on_homepage?: boolean
           testimonial_author?: string
           testimonial_role?: string

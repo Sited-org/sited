@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Star } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { extractVimeoId } from '@/lib/vimeo';
@@ -35,6 +35,7 @@ const emptyForm: TestimonialInsert = {
   display_order: 0,
   is_active: true,
   show_on_homepage: false,
+  show_featured: false,
   created_by: null,
 };
 
@@ -80,6 +81,7 @@ export default function AdminTestimonials() {
       display_order: testimonial.display_order,
       is_active: testimonial.is_active,
       show_on_homepage: testimonial.show_on_homepage,
+      show_featured: testimonial.show_featured,
       created_by: testimonial.created_by,
     });
     setIsDialogOpen(true);
@@ -88,6 +90,9 @@ export default function AdminTestimonials() {
   const homepageEditCount = testimonials?.filter(t => t.show_on_homepage && t.id !== editingId).length || 0;
   const canEnableHomepage = homepageEditCount < 3;
   const homepageCount = testimonials?.filter(t => t.show_on_homepage).length || 0;
+  const featuredEditCount = testimonials?.filter(t => t.show_featured && t.id !== editingId).length || 0;
+  const canEnableFeatured = featuredEditCount < 4;
+  const featuredCount = testimonials?.filter(t => t.show_featured).length || 0;
 
   const handleVimeoUrlChange = (url: string) => {
     updateField('video_url', url);
@@ -127,6 +132,15 @@ export default function AdminTestimonials() {
     await updateMutation.mutateAsync({ id: testimonial.id, show_on_homepage: newValue });
   };
 
+  const handleToggleFeatured = async (testimonial: Testimonial) => {
+    const newValue = !testimonial.show_featured;
+    if (newValue && featuredCount >= 4) {
+      toast.error('Maximum 4 testimonials can be featured. Disable another first.');
+      return;
+    }
+    await updateMutation.mutateAsync({ id: testimonial.id, show_featured: newValue });
+  };
+
   const updateField = (field: keyof TestimonialInsert, value: string | number | boolean | null) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
@@ -148,10 +162,14 @@ export default function AdminTestimonials() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Testimonials</h1>
           <p className="text-muted-foreground">Manage testimonials displayed on the Work page</p>
-          <p className="text-sm mt-1">
+          <p className="text-sm mt-1 flex items-center gap-4">
             <span className="inline-flex items-center gap-1.5 text-accent">
               <Home className="h-3.5 w-3.5" />
-              Homepage: {homepageCount}/3 slots used
+              Homepage: {homepageCount}/3
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sited-blue">
+              <Star className="h-3.5 w-3.5" />
+              Featured: {featuredCount}/4
             </span>
           </p>
         </div>
@@ -309,6 +327,21 @@ export default function AdminTestimonials() {
 
               <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
                 <Switch
+                  id="show_featured"
+                  checked={form.show_featured}
+                  onCheckedChange={(checked) => updateField('show_featured', checked)}
+                  disabled={!canEnableFeatured && !form.show_featured}
+                />
+                <div>
+                  <Label htmlFor="show_featured" className="cursor-pointer">Featured (Landing Page)</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {featuredEditCount}/4 slots used. {!canEnableFeatured && !form.show_featured && 'Disable another to enable this.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                <Switch
                   id="show_on_homepage"
                   checked={form.show_on_homepage}
                   onCheckedChange={(checked) => updateField('show_on_homepage', checked)}
@@ -353,6 +386,9 @@ export default function AdminTestimonials() {
                         {testimonial.show_on_homepage && (
                           <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage</span>
                         )}
+                        {testimonial.show_featured && (
+                          <span className="text-xs bg-sited-blue/20 text-sited-blue px-2 py-0.5 rounded">Featured</span>
+                        )}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>
                     </div>
@@ -372,6 +408,14 @@ export default function AdminTestimonials() {
                         </a>
                       </Button>
                     )}
+                    <Button
+                      variant={testimonial.show_featured ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => handleToggleFeatured(testimonial)}
+                      title={testimonial.show_featured ? "Remove from Featured" : "Add to Featured"}
+                    >
+                      <Star className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant={testimonial.show_on_homepage ? "default" : "ghost"}
                       size="icon"

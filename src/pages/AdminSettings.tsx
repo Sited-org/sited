@@ -44,6 +44,7 @@ const emptyTestimonialForm: TestimonialInsert = {
   display_order: 0,
   is_active: true,
   show_on_homepage: false,
+  show_featured: false,
   created_by: null,
 };
 
@@ -212,6 +213,7 @@ export default function AdminSettings() {
       display_order: testimonial.display_order,
       is_active: testimonial.is_active,
       show_on_homepage: testimonial.show_on_homepage,
+      show_featured: testimonial.show_featured,
       created_by: testimonial.created_by,
     });
     setTestimonialDialogOpen(true);
