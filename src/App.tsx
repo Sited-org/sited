@@ -19,8 +19,7 @@ const ContactOffers = lazy(() => import("./pages/ContactOffers"));
 // WebsiteOnboarding removed — all CTAs now use popup lead capture
 // AppOnboarding removed - service no longer offered
 // AI Onboarding removed - service no longer offered
-const Offer = lazy(() => import("./pages/OfferLanding"));
-const OfferCheckout = lazy(() => import("./pages/OfferCheckout"));
+const Offer = lazy(() => import("./pages/Offer"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Policies = lazy(() => import("./pages/Policies"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
@@ -71,7 +70,6 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/contact/offers" element={<ContactOffers />} />
             <Route path="/offer" element={<Offer />} />
-            <Route path="/offer/checkout" element={<OfferCheckout />} />
             {/* About route removed - content merged into Work page */}
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
