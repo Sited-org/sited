@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { FileDown, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,13 +15,16 @@ interface ProposalGeneratorProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const BUDGET_MAP: Record<string, string> = {
-  under_1k: 'Under £1,000',
-  '1k_3k': '£1,000 – £3,000',
-  '3k_5k': '£3,000 – £5,000',
-  '5k_10k': '£5,000 – £10,000',
-  '10k_plus': '£10,000+',
-};
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  is_active: boolean;
+}
+
+const PAGE_PRICE = 159;
+const FEATURE_PRICE = 300;
+const INTEGRATION_PRICE = 199;
 
 const PROJECT_TYPE_MAP: Record<string, string> = {
   brochure: 'Brochure / Information Website',
@@ -30,24 +35,37 @@ const PROJECT_TYPE_MAP: Record<string, string> = {
 
 export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    supabase
-      .from('discovery_answers')
-      .select('question_key, answer_value')
-      .eq('build_flow_id', buildFlowId)
-      .then(({ data }) => {
-        const map: Record<string, string> = {};
-        (data || []).forEach((row: any) => {
-          map[row.question_key] = row.answer_value;
-        });
-        setAnswers(map);
-        setLoading(false);
+    Promise.all([
+      supabase
+        .from('discovery_answers')
+        .select('question_key, answer_value')
+        .eq('build_flow_id', buildFlowId),
+      supabase
+        .from('products')
+        .select('id, name, price, is_active')
+        .eq('is_active', true)
+        .order('price', { ascending: true }),
+    ]).then(([answersRes, productsRes]) => {
+      const map: Record<string, string> = {};
+      (answersRes.data || []).forEach((row: any) => {
+        map[row.question_key] = row.answer_value;
       });
+      setAnswers(map);
+      const prods = (productsRes.data || []) as Product[];
+      setProducts(prods);
+      if (prods.length > 0 && !selectedProductId) {
+        setSelectedProductId(prods[0].id);
+      }
+      setLoading(false);
+    });
   }, [open, buildFlowId]);
 
   const parseArray = (val: string | undefined): string[] => {
@@ -58,140 +76,169 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
   const safeSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  const downloadPDF = async () => {
-    setGenerating(true);
-    const projectType = PROJECT_TYPE_MAP[answers.projectType] || answers.projectType || 'Website';
-    const pages = parseArray(answers.selectedPages);
-    const features = parseArray(answers.selectedFeatures);
-    const integrations = parseArray(answers.selectedIntegrations);
-    const budget = BUDGET_MAP[answers.budgetRange] || answers.budgetRange || 'TBC';
-    const revisions = answers.revisionRounds || '2';
-    const goal = answers.primaryGoal || '';
-    const audience = answers.targetAudience || '';
-    const launchDate = answers.desiredLaunchDate || 'TBC';
-    const commMethod = answers.communicationMethod || 'Email';
-    const existingSite = answers.existingWebsite || '';
-    const competitors = answers.competitorSites || '';
-    const notes = answers.notes || '';
-    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const pages = parseArray(answers.selectedPages);
+  const features = parseArray(answers.selectedFeatures);
+  const integrations = parseArray(answers.selectedIntegrations);
 
-    // Generate HTML for PDF
-    const html = `
-<!DOCTYPE html>
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+  const totalItemized = (pages.length * PAGE_PRICE) + (features.length * FEATURE_PRICE) + (integrations.length * INTEGRATION_PRICE);
+  const actualPrice = selectedProduct?.price || 0;
+
+  const downloadPDF = async () => {
+    if (!selectedProduct) return;
+    setGenerating(true);
+
+    const projectType = PROJECT_TYPE_MAP[answers.projectType] || answers.projectType || 'Website';
+    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const slug = safeSlug(businessName);
+
+    const pageRows = pages.map((p, i) => `
+      <tr>
+        <td class="item-num">${i + 1}</td>
+        <td class="item-desc">Page — "${p}"</td>
+        <td class="item-price">$${PAGE_PRICE.toLocaleString()}</td>
+      </tr>`).join('');
+
+    const featureRows = features.map((f, i) => `
+      <tr>
+        <td class="item-num">${pages.length + i + 1}</td>
+        <td class="item-desc">Feature — "${f}"</td>
+        <td class="item-price">$${FEATURE_PRICE.toLocaleString()}</td>
+      </tr>`).join('');
+
+    const integrationRows = integrations.map((ig, i) => `
+      <tr>
+        <td class="item-num">${pages.length + features.length + i + 1}</td>
+        <td class="item-desc">Integration — "${ig}"</td>
+        <td class="item-price">$${INTEGRATION_PRICE.toLocaleString()}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <style>
   @page { size: A4; margin: 40px 50px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1a1a1a; font-size: 13px; line-height: 1.6; }
-  h1 { font-size: 28px; margin-bottom: 4px; color: #0f172a; }
-  h2 { font-size: 18px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 30px; }
-  h3 { font-size: 14px; color: #475569; margin-top: 16px; margin-bottom: 4px; }
-  .header { margin-bottom: 30px; }
-  .header p { color: #64748b; font-size: 14px; margin: 2px 0; }
-  .badge { display: inline-block; background: #f1f5f9; color: #334155; padding: 3px 10px; border-radius: 4px; font-size: 12px; margin: 2px 4px 2px 0; }
-  .section { margin-bottom: 20px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
-  .label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .value { font-weight: 500; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th { text-align: left; background: #f8fafc; padding: 8px 12px; font-size: 12px; color: #64748b; border-bottom: 1px solid #e2e8f0; }
-  td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-  .footer { margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 11px; }
-  .note { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 10px 14px; margin-top: 12px; font-size: 12px; }
+
+  .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 24px; border-bottom: 3px solid #0f172a; margin-bottom: 30px; }
+  .logo-area { display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 48px; height: 48px; background: #0f172a; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 20px; letter-spacing: -1px; }
+  .logo-text { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -1px; }
+  .header-meta { text-align: right; color: #64748b; font-size: 12px; }
+  .header-meta strong { color: #0f172a; display: block; font-size: 14px; }
+
+  h1 { font-size: 22px; color: #0f172a; margin-bottom: 4px; }
+  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 28px; }
+
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 30px; }
+  .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+  .summary-card .label { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-card .value { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+
+  h2 { font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 32px; margin-bottom: 12px; }
+
+  table.sow { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  table.sow th { text-align: left; background: #0f172a; color: white; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  table.sow th:last-child { text-align: right; }
+  table.sow td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  table.sow td.item-num { width: 40px; color: #94a3b8; font-weight: 600; }
+  table.sow td.item-price { text-align: right; font-weight: 600; color: #334155; }
+  table.sow td.item-desc { font-weight: 500; }
+  table.sow tr:nth-child(even) { background: #fafbfc; }
+
+  .totals { margin-top: 20px; text-align: right; }
+  .total-line { font-size: 16px; font-weight: 600; color: #94a3b8; text-decoration: line-through; margin-bottom: 6px; }
+  .actual-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 12px; }
+  .actual-label { font-size: 14px; color: #0f172a; font-weight: 600; }
+  .actual-price { font-size: 28px; font-weight: 800; color: #0f172a; }
+  .product-badge { display: inline-block; background: #0f172a; color: white; padding: 4px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 8px; letter-spacing: 0.03em; }
+
+  .disclaimer { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; margin-top: 30px; font-size: 12px; line-height: 1.7; color: #78350f; border-radius: 0 8px 8px 0; }
+
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 11px; display: flex; justify-content: space-between; }
 </style>
 </head>
 <body>
   <div class="header">
-    <h1>Statement of Work</h1>
-    <p><strong>${businessName}</strong> — ${projectType}</p>
-    <p>Prepared by Sited · ${today}</p>
-  </div>
-
-  <h2>1. Project Overview</h2>
-  <div class="section">
-    <div class="grid">
-      <div><span class="label">Client</span><br><span class="value">${businessName}</span></div>
-      <div><span class="label">Project Type</span><br><span class="value">${projectType}</span></div>
-      <div><span class="label">Target Launch</span><br><span class="value">${launchDate}</span></div>
-      <div><span class="label">Budget Range</span><br><span class="value">${budget}</span></div>
-      <div><span class="label">Revision Rounds</span><br><span class="value">${revisions}</span></div>
-      <div><span class="label">Communication</span><br><span class="value">${commMethod}</span></div>
+    <div class="logo-area">
+      <div class="logo-mark">S</div>
+      <span class="logo-text">Sited</span>
     </div>
-    ${goal ? `<h3>Primary Goal</h3><p>${goal}</p>` : ''}
-    ${audience ? `<h3>Target Audience</h3><p>${audience}</p>` : ''}
+    <div class="header-meta">
+      <strong>Statement of Work</strong>
+      ${today}
+    </div>
   </div>
 
-  <h2>2. Scope — Pages</h2>
-  <div class="section">
-    <table>
-      <thead><tr><th>#</th><th>Page</th></tr></thead>
-      <tbody>${pages.map((p, i) => `<tr><td>${i + 1}</td><td>${p}</td></tr>`).join('')}</tbody>
-    </table>
+  <h1>Proposal — ${businessName}</h1>
+  <p class="subtitle">${projectType} · Prepared by Sited</p>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="label">Pages</div>
+      <div class="value">${pages.length}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Features</div>
+      <div class="value">${features.length}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Integrations</div>
+      <div class="value">${integrations.length}</div>
+    </div>
   </div>
 
-  ${features.length > 0 ? `
-  <h2>3. Features & Functionality</h2>
-  <div class="section">
-    ${features.map(f => `<span class="badge">${f}</span>`).join('')}
-  </div>` : ''}
+  <h2>Scope of Works</h2>
+  <table class="sow">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Item</th>
+        <th>Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${pageRows}
+      ${featureRows}
+      ${integrationRows}
+    </tbody>
+  </table>
 
-  ${integrations.length > 0 ? `
-  <h2>4. Integrations</h2>
-  <div class="section">
-    ${integrations.map(i => `<span class="badge">${i}</span>`).join('')}
-  </div>` : ''}
-
-  ${existingSite || competitors || notes ? `
-  <h2>5. Additional Context</h2>
-  <div class="section">
-    ${existingSite ? `<h3>Existing Website</h3><p>${existingSite}</p>` : ''}
-    ${competitors ? `<h3>Competitor / Reference Sites</h3><p>${competitors}</p>` : ''}
-    ${notes ? `<h3>Notes</h3><p>${notes}</p>` : ''}
-  </div>` : ''}
-
-  <h2>${existingSite || competitors || notes ? '6' : '5'}. Terms</h2>
-  <div class="section">
-    <ul>
-      <li>Deposit is required before work begins. Final balance due before go-live.</li>
-      <li>${revisions} rounds of revisions are included. Additional revisions will be quoted as change requests.</li>
-      <li>Content and assets must be provided by the client within the agreed timeline.</li>
-      <li>This proposal is valid for 30 days from the date of issue.</li>
-    </ul>
+  <div class="totals">
+    <div class="total-line">Total: $${totalItemized.toLocaleString()}</div>
+    <div class="actual-line">
+      <span class="actual-label">Your Price:</span>
+      <span class="actual-price">$${actualPrice.toLocaleString()}</span>
+    </div>
+    <div class="product-badge">${selectedProduct?.name || ''} Package</div>
   </div>
 
-  <div class="note">
-    <strong>Note:</strong> This Statement of Work is generated from the project discovery form. Final pricing and detailed timelines will be confirmed in the accompanying contract.
+  <div class="disclaimer">
+    All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.
   </div>
 
   <div class="footer">
-    <p>Sited · Web Design & Development · sited.co</p>
-    <p>Document: ${safeSlug(businessName)}.sited.sow</p>
+    <span>Sited · Web Design &amp; Development · sited.co</span>
+    <span>${slug}.sited.sow</span>
   </div>
 </body>
 </html>`;
 
-    // Use browser print to PDF
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const printWindow = window.open(url, '_blank');
     if (printWindow) {
       printWindow.addEventListener('load', () => {
-        // Set the document title for PDF filename
-        printWindow.document.title = `${safeSlug(businessName)}.sited.sow`;
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
+        printWindow.document.title = `${slug}.sited.sow`;
+        setTimeout(() => printWindow.print(), 500);
       });
     }
 
     setGenerating(false);
     onOpenChange(false);
   };
-
-  const pages = parseArray(answers.selectedPages);
-  const features = parseArray(answers.selectedFeatures);
-  const integrations = parseArray(answers.selectedIntegrations);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -204,32 +251,33 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
         </DialogHeader>
         <ScrollArea className="max-h-[55vh] pr-4">
           {loading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading discovery data...</div>
+            <div className="py-8 text-center text-muted-foreground">Loading data…</div>
           ) : (
             <div className="space-y-4">
+              {/* Product Tier Selection */}
+              <div className="space-y-2">
+                <Label>Package Tier</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} — ${p.price.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Itemised Preview */}
               <div className="rounded-lg border p-4 space-y-3">
-                <h4 className="text-sm font-semibold">Proposal Preview</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-xs text-muted-foreground">Project Type</span>
-                    <p className="font-medium">{PROJECT_TYPE_MAP[answers.projectType] || answers.projectType || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Budget</span>
-                    <p className="font-medium">{BUDGET_MAP[answers.budgetRange] || answers.budgetRange || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Launch Date</span>
-                    <p className="font-medium">{answers.desiredLaunchDate || 'TBC'}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Revisions</span>
-                    <p className="font-medium">{answers.revisionRounds || '2'} rounds</p>
-                  </div>
-                </div>
+                <h4 className="text-sm font-semibold">Scope of Works</h4>
+
                 {pages.length > 0 && (
                   <div>
-                    <span className="text-xs text-muted-foreground">Pages ({pages.length})</span>
+                    <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${PAGE_PRICE})</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {pages.map((p, i) => <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>)}
                     </div>
@@ -237,7 +285,7 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
                 )}
                 {features.length > 0 && (
                   <div>
-                    <span className="text-xs text-muted-foreground">Features ({features.length})</span>
+                    <span className="text-xs text-muted-foreground">Features ({features.length} × ${FEATURE_PRICE})</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {features.map((f, i) => <Badge key={i} variant="outline" className="text-xs">{f}</Badge>)}
                     </div>
@@ -245,23 +293,31 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
                 )}
                 {integrations.length > 0 && (
                   <div>
-                    <span className="text-xs text-muted-foreground">Integrations ({integrations.length})</span>
+                    <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${INTEGRATION_PRICE})</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {integrations.map((ig, i) => <Badge key={i} variant="outline" className="text-xs">{ig}</Badge>)}
                     </div>
                   </div>
                 )}
+
+                <div className="border-t pt-3 mt-3 text-right space-y-1">
+                  <p className="text-sm text-muted-foreground line-through">Total: ${totalItemized.toLocaleString()}</p>
+                  <p className="text-lg font-bold">
+                    {selectedProduct ? `$${actualPrice.toLocaleString()}` : '—'}
+                    {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name} Package</span>}
+                  </p>
+                </div>
               </div>
+
               <p className="text-xs text-muted-foreground">
-                The PDF will be generated as a Statement of Work based on the discovery form answers. 
-                File name: <code className="bg-muted px-1 rounded">{businessName ? `${businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}.sited.sow.pdf` : 'proposal.pdf'}</code>
+                Download: <code className="bg-muted px-1 rounded">{slug(businessName)}.sited.sow.pdf</code>
               </p>
             </div>
           )}
         </ScrollArea>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={downloadPDF} disabled={loading || generating}>
+          <Button onClick={downloadPDF} disabled={loading || generating || !selectedProductId}>
             {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
             Download Proposal PDF
           </Button>
@@ -269,4 +325,8 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
       </DialogContent>
     </Dialog>
   );
+
+  function slug(name: string) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
 }
