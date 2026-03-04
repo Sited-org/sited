@@ -73,12 +73,14 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
 
   const handleDiscoverySubmit = async (data: DiscoveryData) => {
     const { features, integrations } = mapFeatureKeys(data);
+    // Pass full discovery data + userId so edge function can auto-complete P1S1
     await createBuildFlow(
       data.projectType,
       features,
       data.selectedPages,
       integrations,
       data.businessName,
+      data,
     );
   };
 

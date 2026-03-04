@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BuildFlow, BuildPhase, BuildStep } from '@/hooks/useBuildFlow';
 import { StepCompleteModal } from './StepCompleteModal';
+import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
+import { ProposalGenerator } from './ProposalGenerator';
 
 interface BuildFlowViewProps {
   buildFlow: BuildFlow;
@@ -37,6 +39,8 @@ export function BuildFlowView({
     phases.find(p => !p.is_completed && !p.is_locked && !p.is_skipped)?.id || phases[0]?.id || null
   );
   const [completingStep, setCompletingStep] = useState<BuildStep | null>(null);
+  const [showDiscoveryAnswers, setShowDiscoveryAnswers] = useState(false);
+  const [showProposalGenerator, setShowProposalGenerator] = useState(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
 
@@ -59,6 +63,16 @@ export function BuildFlowView({
     if (step.is_locked) return 'border-border bg-muted/20 opacity-60';
     return 'border-border hover:border-primary/50';
   };
+
+  // Check if a step is the discovery_call step (P1S1) - show answers dialog instead of normal expand
+  const isDiscoveryStep = (step: BuildStep) => step.step_key === 'discovery_call';
+  // Check if a step is the proposal step (P1S2) - show proposal generator
+  const isProposalStep = (step: BuildStep) => step.step_key === 'proposal_sent';
+
+  // Derive business name from staging URL
+  const businessName = buildFlow.staging_url
+    ? buildFlow.staging_url.replace('.sited.co', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    : 'Client';
 
   return (
     <div className="space-y-4">
@@ -157,7 +171,13 @@ export function BuildFlowView({
                 {activePhase.steps.map(step => (
                   <Collapsible key={step.id}>
                     <div className={cn('rounded-lg border p-3 transition-colors', getStepStatusColor(step))}>
-                      <CollapsibleTrigger className="w-full">
+                      <CollapsibleTrigger className="w-full" onClick={(e) => {
+                        // For completed discovery step, open the answers dialog instead
+                        if (isDiscoveryStep(step) && step.is_completed) {
+                          e.preventDefault();
+                          setShowDiscoveryAnswers(true);
+                        }
+                      }}>
                         <div className="flex items-center gap-3">
                           {step.is_completed ? (
                             <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
@@ -175,6 +195,11 @@ export function BuildFlowView({
                               </span>
                               {!step.is_required && (
                                 <Badge variant="outline" className="text-xs">Optional</Badge>
+                              )}
+                              {isDiscoveryStep(step) && step.is_completed && (
+                                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                  <FileText className="h-3 w-3" /> View Answers
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -207,7 +232,26 @@ export function BuildFlowView({
                               </p>
                             </div>
                           )}
-                          {canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
+
+                          {/* Special: Proposal step - show generate button if not completed */}
+                          {isProposalStep(step) && !step.is_completed && !step.is_locked && canEdit && (
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => setShowProposalGenerator(true)}>
+                                <FileDown className="h-4 w-4 mr-1" /> Generate & Download Proposal
+                              </Button>
+                              <Button size="sm" onClick={() => setCompletingStep(step)}>
+                                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
+                              </Button>
+                              {!step.is_required && (
+                                <Button size="sm" variant="outline" onClick={() => onSkipStep(step.id)}>
+                                  <SkipForward className="h-4 w-4 mr-1" /> Skip
+                                </Button>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Normal actions for non-special steps */}
+                          {!isProposalStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
                             <div className="flex gap-2">
                               <Button size="sm" onClick={() => setCompletingStep(step)}>
                                 <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
@@ -248,6 +292,21 @@ export function BuildFlowView({
           }}
         />
       )}
+
+      {/* Discovery Answers Dialog */}
+      <DiscoveryAnswersDialog
+        buildFlowId={buildFlow.id}
+        open={showDiscoveryAnswers}
+        onOpenChange={setShowDiscoveryAnswers}
+      />
+
+      {/* Proposal Generator Dialog */}
+      <ProposalGenerator
+        buildFlowId={buildFlow.id}
+        businessName={businessName}
+        open={showProposalGenerator}
+        onOpenChange={setShowProposalGenerator}
+      />
     </div>
   );
 }
