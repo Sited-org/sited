@@ -259,6 +259,258 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_colours: {
+        Row: {
+          build_flow_id: string
+          created_at: string
+          hex_value: string
+          id: string
+          label: string
+          lead_id: string
+          order_index: number
+        }
+        Insert: {
+          build_flow_id: string
+          created_at?: string
+          hex_value: string
+          id?: string
+          label: string
+          lead_id: string
+          order_index?: number
+        }
+        Update: {
+          build_flow_id?: string
+          created_at?: string
+          hex_value?: string
+          id?: string
+          label?: string
+          lead_id?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_colours_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_colours_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brand_fonts: {
+        Row: {
+          build_flow_id: string
+          created_at: string
+          font_name: string
+          id: string
+          label: string
+          lead_id: string
+          order_index: number
+        }
+        Insert: {
+          build_flow_id: string
+          created_at?: string
+          font_name: string
+          id?: string
+          label: string
+          lead_id: string
+          order_index?: number
+        }
+        Update: {
+          build_flow_id?: string
+          created_at?: string
+          font_name?: string
+          id?: string
+          label?: string
+          lead_id?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_fonts_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brand_fonts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      build_flows: {
+        Row: {
+          client_view_enabled: boolean
+          created_at: string
+          id: string
+          is_live: boolean
+          lead_id: string
+          live_at: string | null
+          project_type: string
+          staging_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_view_enabled?: boolean
+          created_at?: string
+          id?: string
+          is_live?: boolean
+          lead_id: string
+          live_at?: string | null
+          project_type: string
+          staging_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_view_enabled?: boolean
+          created_at?: string
+          id?: string
+          is_live?: boolean
+          lead_id?: string
+          live_at?: string | null
+          project_type?: string
+          staging_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_flows_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      build_phases: {
+        Row: {
+          build_flow_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean
+          is_locked: boolean
+          is_skipped: boolean
+          is_strictly_linear: boolean
+          order_index: number
+          phase_key: string
+          phase_number: number
+          title: string
+          unlocks_after_phase_key: string | null
+        }
+        Insert: {
+          build_flow_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          is_locked?: boolean
+          is_skipped?: boolean
+          is_strictly_linear?: boolean
+          order_index?: number
+          phase_key: string
+          phase_number: number
+          title: string
+          unlocks_after_phase_key?: string | null
+        }
+        Update: {
+          build_flow_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean
+          is_locked?: boolean
+          is_skipped?: boolean
+          is_strictly_linear?: boolean
+          order_index?: number
+          phase_key?: string
+          phase_number?: number
+          title?: string
+          unlocks_after_phase_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_phases_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      build_steps: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          description: string | null
+          guidance: string | null
+          id: string
+          is_completed: boolean
+          is_locked: boolean
+          is_required: boolean
+          is_skipped: boolean
+          order_index: number
+          phase_id: string
+          step_key: string
+          step_number: number
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          description?: string | null
+          guidance?: string | null
+          id?: string
+          is_completed?: boolean
+          is_locked?: boolean
+          is_required?: boolean
+          is_skipped?: boolean
+          order_index?: number
+          phase_id: string
+          step_key: string
+          step_number: number
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          description?: string | null
+          guidance?: string | null
+          id?: string
+          is_completed?: boolean
+          is_locked?: boolean
+          is_required?: boolean
+          is_skipped?: boolean
+          order_index?: number
+          phase_id?: string
+          step_key?: string
+          step_number?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "build_steps_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "build_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       captcha_challenges: {
         Row: {
           answer: number
@@ -285,6 +537,66 @@ export type Database = {
           used?: boolean
         }
         Relationships: []
+      }
+      client_assets: {
+        Row: {
+          build_flow_id: string
+          created_at: string
+          google_drive_link: string | null
+          id: string
+          lead_id: string
+          logo_16: string | null
+          logo_192: string | null
+          logo_32: string | null
+          logo_512: string | null
+          logo_apple_touch: string | null
+          og_image: string | null
+          updated_at: string
+        }
+        Insert: {
+          build_flow_id: string
+          created_at?: string
+          google_drive_link?: string | null
+          id?: string
+          lead_id: string
+          logo_16?: string | null
+          logo_192?: string | null
+          logo_32?: string | null
+          logo_512?: string | null
+          logo_apple_touch?: string | null
+          og_image?: string | null
+          updated_at?: string
+        }
+        Update: {
+          build_flow_id?: string
+          created_at?: string
+          google_drive_link?: string | null
+          id?: string
+          lead_id?: string
+          logo_16?: string | null
+          logo_192?: string | null
+          logo_32?: string | null
+          logo_512?: string | null
+          logo_apple_touch?: string | null
+          og_image?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_assets_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_assets_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_otp_codes: {
         Row: {
@@ -389,6 +701,63 @@ export type Database = {
           },
         ]
       }
+      credential_vault: {
+        Row: {
+          build_flow_id: string
+          collected_by: string
+          date_collected: string
+          id: string
+          is_live_key: boolean
+          is_test_key: boolean
+          key_type: string
+          key_value: string
+          lead_id: string
+          notes: string | null
+          service_name: string
+        }
+        Insert: {
+          build_flow_id: string
+          collected_by: string
+          date_collected?: string
+          id?: string
+          is_live_key?: boolean
+          is_test_key?: boolean
+          key_type: string
+          key_value: string
+          lead_id: string
+          notes?: string | null
+          service_name: string
+        }
+        Update: {
+          build_flow_id?: string
+          collected_by?: string
+          date_collected?: string
+          id?: string
+          is_live_key?: boolean
+          is_test_key?: boolean
+          key_type?: string
+          key_value?: string
+          lead_id?: string
+          notes?: string | null
+          service_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credential_vault_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credential_vault_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_notes: {
         Row: {
           content: string
@@ -417,6 +786,38 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discovery_answers: {
+        Row: {
+          answer_value: string
+          build_flow_id: string
+          created_at: string
+          id: string
+          question_key: string
+        }
+        Insert: {
+          answer_value: string
+          build_flow_id: string
+          created_at?: string
+          id?: string
+          question_key: string
+        }
+        Update: {
+          answer_value?: string
+          build_flow_id?: string
+          created_at?: string
+          id?: string
+          question_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovery_answers_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
             referencedColumns: ["id"]
           },
         ]
@@ -1151,6 +1552,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      step_completions: {
+        Row: {
+          build_flow_id: string
+          completed_at: string
+          completed_by: string
+          description: string
+          id: string
+          is_visible_to_client: boolean
+          screenshot_url: string | null
+          step_id: string
+        }
+        Insert: {
+          build_flow_id: string
+          completed_at?: string
+          completed_by: string
+          description: string
+          id?: string
+          is_visible_to_client?: boolean
+          screenshot_url?: string | null
+          step_id: string
+        }
+        Update: {
+          build_flow_id?: string
+          completed_at?: string
+          completed_by?: string
+          description?: string
+          id?: string
+          is_visible_to_client?: boolean
+          screenshot_url?: string | null
+          step_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "step_completions_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "step_completions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "build_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
