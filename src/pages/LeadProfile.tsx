@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Save, User, FolderOpen, CreditCard, Settings, Wallet, MessageSquare, Mail } from 'lucide-react';
 import { LeadStatusBadge } from '@/components/admin/LeadStatusBadge';
 import { ProfileTab } from '@/components/admin/lead-profile/ProfileTab';
-import { ProjectTab } from '@/components/admin/lead-profile/ProjectTab';
+import { BuildFlowProjectTab } from '@/components/admin/lead-profile/build-flow/BuildFlowProjectTab';
 import { PaymentsTab } from '@/components/admin/lead-profile/PaymentsTab';
 import { CardTab } from '@/components/admin/lead-profile/CardTab';
 import { SettingsTab } from '@/components/admin/lead-profile/SettingsTab';
@@ -210,7 +210,7 @@ export default function LeadProfile() {
         </TabsContent>
 
         <TabsContent value="project" className="mt-6">
-          <ProjectTab lead={lead} canEdit={canEdit} onLeadUpdate={setLead} />
+          <BuildFlowProjectTab lead={lead} canEdit={canEdit} onLeadUpdate={setLead} />
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">
