@@ -65,7 +65,7 @@ function generatePhases(ctx: BuildContext): PhaseConfig[] {
       { step_number: 1, step_key: "discovery_call", title: "Discovery call completed & notes saved", description: "Complete the discovery call with the client.", guidance: "Record key takeaways, goals, and any specific requests from the client.", is_required: true },
       { step_number: 2, step_key: "proposal_sent", title: "Proposal sent to client", description: "Send the project proposal.", guidance: "Include scope, timeline, pricing, and deliverables.", is_required: true },
       { step_number: 3, step_key: "contract_signed", title: "Contract signed — attach signed copy", description: "Get the contract signed.", guidance: "Upload the signed contract as a screenshot or PDF.", is_required: true },
-      { step_number: 4, step_key: "deposit_received", title: "50% deposit received — confirm amount", description: "Confirm the deposit payment.", guidance: "Note the amount received and payment method.", is_required: true },
+      { step_number: 4, step_key: "deposit_received", title: "Deposit received — confirm amount", description: "Confirm the deposit payment has been received.", guidance: "Note the amount received and payment method.", is_required: true },
       { step_number: 5, step_key: "client_profile_created", title: "Client profile fully created in Sited", description: "Create the client profile.", guidance: "Ensure all contact details, business info, and notes are saved.", is_required: true },
       { step_number: 6, step_key: "sitemap_drafted", title: "Site map drafted and sent to client", description: "Draft and send the site map.", guidance: "List all pages, their hierarchy, and key sections.", is_required: true },
       { step_number: 7, step_key: "sitemap_approved", title: "Site map approved by client in writing — attach approval", description: "Get written approval.", guidance: "Upload screenshot of client approval (email, message, or signed document).", is_required: true },
@@ -440,7 +440,7 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { lead_id, project_type, selected_features = [], selected_pages = [], selected_integrations = [], business_name = "" } = await req.json();
+    const { lead_id, project_type, selected_features = [], selected_pages = [], selected_integrations = [], business_name = "", discovery_data = null, user_id = null } = await req.json();
 
     if (!lead_id || !project_type) {
       throw new Error("lead_id and project_type are required");
@@ -467,7 +467,21 @@ Deno.serve(async (req) => {
     const ctx: BuildContext = { project_type, selected_features, selected_pages, selected_integrations };
     const phases = generatePhases(ctx);
 
+    // Save discovery answers if provided
+    if (discovery_data && typeof discovery_data === "object") {
+      const answerRows = Object.entries(discovery_data).map(([key, value]) => ({
+        build_flow_id: flow.id,
+        question_key: key,
+        answer_value: typeof value === "string" ? value : JSON.stringify(value),
+      }));
+      if (answerRows.length > 0) {
+        await supabase.from("discovery_answers").insert(answerRows);
+      }
+    }
+
     // Insert phases
+    let discoveryStepId: string | null = null;
+    let discoveryPhaseId: string | null = null;
     for (const phase of phases) {
       const { data: phaseRow, error: phaseErr } = await supabase
         .from("build_phases")
@@ -500,11 +514,35 @@ Deno.serve(async (req) => {
         order_index: s.step_number - 1,
       }));
 
-      const { error: stepsErr } = await supabase
+      const { data: insertedSteps, error: stepsErr } = await supabase
         .from("build_steps")
-        .insert(stepRows);
+        .insert(stepRows)
+        .select();
 
       if (stepsErr) throw stepsErr;
+
+      // Auto-complete Phase 1, Step 1 (discovery_call) since the discovery form was just submitted
+      if (phase.phase_key === "onboarding" && discovery_data && user_id) {
+        const discoveryStep = (insertedSteps || []).find((s: any) => s.step_key === "discovery_call");
+        if (discoveryStep) {
+          discoveryStepId = discoveryStep.id;
+          discoveryPhaseId = phaseRow.id;
+          // Mark step as completed
+          await supabase.from("build_steps").update({
+            is_completed: true,
+            completed_at: new Date().toISOString(),
+            completed_by: user_id,
+          }).eq("id", discoveryStep.id);
+
+          // Create step completion record
+          await supabase.from("step_completions").insert({
+            step_id: discoveryStep.id,
+            build_flow_id: flow.id,
+            completed_by: user_id,
+            description: "Discovery form completed during project creation. Click to view answers.",
+          });
+        }
+      }
     }
 
     // Create client_assets record

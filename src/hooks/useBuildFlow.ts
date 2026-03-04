@@ -324,8 +324,11 @@ export function useBuildFlow(leadId: string | undefined) {
     selectedFeatures: string[],
     selectedPages: string[],
     selectedIntegrations: string[],
-    businessName: string
+    businessName: string,
+    discoveryData?: any,
   ) => {
+    // Get current user for auto-completing P1S1
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase.functions.invoke('generate-build-flow', {
       body: {
         lead_id: leadId,
@@ -334,6 +337,8 @@ export function useBuildFlow(leadId: string | undefined) {
         selected_pages: selectedPages,
         selected_integrations: selectedIntegrations,
         business_name: businessName,
+        discovery_data: discoveryData || null,
+        user_id: user?.id || null,
       },
     });
 
