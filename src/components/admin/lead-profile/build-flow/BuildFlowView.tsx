@@ -237,7 +237,7 @@ export function BuildFlowView({
                           {isProposalStep(step) && !step.is_completed && !step.is_locked && canEdit && (
                             <div className="flex gap-2">
                               <Button size="sm" variant="outline" onClick={() => setShowProposalGenerator(true)}>
-                                <FileDown className="h-4 w-4 mr-1" /> Generate & Download Proposal
+                                <FileDown className="h-4 w-4 mr-1" /> Generate Proposal
                               </Button>
                               <Button size="sm" onClick={() => setCompletingStep(step)}>
                                 <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete

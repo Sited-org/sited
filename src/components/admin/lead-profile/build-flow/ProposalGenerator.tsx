@@ -40,7 +40,7 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
   const [loading, setLoading] = useState(true);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -98,91 +98,338 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
     let rowNum = 0;
-    const pageRows = pages.map(p => { rowNum++; return `<tr><td class="item-num">${rowNum}</td><td class="item-desc">Page — "${p}"</td><td class="item-price">$${PAGE_PRICE.toLocaleString()}</td></tr>`; }).join('');
-    const featureRows = features.map(f => { rowNum++; return `<tr><td class="item-num">${rowNum}</td><td class="item-desc">Feature — "${f}"</td><td class="item-price">$${FEATURE_PRICE.toLocaleString()}</td></tr>`; }).join('');
-    const integrationRows = integrations.map(ig => { rowNum++; return `<tr><td class="item-num">${rowNum}</td><td class="item-desc">Integration — "${ig}"</td><td class="item-price">$${INTEGRATION_PRICE.toLocaleString()}</td></tr>`; }).join('');
+    const makeRow = (desc: string, price: string, isFree = false) => {
+      rowNum++;
+      const priceClass = isFree ? 'free-price' : 'price';
+      return `<tr>
+        <td class="num-cell">${String(rowNum).padStart(2, '0')}</td>
+        <td class="desc-cell">${desc}</td>
+        <td class="price-cell ${priceClass}">${price}</td>
+      </tr>`;
+    };
 
-    // 3 free items
+    const pageRows = pages.map(p => makeRow(`Page — ${p}`, `$${PAGE_PRICE}`)).join('');
+    const featureRows = features.map(f => makeRow(`Feature — ${f}`, `$${FEATURE_PRICE}`)).join('');
+    const integrationRows = integrations.map(ig => makeRow(`Integration — ${ig}`, `$${INTEGRATION_PRICE}`)).join('');
     const freeRows = [
-      { label: 'SEO Optimisation' },
-      { label: 'Device Design Optimisation' },
-      { label: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included` },
-    ].map(item => { rowNum++; return `<tr><td class="item-num">${rowNum}</td><td class="item-desc">${item.label}</td><td class="item-price free">FREE</td></tr>`; }).join('');
+      makeRow('SEO Optimisation', 'FREE', true),
+      makeRow('Device Design Optimisation', 'FREE', true),
+      makeRow(`${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, 'FREE', true),
+    ].join('');
 
-    return `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
+    const savings = totalItemized - actualPrice;
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>
-  @page { size: A4; margin: 40px 50px; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #1a1a1a; font-size: 13px; line-height: 1.6; }
-  .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 24px; border-bottom: 3px solid #0f172a; margin-bottom: 30px; }
-  .logo-area { display: flex; align-items: center; gap: 12px; }
-  .logo-mark { width: 48px; height: 48px; background: #0f172a; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 20px; letter-spacing: -1px; }
-  .logo-text { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -1px; }
-  .header-meta { text-align: right; color: #64748b; font-size: 12px; }
-  .header-meta strong { color: #0f172a; display: block; font-size: 14px; }
-  h1 { font-size: 22px; color: #0f172a; margin-bottom: 4px; }
-  .subtitle { color: #64748b; font-size: 14px; margin-bottom: 28px; }
-  .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 30px; }
-  .summary-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
-  .summary-card .label { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .summary-card .value { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 2px; }
-  h2 { font-size: 16px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 32px; margin-bottom: 12px; }
-  table.sow { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  table.sow th { text-align: left; background: #0f172a; color: white; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-  table.sow th:last-child { text-align: right; }
-  table.sow td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-  table.sow td.item-num { width: 40px; color: #94a3b8; font-weight: 600; }
-  table.sow td.item-price { text-align: right; font-weight: 600; color: #334155; }
-  table.sow td.item-price.free { color: #16a34a; font-weight: 700; }
-  table.sow td.item-desc { font-weight: 500; }
-  table.sow tr:nth-child(even) { background: #fafbfc; }
-  .totals { margin-top: 20px; text-align: right; }
-  .total-line { font-size: 16px; font-weight: 600; color: #94a3b8; text-decoration: line-through; margin-bottom: 6px; }
-  .actual-line { display: flex; align-items: baseline; justify-content: flex-end; gap: 12px; }
-  .actual-label { font-size: 14px; color: #0f172a; font-weight: 600; }
-  .actual-price { font-size: 28px; font-weight: 800; color: #0f172a; }
-  .product-badge { display: inline-block; background: #0f172a; color: white; padding: 4px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 8px; letter-spacing: 0.03em; }
-  .disclaimer { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 14px 18px; margin-top: 30px; font-size: 12px; line-height: 1.7; color: #78350f; border-radius: 0 8px 8px 0; }
-  .footer { margin-top: 40px; padding-top: 16px; border-top: 2px solid #e2e8f0; color: #94a3b8; font-size: 11px; display: flex; justify-content: space-between; }
-</style></head><body>
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    font-size: 12.5px;
+    line-height: 1.5;
+    background: #ffffff;
+    padding: 0;
+  }
+
+  .page {
+    max-width: 794px;
+    margin: 0 auto;
+    padding: 48px 52px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 20px;
+  }
+  .brand-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+  }
+  .doc-meta {
+    text-align: right;
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.7;
+  }
+  .doc-meta .doc-type {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 3px;
+    background: linear-gradient(90deg, #0f172a 0%, #64748b 50%, #e2e8f0 100%);
+    border-radius: 2px;
+    margin-bottom: 36px;
+  }
+
+  /* ── Title Block ── */
+  .title-block {
+    margin-bottom: 32px;
+  }
+  .title-block h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 6px;
+  }
+  .title-block .sub {
+    font-size: 13px;
+    color: #64748b;
+  }
+  .title-block .sub span {
+    display: inline-block;
+    margin: 0 6px;
+    color: #cbd5e1;
+  }
+
+  /* ── Stat Cards ── */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .stat-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+    text-align: center;
+    background: #f8fafc;
+  }
+  .stat-card .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .stat-card .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+
+  /* ── Section Title ── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #94a3b8;
+    margin-bottom: 14px;
+  }
+
+  /* ── Table ── */
+  .sow-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .sow-table thead th {
+    background: #0f172a;
+    color: #f8fafc;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 18px;
+    font-weight: 600;
+    text-align: left;
+  }
+  .sow-table thead th:first-child { width: 50px; }
+  .sow-table thead th:last-child { text-align: right; }
+
+  .sow-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+  .sow-table tbody tr:last-child td { border-bottom: none; }
+  .sow-table tbody tr:nth-child(even) { background: #fafbfd; }
+
+  .sow-table td {
+    padding: 11px 18px;
+    font-size: 12.5px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .sow-table .num-cell {
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: 11px;
+    width: 50px;
+  }
+  .sow-table .desc-cell { font-weight: 500; color: #1e293b; }
+  .sow-table .price-cell { text-align: right; font-weight: 600; color: #334155; white-space: nowrap; }
+  .sow-table .price-cell.free-price {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Totals ── */
+  .totals-box {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+  }
+  .totals-row.strikethrough {
+    background: #fafbfd;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .totals-row.strikethrough .val {
+    text-decoration: line-through;
+    color: #94a3b8;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .totals-row.strikethrough .lbl { color: #94a3b8; font-size: 12px; }
+
+  .totals-row.savings {
+    background: #f0fdf4;
+    border-bottom: 1px solid #dcfce7;
+  }
+  .totals-row.savings .lbl { color: #16a34a; font-size: 12px; font-weight: 600; }
+  .totals-row.savings .val { color: #16a34a; font-size: 15px; font-weight: 700; }
+
+  .totals-row.final {
+    background: #0f172a;
+    padding: 18px 24px;
+  }
+  .totals-row.final .lbl { color: #94a3b8; font-size: 13px; font-weight: 600; }
+  .totals-row.final .val { color: #ffffff; font-size: 26px; font-weight: 800; }
+  .totals-row.final .pkg-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    color: #e2e8f0;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-left: 12px;
+    vertical-align: middle;
+  }
+
+  /* ── Disclaimer ── */
+  .disclaimer {
+    border: 1.5px solid #fde68a;
+    border-radius: 10px;
+    background: #fffbeb;
+    padding: 18px 22px;
+    font-size: 11.5px;
+    color: #92400e;
+    line-height: 1.7;
+    margin-bottom: 40px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    border-top: 1.5px solid #e2e8f0;
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #94a3b8;
+  }
+  .footer a { color: #64748b; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
   <div class="header">
-    <div class="logo-area">
-      <div class="logo-mark">S</div>
-      <span class="logo-text">Sited</span>
+    <div class="brand">
+      <div class="brand-icon">S</div>
+      <div class="brand-name">Sited</div>
     </div>
-    <div class="header-meta">
-      <strong>Statement of Work</strong>
+    <div class="doc-meta">
+      <div class="doc-type">Statement of Work</div>
+      Ref: SOW-${fileSlug.toUpperCase().slice(0, 8)}<br/>
       ${today}
     </div>
   </div>
-  <h1>Proposal — ${businessName}</h1>
-  <p class="subtitle">${projectType} · Prepared by Sited</p>
-  <div class="summary-grid">
-    <div class="summary-card"><div class="label">Pages</div><div class="value">${pages.length}</div></div>
-    <div class="summary-card"><div class="label">Features</div><div class="value">${features.length}</div></div>
-    <div class="summary-card"><div class="label">Integrations</div><div class="value">${integrations.length}</div></div>
+
+  <div class="divider"></div>
+
+  <div class="title-block">
+    <h1>${businessName}</h1>
+    <div class="sub">${projectType}<span>·</span>Prepared by Sited<span>·</span>${today}</div>
   </div>
-  <h2>Scope of Works</h2>
-  <table class="sow">
-    <thead><tr><th>#</th><th>Item</th><th>Price</th></tr></thead>
-    <tbody>${pageRows}${featureRows}${integrationRows}${freeRows}</tbody>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-num">${pages.length}</div><div class="stat-label">Pages</div></div>
+    <div class="stat-card"><div class="stat-num">${features.length}</div><div class="stat-label">Features</div></div>
+    <div class="stat-card"><div class="stat-num">${integrations.length}</div><div class="stat-label">Integrations</div></div>
+  </div>
+
+  <div class="section-title">Scope of Works</div>
+  <table class="sow-table">
+    <thead><tr><th>#</th><th>Item Description</th><th>Price</th></tr></thead>
+    <tbody>
+      ${pageRows}
+      ${featureRows}
+      ${integrationRows}
+      ${freeRows}
+    </tbody>
   </table>
-  <div class="totals">
-    <div class="total-line">Total: $${totalItemized.toLocaleString()}</div>
-    <div class="actual-line">
-      <span class="actual-label">Your Price:</span>
-      <span class="actual-price">$${actualPrice.toLocaleString()}</span>
+
+  <div class="totals-box">
+    <div class="totals-row strikethrough">
+      <span class="lbl">Itemised Total</span>
+      <span class="val">$${totalItemized.toLocaleString()}</span>
     </div>
-    <div class="product-badge">${selectedProduct?.name || ''} Package</div>
+    <div class="totals-row savings">
+      <span class="lbl">You Save</span>
+      <span class="val">$${savings.toLocaleString()}</span>
+    </div>
+    <div class="totals-row final">
+      <span class="lbl">Your Price</span>
+      <span class="val">$${actualPrice.toLocaleString()}<span class="pkg-badge">${selectedProduct?.name} Package</span></span>
+    </div>
   </div>
+
   <div class="disclaimer">
     All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.
   </div>
+
   <div class="footer">
-    <span>Sited · Web Design &amp; Development · sited.co</span>
+    <span>Sited · Web Design &amp; Development</span>
     <span>${fileSlug}.sited.sow</span>
   </div>
+</div>
 </body></html>`;
   };
 
@@ -195,43 +442,51 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
     if (!previewHtml) return;
     setDownloading(true);
 
-    // Use a hidden iframe to trigger print-to-PDF with the correct title
-    const printFrame = document.createElement('iframe');
-    printFrame.style.position = 'fixed';
-    printFrame.style.left = '-9999px';
-    printFrame.style.top = '0';
-    printFrame.style.width = '800px';
-    printFrame.style.height = '1100px';
-    document.body.appendChild(printFrame);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
 
-    const doc = printFrame.contentDocument || printFrame.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(previewHtml);
-      doc.close();
-      doc.title = fileName;
+      // Create an offscreen container with the HTML
+      const container = document.createElement('div');
+      container.innerHTML = previewHtml;
+      // Extract just the body content
+      const bodyMatch = previewHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      const styleMatch = previewHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
 
-      printFrame.onload = () => {
-        setTimeout(() => {
-          printFrame.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(printFrame);
-            setDownloading(false);
-          }, 1000);
-        }, 300);
-      };
+      const renderDiv = document.createElement('div');
+      renderDiv.style.position = 'fixed';
+      renderDiv.style.left = '-9999px';
+      renderDiv.style.top = '0';
+      renderDiv.style.width = '794px';
+      renderDiv.style.background = '#ffffff';
 
-      // Trigger load for already-loaded content
-      if (doc.readyState === 'complete') {
-        setTimeout(() => {
-          printFrame.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(printFrame);
-            setDownloading(false);
-          }, 1000);
-        }, 300);
+      if (styleMatch) {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = styleMatch[1];
+        renderDiv.appendChild(styleEl);
       }
-    } else {
+      if (bodyMatch) {
+        const bodyDiv = document.createElement('div');
+        bodyDiv.innerHTML = bodyMatch[1];
+        renderDiv.appendChild(bodyDiv);
+      }
+
+      document.body.appendChild(renderDiv);
+
+      await html2pdf()
+        .set({
+          margin: 0,
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, width: 794 },
+          jsPDF: { unit: 'px', format: [794, 1123], hotfixes: ['px_scaling'] },
+        })
+        .from(renderDiv)
+        .save();
+
+      document.body.removeChild(renderDiv);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+    } finally {
       setDownloading(false);
     }
   };
@@ -247,13 +502,11 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
         </DialogHeader>
 
         {previewHtml ? (
-          /* ── PREVIEW MODE ── */
           <>
             <div className="flex-1 min-h-0 border rounded-lg overflow-hidden bg-white">
               <iframe
-                ref={iframeRef}
                 srcDoc={previewHtml}
-                className="w-full h-[60vh] border-0"
+                className="w-full h-[62vh] border-0"
                 title="Proposal Preview"
               />
             </div>
@@ -264,12 +517,11 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
               </Button>
               <Button onClick={handleDownload} disabled={downloading}>
                 {downloading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
-                Download as PDF
+                Download PDF
               </Button>
             </DialogFooter>
           </>
         ) : (
-          /* ── CONFIG MODE ── */
           <>
             <ScrollArea className="max-h-[55vh] pr-4">
               {loading ? (
@@ -279,9 +531,7 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
                   <div className="space-y-2">
                     <Label>Package Tier</Label>
                     <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
                       <SelectContent>
                         {products.map(p => (
                           <SelectItem key={p.id} value={p.id}>
@@ -318,17 +568,14 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
                         </div>
                       </div>
                     )}
-
-                    {/* Free items preview */}
                     <div>
                       <span className="text-xs text-muted-foreground">Included at no extra cost</span>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        <Badge variant="secondary" className="text-xs text-green-700 bg-green-100">SEO Optimisation — FREE</Badge>
-                        <Badge variant="secondary" className="text-xs text-green-700 bg-green-100">Device Design Optimisation — FREE</Badge>
-                        <Badge variant="secondary" className="text-xs text-green-700 bg-green-100">{revisionRounds} Revision Round{revisionRounds === '1' ? '' : 's'} — FREE</Badge>
+                        <Badge variant="secondary" className="text-xs">SEO Optimisation — FREE</Badge>
+                        <Badge variant="secondary" className="text-xs">Device Design Optimisation — FREE</Badge>
+                        <Badge variant="secondary" className="text-xs">{revisionRounds} Revision Round{revisionRounds === '1' ? '' : 's'} — FREE</Badge>
                       </div>
                     </div>
-
                     <div className="border-t pt-3 mt-3 text-right space-y-1">
                       <p className="text-sm text-muted-foreground line-through">Total: ${totalItemized.toLocaleString()}</p>
                       <p className="text-lg font-bold">
