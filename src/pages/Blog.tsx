@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollSlideIn } from "@/components/common/ScrollAnimations";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 const Blog = () => {
   usePageSEO({
@@ -40,8 +41,8 @@ const Blog = () => {
         </div>
       </section>
 
-      {/* Posts Feed */}
-      <section className="pb-20 sm:pb-28 bg-background">
+      {/* Posts Feed — switches to light on scroll */}
+      <ThemeSwitchSection className="pb-20 sm:pb-28 bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           {isLoading ? (
             <div className="space-y-8">
@@ -128,7 +129,7 @@ const Blog = () => {
             </div>
           )}
         </div>
-      </section>
+      </ThemeSwitchSection>
     </Layout>
   );
 };

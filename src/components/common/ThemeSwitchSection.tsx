@@ -8,9 +8,11 @@ import { useEffect, useRef } from "react";
 export const ThemeSwitchSection = ({
   children,
   className = "",
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,7 +36,7 @@ export const ThemeSwitchSection = ({
   }, []);
 
   return (
-    <div ref={ref} className={`theme-switch-section ${className}`}>
+    <div ref={ref} id={id} className={`theme-switch-section ${className}`}>
       {children}
     </div>
   );

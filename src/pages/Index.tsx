@@ -310,8 +310,8 @@ const Index = () => {
       {/* VIDEO TESTIMONIALS */}
       <HomepageVideoTestimonials />
 
-      {/* 6. WHY PEOPLE STAY */}
-      <section className="border-y border-border relative overflow-hidden">
+      {/* 6. WHY PEOPLE STAY — switches to light on scroll */}
+      <ThemeSwitchSection className="border-y border-border relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--surface-elevated))] to-background" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
@@ -340,7 +340,7 @@ const Index = () => {
             })}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* 7. SERVICES */}
       <section className="bg-background">
@@ -431,8 +431,8 @@ const Index = () => {
         </div>
       </ThemeSwitchSection>
 
-      {/* 9. PROCESS */}
-      <section className="bg-background">
+      {/* 9. PROCESS — switches to light on scroll */}
+      <ThemeSwitchSection className="bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
             initial="hidden"
@@ -464,7 +464,7 @@ const Index = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* 10. FINAL CTA */}
       <section className="relative overflow-hidden">

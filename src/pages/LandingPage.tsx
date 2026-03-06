@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useFeaturedTestimonials } from "@/hooks/useTestimonials";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -325,7 +326,7 @@ const LandingPage = () => {
       {/* ════════════════════════════════════ */}
       {/* BLOCK 3 — FOUNDER NOTE */}
       {/* ════════════════════════════════════ */}
-      <section className="py-16 sm:py-24 bg-background">
+      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
         <div className="w-[92%] max-w-3xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="relative bg-card border border-border rounded-2xl p-8 sm:p-12 shadow-soft">
             <Quote size={40} className="text-sited-blue/20 absolute top-6 left-6" />
@@ -355,7 +356,7 @@ const LandingPage = () => {
             </div>
           </motion.div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* ════════════════════════════════════ */}
       {/* BLOCK 4 — WEBSITE SHOWCASE */}
@@ -382,7 +383,7 @@ const LandingPage = () => {
       {/* ════════════════════════════════════ */}
       {/* BLOCK 5 — TEXT TESTIMONIALS */}
       {/* ════════════════════════════════════ */}
-      <section className="py-16 sm:py-24 bg-background">
+      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
         <div className="w-[92%] max-w-[900px] mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
             <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">5-Star Reviews</p>
@@ -396,7 +397,7 @@ const LandingPage = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* ════════════════════════════════════ */}
       {/* BLOCK 6 — LOCK IN PRICE FORM */}
@@ -451,7 +452,7 @@ const LandingPage = () => {
       {/* ════════════════════════════════════ */}
       {/* BLOCK 8 — WHY SO CHEAP */}
       {/* ════════════════════════════════════ */}
-      <section className="py-16 sm:py-24 bg-background">
+      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
         <div className="w-[92%] max-w-3xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
             <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">Transparency</p>
@@ -490,7 +491,7 @@ const LandingPage = () => {
             </Button>
           </motion.div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* Spacer for sticky footer */}
       <div className="h-20" />

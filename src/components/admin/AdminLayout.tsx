@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ThemeToggleFloat } from '@/components/common/ThemeToggleFloat';
+
 
 import { ClipboardList, Wallet, CalendarDays, Sparkles } from 'lucide-react';
 
@@ -183,7 +183,6 @@ export default function AdminLayout() {
           <Outlet />
         </div>
       </main>
-      <ThemeToggleFloat />
     </div>
   );
 }

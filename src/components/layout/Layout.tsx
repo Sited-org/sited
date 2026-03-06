@@ -2,7 +2,6 @@ import { ReactNode, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
-import { ThemeToggleFloat } from "@/components/common/ThemeToggleFloat";
 
 interface LayoutProps {
   children: ReactNode;
@@ -18,7 +17,6 @@ export const Layout = ({ children, hideFooter = false }: LayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <ThemeToggleFloat />
       <Navbar />
       <main className="flex-1 pt-[140px] md:pt-0">{children}</main>
       {!hideFooter && <Footer />}

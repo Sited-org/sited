@@ -12,6 +12,7 @@ import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
 import { ScrollTextTestimonials } from "@/components/work/ScrollTextTestimonials";
 import { VideoTestimonials } from "@/components/work/VideoTestimonials";
 import { ScrollParallax, ScrollSlideIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 /* ── Fallback data ── */
 const fallbackProjects: ProjectDisplay[] = [
@@ -375,8 +376,8 @@ const Work = () => {
         {/* ━━ BLOCK 3: VIDEO TESTIMONIALS ━━ */}
         <VideoTestimonials />
 
-        {/* ━━ MID-PAGE CTA ━━ */}
-        <section id="projects" className="py-16 sm:py-20 bg-background">
+        {/* ━━ MID-PAGE CTA — switches to light on scroll ━━ */}
+        <ThemeSwitchSection id="projects" className="py-16 sm:py-20 bg-background">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -392,10 +393,10 @@ const Work = () => {
               <CTAButton onClick={() => setBookingOpen(true)} label="Free Consult" />
             </motion.div>
           </div>
-        </section>
+        </ThemeSwitchSection>
 
-        {/* ━━ WHY SITED TRANSITION ━━ */}
-        <section className="bg-card border-y border-border">
+        {/* ━━ WHY SITED TRANSITION — switches to light on scroll ━━ */}
+        <ThemeSwitchSection className="bg-card border-y border-border">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center">
             <ScrollSlideIn from="left">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase leading-tight">
@@ -426,7 +427,7 @@ const Work = () => {
               ))}
             </div>
           </div>
-        </section>
+        </ThemeSwitchSection>
 
         {/* ━━ SCROLLING QUOTES (repeat for more social proof) ━━ */}
         <QuoteTicker quotes={tickerQuotes} />
