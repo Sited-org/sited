@@ -393,7 +393,7 @@ const Work = () => {
               <CTAButton onClick={() => setBookingOpen(true)} label="Free Consult" />
             </motion.div>
           </div>
-        </section>
+        </ThemeSwitchSection>
 
         {/* ━━ WHY SITED TRANSITION — switches to light on scroll ━━ */}
         <ThemeSwitchSection className="bg-card border-y border-border">

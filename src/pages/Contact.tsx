@@ -219,7 +219,7 @@ const Contact = () => {
               ))}
             </div>
           </div>
-        </section>
+        </ThemeSwitchSection>
       )}
 
       <section className="py-20 sm:py-28 bg-foreground text-background">
