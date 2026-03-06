@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, LogOut, UserCircle, Menu, X, FolderOpen, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ThemeToggleFloat } from '@/components/common/ThemeToggleFloat';
+
 
 export default function DevLayout() {
   const { user, adminProfile, loading, signOut, isAuthenticated, isDeveloper } = useAuth();
@@ -141,7 +141,6 @@ export default function DevLayout() {
           <Outlet />
         </div>
       </main>
-      <ThemeToggleFloat />
     </div>
   );
 }

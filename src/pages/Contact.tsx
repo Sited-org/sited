@@ -9,6 +9,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { ScrollZoomIn, ScrollStaggerItem, ScrollParallax } from "@/components/common/ScrollAnimations";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 const Contact = () => {
   usePageSEO({
@@ -125,8 +126,8 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* TRUST SIGNALS */}
-      <section className="py-16 sm:py-24 bg-background">
+      {/* TRUST SIGNALS — switches to light on scroll */}
+      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -170,11 +171,11 @@ const Contact = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* TESTIMONIALS */}
       {testimonials && testimonials.length > 0 && (
-        <section className="py-16 sm:py-24 bg-muted/30">
+        <ThemeSwitchSection className="py-16 sm:py-24 bg-muted/30">
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}

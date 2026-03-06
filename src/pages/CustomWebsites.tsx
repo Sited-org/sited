@@ -8,6 +8,7 @@ import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
+import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { format } from "date-fns";
 
 type Tier = {
@@ -206,8 +207,8 @@ const CustomWebsites = () => {
         </div>
       </section>
 
-      {/* What you get with every site */}
-      <section className="section-padding bg-secondary/30">
+      {/* What you get with every site — switches to light on scroll */}
+      <ThemeSwitchSection className="section-padding bg-secondary/30">
         <div className="container-tight">
           <motion.div
             initial="hidden"
@@ -243,7 +244,7 @@ const CustomWebsites = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* Tier Showcase */}
       <section className="section-padding">
@@ -370,8 +371,8 @@ const CustomWebsites = () => {
 
       {/* Spacer removed — ScrollBlueShape deleted */}
 
-      {/* How it works */}
-      <section className="section-padding">
+      {/* How it works — switches to light on scroll */}
+      <ThemeSwitchSection className="section-padding">
         <div className="container-tight">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-12">
             <motion.h2 variants={fadeUp} custom={0} className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
@@ -394,7 +395,7 @@ const CustomWebsites = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* Ready to stop losing customers */}
       <section className="section-padding bg-secondary/30">
@@ -425,8 +426,8 @@ const CustomWebsites = () => {
         </div>
       </section>
 
-      {/* Social Proof / Testimonials with scroll animation */}
-      <section className="section-padding overflow-hidden">
+      {/* Social Proof / Testimonials — switches to light on scroll */}
+      <ThemeSwitchSection className="section-padding overflow-hidden">
         <div className="container-tight">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="text-center mb-12">
             <motion.h2 variants={fadeUp} custom={0} className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
@@ -445,7 +446,7 @@ const CustomWebsites = () => {
             ))}
           </div>
         </div>
-      </section>
+      </ThemeSwitchSection>
 
       {/* Recent Blog Posts */}
       {recentPosts.length > 0 && (
