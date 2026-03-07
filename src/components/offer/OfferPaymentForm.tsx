@@ -16,13 +16,14 @@ interface OfferPaymentFormProps {
   prefillPhone?: string;
 }
 
-const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentFormProps) => {
+const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone }: OfferPaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(prefillName || "");
+  const [email, setEmail] = useState(prefillEmail || "");
+  const [phone, setPhone] = useState(prefillPhone || "");
   const [processing, setProcessing] = useState(false);
+  const hasPrefill = !!(prefillName && prefillEmail);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
