@@ -131,20 +131,19 @@ const InvoiceBreakdown = ({
       className="mt-6 space-y-5 force-light"
     >
       {/* Invoice Table */}
-      <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-wider text-gray-500">Invoice</span>
+      <div className="rounded-2xl border border-gray-100 overflow-hidden bg-[#f5f5f4]">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-end">
           <span className="text-xs font-bold text-green-600">SAVE ${discount.toLocaleString()}</span>
         </div>
         <div className="divide-y divide-gray-100">
           {OFFER.lineItems.map((item, i) => (
             <div key={i} className="px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-gray-800">{item.label}</span>
+              <span className="text-sm text-gray-700">{item.label}</span>
               <div className="flex items-center gap-3">
                 {item.strikethrough && item.strikethrough !== item.value && (
                   <span className="text-xs text-gray-400 line-through">${item.strikethrough.toLocaleString()}</span>
                 )}
-                <span className={`text-sm font-bold ${item.value === 0 ? "text-green-600" : "text-gray-900"}`}>
+                <span className={`text-sm font-bold ${item.value === 0 ? "text-green-600" : "text-gray-800"}`}>
                   {item.value === 0 ? "$0" : `$${item.value.toLocaleString()}`}
                 </span>
               </div>
@@ -152,7 +151,7 @@ const InvoiceBreakdown = ({
           ))}
         </div>
         {/* Totals */}
-        <div className="border-t-2 border-gray-200 bg-gray-50/60 px-4 py-3 space-y-1.5">
+        <div className="border-t border-gray-200 bg-[#efedec] px-4 py-3 space-y-1.5">
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Usual Price</span>
             <span className="text-gray-400 line-through">${OFFER.usualPrice.toLocaleString()}</span>
