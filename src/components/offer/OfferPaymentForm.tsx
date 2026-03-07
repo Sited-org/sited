@@ -11,6 +11,9 @@ interface OfferPaymentFormProps {
   tierName: string;
   onSuccess: (info: { name: string; email: string; phone: string }) => void;
   onCancel: () => void;
+  prefillName?: string;
+  prefillEmail?: string;
+  prefillPhone?: string;
 }
 
 const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentFormProps) => {
