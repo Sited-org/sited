@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
-import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight } from "lucide-react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,12 @@ const leadSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
-/* ─── Single Offer Config (Blue-only, anonymous) ─── */
+/* ─── Single Offer Config ─── */
 const OFFER = {
   id: "basic-deposit",
   totalPrice: 549,
   usualPrice: 1599,
   savings: 1050,
-  features: ["Professional website", "High-converting funnel", "Lead capture forms", "Lifetime hosting", "Industry-specific SEO", "Calendar integration", "Email integration"],
   lineItems: [
     { label: "Custom Website Design & Development", value: 549, strikethrough: 1599 },
     { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 200 },
@@ -112,7 +111,7 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
   );
 };
 
-/* ─── Invoice Breakdown (single tier, two-step payment) ─── */
+/* ─── Invoice Breakdown (force-light, two-step payment) ─── */
 const InvoiceBreakdown = ({
   leadInfo,
   onPaymentSuccess,
@@ -129,23 +128,23 @@ const InvoiceBreakdown = ({
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       transition={{ duration: 0.5 }}
-      className="mt-6 space-y-5"
+      className="mt-6 space-y-5 force-light"
     >
       {/* Invoice Table */}
-      <div className="rounded-xl border border-border overflow-hidden bg-card">
-        <div className="px-4 py-3 bg-muted/50 border-b border-border flex items-center justify-between">
-          <span className="text-xs font-black uppercase tracking-wider text-muted-foreground">Invoice</span>
-          <span className="text-xs font-bold text-green-500">SAVE ${discount.toLocaleString()}</span>
+      <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+          <span className="text-xs font-black uppercase tracking-wider text-gray-500">Invoice</span>
+          <span className="text-xs font-bold text-green-600">SAVE ${discount.toLocaleString()}</span>
         </div>
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-gray-100">
           {OFFER.lineItems.map((item, i) => (
             <div key={i} className="px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-foreground">{item.label}</span>
+              <span className="text-sm text-gray-800">{item.label}</span>
               <div className="flex items-center gap-3">
                 {item.strikethrough && item.strikethrough !== item.value && (
-                  <span className="text-xs text-muted-foreground line-through">${item.strikethrough.toLocaleString()}</span>
+                  <span className="text-xs text-gray-400 line-through">${item.strikethrough.toLocaleString()}</span>
                 )}
-                <span className={`text-sm font-bold ${item.value === 0 ? "text-green-500" : "text-foreground"}`}>
+                <span className={`text-sm font-bold ${item.value === 0 ? "text-green-600" : "text-gray-900"}`}>
                   {item.value === 0 ? "$0" : `$${item.value.toLocaleString()}`}
                 </span>
               </div>
@@ -153,38 +152,38 @@ const InvoiceBreakdown = ({
           ))}
         </div>
         {/* Totals */}
-        <div className="border-t-2 border-border bg-muted/30 px-4 py-3 space-y-1.5">
+        <div className="border-t-2 border-gray-200 bg-gray-50/60 px-4 py-3 space-y-1.5">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Usual Price</span>
-            <span className="text-muted-foreground line-through">${OFFER.usualPrice.toLocaleString()}</span>
+            <span className="text-gray-500">Usual Price</span>
+            <span className="text-gray-400 line-through">${OFFER.usualPrice.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-green-500 font-bold">Discount Applied</span>
-            <span className="text-green-500 font-bold">-${discount.toLocaleString()}</span>
+            <span className="text-green-600 font-bold">Discount Applied</span>
+            <span className="text-green-600 font-bold">-${discount.toLocaleString()}</span>
           </div>
-          <div className="flex justify-between text-lg pt-1 border-t border-border">
-            <span className="font-black text-foreground">Total</span>
-            <span className="font-black text-foreground">${OFFER.totalPrice.toLocaleString()}</span>
+          <div className="flex justify-between text-lg pt-1 border-t border-gray-200">
+            <span className="font-black text-gray-900">Total</span>
+            <span className="font-black text-gray-900">${OFFER.totalPrice.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm pt-1">
-            <span className="font-bold text-sited-blue">Due Today (Refundable Deposit)</span>
-            <span className="font-black text-sited-blue text-lg">$49</span>
+            <span className="font-bold" style={{ color: "hsl(202, 74%, 55%)" }}>Due Today (Refundable Deposit)</span>
+            <span className="font-black text-lg" style={{ color: "hsl(202, 74%, 55%)" }}>$49</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Remaining (after delivery)</span>
-            <span className="text-muted-foreground">${(OFFER.totalPrice - 49).toLocaleString()}</span>
+            <span className="text-gray-400">Remaining (after delivery)</span>
+            <span className="text-gray-400">${(OFFER.totalPrice - 49).toLocaleString()}</span>
           </div>
         </div>
       </div>
 
       {/* Guarantee */}
-      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+      <div className="rounded-xl border border-green-200 bg-green-50 p-4">
         <div className="flex items-start gap-3">
-          <Shield size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
+          <Shield size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Don't love the website? <span className="font-bold text-foreground">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(OFFER.totalPrice - 49).toLocaleString()} within 7 days of delivery.
+            <p className="text-xs font-black text-gray-900 uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Don't love the website? <span className="font-bold text-gray-900">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(OFFER.totalPrice - 49).toLocaleString()} within 7 days of delivery.
             </p>
           </div>
         </div>
@@ -196,7 +195,8 @@ const InvoiceBreakdown = ({
           <motion.div key="cta" initial={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
             <button
               onClick={() => setShowPaymentForm(true)}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-white font-black text-sm uppercase tracking-wider transition-colors"
+              style={{ backgroundColor: "hsl(202, 74%, 69%)" }}
             >
               <Lock size={14} />
               Secure My Website — Pay $49
@@ -340,44 +340,70 @@ const LandingPage = () => {
       {/* ════════════════════════════════════ */}
       {/* HERO + INLINE FORM */}
       {/* ════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-start justify-center px-4 pt-12 sm:pt-16 pb-8 overflow-hidden">
+      <section className="relative min-h-screen flex items-start justify-center px-4 pt-12 sm:pt-16 lg:pt-20 pb-8 overflow-hidden">
         {/* Background gradient orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-sited-blue/10 blur-3xl" />
           <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-gold/10 blur-3xl" />
         </div>
 
-        <div className="relative z-10 w-full max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            {/* Left — Copy */}
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight uppercase leading-[0.95]">
-                Your Website in<br />
-                <span className="text-sited-blue">(7 Days)</span><br />
-                or Less
+        {/* Tinted website mockup background — adds visual depth */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.06]">
+          <div className="absolute top-[5%] left-[-5%] w-[45%] rounded-2xl overflow-hidden rotate-[-6deg] shadow-2xl">
+            <img src={fallbackSites[0].screenshot} alt="" className="w-full h-auto" loading="eager" />
+          </div>
+          <div className="absolute top-[10%] right-[-8%] w-[40%] rounded-2xl overflow-hidden rotate-[4deg] shadow-2xl">
+            <img src={fallbackSites[1].screenshot} alt="" className="w-full h-auto" loading="eager" />
+          </div>
+          <div className="absolute bottom-[5%] left-[25%] w-[35%] rounded-2xl overflow-hidden rotate-[2deg] shadow-2xl">
+            <img src={fallbackSites[2].screenshot} alt="" className="w-full h-auto" loading="eager" />
+          </div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+            {/* Left — Copy (wider on desktop) */}
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 lg:pt-8">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[0.95]">
+                Killer Website in<br />
+                <span className="text-sited-blue">(7 Days)</span> or Less
               </h1>
-              <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-md">
+              <p className="mt-5 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
                 Start for just <span className="text-foreground font-bold">$49</span>. Your full website is built in 7 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
               </p>
 
               {/* Trust badges — desktop only */}
-              <div className="hidden lg:flex items-center gap-4 mt-8">
+              <div className="hidden lg:flex items-center gap-6 mt-10">
                 {[
                   { icon: Shield, text: "Money-Back Guarantee" },
                   { icon: Clock, text: "7 Day Delivery" },
                   { icon: Zap, text: "95+ Speed Score" },
                 ].map((badge) => (
-                  <div key={badge.text} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <badge.icon size={14} className="text-sited-blue" />
+                  <div key={badge.text} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <badge.icon size={16} className="text-sited-blue" />
                     <span className="font-semibold">{badge.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop-only social proof stat */}
+              <div className="hidden lg:flex items-center gap-8 mt-10 pt-8 border-t border-border">
+                {[
+                  { value: "200+", label: "Websites Built" },
+                  { value: "7", label: "Day Average Delivery" },
+                  { value: "$549", label: "All-In Package" },
+                ].map((stat) => (
+                  <div key={stat.label}>
+                    <p className="text-2xl xl:text-3xl font-black text-foreground">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">{stat.label}</p>
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* Right — Form */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}>
+            {/* Right — Form (narrower, elevated) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
               <div className="bg-card border border-border rounded-2xl p-5 sm:p-7 shadow-elevated">
                 <div className="text-center mb-5">
                   <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-1">Limited Spots</p>
