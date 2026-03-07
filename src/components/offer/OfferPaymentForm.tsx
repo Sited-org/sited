@@ -11,15 +11,19 @@ interface OfferPaymentFormProps {
   tierName: string;
   onSuccess: (info: { name: string; email: string; phone: string }) => void;
   onCancel: () => void;
+  prefillName?: string;
+  prefillEmail?: string;
+  prefillPhone?: string;
 }
 
-const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentFormProps) => {
+const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone }: OfferPaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(prefillName || "");
+  const [email, setEmail] = useState(prefillEmail || "");
+  const [phone, setPhone] = useState(prefillPhone || "");
   const [processing, setProcessing] = useState(false);
+  const hasPrefill = !!(prefillName && prefillEmail);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,55 +115,61 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel }: OfferPaymentF
           <Lock size={14} className="text-sited-blue" />
           Secure Payment — {tierName}
         </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X size={18} />
-        </button>
+        {!hasPrefill && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="offer-name" className="text-xs">Full Name *</Label>
-          <Input
-            id="offer-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="John Smith"
-            required
-            disabled={processing}
-            className="h-11"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="offer-email" className="text-xs">Email *</Label>
-          <Input
-            id="offer-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="john@business.com"
-            required
-            disabled={processing}
-            className="h-11"
-          />
-        </div>
-      </div>
+      {!hasPrefill && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="offer-name" className="text-xs">Full Name *</Label>
+              <Input
+                id="offer-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Smith"
+                required
+                disabled={processing}
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="offer-email" className="text-xs">Email *</Label>
+              <Input
+                id="offer-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="john@business.com"
+                required
+                disabled={processing}
+                className="h-11"
+              />
+            </div>
+          </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="offer-phone" className="text-xs">Phone (optional)</Label>
-        <Input
-          id="offer-phone"
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="0412 345 678"
-          disabled={processing}
-          className="h-11"
-        />
-      </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="offer-phone" className="text-xs">Phone (optional)</Label>
+            <Input
+              id="offer-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0412 345 678"
+              disabled={processing}
+              className="h-11"
+            />
+          </div>
+        </>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs">Card Details *</Label>
