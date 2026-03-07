@@ -65,6 +65,8 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, pr
       }
     });
 
+    // Clean up is not needed as Stripe manages the lifecycle
+
     pr.on("paymentmethod", async (ev) => {
       try {
         const payerName = ev.payerName || prefillName || "";
