@@ -456,6 +456,69 @@ const LandingPage = () => {
       </section>
 
       {/* ════════════════════════════════════ */}
+      {/* WHY SO AFFORDABLE */}
+      {/* ════════════════════════════════════ */}
+      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
+        <div className="w-[92%] max-w-3xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
+            <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">Transparency</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase">
+              Why Are We <span className="text-sited-blue">So Affordable?</span>
+            </h2>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-4">
+            {[
+              { title: "Zero Overheads", desc: "No fancy office, no receptionist, no boardroom. We're a lean, remote-first team. Every dollar goes into your website." },
+              { title: "Perfected Process", desc: "We've built hundreds of sites. Our workflow is dialled in so tight that we deliver in days, not months — without cutting corners." },
+              { title: "No Middlemen", desc: "No account managers, no outsourced devs overseas. You talk directly to the people building your site." },
+              { title: "Volume, Not Markup", desc: "Agencies charge $10K+ because they need to cover bloated teams. We keep prices low and rely on volume and referrals instead." },
+            ].map((item, i) => (
+              <motion.div key={item.title} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="flex gap-4 items-start bg-card border border-border rounded-xl p-5 hover:border-sited-blue/30 transition-colors">
+                <CheckCircle2 className="text-sited-blue shrink-0 mt-0.5" size={22} />
+                <div>
+                  <h3 className="font-bold text-foreground">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </ThemeSwitchSection>
+
+      {/* ════════════════════════════════════ */}
+      {/* HOW IT WORKS — PROCESS STEPS */}
+      {/* ════════════════════════════════════ */}
+      <section className="py-16 sm:py-24 bg-card border-y border-border">
+        <div className="w-[92%] max-w-[1100px] mx-auto">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">How It Works</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase">
+              Your <span className="text-sited-blue">Journey</span>
+            </h2>
+          </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {processSteps.map((step, i) => (
+              <motion.div key={step.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="relative bg-background border border-border rounded-2xl p-6 text-center shadow-soft hover:shadow-elevated transition-shadow group">
+                {i < processSteps.length - 1 && (
+                  <div className="hidden lg:block absolute top-1/2 -right-2 transform -translate-y-1/2 z-10">
+                    <ChevronRight size={16} className="text-muted-foreground" />
+                  </div>
+                )}
+                <div className="mx-auto w-12 h-12 rounded-full bg-sited-blue/10 flex items-center justify-center mb-3 group-hover:bg-sited-blue/20 transition-colors">
+                  <step.icon size={22} className="text-sited-blue" />
+                </div>
+                <p className="text-[10px] uppercase tracking-widest text-sited-blue font-bold mb-1">Step {step.step}</p>
+                <p className="text-sm font-black text-foreground tracking-tight">{step.title}</p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{step.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════ */}
       {/* WEBSITE SHOWCASE */}
       {/* ════════════════════════════════════ */}
       <section id="showcase" className="py-16 sm:py-24 bg-card border-y border-border">
@@ -493,69 +556,6 @@ const LandingPage = () => {
               <TestimonialBlock key={t.author} testimonial={t} index={i} />
             ))}
           </div>
-        </div>
-      </ThemeSwitchSection>
-
-      {/* ════════════════════════════════════ */}
-      {/* HOW IT WORKS — PROCESS STEPS */}
-      {/* ════════════════════════════════════ */}
-      <section className="py-16 sm:py-24 bg-card border-y border-border">
-        <div className="w-[92%] max-w-[1100px] mx-auto">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">How It Works</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase">
-              Your <span className="text-sited-blue">Journey</span>
-            </h2>
-          </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {processSteps.map((step, i) => (
-              <motion.div key={step.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="relative bg-background border border-border rounded-2xl p-6 text-center shadow-soft hover:shadow-elevated transition-shadow group">
-                {i < processSteps.length - 1 && (
-                  <div className="hidden lg:block absolute top-1/2 -right-2 transform -translate-y-1/2 z-10">
-                    <ChevronRight size={16} className="text-muted-foreground" />
-                  </div>
-                )}
-                <div className="mx-auto w-12 h-12 rounded-full bg-sited-blue/10 flex items-center justify-center mb-3 group-hover:bg-sited-blue/20 transition-colors">
-                  <step.icon size={22} className="text-sited-blue" />
-                </div>
-                <p className="text-[10px] uppercase tracking-widest text-sited-blue font-bold mb-1">Step {step.step}</p>
-                <p className="text-sm font-black text-foreground tracking-tight">{step.title}</p>
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════ */}
-      {/* WHY SO AFFORDABLE */}
-      {/* ════════════════════════════════════ */}
-      <ThemeSwitchSection className="py-16 sm:py-24 bg-background">
-        <div className="w-[92%] max-w-3xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-            <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">Transparency</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight uppercase">
-              Why Are We <span className="text-sited-blue">So Affordable?</span>
-            </h2>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="space-y-4">
-            {[
-              { title: "Zero Overheads", desc: "No fancy office, no receptionist, no boardroom. We're a lean, remote-first team. Every dollar goes into your website." },
-              { title: "Perfected Process", desc: "We've built hundreds of sites. Our workflow is dialled in so tight that we deliver in days, not months — without cutting corners." },
-              { title: "No Middlemen", desc: "No account managers, no outsourced devs overseas. You talk directly to the people building your site." },
-              { title: "Volume, Not Markup", desc: "Agencies charge $10K+ because they need to cover bloated teams. We keep prices low and rely on volume and referrals instead." },
-            ].map((item, i) => (
-              <motion.div key={item.title} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="flex gap-4 items-start bg-card border border-border rounded-xl p-5 hover:border-sited-blue/30 transition-colors">
-                <CheckCircle2 className="text-sited-blue shrink-0 mt-0.5" size={22} />
-                <div>
-                  <h3 className="font-bold text-foreground">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
         </div>
       </ThemeSwitchSection>
 
