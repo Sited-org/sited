@@ -39,7 +39,8 @@ export default function DevLayout() {
     );
   }
 
-  if (!isAuthenticated || !isDeveloper) return null;
+  const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+  if (!isAuthenticated || !isDeveloper || otpVerified !== 'true') return null;
 
   const isActive = (path: string) => location.pathname === path;
 

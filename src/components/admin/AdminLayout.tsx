@@ -70,7 +70,8 @@ export default function AdminLayout() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+  if (!isAuthenticated || !isAdmin || otpVerified !== 'true') {
     return null;
   }
 
