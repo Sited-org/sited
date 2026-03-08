@@ -12,7 +12,7 @@ import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
-import OnboardingBookingDialog from "@/components/booking/OnboardingBookingDialog";
+import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
 
 const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
 
