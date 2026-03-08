@@ -363,11 +363,12 @@ const LandingPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
             {/* Left — Copy (wider on desktop) */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 lg:pt-8">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[0.95]">
-                Killer Website in<br />
-                <span className="text-sited-blue">(7 Days)</span> or Less
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[0.92]">
+                KILLER WEBSITE in<br />
+                <span className="text-sited-blue">7 days</span> or less
               </h1>
-              <p className="mt-5 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
+              <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">Just $549</p>
+              <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
                 Start for just <span className="text-foreground font-bold">$49</span>. Your full website is built in 7 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
               </p>
@@ -414,7 +415,7 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="go-name" className="text-foreground text-xs">Name *</Label>
-                        <Input id="go-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-background border-border h-11" />
+                        <Input id="go-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
                       </div>
                       <div>
