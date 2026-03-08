@@ -242,7 +242,7 @@ const LandingPage = () => {
   const [showInvoice, setShowInvoice] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
-  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "", businessName: "" });
 
   const invoiceRef = useRef<HTMLDivElement>(null);
 
@@ -283,7 +283,7 @@ const LandingPage = () => {
       sessionStorage.setItem("lead_email", result.data.email);
       sessionStorage.setItem("lead_phone", result.data.phone);
       sessionStorage.setItem("lead_business_name", result.data.businessName);
-      setCustomerInfo({ name: result.data.name, email: result.data.email, phone: result.data.phone });
+      setCustomerInfo({ name: result.data.name, email: result.data.email, phone: result.data.phone, businessName: result.data.businessName });
       setShowInvoice(true);
       setTimeout(() => invoiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
     } catch {
@@ -293,40 +293,39 @@ const LandingPage = () => {
   };
 
   const handlePaymentSuccess = (info: { name: string; email: string; phone: string }) => {
-    setCustomerInfo(info);
+    const bn = sessionStorage.getItem("lead_business_name") || businessName;
+    setCustomerInfo({ ...info, businessName: bn });
     setPaymentComplete(true);
-    setShowBookingDialog(true);
   };
 
   // Payment complete screen
   if (paymentComplete) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg text-center space-y-6">
-          <div className="mx-auto w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Check size={40} className="text-green-500" />
+      <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center space-y-4 mb-8">
+          <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Check size={32} className="text-green-500" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-foreground">You're In!</h1>
-          <p className="text-muted-foreground text-lg">
-            Your deposit has been received. Let's book your discovery call to kick off your project.
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground">Payment Received!</h1>
+          <p className="text-muted-foreground">
+            Your $49 deposit is secured. Now let's book your discovery call to kick off your project.
           </p>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowBookingDialog(true)}
-            className="inline-flex items-center gap-2 px-6 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider transition-colors"
-          >
-            Book Your Discovery Call <ArrowRight size={16} />
-          </motion.button>
         </motion.div>
-        <OnboardingBookingDialog
-          open={showBookingDialog}
-          onOpenChange={setShowBookingDialog}
-          tierName="Website Package"
-          customerName={customerInfo.name}
-          customerEmail={customerInfo.email}
-          customerPhone={customerInfo.phone}
-        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-lg mx-auto rounded-2xl border border-border/50 bg-card shadow-xl overflow-hidden"
+        >
+          <OnboardingBookingInline
+            tierName="Website Package"
+            customerName={customerInfo.name}
+            customerEmail={customerInfo.email}
+            customerPhone={customerInfo.phone}
+            customerBusinessName={customerInfo.businessName}
+          />
+        </motion.div>
       </div>
     );
   }
