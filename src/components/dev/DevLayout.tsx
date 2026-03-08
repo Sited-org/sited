@@ -16,8 +16,15 @@ export default function DevLayout() {
     if (loading) return;
     if (!isAuthenticated || !isDeveloper) {
       navigate('/admin/login', { replace: true });
+      return;
     }
-  }, [loading, isAuthenticated, isDeveloper, navigate]);
+
+    // Verify OTP was completed for this session/tab
+    const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+    if (otpVerified !== 'true') {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [loading, isAuthenticated, isDeveloper, user, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
