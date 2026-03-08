@@ -28,13 +28,13 @@ const leadSchema = z.object({
 const OFFER = {
   id: "basic-deposit",
   totalPrice: 549,
-  usualPrice: 1599,
-  savings: 1050,
   lineItems: [
     { label: "Custom Website Design & Development", value: 549, strikethrough: 1599 },
-    { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 200 },
-    { label: "Calendar & Email Integration", value: 0, strikethrough: 150 },
-    { label: "Lifetime Hosting", value: 0, strikethrough: 150 },
+    { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
+    { label: "6 Local SEO Pages", value: 0, strikethrough: 600 },
+    { label: "2 Revisions", value: 0, strikethrough: 400 },
+    { label: "Calendar & Email Integration", value: 0, strikethrough: 399 },
+    { label: "Lifetime Hosting", value: 0, strikethrough: 100, suffix: "/month" },
   ],
 };
 
