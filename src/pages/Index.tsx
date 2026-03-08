@@ -1,17 +1,19 @@
-import { useState, useRef, ReactNode } from "react";
+import { useState, useRef, ReactNode, lazy, Suspense } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star, TrendingUp, Users, Search, Smartphone, BarChart3, Zap } from "lucide-react";
-import { ClientWebsiteGrid } from "@/components/home/ClientWebsiteGrid";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
-import { HomepageVideoTestimonials } from "@/components/home/HomepageVideoTestimonials";
 import { FloatingParticles } from "@/components/home/FloatingParticles";
-import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
+
+// Lazy load below-fold heavy components
+const ClientWebsiteGrid = lazy(() => import("@/components/home/ClientWebsiteGrid").then(m => ({ default: m.ClientWebsiteGrid })));
+const HomepageVideoTestimonials = lazy(() => import("@/components/home/HomepageVideoTestimonials").then(m => ({ default: m.HomepageVideoTestimonials })));
+const ThemeSwitchSection = lazy(() => import("@/components/common/ThemeSwitchSection").then(m => ({ default: m.ThemeSwitchSection })));
 
 /** Scroll-position-driven card: translates & fades based on viewport scroll, fully reversible */
 function ScrollCard({ children, className, index, accent = "blue", colorBlock = false }: { children: ReactNode; className?: string; index: number; accent?: "blue" | "gold"; colorBlock?: boolean }) {
@@ -221,7 +223,9 @@ const Index = () => {
               Real sites for real businesses — all designed, built, and managed by Sited.
             </p>
           </motion.div>
-          <ClientWebsiteGrid />
+          <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-xl" />}>
+            <ClientWebsiteGrid />
+          </Suspense>
         </div>
       </section>
 
@@ -276,6 +280,7 @@ const Index = () => {
       </section>
 
       {/* 5. MORE OF EVERYTHING — switches to light on scroll */}
+      <Suspense fallback={null}>
       <ThemeSwitchSection className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
@@ -465,6 +470,7 @@ const Index = () => {
           </div>
         </div>
       </ThemeSwitchSection>
+      </Suspense>
 
       {/* 10. FINAL CTA */}
       <section className="relative overflow-hidden">

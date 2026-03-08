@@ -29,9 +29,13 @@ export const FloatingParticles = () => {
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    // Fewer particles on mobile for performance
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return; // Skip entirely on mobile — saves significant CPU
+
     let animId: number;
     const bubbles: Bubble[] = [];
-    const COUNT = 14;
+    const COUNT = 10;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth * window.devicePixelRatio;

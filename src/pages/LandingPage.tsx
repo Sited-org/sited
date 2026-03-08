@@ -596,7 +596,7 @@ const LandingPage = () => {
         <div className="w-[96%] max-w-5xl mx-auto py-3 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-background/70">This Month</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-background/70">March Intake</span>
               <span className="text-xs font-black text-destructive">4 Left</span>
             </div>
             <div className="w-full bg-background/20 rounded-full h-2 overflow-hidden">
