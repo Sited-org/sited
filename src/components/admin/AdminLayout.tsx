@@ -47,8 +47,15 @@ export default function AdminLayout() {
     
     if (!isAuthenticated || !isAdmin) {
       navigate('/admin/login', { replace: true });
+      return;
     }
-  }, [loading, isAuthenticated, isAdmin, isDeveloper, navigate]);
+
+    // Verify OTP was completed for this session/tab
+    const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+    if (otpVerified !== 'true') {
+      navigate('/admin/login', { replace: true });
+    }
+  }, [loading, isAuthenticated, isAdmin, isDeveloper, user, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -63,7 +70,8 @@ export default function AdminLayout() {
     );
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
+  if (!isAuthenticated || !isAdmin || otpVerified !== 'true') {
     return null;
   }
 
