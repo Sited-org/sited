@@ -420,19 +420,19 @@ const LandingPage = () => {
                       </div>
                       <div>
                         <Label htmlFor="go-business" className="text-foreground text-xs">Business Name *</Label>
-                        <Input id="go-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-background border-border h-11" />
+                        <Input id="go-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.businessName && <p className="text-xs text-destructive mt-1">{errors.businessName}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <Label htmlFor="go-email" className="text-foreground text-xs">Email *</Label>
-                        <Input id="go-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-background border-border h-11" />
+                        <Input id="go-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
                       </div>
                       <div>
                         <Label htmlFor="go-phone" className="text-foreground text-xs">Phone *</Label>
-                        <Input id="go-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-background border-border h-11" />
+                        <Input id="go-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
                       </div>
                     </div>
