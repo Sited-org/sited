@@ -223,7 +223,9 @@ const Index = () => {
               Real sites for real businesses — all designed, built, and managed by Sited.
             </p>
           </motion.div>
-          <ClientWebsiteGrid />
+          <Suspense fallback={<div className="h-64 bg-muted/20 animate-pulse rounded-xl" />}>
+            <ClientWebsiteGrid />
+          </Suspense>
         </div>
       </section>
 
