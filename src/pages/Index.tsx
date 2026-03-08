@@ -280,6 +280,7 @@ const Index = () => {
       </section>
 
       {/* 5. MORE OF EVERYTHING — switches to light on scroll */}
+      <Suspense fallback={null}>
       <ThemeSwitchSection className="bg-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <motion.h2
