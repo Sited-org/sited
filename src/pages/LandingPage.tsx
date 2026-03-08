@@ -141,7 +141,7 @@ const InvoiceBreakdown = ({
               <span className="text-sm text-gray-700">{item.label}</span>
               <div className="flex items-center gap-3">
                 {item.strikethrough && item.strikethrough !== item.value && (
-                  <span className="text-xs text-gray-400 line-through">${item.strikethrough.toLocaleString()}</span>
+                  <span className="text-xs text-gray-400 line-through">${item.strikethrough.toLocaleString()}{('suffix' in item && item.suffix) || ''}</span>
                 )}
                 <span className={`text-sm font-bold ${item.value === 0 ? "text-green-600" : "text-gray-800"}`}>
                   {item.value === 0 ? "$0" : `$${item.value.toLocaleString()}`}
@@ -152,9 +152,9 @@ const InvoiceBreakdown = ({
         </div>
         {/* Totals */}
         <div className="border-t border-gray-200 bg-[#efedec] px-4 py-3 space-y-1.5">
-          <div className="flex justify-between text-sm">
+           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Usual Price</span>
-            <span className="text-gray-400 line-through">${OFFER.usualPrice.toLocaleString()}</span>
+            <span className="text-gray-400 line-through">${subtotal.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-green-600 font-bold">Discount Applied</span>
