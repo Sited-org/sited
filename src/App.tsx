@@ -46,7 +46,15 @@ const DevProjects = lazy(() => import("./components/dev/DevProjects"));
 const DevRequests = lazy(() => import("./components/dev/DevRequests"));
 const DevProjectView = lazy(() => import("./components/dev/DevProjectView"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min — avoid redundant refetches
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Minimal loading fallback to prevent layout shift
 const PageLoader = () => (

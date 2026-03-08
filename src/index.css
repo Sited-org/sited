@@ -227,7 +227,11 @@
   transition: background-color 0.8s cubic-bezier(0.22, 1, 0.36, 1),
               color 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.theme-switch-section * {
+.theme-switch-section > div,
+.theme-switch-section h2,
+.theme-switch-section h3,
+.theme-switch-section p,
+.theme-switch-section span {
   transition: color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
               background-color 0.6s cubic-bezier(0.22, 1, 0.36, 1),
               border-color 0.6s cubic-bezier(0.22, 1, 0.36, 1);
