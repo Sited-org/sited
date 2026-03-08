@@ -241,7 +241,7 @@ const LandingPage = () => {
   // Flow state
   const [showInvoice, setShowInvoice] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "", businessName: "" });
 
   const invoiceRef = useRef<HTMLDivElement>(null);
