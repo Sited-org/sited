@@ -291,6 +291,12 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, pr
       <p className="text-[11px] text-center text-gray-400 mt-2">
         🔒 Secure checkout powered by Stripe. Your card details never touch our servers.
       </p>
+
+      {/* Next step hint */}
+      <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-100">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+        <span className="text-xs text-gray-400">Next Step: <span className="font-semibold text-gray-500">Book Call</span></span>
+      </div>
     </form>
   );
 };
