@@ -403,10 +403,10 @@ const LandingPage = () => {
 
             {/* Right — Form (narrower, elevated) */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
-              <div className="bg-card border border-border rounded-2xl p-5 sm:p-7 shadow-elevated">
+              <div className={`border border-border rounded-2xl p-5 sm:p-7 shadow-elevated transition-colors duration-500 ${showInvoice ? 'bg-white' : 'bg-[#f5f5f4]'}`}>
                 <div className="text-center mb-5">
                   <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-1">Limited Spots</p>
-                  <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase">Lock In Your <span className="text-sited-blue">Price</span></h2>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-foreground">Lock In Your <span className="text-sited-blue">Price</span></h2>
                 </div>
 
                 {!showInvoice ? (
