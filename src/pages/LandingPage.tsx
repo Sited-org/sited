@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -331,6 +331,13 @@ const LandingPage = () => {
     );
   }
 
+  /* Animated logo suffix */
+  const [logoSuffix, setLogoSuffix] = useState<".co" | ".au">(".co");
+  useEffect(() => {
+    const interval = setInterval(() => setLogoSuffix((s) => (s === ".co" ? ".au" : ".co")), 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       {/* ── Scroll progress bar ── */}
@@ -340,6 +347,26 @@ const LandingPage = () => {
       {/* HERO + INLINE FORM */}
       {/* ════════════════════════════════════ */}
       <section className="relative min-h-screen flex items-start justify-center px-4 pt-12 sm:pt-16 lg:pt-20 pb-8 overflow-hidden">
+        {/* ── Sited logo top-left ── */}
+        <div className="absolute top-5 left-5 sm:left-8 z-20 select-none">
+          <span className="text-lg sm:text-xl font-black tracking-tight text-foreground">
+            Sited
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={logoSuffix}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.35 }}
+                className="inline-block"
+                style={{ color: logoSuffix === ".co" ? "hsl(var(--gold))" : "hsl(var(--sited-blue))" }}
+              >
+                {logoSuffix}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        </div>
+
         {/* Background gradient orbs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-sited-blue/10 blur-3xl" />
@@ -367,7 +394,7 @@ const LandingPage = () => {
                 KILLER WEBSITE in<br />
                 <span className="text-sited-blue">7 days</span> or less
               </h1>
-              <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">Just $549</p>
+              <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST $549</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
                 Start for just <span className="text-foreground font-bold">$49</span>. Your full website is built in 7 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
@@ -404,35 +431,35 @@ const LandingPage = () => {
 
             {/* Right — Form (narrower, elevated) */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
-              <div className={`border border-border rounded-2xl p-5 sm:p-7 shadow-elevated transition-colors duration-500 ${showInvoice ? 'bg-white' : 'bg-[#f5f5f4]'}`}>
+              <div className={`border border-gray-200 rounded-2xl p-5 sm:p-7 shadow-elevated transition-colors duration-500 ${showInvoice ? 'bg-white' : 'bg-[#f5f5f4]'}`}>
                 <div className="text-center mb-5">
-                  <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-1">Limited Spots</p>
-                  <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-foreground">Lock In Your <span className="text-sited-blue">Price</span></h2>
+                  <p className="text-xs uppercase tracking-[0.25em] font-bold mb-1" style={{ color: "hsl(202, 74%, 55%)" }}>Limited Spots</p>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-gray-900">Lock In Your <span style={{ color: "hsl(202, 74%, 55%)" }}>Price</span></h2>
                 </div>
 
                 {!showInvoice ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="go-name" className="text-foreground text-xs">Name *</Label>
-                        <Input id="go-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
+                        <Label htmlFor="go-name" className="text-gray-700 text-xs font-semibold">Name *</Label>
+                        <Input id="go-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
                       </div>
                       <div>
-                        <Label htmlFor="go-business" className="text-foreground text-xs">Business Name *</Label>
-                        <Input id="go-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
+                        <Label htmlFor="go-business" className="text-gray-700 text-xs font-semibold">Business Name *</Label>
+                        <Input id="go-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.businessName && <p className="text-xs text-destructive mt-1">{errors.businessName}</p>}
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="go-email" className="text-foreground text-xs">Email *</Label>
-                        <Input id="go-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
+                        <Label htmlFor="go-email" className="text-gray-700 text-xs font-semibold">Email *</Label>
+                        <Input id="go-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
                       </div>
                       <div>
-                        <Label htmlFor="go-phone" className="text-foreground text-xs">Phone *</Label>
-                        <Input id="go-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-white border-border h-11 text-gray-900 placeholder:text-gray-400" />
+                        <Label htmlFor="go-phone" className="text-gray-700 text-xs font-semibold">Phone *</Label>
+                        <Input id="go-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
                         {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
                       </div>
                     </div>
@@ -440,7 +467,7 @@ const LandingPage = () => {
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Lock In My Price <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                    <p className="text-center text-xs text-muted-foreground">$49 refundable deposit · Delivered in 7 days · No obligation</p>
+                    <p className="text-center text-xs text-gray-500">$49 refundable deposit · Delivered in 7 days · No obligation</p>
                   </div>
                 ) : (
                   <div ref={invoiceRef}>
