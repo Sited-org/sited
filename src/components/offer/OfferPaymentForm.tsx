@@ -59,7 +59,7 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, pr
     });
 
     pr.canMakePayment().then((result) => {
-      if (result) {
+      if (result && (result.applePay || result.googlePay)) {
         setPaymentRequest(pr);
         setCanApplePay(true);
       }
