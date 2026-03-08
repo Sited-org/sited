@@ -473,6 +473,7 @@ const Index = () => {
       </Suspense>
 
       {/* 10. FINAL CTA */}
+      <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-sited-blue via-[hsl(202,80%,45%)] to-sited-blue" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(var(--gold)/0.15)_0%,transparent_60%)]" />
         <div className="relative max-w-3xl mx-auto px-4 sm:px-6 py-14 sm:py-18 text-center">
