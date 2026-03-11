@@ -226,34 +226,13 @@ const OnboardingBookingInline = ({
           business_name: form.businessName.trim(),
           attendee_phone: form.phone.trim(),
           attendee_timezone: selectedTimezone,
-          create_lead: false,
+          create_lead: true,
           business_type: form.businessType,
           business_location: form.businessLocation.trim(),
         },
       });
     } catch (e) {
       console.error('Zoom meeting creation failed:', e);
-    }
-
-    // Auto-advance lead from warm_lead to discovery_call_booked
-    try {
-      const { data: existingLead } = await supabase
-        .from('leads')
-        .select('id, status')
-        .eq('email', form.email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (existingLead && existingLead.status === 'warm_lead') {
-        await supabase.functions.invoke('save-partial-lead', {
-          body: {
-            email: form.email.trim().toLowerCase(),
-            update_only: true,
-            status: 'discovery_call_booked',
-          },
-        });
-      }
-    } catch (e) {
-      console.error('Auto-advance to DCB failed:', e);
     }
 
     setIsSubmitting(false);
