@@ -238,6 +238,7 @@ const OnboardingBookingInline = ({
 
     setIsSubmitting(false);
     setIsBooked(true);
+    onBooked?.();
   };
 
   if (isBooked) {
