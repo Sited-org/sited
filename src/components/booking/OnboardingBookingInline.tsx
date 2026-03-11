@@ -65,6 +65,9 @@ const OnboardingBookingInline = ({
   customerEmail = "",
   customerPhone = "",
   customerBusinessName = "",
+  durationOverride,
+  callLabelOverride,
+  bookingTypeOverride,
 }: OnboardingBookingInlineProps) => {
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
