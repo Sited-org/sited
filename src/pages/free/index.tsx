@@ -104,6 +104,7 @@ const FreeLandingPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "", businessName: "" });
 
   // FAQ
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -140,7 +141,6 @@ const FreeLandingPage = () => {
     setErrors({});
     setSubmitting(true);
     try {
-      // TODO: Connect to Supabase leads table
       await supabase.functions.invoke("save-partial-lead", {
         body: {
           name: result.data.name, email: result.data.email, phone: result.data.phone,
@@ -154,13 +154,49 @@ const FreeLandingPage = () => {
           projectType: "website", formData: { source: "free_vsl", business_name: result.data.businessName },
         },
       });
+      setCustomerInfo({ name: result.data.name, email: result.data.email, phone: result.data.phone, businessName: result.data.businessName });
       setSubmitted(true);
-      toast.success("You're in! We'll be in touch within 24 hours.");
+      toast.success("You're in! Now book your discovery call.");
     } catch {
       toast.error("Something went wrong. Please try again.");
     }
     setSubmitting(false);
   };
+
+  // If submitted, show booking flow
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center space-y-4 mb-8">
+          <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Check size={32} className="text-green-500" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground">You're In!</h1>
+          <p className="text-muted-foreground">
+            Your spot is secured. Now book your free 20-minute discovery call so we can learn about your business.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-lg mx-auto rounded-2xl border border-border/50 bg-card shadow-xl overflow-hidden"
+        >
+          <OnboardingBookingInline
+            tierName="Free Website Build"
+            customerName={customerInfo.name}
+            customerEmail={customerInfo.email}
+            customerPhone={customerInfo.phone}
+            customerBusinessName={customerInfo.businessName}
+            durationOverride={20}
+            callLabelOverride="Discovery Call"
+            bookingTypeOverride="discovery"
+          />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
