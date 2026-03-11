@@ -273,7 +273,7 @@ const OnboardingBookingInline = ({
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1.5">
               <Globe size={14} className="text-muted-foreground" />
-              <Label className="text-xs text-muted-foreground">Your timezone</Label>
+              <Label className="text-xs text-gray-500 dark:text-muted-foreground">Your timezone</Label>
             </div>
             <Select value={selectedTimezone} onValueChange={(v) => { setSelectedTimezone(v); setSelectedTime(null); }}>
               <SelectTrigger className="h-9 text-sm">
