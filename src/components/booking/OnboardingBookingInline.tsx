@@ -329,7 +329,7 @@ const OnboardingBookingInline = ({
             {selectedDay && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                 <div className="pt-6 mt-6 border-t border-border/50">
-                  <p className="text-sm text-muted-foreground mb-3">Available times ({DURATION} min)</p>
+                  <p className="text-sm text-gray-500 dark:text-muted-foreground mb-3">Available times ({DURATION} min)</p>
                   {loadingSlots ? (
                     <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
                   ) : timeSlots.filter(s => s.available).length === 0 ? (
