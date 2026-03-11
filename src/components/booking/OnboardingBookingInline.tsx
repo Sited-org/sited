@@ -74,7 +74,6 @@ const OnboardingBookingInline = ({
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
