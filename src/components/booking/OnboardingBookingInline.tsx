@@ -57,6 +57,7 @@ interface OnboardingBookingInlineProps {
   durationOverride?: number;
   callLabelOverride?: string;
   bookingTypeOverride?: string;
+  onBooked?: () => void;
 }
 
 const OnboardingBookingInline = ({
