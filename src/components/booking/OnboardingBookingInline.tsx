@@ -315,10 +315,10 @@ const OnboardingBookingInline = ({
               return (
                 <motion.button key={date} onHoverStart={() => available && setHoveredDay(date)} onHoverEnd={() => setHoveredDay(null)} onClick={() => { if (available) { setSelectedDay(date); setSelectedTime(null); } }} whileHover={available ? { scale: 1.1 } : {}} whileTap={available ? { scale: 0.95 } : {}} disabled={!available}
                   className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-150
-                    ${!available ? "text-muted-foreground/30 cursor-not-allowed" : "cursor-pointer"}
-                    ${isSelected ? "bg-foreground text-background" : ""}
-                    ${isHovered && !isSelected ? "bg-muted" : ""}
-                    ${available && !isSelected ? "hover:bg-muted" : ""}`}
+                    ${!available ? "text-gray-300 dark:text-muted-foreground/30 cursor-not-allowed" : "text-gray-900 dark:text-foreground cursor-pointer"}
+                    ${isSelected ? "!bg-sited-blue !text-white" : ""}
+                    ${isHovered && !isSelected ? "bg-gray-100 dark:bg-muted" : ""}
+                    ${available && !isSelected ? "hover:bg-gray-100 dark:hover:bg-muted" : ""}`}
                 >{date}</motion.button>
               );
             })}
