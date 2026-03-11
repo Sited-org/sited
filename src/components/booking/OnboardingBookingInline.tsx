@@ -57,6 +57,7 @@ interface OnboardingBookingInlineProps {
   durationOverride?: number;
   callLabelOverride?: string;
   bookingTypeOverride?: string;
+  onBooked?: () => void;
 }
 
 const OnboardingBookingInline = ({
@@ -68,6 +69,7 @@ const OnboardingBookingInline = ({
   durationOverride,
   callLabelOverride,
   bookingTypeOverride,
+  onBooked,
 }: OnboardingBookingInlineProps) => {
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -236,6 +238,7 @@ const OnboardingBookingInline = ({
 
     setIsSubmitting(false);
     setIsBooked(true);
+    onBooked?.();
   };
 
   if (isBooked) {
