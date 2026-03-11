@@ -566,6 +566,32 @@ const FreeLandingPage = () => {
           © 2025 Sited. All rights reserved. | hello@sited.co
         </p>
       </section>
+
+      {/* Spacer for sticky footer */}
+      <div className="h-20" />
+
+      {/* ════════════════════════════════════ */}
+      {/* STICKY FOOTER — Spots Progress */}
+      {/* ════════════════════════════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-foreground text-background border-t border-border">
+        <div className="w-[96%] max-w-5xl mx-auto py-3 flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-background/70">Free Build Spots</span>
+              <span className="text-xs font-black text-destructive">19 Left</span>
+            </div>
+            <div className="w-full bg-background/20 rounded-full h-2 overflow-hidden">
+              <motion.div className="h-full bg-destructive rounded-full" initial={{ width: "0%" }} animate={{ width: "52.5%" }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }} />
+            </div>
+            <p className="text-[10px] text-background/50 mt-0.5">21/40 spots claimed</p>
+          </div>
+          <div className="flex flex-col items-end shrink-0">
+            <Button onClick={scrollToForm} size="sm" className="bg-sited-blue hover:bg-sited-blue-hover text-white font-bold text-xs sm:text-sm">
+              Claim Spot
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
