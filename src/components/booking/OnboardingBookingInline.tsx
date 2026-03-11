@@ -292,7 +292,7 @@ const OnboardingBookingInline = ({
             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset > 0 && setMonthOffset((m) => m - 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset === 0}>
               <ChevronLeft size={18} className="text-muted-foreground" />
             </motion.button>
-            <span className="text-sm font-semibold">{monthName} {year}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-foreground">{monthName} {year}</span>
             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset < 2 && setMonthOffset((m) => m + 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset >= 2}>
               <ChevronRight size={18} className="text-muted-foreground" />
             </motion.button>
