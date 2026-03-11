@@ -195,7 +195,7 @@ const OnboardingBookingInline = ({
       email: form.email.trim(), phone: form.phone.trim(),
       business_name: form.businessName.trim(), business_type: form.businessType,
       business_location: form.businessLocation.trim(), booking_date: dateStr,
-      booking_time: selectedTime, booking_type: 'plan', duration_minutes: DURATION,
+      booking_time: selectedTime, booking_type: BOOKING_TYPE, duration_minutes: DURATION,
       notes: `Plan Call — ${tierName} (${DURATION} min)`,
     }).select('id').single();
 
