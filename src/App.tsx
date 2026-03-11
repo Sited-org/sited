@@ -45,6 +45,7 @@ const DevDashboard = lazy(() => import("./components/dev/DevDashboard"));
 const DevProjects = lazy(() => import("./components/dev/DevProjects"));
 const DevRequests = lazy(() => import("./components/dev/DevRequests"));
 const DevProjectView = lazy(() => import("./components/dev/DevProjectView"));
+const FreeLandingPage = lazy(() => import("./pages/free/index"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
