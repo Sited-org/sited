@@ -301,7 +301,7 @@ const OnboardingBookingInline = ({
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {daysHeader.map((d) => (
-              <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">{d}</div>
+              <div key={d} className="text-center text-xs text-gray-400 dark:text-muted-foreground font-medium py-1">{d}</div>
             ))}
           </div>
 
