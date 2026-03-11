@@ -45,6 +45,7 @@ const DevDashboard = lazy(() => import("./components/dev/DevDashboard"));
 const DevProjects = lazy(() => import("./components/dev/DevProjects"));
 const DevRequests = lazy(() => import("./components/dev/DevRequests"));
 const DevProjectView = lazy(() => import("./components/dev/DevProjectView"));
+const FreeLandingPage = lazy(() => import("./pages/free/index"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,7 @@ const App = () => (
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
             <Route path="/policies" element={<Policies />} />
+            <Route path="/free" element={<FreeLandingPage />} />
             <Route path="/go" element={<LandingPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
