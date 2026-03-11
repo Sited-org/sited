@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowRight, Loader2, Shield, Clock, Zap, CheckCircle2, Lock, ChevronRight, Users, Check, Play } from "lucide-react";
+import { ArrowRight, Loader2, Shield, Clock, Zap, CheckCircle2, Lock, ChevronRight, Users, Check, Play, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { z } from "zod";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
+import { useNavigate } from "react-router-dom";
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -88,6 +89,7 @@ const included = [
 /* ─── MAIN PAGE ─── */
 /* ═══════════════════════════════════════════════ */
 const FreeLandingPage = () => {
+  const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
@@ -98,7 +100,9 @@ const FreeLandingPage = () => {
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  
+  // Card flow: "form" → "booking" → "thankyou"
+  const [cardStep, setCardStep] = useState<"form" | "booking" | "thankyou">("form");
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "", businessName: "" });
 
   // FAQ
@@ -150,7 +154,7 @@ const FreeLandingPage = () => {
         },
       });
       setCustomerInfo({ name: result.data.name, email: result.data.email, phone: result.data.phone, businessName: result.data.businessName });
-      setSubmitted(true);
+      setCardStep("booking");
       toast.success("You're in! Now book your discovery call.");
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -158,60 +162,21 @@ const FreeLandingPage = () => {
     setSubmitting(false);
   };
 
-  // If submitted, show booking flow
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center space-y-4 mb-8">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Check size={32} className="text-green-500" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-foreground">You're In!</h1>
-          <p className="text-muted-foreground">
-            Your spot is secured. Now book your free 20-minute discovery call so we can learn about your business.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="max-w-lg mx-auto rounded-2xl border border-border/50 bg-card shadow-xl overflow-hidden"
-        >
-          <OnboardingBookingInline
-            tierName="Free Website Build"
-            customerName={customerInfo.name}
-            customerEmail={customerInfo.email}
-            customerPhone={customerInfo.phone}
-            customerBusinessName={customerInfo.businessName}
-            durationOverride={20}
-            callLabelOverride="Discovery Call"
-            bookingTypeOverride="discovery"
-          />
-        </motion.div>
-      </div>
-    );
-  }
+  const handleBooked = useCallback(() => {
+    setCardStep("thankyou");
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
       {/* Scroll progress */}
       <motion.div className="fixed top-0 left-0 h-1 bg-sited-blue z-50" style={{ width: progressWidth }} />
 
-      {/* Scarcity bar */}
-      <div className="fixed top-0 left-0 right-0 z-40 h-10 flex items-center justify-center bg-foreground">
-        <p className="text-xs font-semibold tracking-wide text-gold">
-          <span className="inline-block animate-pulse mr-1">🔥</span>
-          Only <strong>19</strong> spots remaining out of 40 — This offer disappears when they're gone.
-        </p>
-      </div>
-
       {/* ════════════════════════════════════ */}
-      {/* HERO + INLINE FORM (matches /go) */}
+      {/* HERO + INLINE FORM/BOOKING CARD */}
       {/* ════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-start justify-center px-4 pt-20 sm:pt-24 lg:pt-28 pb-8 overflow-hidden">
-        {/* Sited animated logo */}
-        <div className="absolute top-12 left-5 sm:left-8 z-20 select-none">
+      <section className="relative min-h-screen flex items-start justify-center px-4 pt-16 sm:pt-20 lg:pt-24 pb-8 overflow-hidden">
+        {/* Sited animated logo — top left */}
+        <div className="absolute top-5 left-5 sm:left-8 z-20 select-none">
           <span className="text-lg sm:text-xl font-black tracking-tight text-foreground">
             Sited
             <AnimatePresence mode="wait">
@@ -280,46 +245,130 @@ const FreeLandingPage = () => {
               </div>
             </motion.div>
 
-            {/* Right — Form Card (matches /go style) */}
+            {/* Right — Card (form → booking → thankyou) */}
             <motion.div ref={formRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
-              <div className="border border-border rounded-2xl p-5 sm:p-7 shadow-elevated bg-[#f5f5f4]">
-                <>
-                    <div className="text-center mb-5">
-                      <p className="text-xs uppercase tracking-[0.25em] font-bold mb-1 text-sited-blue">Limited Spots</p>
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-gray-900">Claim Your <span className="text-green-500">Free</span> Website</h2>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <Label htmlFor="free-name" className="text-gray-700 text-xs font-semibold">Name *</Label>
-                          <Input id="free-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
-                          {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
-                        </div>
-                        <div>
-                          <Label htmlFor="free-business" className="text-gray-700 text-xs font-semibold">Business Name *</Label>
-                          <Input id="free-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
-                          {errors.businessName && <p className="text-xs text-destructive mt-1">{errors.businessName}</p>}
-                        </div>
+              <div className="border border-border rounded-2xl shadow-elevated bg-[#f5f5f4] overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {/* ─── STEP 1: FORM ─── */}
+                  {cardStep === "form" && (
+                    <motion.div
+                      key="form"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="p-5 sm:p-7"
+                    >
+                      <div className="text-center mb-5">
+                        <p className="text-xs uppercase tracking-[0.25em] font-bold mb-1 text-sited-blue">Limited Spots</p>
+                        <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-gray-900">Claim Your <span className="text-green-500">Free</span> Website</h2>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <Label htmlFor="free-email" className="text-gray-700 text-xs font-semibold">Email *</Label>
-                          <Input id="free-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
-                          {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="free-name" className="text-gray-700 text-xs font-semibold">Name *</Label>
+                            <Input id="free-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
+                            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
+                          </div>
+                          <div>
+                            <Label htmlFor="free-business" className="text-gray-700 text-xs font-semibold">Business Name *</Label>
+                            <Input id="free-business" value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Your business" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
+                            {errors.businessName && <p className="text-xs text-destructive mt-1">{errors.businessName}</p>}
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="free-phone" className="text-gray-700 text-xs font-semibold">Phone *</Label>
-                          <Input id="free-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
-                          {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="free-email" className="text-gray-700 text-xs font-semibold">Email *</Label>
+                            <Input id="free-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
+                            {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+                          </div>
+                          <div>
+                            <Label htmlFor="free-phone" className="text-gray-700 text-xs font-semibold">Phone *</Label>
+                            <Input id="free-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="04XX XXX XXX" className="mt-1 bg-white border-gray-200 h-11 text-gray-900 placeholder:text-gray-400" />
+                            {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
+                          </div>
                         </div>
+                        <Button onClick={handleFormSubmit} disabled={submitting} className="w-full bg-sited-blue hover:bg-sited-blue-hover text-white font-bold text-base h-12 mt-2">
+                          {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Claim My Free Website <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                        <p className="text-center text-xs text-gray-500">No payment required · 7-day delivery · Only 19 spots left</p>
                       </div>
-                      <Button onClick={handleFormSubmit} disabled={submitting} className="w-full bg-sited-blue hover:bg-sited-blue-hover text-white font-bold text-base h-12 mt-2">
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        Claim My Free Website <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                      <p className="text-center text-xs text-gray-500">No payment required · 7-day delivery · Only 19 spots left</p>
-                    </div>
-                  </>
+                    </motion.div>
+                  )}
+
+                  {/* ─── STEP 2: CONFIRMATION + BOOKING ─── */}
+                  {cardStep === "booking" && (
+                    <motion.div
+                      key="booking"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {/* Confirmation header */}
+                      <div className="px-5 sm:px-7 pt-5 sm:pt-7 pb-3 text-center border-b border-gray-200">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                          className="mx-auto w-12 h-12 rounded-full bg-green-500/15 flex items-center justify-center mb-3"
+                        >
+                          <Check size={24} className="text-green-600" />
+                        </motion.div>
+                        <h3 className="text-lg sm:text-xl font-black text-gray-900 mb-1">You're In!</h3>
+                        <p className="text-sm text-gray-500">Book your call now so we can get to better know your needs!</p>
+                      </div>
+
+                      {/* Booking scheduler */}
+                      <OnboardingBookingInline
+                        tierName="Free Website Build"
+                        customerName={customerInfo.name}
+                        customerEmail={customerInfo.email}
+                        customerPhone={customerInfo.phone}
+                        customerBusinessName={customerInfo.businessName}
+                        durationOverride={20}
+                        callLabelOverride="Discovery Call"
+                        bookingTypeOverride="discovery"
+                        onBooked={handleBooked}
+                      />
+                    </motion.div>
+                  )}
+
+                  {/* ─── STEP 3: THANK YOU ─── */}
+                  {cardStep === "thankyou" && (
+                    <motion.div
+                      key="thankyou"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="p-6 sm:p-8 text-center"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+                        className="mx-auto w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center mb-4"
+                      >
+                        <Check size={32} className="text-green-600" />
+                      </motion.div>
+                      <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-2">You're All Set!</h3>
+                      <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+                        Your discovery call is booked. We'll send a confirmation with a Zoom link to your inbox.
+                      </p>
+                      <div className="space-y-3">
+                        <Button
+                          onClick={() => navigate("/work")}
+                          className="w-full bg-sited-blue hover:bg-sited-blue-hover text-white font-bold h-12 text-base"
+                        >
+                          See Our Work <ExternalLink className="h-4 w-4 ml-2" />
+                        </Button>
+                        <p className="text-xs text-gray-400">Check out what we've built for businesses like yours</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           </div>
