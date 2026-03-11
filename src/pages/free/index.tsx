@@ -9,12 +9,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
-
-const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -104,6 +99,7 @@ const FreeLandingPage = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "", businessName: "" });
 
   // FAQ
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -140,7 +136,6 @@ const FreeLandingPage = () => {
     setErrors({});
     setSubmitting(true);
     try {
-      // TODO: Connect to Supabase leads table
       await supabase.functions.invoke("save-partial-lead", {
         body: {
           name: result.data.name, email: result.data.email, phone: result.data.phone,
@@ -154,13 +149,49 @@ const FreeLandingPage = () => {
           projectType: "website", formData: { source: "free_vsl", business_name: result.data.businessName },
         },
       });
+      setCustomerInfo({ name: result.data.name, email: result.data.email, phone: result.data.phone, businessName: result.data.businessName });
       setSubmitted(true);
-      toast.success("You're in! We'll be in touch within 24 hours.");
+      toast.success("You're in! Now book your discovery call.");
     } catch {
       toast.error("Something went wrong. Please try again.");
     }
     setSubmitting(false);
   };
+
+  // If submitted, show booking flow
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-background px-4 py-12 sm:py-16">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center space-y-4 mb-8">
+          <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Check size={32} className="text-green-500" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground">You're In!</h1>
+          <p className="text-muted-foreground">
+            Your spot is secured. Now book your free 20-minute discovery call so we can learn about your business.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="max-w-lg mx-auto rounded-2xl border border-border/50 bg-card shadow-xl overflow-hidden"
+        >
+          <OnboardingBookingInline
+            tierName="Free Website Build"
+            customerName={customerInfo.name}
+            customerEmail={customerInfo.email}
+            customerPhone={customerInfo.phone}
+            customerBusinessName={customerInfo.businessName}
+            durationOverride={20}
+            callLabelOverride="Discovery Call"
+            bookingTypeOverride="discovery"
+          />
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
@@ -252,8 +283,7 @@ const FreeLandingPage = () => {
             {/* Right — Form Card (matches /go style) */}
             <motion.div ref={formRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
               <div className="border border-border rounded-2xl p-5 sm:p-7 shadow-elevated bg-[#f5f5f4]">
-                {!submitted ? (
-                  <>
+                <>
                     <div className="text-center mb-5">
                       <p className="text-xs uppercase tracking-[0.25em] font-bold mb-1 text-sited-blue">Limited Spots</p>
                       <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-gray-900">Claim Your <span className="text-green-500">Free</span> Website</h2>
@@ -290,18 +320,6 @@ const FreeLandingPage = () => {
                       <p className="text-center text-xs text-gray-500">No payment required · 7-day delivery · Only 19 spots left</p>
                     </div>
                   </>
-                ) : (
-                  <div className="text-center py-6 space-y-3">
-                    <div className="mx-auto w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Check size={28} className="text-green-500" />
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900">You're In!</h3>
-                    <p className="text-sm text-gray-600">
-                      We'll be in touch within 24 hours to confirm your spot.
-                      <br />Keep an eye on your inbox — exciting things are coming.
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           </div>
@@ -543,6 +561,32 @@ const FreeLandingPage = () => {
           © 2025 Sited. All rights reserved. | hello@sited.co
         </p>
       </section>
+
+      {/* Spacer for sticky footer */}
+      <div className="h-20" />
+
+      {/* ════════════════════════════════════ */}
+      {/* STICKY FOOTER — Spots Progress */}
+      {/* ════════════════════════════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-foreground text-background border-t border-border">
+        <div className="w-[96%] max-w-5xl mx-auto py-3 flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-background/70">Free Build Spots</span>
+              <span className="text-xs font-black text-destructive">19 Left</span>
+            </div>
+            <div className="w-full bg-background/20 rounded-full h-2 overflow-hidden">
+              <motion.div className="h-full bg-destructive rounded-full" initial={{ width: "0%" }} animate={{ width: "52.5%" }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }} />
+            </div>
+            <p className="text-[10px] text-background/50 mt-0.5">21/40 spots claimed</p>
+          </div>
+          <div className="flex flex-col items-end shrink-0">
+            <Button onClick={scrollToForm} size="sm" className="bg-sited-blue hover:bg-sited-blue-hover text-white font-bold text-xs sm:text-sm">
+              Claim Spot
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

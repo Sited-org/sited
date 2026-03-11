@@ -54,6 +54,9 @@ interface OnboardingBookingInlineProps {
   customerEmail?: string;
   customerPhone?: string;
   customerBusinessName?: string;
+  durationOverride?: number;
+  callLabelOverride?: string;
+  bookingTypeOverride?: string;
 }
 
 const OnboardingBookingInline = ({
@@ -62,6 +65,9 @@ const OnboardingBookingInline = ({
   customerEmail = "",
   customerPhone = "",
   customerBusinessName = "",
+  durationOverride,
+  callLabelOverride,
+  bookingTypeOverride,
 }: OnboardingBookingInlineProps) => {
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -108,8 +114,9 @@ const OnboardingBookingInline = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const DURATION = 45;
-  const CALL_LABEL = "Plan Call";
+  const DURATION = durationOverride || 45;
+  const CALL_LABEL = callLabelOverride || "Plan Call";
+  const BOOKING_TYPE = bookingTypeOverride || "plan";
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -188,7 +195,7 @@ const OnboardingBookingInline = ({
       email: form.email.trim(), phone: form.phone.trim(),
       business_name: form.businessName.trim(), business_type: form.businessType,
       business_location: form.businessLocation.trim(), booking_date: dateStr,
-      booking_time: selectedTime, booking_type: 'plan', duration_minutes: DURATION,
+      booking_time: selectedTime, booking_type: BOOKING_TYPE, duration_minutes: DURATION,
       notes: `Plan Call — ${tierName} (${DURATION} min)`,
     }).select('id').single();
 
@@ -214,7 +221,7 @@ const OnboardingBookingInline = ({
           duration: DURATION,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: 'plan',
+          booking_type: BOOKING_TYPE,
           business_name: form.businessName.trim(),
           attendee_phone: form.phone.trim(),
           attendee_timezone: selectedTimezone,
