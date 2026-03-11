@@ -263,9 +263,9 @@ const OnboardingBookingInline = ({
       {step === "calendar" ? (
         <motion.div key="calendar" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="p-6 sm:p-8">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold">Book Your {CALL_LABEL}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {DURATION}-minute kickoff session for your <span className="font-semibold text-foreground">{tierName}</span> project.
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">Book Your {CALL_LABEL}</h3>
+            <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1">
+              {DURATION}-minute kickoff session for your <span className="font-semibold text-gray-900 dark:text-foreground">{tierName}</span> project.
             </p>
           </div>
 
