@@ -54,6 +54,9 @@ interface OnboardingBookingInlineProps {
   customerEmail?: string;
   customerPhone?: string;
   customerBusinessName?: string;
+  durationOverride?: number;
+  callLabelOverride?: string;
+  bookingTypeOverride?: string;
 }
 
 const OnboardingBookingInline = ({
