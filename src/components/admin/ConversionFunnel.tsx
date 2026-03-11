@@ -9,6 +9,7 @@ interface ConversionFunnelProps {
 
 const funnelStages: { statuses: string[]; label: string; color: string }[] = [
   { statuses: ['warm_lead', 'new', 'contacted'], label: 'Warm Leads', color: 'bg-amber-500' },
+  { statuses: ['discovery_call_booked'], label: 'Discovery Call Booked', color: 'bg-sky-500' },
   { statuses: ['new_lead'], label: 'New Leads', color: 'bg-blue-500' },
   { statuses: ['new_client', 'booked_call'], label: 'New Clients', color: 'bg-indigo-500' },
   { statuses: ['mbr_sold_dev', 'ot_sold_dev', 'sold'], label: 'Sold', color: 'bg-purple-500' },
