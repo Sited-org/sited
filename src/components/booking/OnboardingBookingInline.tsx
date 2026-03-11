@@ -263,9 +263,9 @@ const OnboardingBookingInline = ({
       {step === "calendar" ? (
         <motion.div key="calendar" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="p-6 sm:p-8">
           <div className="mb-6">
-            <h3 className="text-lg font-semibold">Book Your {CALL_LABEL}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {DURATION}-minute kickoff session for your <span className="font-semibold text-foreground">{tierName}</span> project.
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-foreground">Book Your {CALL_LABEL}</h3>
+            <p className="text-sm text-gray-500 dark:text-muted-foreground mt-1">
+              {DURATION}-minute kickoff session for your <span className="font-semibold text-gray-900 dark:text-foreground">{tierName}</span> project.
             </p>
           </div>
 
@@ -273,10 +273,10 @@ const OnboardingBookingInline = ({
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1.5">
               <Globe size={14} className="text-muted-foreground" />
-              <Label className="text-xs text-muted-foreground">Your timezone</Label>
+              <Label className="text-xs text-gray-500 dark:text-muted-foreground">Your timezone</Label>
             </div>
             <Select value={selectedTimezone} onValueChange={(v) => { setSelectedTimezone(v); setSelectedTime(null); }}>
-              <SelectTrigger className="h-9 text-sm">
+              <SelectTrigger className="h-9 text-sm text-gray-900 dark:text-foreground border-gray-200 dark:border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
@@ -292,7 +292,7 @@ const OnboardingBookingInline = ({
             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset > 0 && setMonthOffset((m) => m - 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset === 0}>
               <ChevronLeft size={18} className="text-muted-foreground" />
             </motion.button>
-            <span className="text-sm font-semibold">{monthName} {year}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-foreground">{monthName} {year}</span>
             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset < 2 && setMonthOffset((m) => m + 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset >= 2}>
               <ChevronRight size={18} className="text-muted-foreground" />
             </motion.button>
@@ -301,7 +301,7 @@ const OnboardingBookingInline = ({
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {daysHeader.map((d) => (
-              <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">{d}</div>
+              <div key={d} className="text-center text-xs text-gray-400 dark:text-muted-foreground font-medium py-1">{d}</div>
             ))}
           </div>
 
@@ -315,10 +315,10 @@ const OnboardingBookingInline = ({
               return (
                 <motion.button key={date} onHoverStart={() => available && setHoveredDay(date)} onHoverEnd={() => setHoveredDay(null)} onClick={() => { if (available) { setSelectedDay(date); setSelectedTime(null); } }} whileHover={available ? { scale: 1.1 } : {}} whileTap={available ? { scale: 0.95 } : {}} disabled={!available}
                   className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-150
-                    ${!available ? "text-muted-foreground/30 cursor-not-allowed" : "cursor-pointer"}
-                    ${isSelected ? "bg-foreground text-background" : ""}
-                    ${isHovered && !isSelected ? "bg-muted" : ""}
-                    ${available && !isSelected ? "hover:bg-muted" : ""}`}
+                    ${!available ? "text-gray-300 dark:text-muted-foreground/30 cursor-not-allowed" : "text-gray-900 dark:text-foreground cursor-pointer"}
+                    ${isSelected ? "!bg-sited-blue !text-white" : ""}
+                    ${isHovered && !isSelected ? "bg-gray-100 dark:bg-muted" : ""}
+                    ${available && !isSelected ? "hover:bg-gray-100 dark:hover:bg-muted" : ""}`}
                 >{date}</motion.button>
               );
             })}
@@ -329,7 +329,7 @@ const OnboardingBookingInline = ({
             {selectedDay && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                 <div className="pt-6 mt-6 border-t border-border/50">
-                  <p className="text-sm text-muted-foreground mb-3">Available times ({DURATION} min)</p>
+                  <p className="text-sm text-gray-500 dark:text-muted-foreground mb-3">Available times ({DURATION} min)</p>
                   {loadingSlots ? (
                     <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
                   ) : timeSlots.filter(s => s.available).length === 0 ? (
@@ -338,7 +338,7 @@ const OnboardingBookingInline = ({
                     <div className="grid grid-cols-2 gap-2">
                       {timeSlots.filter((s) => s.available).map((slot, index) => (
                         <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot.time)}
-                          className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
+                          className="py-2.5 px-3 rounded-lg border border-gray-200 dark:border-border/50 text-sm font-medium text-gray-900 dark:text-foreground hover:border-sited-blue hover:bg-sited-blue/5 dark:hover:border-foreground/20 dark:hover:bg-muted/50 transition-colors"
                         >{slot.time}</motion.button>
                       ))}
                     </div>
