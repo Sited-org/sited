@@ -69,6 +69,7 @@ const OnboardingBookingInline = ({
   durationOverride,
   callLabelOverride,
   bookingTypeOverride,
+  onBooked,
 }: OnboardingBookingInlineProps) => {
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
