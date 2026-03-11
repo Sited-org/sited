@@ -114,8 +114,9 @@ const OnboardingBookingInline = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const DURATION = 45;
-  const CALL_LABEL = "Plan Call";
+  const DURATION = durationOverride || 45;
+  const CALL_LABEL = callLabelOverride || "Plan Call";
+  const BOOKING_TYPE = bookingTypeOverride || "plan";
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
