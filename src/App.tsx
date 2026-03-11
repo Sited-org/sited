@@ -84,6 +84,7 @@ const App = () => (
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
             <Route path="/policies" element={<Policies />} />
+            <Route path="/free" element={<FreeLandingPage />} />
             <Route path="/go" element={<LandingPage />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
