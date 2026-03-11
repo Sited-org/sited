@@ -17,7 +17,7 @@ const FUNNEL_NODES: {
   borderColor: string;
 }[] = [
   { id: 'warm_lead', label: 'Warm Lead', shortLabel: 'WL', description: 'Form filled, no deposit', color: 'text-amber-500', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
-  { id: 'discovery_call_booked', label: 'Discovery Call Booked', shortLabel: 'DCB', description: 'Discovery call booked, no deposit', color: 'text-sky-500', bgColor: 'bg-sky-500/10', borderColor: 'border-sky-500/30' },
+  { id: 'discovery_call_booked', label: 'Discovery Call Booked', shortLabel: 'DCB', description: 'Discovery call booked', color: 'text-sky-500', bgColor: 'bg-sky-500/10', borderColor: 'border-sky-500/30' },
   { id: 'new_lead', label: 'New Lead', shortLabel: 'NL', description: 'Deposit paid', color: 'text-blue-500', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/30' },
   { id: 'new_client', label: 'New Client', shortLabel: 'NC', description: 'Call booked', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
   { id: 'no_show', label: 'No Show', shortLabel: 'NS', description: 'Call booked, no show', color: 'text-orange-500', bgColor: 'bg-orange-500/10', borderColor: 'border-orange-500/30' },
@@ -29,6 +29,9 @@ const FUNNEL_NODES: {
 ];
 
 const getNodeConfig = (id: LeadStatus) => FUNNEL_NODES.find(n => n.id === id)!;
+
+// Linear trunk order
+const TRUNK: LeadStatus[] = ['warm_lead', 'discovery_call_booked', 'new_lead', 'new_client'];
 
 interface StatusHistoryEntry {
   id: string;
@@ -73,10 +76,21 @@ export function LeadFunnelTree({
 
   const selectedNode = getNodeConfig(currentStatus);
 
+  const trunkIndex = TRUNK.indexOf(currentStatus);
+  const isPastTrunk = trunkIndex < 0 && currentStatus !== 'warm_lead';
+
+  const isNodeActive = (nodeId: LeadStatus): boolean => {
+    if (nodeId === currentStatus) return true;
+    const ni = TRUNK.indexOf(nodeId);
+    if (ni < 0) return false;
+    if (trunkIndex >= 0) return ni <= trunkIndex;
+    return isPastTrunk; // past trunk = all trunk nodes active
+  };
+
   const renderNode = (nodeId: LeadStatus, isActive: boolean, onClick?: () => void) => {
     const node = getNodeConfig(nodeId);
     const isSelected = currentStatus === nodeId;
-    
+
     return (
       <button
         key={nodeId}
@@ -89,7 +103,7 @@ export function LeadFunnelTree({
             : isActive
               ? `${node.bgColor} ${node.borderColor}`
               : "bg-muted/30 border-border/40 opacity-50",
-          canEdit && !isSelected && "hover:opacity-80 cursor-pointer",
+          canEdit && !isSelected && "cursor-pointer",
           !canEdit && "cursor-default"
         )}
       >
@@ -104,28 +118,6 @@ export function LeadFunnelTree({
         <p className="text-[10px] text-muted-foreground mt-0.5">{node.description}</p>
       </button>
     );
-  };
-
-  // Both WL and DCB are entry-level, leading to NL
-  const entryStatuses: LeadStatus[] = ['warm_lead', 'discovery_call_booked'];
-  const mainTrunk: LeadStatus[] = ['new_lead', 'new_client'];
-  const isEntryStatus = entryStatuses.includes(currentStatus);
-  const trunkIndex = mainTrunk.indexOf(currentStatus);
-  const isPastEntry = !isEntryStatus && !mainTrunk.includes(currentStatus) ? true : trunkIndex >= 0;
-
-  const isNodeActive = (nodeId: LeadStatus): boolean => {
-    if (nodeId === currentStatus) return true;
-    // Entry nodes are active if current is entry or past entry
-    if (entryStatuses.includes(nodeId)) {
-      return nodeId === currentStatus || isPastEntry;
-    }
-    const ti = mainTrunk.indexOf(nodeId);
-    if (ti >= 0) {
-      if (trunkIndex >= 0) return ti <= trunkIndex;
-      if (isEntryStatus) return false;
-      return true; // past trunk (in branch)
-    }
-    return false;
   };
 
   return (
@@ -147,36 +139,22 @@ export function LeadFunnelTree({
           <span className="text-xs text-muted-foreground ml-auto">{selectedNode.description}</span>
         </div>
 
-        {/* Tree visualization */}
+        {/* Linear trunk: WL → DCB → NL → NC */}
         <div className="flex flex-col items-center gap-0">
-          {/* Level 0: WL and DCB side by side */}
-          <div className="flex items-start gap-3">
-            {renderNode('warm_lead', isNodeActive('warm_lead'), () => onStatusChange('warm_lead'))}
-            {renderNode('discovery_call_booked', isNodeActive('discovery_call_booked'), () => onStatusChange('discovery_call_booked'))}
-          </div>
-          
-          {/* Converging connector */}
-          <div className="relative w-[260px] h-6">
-            <div className="absolute top-0 left-1/4 w-0.5 h-3 bg-border" />
-            <div className="absolute top-0 right-1/4 w-0.5 h-3 bg-border" />
-            <div className="absolute top-3 left-1/4 right-1/4 h-0.5 bg-border" />
-            <div className="absolute top-3 left-1/2 -translate-x-px w-0.5 h-3 bg-border" />
-          </div>
-          
-          {/* Level 1: New Lead */}
-          {renderNode('new_lead', isNodeActive('new_lead'), () => onStatusChange('new_lead'))}
-          <div className="w-0.5 h-6 bg-border mx-auto" />
-          
-          {/* Level 2: New Client */}
-          {renderNode('new_client', isNodeActive('new_client'), () => onStatusChange('new_client'))}
-          
+          {TRUNK.map((nodeId, i) => (
+            <div key={nodeId} className="flex flex-col items-center w-full max-w-[260px]">
+              {renderNode(nodeId, isNodeActive(nodeId), () => onStatusChange(nodeId))}
+              {i < TRUNK.length - 1 && <div className="w-0.5 h-6 bg-border mx-auto" />}
+            </div>
+          ))}
+
           {/* Branch connector */}
           <div className="w-0.5 h-4 bg-border mx-auto" />
           <div className="relative w-full max-w-[480px]">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] h-0.5 bg-border" />
           </div>
-          
-          {/* Level 3: Branch split */}
+
+          {/* Branch split */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-[560px] mt-2">
             <div className="flex flex-col items-center gap-2">
               {renderNode('no_show', isNodeActive('no_show'), () => onStatusChange('no_show'))}
@@ -201,13 +179,13 @@ export function LeadFunnelTree({
         <div className="pt-4 mt-4 border-t border-border/40">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors w-full"
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors w-full"
           >
             <Clock className="h-4 w-4" />
             Status History ({history.length})
             <ChevronDown className={cn("h-4 w-4 ml-auto transition-transform", showHistory && "rotate-180")} />
           </button>
-          
+
           {showHistory && (
             <div className="mt-3 space-y-2 max-h-[200px] overflow-y-auto">
               {history.length === 0 ? (
