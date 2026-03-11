@@ -288,8 +288,7 @@ const FreeLandingPage = () => {
             {/* Right — Form Card (matches /go style) */}
             <motion.div ref={formRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5">
               <div className="border border-border rounded-2xl p-5 sm:p-7 shadow-elevated bg-[#f5f5f4]">
-                {!submitted ? (
-                  <>
+                <>
                     <div className="text-center mb-5">
                       <p className="text-xs uppercase tracking-[0.25em] font-bold mb-1 text-sited-blue">Limited Spots</p>
                       <h2 className="text-xl sm:text-2xl font-black tracking-tight uppercase text-gray-900">Claim Your <span className="text-green-500">Free</span> Website</h2>
@@ -326,18 +325,6 @@ const FreeLandingPage = () => {
                       <p className="text-center text-xs text-gray-500">No payment required · 7-day delivery · Only 19 spots left</p>
                     </div>
                   </>
-                ) : (
-                  <div className="text-center py-6 space-y-3">
-                    <div className="mx-auto w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Check size={28} className="text-green-500" />
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900">You're In!</h3>
-                    <p className="text-sm text-gray-600">
-                      We'll be in touch within 24 hours to confirm your spot.
-                      <br />Keep an eye on your inbox — exciting things are coming.
-                    </p>
-                  </div>
-                )}
               </div>
             </motion.div>
           </div>
