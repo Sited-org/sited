@@ -276,7 +276,7 @@ const OnboardingBookingInline = ({
               <Label className="text-xs text-gray-500 dark:text-muted-foreground">Your timezone</Label>
             </div>
             <Select value={selectedTimezone} onValueChange={(v) => { setSelectedTimezone(v); setSelectedTime(null); }}>
-              <SelectTrigger className="h-9 text-sm">
+              <SelectTrigger className="h-9 text-sm text-gray-900 dark:text-foreground border-gray-200 dark:border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
