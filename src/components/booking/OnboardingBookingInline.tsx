@@ -73,7 +73,6 @@ const OnboardingBookingInline = ({
 }: OnboardingBookingInlineProps) => {
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -288,65 +287,63 @@ const OnboardingBookingInline = ({
           </div>
 
           {/* Month Nav */}
-          <div className="flex items-center justify-between mb-6">
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset > 0 && setMonthOffset((m) => m - 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset === 0}>
-              <ChevronLeft size={18} className="text-muted-foreground" />
-            </motion.button>
-            <span className="text-sm font-semibold text-gray-900 dark:text-foreground">{monthName} {year}</span>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => monthOffset < 2 && setMonthOffset((m) => m + 1)} className="p-2 rounded-full hover:bg-muted/50 transition-colors disabled:opacity-30" disabled={monthOffset >= 2}>
-              <ChevronRight size={18} className="text-muted-foreground" />
-            </motion.button>
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => monthOffset > 0 && setMonthOffset((m) => m - 1)} className="p-2 rounded-full disabled:opacity-30" disabled={monthOffset === 0}>
+              <ChevronLeft size={18} className="text-gray-500" />
+            </button>
+            <span className="text-sm font-bold text-gray-900 dark:text-foreground">{monthName} {year}</span>
+            <button onClick={() => monthOffset < 2 && setMonthOffset((m) => m + 1)} className="p-2 rounded-full disabled:opacity-30" disabled={monthOffset >= 2}>
+              <ChevronRight size={18} className="text-gray-500" />
+            </button>
           </div>
 
           {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="grid grid-cols-7 gap-0.5 mb-1">
             {daysHeader.map((d) => (
-              <div key={d} className="text-center text-xs text-gray-400 dark:text-muted-foreground font-medium py-1">{d}</div>
+              <div key={d} className="text-center text-[11px] text-gray-400 font-semibold py-1.5">{d}</div>
             ))}
           </div>
 
           {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5">
             {calendarDates.map((date, i) => {
               if (date === null) return <div key={`empty-${i}`} />;
               const available = isDateAvailable(date);
               const isSelected = date === selectedDay;
-              const isHovered = date === hoveredDay;
               return (
-                <motion.button key={date} onHoverStart={() => available && setHoveredDay(date)} onHoverEnd={() => setHoveredDay(null)} onClick={() => { if (available) { setSelectedDay(date); setSelectedTime(null); } }} whileHover={available ? { scale: 1.1 } : {}} whileTap={available ? { scale: 0.95 } : {}} disabled={!available}
-                  className={`aspect-square rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-150
-                    ${!available ? "text-gray-300 dark:text-muted-foreground/30 cursor-not-allowed" : "text-gray-900 dark:text-foreground cursor-pointer"}
-                    ${isSelected ? "!bg-sited-blue !text-white" : ""}
-                    ${isHovered && !isSelected ? "bg-gray-100 dark:bg-muted" : ""}
-                    ${available && !isSelected ? "hover:bg-gray-100 dark:hover:bg-muted" : ""}`}
-                >{date}</motion.button>
+                <button
+                  key={date}
+                  onClick={() => { if (available) { setSelectedDay(date); setSelectedTime(null); } }}
+                  disabled={!available}
+                  className={`aspect-square rounded-md flex items-center justify-center text-sm font-medium transition-colors
+                    ${!available ? "text-gray-300 cursor-not-allowed" : "text-gray-900 cursor-pointer active:bg-gray-200"}
+                    ${isSelected ? "bg-sited-blue text-white" : ""}`}
+                >{date}</button>
               );
             })}
           </div>
 
           {/* Time Slots */}
-          <AnimatePresence>
-            {selectedDay && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                <div className="pt-6 mt-6 border-t border-border/50">
-                  <p className="text-sm text-gray-500 dark:text-muted-foreground mb-3">Available times ({DURATION} min)</p>
-                  {loadingSlots ? (
-                    <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-                  ) : timeSlots.filter(s => s.available).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">No available times for this date</p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.filter((s) => s.available).map((slot, index) => (
-                        <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot.time)}
-                          className="py-2.5 px-3 rounded-lg border border-gray-200 dark:border-border/50 text-sm font-medium text-gray-900 dark:text-foreground hover:border-sited-blue hover:bg-sited-blue/5 dark:hover:border-foreground/20 dark:hover:bg-muted/50 transition-colors"
-                        >{slot.time}</motion.button>
-                      ))}
-                    </div>
-                  )}
+          {selectedDay && (
+            <div className="pt-5 mt-5 border-t border-gray-200">
+              <p className="text-sm text-gray-500 mb-3">Available times ({DURATION} min)</p>
+              {loadingSlots ? (
+                <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+              ) : timeSlots.filter(s => s.available).length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No available times for this date</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {timeSlots.filter((s) => s.available).map((slot) => (
+                    <button
+                      key={slot.time}
+                      onClick={() => handleTimeSelect(slot.time)}
+                      className="py-2.5 px-3 rounded-md border border-gray-200 text-sm font-medium text-gray-900 active:bg-sited-blue active:text-white active:border-sited-blue transition-colors"
+                    >{slot.time}</button>
+                  ))}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </div>
+          )}
         </motion.div>
       ) : (
         <motion.div key="form" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="p-6 sm:p-8">
