@@ -221,7 +221,7 @@ const OnboardingBookingInline = ({
           duration: DURATION,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: 'plan',
+          booking_type: BOOKING_TYPE,
           business_name: form.businessName.trim(),
           attendee_phone: form.phone.trim(),
           attendee_timezone: selectedTimezone,
