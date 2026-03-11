@@ -207,7 +207,7 @@ const FreeLandingPage = () => {
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 lg:pt-8">
               <p className="text-xs uppercase tracking-[0.25em] text-gold font-bold mb-4">FREE WEBSITE OFFER</p>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[0.92]">
-                YOUR FULL WEBSITE.
+                YOUR KILLER WEBSITE.
                 <br />
                 <span className="text-green-500">FOR FREE.</span>
               </h1>

@@ -226,7 +226,7 @@ const OnboardingBookingInline = ({
           business_name: form.businessName.trim(),
           attendee_phone: form.phone.trim(),
           attendee_timezone: selectedTimezone,
-          create_lead: false,
+          create_lead: true,
           business_type: form.businessType,
           business_location: form.businessLocation.trim(),
         },
