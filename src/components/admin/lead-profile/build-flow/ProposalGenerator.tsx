@@ -449,41 +449,126 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            <div className="flex-1 max-h-[62vh] border rounded-lg bg-muted/30 flex items-center justify-center p-8">
-              <div className="text-center space-y-4">
-                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                  <FileText className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">PDF Ready to Generate</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    A4 professional SOW document for <strong>{businessName}</strong>
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
-                  <div className="rounded-lg border bg-card p-3 text-center">
-                    <p className="text-xl font-bold">{pages.length}</p>
-                    <p className="text-xs text-muted-foreground">Pages</p>
+            <ScrollArea className="flex-1 max-h-[65vh]">
+              <div className="flex justify-center py-4">
+                {/* A4 aspect ratio container: 210mm × 297mm = ratio 1:1.4142 */}
+                <div
+                  className="bg-white text-[#0f172a] shadow-xl border rounded"
+                  style={{ width: '500px', minHeight: '707px', fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '8px', padding: '32px' }}
+                >
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div style={{ fontSize: '16px', fontWeight: 700 }}>
+                      <span style={{ color: '#0f172a' }}>Sited.</span>
+                      <span style={{ color: '#3b82f6' }}>co</span>
+                    </div>
+                    <div className="text-right">
+                      <div style={{ fontSize: '7px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.05em' }}>STATEMENT OF WORK</div>
+                      <div style={{ fontSize: '6px', color: '#64748b', marginTop: '2px' }}>Ref: SOW-{fileSlug.toUpperCase().slice(0, 8)}</div>
+                      <div style={{ fontSize: '6px', color: '#64748b' }}>{today}</div>
+                    </div>
                   </div>
-                  <div className="rounded-lg border bg-card p-3 text-center">
-                    <p className="text-xl font-bold">{features.length}</p>
-                    <p className="text-xs text-muted-foreground">Features</p>
+
+                  {/* Gradient divider */}
+                  <div className="mb-3 rounded-full" style={{ height: '2px', background: 'linear-gradient(to right, #0f172a, #e2e8f0)' }} />
+
+                  {/* Client name & type */}
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{businessName}</div>
+                  <div style={{ fontSize: '7px', color: '#64748b', marginTop: '3px', marginBottom: '12px' }}>
+                    {projectType}  ·  Prepared by Sited  ·  {today}
                   </div>
-                  <div className="rounded-lg border bg-card p-3 text-center">
-                    <p className="text-xl font-bold">{integrations.length}</p>
-                    <p className="text-xs text-muted-foreground">Integrations</p>
+
+                  {/* Stat cards */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {[
+                      { num: pages.length, label: 'PAGES' },
+                      { num: features.length, label: 'FEATURES' },
+                      { num: integrations.length, label: 'INTEGRATIONS' },
+                    ].map((s) => (
+                      <div key={s.label} className="rounded border text-center py-2" style={{ background: '#f8fafc', borderColor: '#e2e8f0' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{s.num}</div>
+                        <div style={{ fontSize: '5px', color: '#94a3b8', letterSpacing: '0.08em', marginTop: '1px' }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Section title */}
+                  <div style={{ fontSize: '6px', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', marginBottom: '6px' }}>SCOPE OF WORKS</div>
+
+                  {/* Table */}
+                  <div className="rounded overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
+                    {/* Header */}
+                    <div className="grid" style={{ gridTemplateColumns: '28px 1fr 56px', background: '#0f172a', padding: '5px 8px' }}>
+                      <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff' }}>#</span>
+                      <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff' }}>ITEM DESCRIPTION</span>
+                      <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff', textAlign: 'right' }}>PRICE</span>
+                    </div>
+                    {/* Rows */}
+                    {allItems.map((item, i) => (
+                      <div
+                        key={i}
+                        className="grid"
+                        style={{
+                          gridTemplateColumns: '28px 1fr 56px',
+                          padding: '4px 8px',
+                          background: i % 2 === 1 ? '#f8fafc' : '#ffffff',
+                          borderTop: '1px solid #f1f5f9',
+                        }}
+                      >
+                        <span style={{ fontSize: '6px', fontWeight: 700, color: '#94a3b8' }}>{String(i + 1).padStart(2, '0')}</span>
+                        <span style={{ fontSize: '7px', color: '#0f172a' }}>{item.desc}</span>
+                        <span style={{ fontSize: item.isFree ? '6px' : '7px', fontWeight: item.isFree ? 700 : 400, color: item.isFree ? '#16a34a' : '#334155', textAlign: 'right' }}>
+                          {item.price}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Totals section */}
+                  <div className="mt-3 rounded overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
+                    {/* Itemised total */}
+                    <div className="flex items-center justify-between" style={{ padding: '6px 12px', background: '#f8fafc' }}>
+                      <span style={{ fontSize: '7px', color: '#94a3b8' }}>Itemised Total</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
+                        ${totalItemized.toLocaleString()}
+                      </span>
+                    </div>
+                    {/* You save */}
+                    <div className="flex items-center justify-between" style={{ padding: '6px 12px', background: '#f0fdf4' }}>
+                      <span style={{ fontSize: '7px', fontWeight: 700, color: '#16a34a' }}>You Save</span>
+                      <span style={{ fontSize: '9px', fontWeight: 700, color: '#16a34a' }}>${savings.toLocaleString()}</span>
+                    </div>
+                    {/* Your price */}
+                    <div className="flex items-center justify-between" style={{ padding: '10px 12px', background: '#0f172a' }}>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: '7px', color: '#94a3b8' }}>Your Price</span>
+                        {selectedProduct && (
+                          <span style={{ fontSize: '5px', fontWeight: 700, color: '#e2e8f0', background: '#334155', padding: '2px 5px', borderRadius: '3px', letterSpacing: '0.05em' }}>
+                            {selectedProduct.name.toUpperCase()} PACKAGE
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#ffffff' }}>${actualPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Disclaimer */}
+                  <div className="mt-3 rounded" style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a' }}>
+                    <p style={{ fontSize: '6px', color: '#92400e', lineHeight: 1.5 }}>
+                      All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.
+                    </p>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-4 pt-2" style={{ borderTop: '1px solid #e2e8f0' }}>
+                    <div className="flex items-center justify-between">
+                      <span style={{ fontSize: '5px', color: '#94a3b8' }}>Sited · Web Design &amp; Development</span>
+                      <span style={{ fontSize: '5px', color: '#94a3b8' }}>{fileSlug}.sited.sow</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className="text-muted-foreground line-through">${totalItemized.toLocaleString()}</span>
-                  <span className="font-bold text-lg">${actualPrice.toLocaleString()}</span>
-                  <Badge variant="secondary">{selectedProduct?.name}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  <code className="bg-muted px-1.5 py-0.5 rounded">{fileName}</code>
-                </p>
               </div>
-            </div>
+            </ScrollArea>
 
             <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
               <Button variant="outline" onClick={() => setShowPreview(false)}>
