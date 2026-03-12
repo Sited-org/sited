@@ -83,6 +83,11 @@ const OnboardingBookingInline = ({
   const [locationQuery, setLocationQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaQuestion, setCaptchaQuestion] = useState<string | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: customerEmail, phone: customerPhone,
     businessName: customerBusinessName, businessType: "", businessLocation: "",
