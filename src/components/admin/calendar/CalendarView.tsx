@@ -134,7 +134,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
   }, [config]);
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = toLocalDateStr(today);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden overflow-x-auto">
@@ -142,7 +142,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
       <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-muted/30 border-b border-border">
         <div />
         {weekDays.map(d => {
-          const dateStr = d.toISOString().split('T')[0];
+          const dateStr = toLocalDateStr(d);
           return (
             <div key={dateStr} className={cn(
               "text-center py-2.5 border-l border-border",
