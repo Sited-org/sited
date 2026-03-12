@@ -18,8 +18,12 @@ const statusColors: Record<string, string> = {
   completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function getBookingsForDate(bookings: Booking[], date: Date) {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(date);
   return bookings.filter(b => b.booking_date === dateStr && b.status !== 'cancelled');
 }
 
