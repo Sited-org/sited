@@ -1,44 +1,41 @@
 
 
-## Animation Timing & Ingle Brown Screenshot Fix
+## Problem Identified
 
-### 1. Animation Start Time (both components)
+There are **two bugs** causing the date mismatch:
 
-**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+### Bug 1: Admin CalendarView uses UTC dates instead of local dates
+In `CalendarView.tsx`, the function `getBookingsForDate` (line 22) and all date comparisons use `date.toISOString().split('T')[0]`. This converts to **UTC**, not local time. For an admin in AEST (UTC+10/11):
+- `new Date(2026, 2, 18)` (March 18 midnight local) → `.toISOString()` → `"2026-03-17T13:00:00Z"` → splits to `"2026-03-17"`
+- But `booking_date` stored in the database is `"2026-03-18"`
+- So the booking appears on **March 19** in the admin calendar (because March 19 midnight AEST = March 18 UTC)
 
-Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+### Bug 2: Booking stores client timezone time, but availability checks admin timezone time
+The `get-available-slots` function checks booked times against `adminTimeStr`, but `submit-booking` stores the **client's displayed time** (e.g., "11:30 AM" Sydney instead of "10:30 AM" Brisbane). This causes availability checking to break — already-booked slots still appear available.
 
-- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
-- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+---
 
-### 2. Ingle Brown Screenshot Issue
+## Plan
 
-The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
-
-**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
-
-- Add `&scroll=true` to the microlink URL to handle sticky headers properly
-- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
-- After updating the function, re-run it to generate a corrected screenshot
-
-### Technical Details
-
-**WebsiteShowcaseGrid.tsx (line 72):**
+### 1. Fix CalendarView.tsx — Use local date strings
+Replace all `date.toISOString().split('T')[0]` with a helper that formats using local year/month/day:
 ```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 ```
+Apply in `getBookingsForDate`, `MonthView`, `WeekView`, and the `todayStr` calculations.
 
-**SocialProofSection.tsx (line 63):**
-```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
+### 2. Fix OnboardingBookingInline.tsx — Store admin timezone time
+- Update the `TimeSlot` interface to include optional `adminTime` field
+- When the user selects a time slot, track both the display time and the `adminTime` from the API response
+- Submit `booking_time` as the **admin time** (falling back to client time if same timezone)
+- Compute Zoom `start_time` ISO using the admin timezone and admin time
 
-**capture-site-screenshots/index.ts (line 33):**
-Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
+### 3. Fix submit-booking/index.ts — No changes needed
+The edge function already stores whatever `booking_time` is sent. Once the frontend sends admin-timezone time, it will be consistent.
+
+### Files to change
+- `src/components/admin/calendar/CalendarView.tsx` — local date string helper
+- `src/components/booking/OnboardingBookingInline.tsx` — track and submit adminTime
 
