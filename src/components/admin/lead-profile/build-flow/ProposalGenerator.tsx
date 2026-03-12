@@ -35,7 +35,7 @@ const PROJECT_TYPE_MAP: Record<string, string> = {
   booking: 'Booking / Service Website',
 };
 
-export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
+export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
