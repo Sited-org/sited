@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, Upload, Image } from 'lucide-react';
+import { CheckCircle2, Image, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import type { BuildStep } from '@/hooks/useBuildFlow';
 
@@ -15,11 +15,21 @@ interface StepCompleteModalProps {
   onComplete: (description: string, screenshotUrl?: string | null) => Promise<void>;
 }
 
+// Steps that require a file upload (screenshot/document) to complete
+const UPLOAD_REQUIRED_STEPS = [
+  'sitemap_drafted',
+  'sitemap_approved',
+  'contract_signed',
+  'fe_signoff',
+];
+
 export function StepCompleteModal({ step, buildFlowId, onClose, onComplete }: StepCompleteModalProps) {
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const requiresUpload = UPLOAD_REQUIRED_STEPS.includes(step.step_key);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,8 +50,10 @@ export function StepCompleteModal({ step, buildFlowId, onClose, onComplete }: St
     setUploading(false);
   };
 
+  const canSubmit = description.length >= 20 && (!requiresUpload || !!screenshotUrl);
+
   const handleSubmit = async () => {
-    if (description.length < 20) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     await onComplete(description, screenshotUrl);
     setSubmitting(false);
@@ -60,7 +72,15 @@ export function StepCompleteModal({ step, buildFlowId, onClose, onComplete }: St
         <div className="space-y-4 py-4">
           {/* Screenshot Upload */}
           <div>
-            <Label>Screenshot (optional)</Label>
+            <Label>
+              {requiresUpload ? 'Attachment (required)' : 'Screenshot (optional)'}
+            </Label>
+            {requiresUpload && !screenshotUrl && (
+              <div className="flex items-center gap-2 mt-1 mb-2 text-amber-600">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="text-xs">A file must be uploaded to complete this step.</span>
+              </div>
+            )}
             {screenshotUrl ? (
               <div className="mt-2 relative">
                 <img src={screenshotUrl} alt="Screenshot" className="rounded-lg max-h-48 object-cover w-full" />
@@ -87,7 +107,7 @@ export function StepCompleteModal({ step, buildFlowId, onClose, onComplete }: St
                 </div>
                 <Input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.pdf,.doc,.docx"
                   className="hidden"
                   onChange={handleUpload}
                   disabled={uploading}
@@ -116,7 +136,7 @@ export function StepCompleteModal({ step, buildFlowId, onClose, onComplete }: St
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || description.length < 20}
+            disabled={submitting || !canSubmit}
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
             {submitting ? 'Saving...' : 'Confirm Complete'}

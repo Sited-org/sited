@@ -51,6 +51,12 @@ const AMBER_800 = '#92400e';
 const SITED_BLUE = '#3b82f6';
 const WHITE = '#ffffff';
 
+// Margins: 1cm sides (~28.35pt), 1.5cm top/bottom (~42.52pt)
+const ML = 28;
+const MR = 28;
+const MT = 43;
+const MB = 50;
+
 export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
@@ -126,18 +132,13 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
     const W = 595.28; // A4 width in pt
     const H = 841.89; // A4 height in pt
-    const ML = 48; // margin left
-    const MR = 48;
-    const MT = 48;
-    const MB = 60;
     const CW = W - ML - MR; // content width
 
-    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
     let y = MT;
 
     const checkPage = (needed: number) => {
       if (y + needed > H - MB) {
-        // Footer on current page
         drawFooter(pdf, W, H);
         pdf.addPage();
         y = MT;
@@ -147,16 +148,15 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     const drawFooter = (doc: any, w: number, h: number) => {
       doc.setDrawColor(SLATE_200);
       doc.setLineWidth(0.5);
-      doc.line(ML, h - 40, w - MR, h - 40);
+      doc.line(ML, h - 36, w - MR, h - 36);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7.5);
       doc.setTextColor(SLATE_400);
-      doc.text('Sited · Web Design & Development', ML, h - 28);
-      doc.text(`${fileSlug}.sited.sow`, w - MR, h - 28, { align: 'right' });
+      doc.text('Sited · Web Design & Development', ML, h - 24);
+      doc.text(`${fileSlug}.sited.sow`, w - MR, h - 24, { align: 'right' });
     };
 
     // ─── HEADER ───
-    // Logo: "Sited." in black, ".co" in blue
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(24);
     pdf.setTextColor(SLATE_900);
@@ -165,7 +165,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setTextColor(SITED_BLUE);
     pdf.text('co', ML + sitedWidth, y + 20);
 
-    // Right side: SOW ref
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(10);
     pdf.setTextColor(SLATE_900);
@@ -178,8 +177,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
     y += 44;
 
-    // Gradient divider
-    const gradSteps = 60;
+    // Simple gradient divider (fewer segments for smaller file)
+    const gradSteps = 20;
     for (let i = 0; i < gradSteps; i++) {
       const ratio = i / gradSteps;
       const r = Math.round(15 + ratio * (226 - 15));
@@ -238,16 +237,14 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     // ─── TABLE HEADER ───
     const colNum = 40;
     const colPrice = 70;
-    const colDesc = CW - colNum - colPrice;
     const rowH = 28;
     const headerH = 30;
 
     const drawTableHeader = () => {
       pdf.setFillColor(SLATE_900);
       pdf.roundedRect(ML, y, CW, headerH, 4, 4, 'F');
-      // Cover bottom corners
       pdf.rect(ML, y + headerH - 4, CW, 4, 'F');
-      
+
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(7.5);
       pdf.setTextColor(WHITE);
@@ -263,7 +260,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     allItems.forEach((item, i) => {
       checkPage(rowH);
 
-      // If we're at top of a new page, re-draw the header
       if (y === MT) {
         drawTableHeader();
       }
@@ -272,24 +268,20 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       pdf.setFillColor(bgColor);
       pdf.rect(ML, y, CW, rowH, 'F');
 
-      // Bottom border
       pdf.setDrawColor(SLATE_100);
       pdf.setLineWidth(0.3);
       pdf.line(ML, y + rowH, ML + CW, y + rowH);
 
-      // Row number
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(8);
       pdf.setTextColor(SLATE_400);
       pdf.text(String(i + 1).padStart(2, '0'), ML + 14, y + 17);
 
-      // Description
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9.5);
       pdf.setTextColor(SLATE_900);
       pdf.text(item.desc, ML + colNum + 14, y + 17);
 
-      // Price
       if (item.isFree) {
         pdf.setFont('helvetica', 'bold');
         pdf.setFontSize(8);
@@ -309,10 +301,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     // ─── TOTALS SECTION ───
     checkPage(110);
 
-    // Itemised total (struck through)
     pdf.setFillColor(SLATE_50);
     pdf.roundedRect(ML, y, CW, 36, 6, 6, 'F');
-    // Cover bottom corners for middle join
     pdf.rect(ML, y + 30, CW, 6, 'F');
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(9);
@@ -323,13 +313,11 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setFontSize(12);
     const itW = pdf.getTextWidth(itemTotalStr);
     pdf.text(itemTotalStr, W - MR - 20, y + 22, { align: 'right' });
-    // Strikethrough line
     pdf.setDrawColor(SLATE_400);
     pdf.setLineWidth(0.8);
     pdf.line(W - MR - 20 - itW, y + 19, W - MR - 20, y + 19);
     y += 36;
 
-    // You Save
     pdf.setFillColor(GREEN_50);
     pdf.rect(ML, y, CW, 36, 'F');
     pdf.setFont('helvetica', 'bold');
@@ -340,10 +328,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.text(`$${savings.toLocaleString()}`, W - MR - 20, y + 22, { align: 'right' });
     y += 36;
 
-    // Your Price (dark bar)
     pdf.setFillColor(SLATE_900);
     pdf.roundedRect(ML, y, CW, 48, 6, 6, 'F');
-    // Cover top corners
     pdf.rect(ML, y, CW, 6, 'F');
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
@@ -354,7 +340,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setTextColor(WHITE);
     const priceStr = `$${actualPrice.toLocaleString()}`;
     pdf.text(priceStr, W - MR - 20, y + 32, { align: 'right' });
-    // Package badge
     if (selectedProduct) {
       const badgeText = `${selectedProduct.name} Package`.toUpperCase();
       pdf.setFontSize(7);
@@ -437,6 +422,13 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     }
   };
 
+  // Preview margin constants (scaled from PDF pts to preview px)
+  const previewW = 500;
+  const scale = previewW / 595.28;
+  const pML = Math.round(ML * scale);
+  const pMR = Math.round(MR * scale);
+  const pMT = Math.round(MT * scale);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
@@ -451,10 +443,19 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
           <>
             <ScrollArea className="flex-1 max-h-[65vh]">
               <div className="flex justify-center py-4">
-                {/* A4 aspect ratio container: 210mm × 297mm = ratio 1:1.4142 */}
+                {/* A4 aspect ratio container */}
                 <div
                   className="bg-white text-[#0f172a] shadow-xl border rounded"
-                  style={{ width: '500px', minHeight: '707px', fontFamily: 'Helvetica, Arial, sans-serif', fontSize: '8px', padding: '32px' }}
+                  style={{
+                    width: `${previewW}px`,
+                    minHeight: '707px',
+                    fontFamily: 'Helvetica, Arial, sans-serif',
+                    fontSize: '8px',
+                    paddingTop: `${pMT}px`,
+                    paddingBottom: `${pMT}px`,
+                    paddingLeft: `${pML}px`,
+                    paddingRight: `${pMR}px`,
+                  }}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
@@ -497,13 +498,11 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
                   {/* Table */}
                   <div className="rounded overflow-hidden border" style={{ borderColor: '#e2e8f0' }}>
-                    {/* Header */}
                     <div className="grid" style={{ gridTemplateColumns: '28px 1fr 56px', background: '#0f172a', padding: '5px 8px' }}>
                       <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff' }}>#</span>
                       <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff' }}>ITEM DESCRIPTION</span>
                       <span style={{ fontSize: '6px', fontWeight: 700, color: '#ffffff', textAlign: 'right' }}>PRICE</span>
                     </div>
-                    {/* Rows */}
                     {allItems.map((item, i) => (
                       <div
                         key={i}
@@ -526,19 +525,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
                   {/* Totals section */}
                   <div className="mt-3 rounded overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
-                    {/* Itemised total */}
                     <div className="flex items-center justify-between" style={{ padding: '6px 12px', background: '#f8fafc' }}>
                       <span style={{ fontSize: '7px', color: '#94a3b8' }}>Itemised Total</span>
                       <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textDecoration: 'line-through' }}>
                         ${totalItemized.toLocaleString()}
                       </span>
                     </div>
-                    {/* You save */}
                     <div className="flex items-center justify-between" style={{ padding: '6px 12px', background: '#f0fdf4' }}>
                       <span style={{ fontSize: '7px', fontWeight: 700, color: '#16a34a' }}>You Save</span>
                       <span style={{ fontSize: '9px', fontWeight: 700, color: '#16a34a' }}>${savings.toLocaleString()}</span>
                     </div>
-                    {/* Your price */}
                     <div className="flex items-center justify-between" style={{ padding: '10px 12px', background: '#0f172a' }}>
                       <div className="flex items-center gap-2">
                         <span style={{ fontSize: '7px', color: '#94a3b8' }}>Your Price</span>
@@ -555,7 +551,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                   {/* Disclaimer */}
                   <div className="mt-3 rounded" style={{ padding: '8px 12px', background: '#fffbeb', border: '1px solid #fde68a' }}>
                     <p style={{ fontSize: '6px', color: '#92400e', lineHeight: 1.5 }}>
-                      All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.
+                      All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the &quot;Sited Care Plan&quot; for all changes.
                     </p>
                   </div>
 

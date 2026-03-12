@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Upload, Image, Palette, Type, ExternalLink, Plus, Trash2, Save } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Upload, Image, Palette, Type, ExternalLink, Plus, Trash2, Save, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { ClientAssets, BrandColour, BrandFont } from '@/hooks/useBuildFlow';
@@ -28,6 +28,15 @@ const LOGO_SLOTS = [
   { key: 'og_image', label: 'OG Image', desc: 'Social Share', dims: '1200×630' },
 ] as const;
 
+// Colour role definitions
+const COLOUR_ROLES = [
+  { role: 'primary', label: 'Primary', max: 1 },
+  { role: 'secondary', label: 'Secondary', max: 2 },
+  { role: 'accent', label: 'Accent', max: 3 },
+] as const;
+
+type ColourRole = 'primary' | 'secondary' | 'accent';
+
 export function ClientAssetsPanel({
   clientAssets,
   brandColours,
@@ -42,6 +51,31 @@ export function ClientAssetsPanel({
   const [driveLink, setDriveLink] = useState(clientAssets?.google_drive_link || '');
   const [localColours, setLocalColours] = useState(brandColours);
   const [localFonts, setLocalFonts] = useState(brandFonts);
+
+  // Sync local state when props change
+  useEffect(() => {
+    setLocalColours(brandColours);
+  }, [brandColours]);
+
+  useEffect(() => {
+    setLocalFonts(brandFonts);
+  }, [brandFonts]);
+
+  // Parse role from label (e.g. "Primary" -> "primary", "Secondary 1" -> "secondary")
+  const getColourRole = (label: string): ColourRole | null => {
+    const lower = label.toLowerCase();
+    if (lower.startsWith('primary')) return 'primary';
+    if (lower.startsWith('secondary')) return 'secondary';
+    if (lower.startsWith('accent')) return 'accent';
+    return null;
+  };
+
+  const getColourCountByRole = (role: ColourRole): number => {
+    return localColours.filter(c => getColourRole(c.label) === role).length;
+  };
+
+  // Check if the minimum brand colours requirement is met (at least 1 primary)
+  const hasPrimary = getColourCountByRole('primary') >= 1;
 
   const handleLogoUpload = async (key: string, file: File) => {
     if (!clientAssets) return;
@@ -67,18 +101,28 @@ export function ClientAssetsPanel({
     await onUpdate();
   };
 
-  const addColour = async () => {
+  const addColourByRole = async (role: ColourRole) => {
+    const roleConfig = COLOUR_ROLES.find(r => r.role === role)!;
+    const currentCount = getColourCountByRole(role);
+    if (currentCount >= roleConfig.max) {
+      toast({ title: `Maximum ${roleConfig.max} ${roleConfig.label} colour${roleConfig.max > 1 ? 's' : ''} allowed`, variant: 'destructive' });
+      return;
+    }
+    const label = roleConfig.max > 1 ? `${roleConfig.label} ${currentCount + 1}` : roleConfig.label;
     const { error } = await supabase.from('brand_colours').insert({
       lead_id: leadId,
       build_flow_id: buildFlowId,
-      label: 'New Colour',
+      label,
       hex_value: '#000000',
       order_index: localColours.length,
     });
-    if (!error) await onUpdate();
+    if (!error) {
+      await onUpdate();
+      await checkAndAutoCompleteBrandColoursStep();
+    }
   };
 
-  const updateColour = async (id: string, field: string, value: string) => {
+  const updateColour = (id: string, field: string, value: string) => {
     setLocalColours(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
@@ -87,6 +131,7 @@ export function ClientAssetsPanel({
     if (!local) return;
     await supabase.from('brand_colours').update({ label: local.label, hex_value: local.hex_value }).eq('id', colour.id);
     toast({ title: 'Colour saved' });
+    await checkAndAutoCompleteBrandColoursStep();
   };
 
   const deleteColour = async (id: string) => {
@@ -105,7 +150,7 @@ export function ClientAssetsPanel({
     if (!error) await onUpdate();
   };
 
-  const updateFont = async (id: string, field: string, value: string) => {
+  const updateFont = (id: string, field: string, value: string) => {
     setLocalFonts(prev => prev.map(f => f.id === id ? { ...f, [field]: value } : f));
   };
 
@@ -119,6 +164,118 @@ export function ClientAssetsPanel({
   const deleteFont = async (id: string) => {
     await supabase.from('brand_fonts').delete().eq('id', id);
     await onUpdate();
+  };
+
+  // Auto-complete the brand_colours step in phase 2 when at least 1 primary colour exists
+  const checkAndAutoCompleteBrandColoursStep = async () => {
+    // Re-fetch latest colours to ensure accurate count
+    const { data: latestColours } = await supabase
+      .from('brand_colours')
+      .select('label')
+      .eq('build_flow_id', buildFlowId);
+
+    const hasPrimaryNow = (latestColours || []).some(c =>
+      c.label.toLowerCase().startsWith('primary')
+    );
+
+    if (!hasPrimaryNow) return;
+
+    // Find the brand_colours step
+    const { data: phases } = await supabase
+      .from('build_phases')
+      .select('id')
+      .eq('build_flow_id', buildFlowId)
+      .eq('phase_key', 'assets')
+      .maybeSingle();
+
+    if (!phases) return;
+
+    const { data: step } = await supabase
+      .from('build_steps')
+      .select('id, is_completed')
+      .eq('phase_id', phases.id)
+      .eq('step_key', 'brand_colours')
+      .maybeSingle();
+
+    if (!step || step.is_completed) return;
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Auto-complete the step
+    await supabase.from('step_completions').insert({
+      step_id: step.id,
+      build_flow_id: buildFlowId,
+      completed_by: user.id,
+      description: 'Brand colours added via Assets panel (auto-completed)',
+    });
+
+    await supabase.from('build_steps').update({
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      completed_by: user.id,
+    }).eq('id', step.id);
+
+    toast({ title: 'Brand colours step auto-completed ✓' });
+    await onUpdate();
+  };
+
+  // Group colours by role for display
+  const primaryColours = localColours.filter(c => getColourRole(c.label) === 'primary');
+  const secondaryColours = localColours.filter(c => getColourRole(c.label) === 'secondary');
+  const accentColours = localColours.filter(c => getColourRole(c.label) === 'accent');
+  const otherColours = localColours.filter(c => getColourRole(c.label) === null);
+
+  const renderColourRow = (colour: BrandColour) => (
+    <div key={colour.id} className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-lg border border-border shrink-0" style={{ backgroundColor: colour.hex_value }} />
+      {canEdit ? (
+        <>
+          <Input value={colour.label} onChange={e => updateColour(colour.id, 'label', e.target.value)} className="w-32" placeholder="Label" />
+          <Input value={colour.hex_value} onChange={e => updateColour(colour.id, 'hex_value', e.target.value)} className="w-28 font-mono" placeholder="#000000" />
+          <Button size="icon" variant="ghost" onClick={() => saveColour(colour)}><Save className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => deleteColour(colour.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+        </>
+      ) : (
+        <>
+          <span className="text-sm font-medium">{colour.label}</span>
+          <span className="text-sm font-mono text-muted-foreground">{colour.hex_value}</span>
+        </>
+      )}
+    </div>
+  );
+
+  const renderRoleSection = (role: ColourRole, colours: BrandColour[]) => {
+    const roleConfig = COLOUR_ROLES.find(r => r.role === role)!;
+    const canAdd = colours.length < roleConfig.max;
+    return (
+      <div key={role} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{roleConfig.label}</span>
+            <span className="text-xs text-muted-foreground">
+              ({colours.length}/{roleConfig.max})
+            </span>
+            {role === 'primary' && colours.length >= 1 && (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            )}
+          </div>
+          {canEdit && canAdd && (
+            <Button size="sm" variant="outline" onClick={() => addColourByRole(role)} className="h-7 text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add {roleConfig.label}
+            </Button>
+          )}
+        </div>
+        {colours.length === 0 ? (
+          <p className="text-xs text-muted-foreground pl-1">
+            {role === 'primary' ? 'Required — add at least 1 primary colour' : 'No colours added yet'}
+          </p>
+        ) : (
+          colours.map(renderColourRow)
+        )}
+      </div>
+    );
   };
 
   return (
@@ -172,38 +329,29 @@ export function ClientAssetsPanel({
         </CardContent>
       </Card>
 
-      {/* Brand Colours */}
+      {/* Brand Colours — Role-based */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2"><Palette className="h-5 w-5" /> Brand Colours</CardTitle>
-            {canEdit && (
-              <Button size="sm" variant="outline" onClick={addColour}>
-                <Plus className="h-4 w-4 mr-1" /> Add Colour
-              </Button>
-            )}
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Palette className="h-5 w-5" /> Brand Colours
+              {hasPrimary && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+            </CardTitle>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            1 Primary (required) · up to 2 Secondary · up to 3 Accent
+          </p>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {localColours.length === 0 && <p className="text-sm text-muted-foreground">No colours added yet.</p>}
-          {localColours.map(colour => (
-            <div key={colour.id} className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg border border-border shrink-0" style={{ backgroundColor: colour.hex_value }} />
-              {canEdit ? (
-                <>
-                  <Input value={colour.label} onChange={e => updateColour(colour.id, 'label', e.target.value)} className="w-32" placeholder="Label" />
-                  <Input value={colour.hex_value} onChange={e => updateColour(colour.id, 'hex_value', e.target.value)} className="w-28 font-mono" placeholder="#000000" />
-                  <Button size="icon" variant="ghost" onClick={() => saveColour(colour)}><Save className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => deleteColour(colour.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </>
-              ) : (
-                <>
-                  <span className="text-sm font-medium">{colour.label}</span>
-                  <span className="text-sm font-mono text-muted-foreground">{colour.hex_value}</span>
-                </>
-              )}
+        <CardContent className="space-y-5">
+          {renderRoleSection('primary', primaryColours)}
+          {renderRoleSection('secondary', secondaryColours)}
+          {renderRoleSection('accent', accentColours)}
+          {otherColours.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-muted-foreground">Other</span>
+              {otherColours.map(renderColourRow)}
             </div>
-          ))}
+          )}
         </CardContent>
       </Card>
 
