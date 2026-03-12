@@ -52,7 +52,7 @@ function MonthView({ currentDate, bookings, onBookingClick, onDateClick }: Omit<
   }, [currentDate]);
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = toLocalDateStr(today);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
@@ -70,7 +70,7 @@ function MonthView({ currentDate, bookings, onBookingClick, onDateClick }: Omit<
         <div key={wi} className="grid grid-cols-7">
           {week.map((date, di) => {
             if (!date) return <div key={`e-${di}`} className="min-h-[100px] border-b border-r border-border bg-muted/10" />;
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(date);
             const isToday = dateStr === todayStr;
             const dayBookings = getBookingsForDate(bookings, date);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
