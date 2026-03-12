@@ -232,7 +232,7 @@ const OnboardingBookingInline = ({
             business_type: form.businessType,
             business_location: form.businessLocation.trim(),
             booking_date: dateStr,
-            booking_time: selectedTime,
+            booking_time: selectedAdminTime || selectedTime,
             booking_type: BOOKING_TYPE,
             duration_minutes: DURATION,
             notes: `${CALL_LABEL} — ${tierName} (${DURATION} min)`,
