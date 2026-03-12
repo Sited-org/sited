@@ -45,84 +45,46 @@ function getTypeLabel(bookingType: string): string {
 }
 
 function buildConfirmationEmail(p: { attendeeName: string; date: string; time: string; duration: number; typeLabel: string; zoomJoinUrl: string; tzAbbr: string }): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f8f8;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+  return `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head>
+<body style=\"margin:0;padding:0;background-color:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;\">
+  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f8f8f8;padding:40px 20px;\">
+    <tr><td align=\"center\">
+      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;\">
         <!-- Header -->
-        <tr><td style="background-color:#141414;padding:32px 40px;border-radius:16px 16px 0 0;text-align:center;">
-          <h1 style="color:#ffffff;font-size:24px;font-weight:800;margin:0;letter-spacing:-0.5px;">SITED</h1>
-          <p style="color:#a1a1aa;font-size:13px;margin:8px 0 0;letter-spacing:0.5px;">WEB DESIGN & DEVELOPMENT</p>
+        <tr><td style=\"background-color:#141414;padding:32px 40px;border-radius:16px 16px 0 0;text-align:center;\">
+          <h1 style=\"color:#ffffff;font-size:24px;font-weight:800;margin:0;letter-spacing:-0.5px;\">SITED</h1>
+          <p style=\"color:#a1a1aa;font-size:13px;margin:8px 0 0;letter-spacing:0.5px;\">WEB DESIGN & DEVELOPMENT</p>
         </td></tr>
         <!-- Body -->
-        <tr><td style="background-color:#ffffff;padding:40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-          <h2 style="color:#141414;font-size:22px;font-weight:700;margin:0 0 8px;">You're booked in! ✅</h2>
-          <p style="color:#71717a;font-size:15px;line-height:1.6;margin:0 0 28px;">
-            Hey ${p.attendeeName}, your <strong style="color:#141414;">${p.typeLabel}</strong> has been confirmed. We can't wait to chat.
+        <tr><td style=\"background-color:#ffffff;padding:40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);\">
+          <h2 style=\"color:#141414;font-size:22px;font-weight:700;margin:0 0 8px;\">You're booked in! ✅</h2>
+          <p style=\"color:#71717a;font-size:15px;line-height:1.6;margin:0 0 28px;\">
+            Hey ${p.attendeeName}, your <strong style=\"color:#141414;\">${p.typeLabel}</strong> has been confirmed. We can't wait to chat.
           </p>
           <!-- Meeting Card -->
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:24px;margin-bottom:28px;">
+          <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:24px;margin-bottom:28px;\">
             <tr><td>
-              <p style="color:#141414;font-size:15px;margin:0 0 8px;"><strong>📅</strong>&nbsp; ${p.date}</p>
-              <p style="color:#141414;font-size:15px;margin:0 0 8px;"><strong>🕐</strong>&nbsp; ${p.time} (${p.tzAbbr})</p>
-              <p style="color:#141414;font-size:15px;margin:0 0 8px;"><strong>⏱</strong>&nbsp; ${p.duration} minutes</p>
-              <p style="color:#141414;font-size:15px;margin:0;"><strong>📹</strong>&nbsp; Zoom Video Call</p>
+              <p style=\"color:#141414;font-size:15px;margin:0 0 8px;\"><strong>📅</strong>&nbsp; ${p.date}</p>
+              <p style=\"color:#141414;font-size:15px;margin:0 0 8px;\"><strong>🕐</strong>&nbsp; ${p.time} (${p.tzAbbr})</p>
+              <p style=\"color:#141414;font-size:15px;margin:0 0 8px;\"><strong>⏱</strong>&nbsp; ${p.duration} minutes</p>
+              <p style=\"color:#141414;font-size:15px;margin:0;\"><strong>📹</strong>&nbsp; Zoom Video Call</p>
             </td></tr>
           </table>
           <!-- CTA -->
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr><td align="center" style="padding:4px 0 28px;">
-              <a href="${p.zoomJoinUrl}" target="_blank" style="display:inline-block;background-color:#141414;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;">
+          <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">
+            <tr><td align=\"center\" style=\"padding:4px 0 28px;\">
+              <a href=\"${p.zoomJoinUrl}\" target=\"_blank\" style=\"display:inline-block;background-color:#141414;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;\">
                 Join Zoom Meeting →
               </a>
             </td></tr>
           </table>
-          <p style="color:#a1a1aa;font-size:13px;line-height:1.6;margin:0;text-align:center;">
+          <p style=\"color:#a1a1aa;font-size:13px;line-height:1.6;margin:0;text-align:center;\">
             Save this email — you'll need the link above to join. If you need to reschedule, reply to this email or call <strong>0459 909 810</strong>.
           </p>
         </td></tr>
         <!-- Footer -->
-        <tr><td style="padding:24px 40px;text-align:center;">
-          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-}
-
-function buildReminderEmail(p: { attendeeName: string; date: string; time: string; duration: number; typeLabel: string; zoomJoinUrl: string; tzAbbr: string; hoursUntil: string }): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f8f8;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-        <tr><td style="background-color:#141414;padding:28px 40px;border-radius:16px 16px 0 0;text-align:center;">
-          <h1 style="color:#ffffff;font-size:22px;font-weight:800;margin:0;">SITED</h1>
-        </td></tr>
-        <tr><td style="background-color:#ffffff;padding:36px 40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-          <h2 style="color:#141414;font-size:20px;font-weight:700;margin:0 0 8px;">Reminder: Your call is ${p.hoursUntil} ⏰</h2>
-          <p style="color:#71717a;font-size:14px;line-height:1.6;margin:0 0 24px;">
-            Hey ${p.attendeeName}, just a friendly reminder about your upcoming <strong>${p.typeLabel}</strong>.
-          </p>
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:20px;margin-bottom:24px;">
-            <tr><td>
-              <p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>📅</strong>&nbsp; ${p.date}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 6px;"><strong>🕐</strong>&nbsp; ${p.time} (${p.tzAbbr})</p>
-              <p style="color:#141414;font-size:14px;margin:0;"><strong>⏱</strong>&nbsp; ${p.duration} min</p>
-            </td></tr>
-          </table>
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr><td align="center">
-              <a href="${p.zoomJoinUrl}" target="_blank" style="display:inline-block;background-color:#141414;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:12px 32px;border-radius:10px;">
-                Join Call →
-              </a>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:20px;text-align:center;">
-          <p style="color:#a1a1aa;font-size:11px;margin:0;">Sited · sited.co · 0459 909 810</p>
+        <tr><td style=\"padding:24px 40px;text-align:center;\">
+          <p style=\"color:#a1a1aa;font-size:11px;margin:0;\">Sited · sited.co · 0459 909 810</p>
         </td></tr>
       </table>
     </td></tr>
@@ -131,30 +93,30 @@ function buildReminderEmail(p: { attendeeName: string; date: string; time: strin
 }
 
 function buildAdminNotificationEmail(p: { attendeeName: string; attendeeEmail: string; businessName: string; date: string; time: string; duration: number; typeLabel: string; zoomStartUrl: string; phone: string; location: string }): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8f8f8;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-        <tr><td style="background-color:#141414;padding:24px 40px;border-radius:16px 16px 0 0;text-align:center;">
-          <h1 style="color:#ffffff;font-size:18px;font-weight:800;margin:0;">New ${p.typeLabel} 📅</h1>
+  return `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head>
+<body style=\"margin:0;padding:0;background-color:#f8f8f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;\">
+  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f8f8f8;padding:40px 20px;\">
+    <tr><td align=\"center\">
+      <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;\">
+        <tr><td style=\"background-color:#141414;padding:24px 40px;border-radius:16px 16px 0 0;text-align:center;\">
+          <h1 style=\"color:#ffffff;font-size:18px;font-weight:800;margin:0;\">New ${p.typeLabel} 📅</h1>
         </td></tr>
-        <tr><td style="background-color:#ffffff;padding:32px 40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:20px;margin-bottom:20px;">
+        <tr><td style=\"background-color:#ffffff;padding:32px 40px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.06);\">
+          <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#fafafa;border:1px solid #e4e4e7;border-radius:12px;padding:20px;margin-bottom:20px;\">
             <tr><td>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Client:</strong> ${p.attendeeName}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Email:</strong> ${p.attendeeEmail}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Phone:</strong> ${p.phone || 'N/A'}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Business:</strong> ${p.businessName}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Location:</strong> ${p.location || 'N/A'}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Date:</strong> ${p.date}</p>
-              <p style="color:#141414;font-size:14px;margin:0 0 4px;"><strong>Time:</strong> ${p.time} (AEST)</p>
-              <p style="color:#141414;font-size:14px;margin:0;"><strong>Duration:</strong> ${p.duration} min</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Client:</strong> ${p.attendeeName}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Email:</strong> ${p.attendeeEmail}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Phone:</strong> ${p.phone || 'N/A'}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Business:</strong> ${p.businessName}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Location:</strong> ${p.location || 'N/A'}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Date:</strong> ${p.date}</p>
+              <p style=\"color:#141414;font-size:14px;margin:0 0 4px;\"><strong>Time:</strong> ${p.time} (AEST)</p>
+              <p style=\"color:#141414;font-size:14px;margin:0;\"><strong>Duration:</strong> ${p.duration} min</p>
             </td></tr>
           </table>
-          <table width="100%" cellpadding="0" cellspacing="0">
-            <tr><td align="center">
-              <a href="${p.zoomStartUrl}" target="_blank" style="display:inline-block;background-color:#141414;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;">
+          <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">
+            <tr><td align=\"center\">
+              <a href=\"${p.zoomStartUrl}\" target=\"_blank\" style=\"display:inline-block;background-color:#141414;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:8px;\">
                 Start Meeting →
               </a>
             </td></tr>
@@ -216,7 +178,6 @@ serve(async (req) => {
     // 1. Create lead from discovery call booking
     if (create_lead && attendee_email) {
       try {
-        // Check if lead already exists
         const { data: existing } = await supabase.from('leads').select('id').eq('email', attendee_email).maybeSingle();
         if (!existing) {
           await supabase.from('leads').insert({
@@ -238,7 +199,6 @@ serve(async (req) => {
           });
           console.log('Lead created from booking for:', attendee_email);
         } else {
-          // Update existing lead status
           await supabase.from('leads').update({ status: 'discovery_call_booked' }).eq('id', existing.id);
           console.log('Existing lead updated to discovery_call_booked:', existing.id);
         }
@@ -282,38 +242,6 @@ serve(async (req) => {
       console.log('Admin notification email sent');
     } catch (adminEmailError) {
       console.error('Failed to send admin notification:', adminEmailError);
-    }
-
-    // 4. Schedule reminder emails (24h + 1h before)
-    if (attendee_email) {
-      const meetingStart = new Date(start_time);
-      const now = new Date();
-      const reminderTimes = [
-        { hoursUntil: 'tomorrow', ms: 24 * 60 * 60 * 1000 },
-        { hoursUntil: 'in 1 hour', ms: 60 * 60 * 1000 },
-      ];
-
-      for (const reminder of reminderTimes) {
-        const sendAt = new Date(meetingStart.getTime() - reminder.ms);
-        if (sendAt > now) {
-          try {
-            await resend.emails.send({
-              from: "Sited <hello@sited.co>",
-              to: [attendee_email],
-              subject: `Reminder: Your ${typeLabel} is ${reminder.hoursUntil}`,
-              html: buildReminderEmail({
-                attendeeName: firstName, date: formattedDate, time: formattedTime,
-                duration: meetingDuration, typeLabel, zoomJoinUrl: meeting.join_url,
-                tzAbbr, hoursUntil: reminder.hoursUntil,
-              }),
-              scheduledAt: sendAt.toISOString(),
-            });
-            console.log(`Reminder scheduled for ${reminder.hoursUntil} before meeting`);
-          } catch (reminderErr) {
-            console.error(`Failed to schedule ${reminder.hoursUntil} reminder:`, reminderErr);
-          }
-        }
-      }
     }
 
     return new Response(JSON.stringify({
