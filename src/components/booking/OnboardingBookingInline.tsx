@@ -43,9 +43,21 @@ function guessTimezoneFromLocation(location: string): string {
   return "Australia/Sydney";
 }
 
+function getTimezoneOffsetString(date: Date, timezone: string): string {
+  const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+  const diffMin = Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
+  const sign = diffMin >= 0 ? '+' : '-';
+  const absMin = Math.abs(diffMin);
+  const h = String(Math.floor(absMin / 60)).padStart(2, '0');
+  const m = String(absMin % 60).padStart(2, '0');
+  return `${sign}${h}:${m}`;
+}
+
 interface TimeSlot {
   time: string;
   available: boolean;
+  adminTime?: string;
 }
 
 interface OnboardingBookingInlineProps {
@@ -74,6 +86,7 @@ const OnboardingBookingInline = ({
   const [step, setStep] = useState<"calendar" | "form">("calendar");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedAdminTime, setSelectedAdminTime] = useState<string | null>(null);
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
@@ -169,8 +182,9 @@ const OnboardingBookingInline = ({
     fetchSlots();
   }, [selectedDay, year, monthOffset, selectedTimezone]);
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (slot: TimeSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedAdminTime(slot.adminTime || slot.time);
     setStep("form");
     // Pre-fetch captcha when moving to form step
     fetchCaptcha();
@@ -229,7 +243,7 @@ const OnboardingBookingInline = ({
             business_type: form.businessType,
             business_location: form.businessLocation.trim(),
             booking_date: dateStr,
-            booking_time: selectedTime,
+            booking_time: selectedAdminTime || selectedTime,
             booking_type: BOOKING_TYPE,
             duration_minutes: DURATION,
             notes: `${CALL_LABEL} — ${tierName} (${DURATION} min)`,
@@ -248,20 +262,26 @@ const OnboardingBookingInline = ({
 
       const bookingId = result.booking_id;
 
-      // Create Zoom meeting
+      // Create Zoom meeting using admin timezone time for correct scheduling
       try {
-        const [timePart, ampm] = selectedTime!.split(' ');
+        const adminTime = selectedAdminTime || selectedTime!;
+        const [timePart, ampm] = adminTime.split(' ');
         const [hStr, mStr] = timePart.split(':');
         let hours = parseInt(hStr);
         if (ampm === 'PM' && hours !== 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
-        const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+        // Build ISO string in admin timezone (Australia/Sydney default)
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const isoDateStr = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
+        // Use Intl to get the UTC offset for the admin timezone
+        const tempDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+        const adminTzOffset = getTimezoneOffsetString(tempDate, 'Australia/Sydney');
 
         await supabase.functions.invoke('create-zoom-meeting', {
           body: {
             booking_id: bookingId,
             topic: `${CALL_LABEL} – ${form.businessName.trim()}`,
-            start_time: startDate.toISOString(),
+            start_time: `${isoDateStr}${adminTzOffset}`,
             duration: DURATION,
             attendee_email: form.email.trim(),
             attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
@@ -385,7 +405,7 @@ const OnboardingBookingInline = ({
                   {timeSlots.filter((s) => s.available).map((slot) => (
                     <button
                       key={slot.time}
-                      onClick={() => handleTimeSelect(slot.time)}
+                      onClick={() => handleTimeSelect(slot)}
                       className="py-2.5 px-3 rounded-md border border-gray-200 text-sm font-medium text-gray-900 active:bg-sited-blue active:text-white active:border-sited-blue transition-colors"
                     >{slot.time}</button>
                   ))}

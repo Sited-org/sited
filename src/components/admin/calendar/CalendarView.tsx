@@ -18,8 +18,12 @@ const statusColors: Record<string, string> = {
   completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 };
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function getBookingsForDate(bookings: Booking[], date: Date) {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toLocalDateStr(date);
   return bookings.filter(b => b.booking_date === dateStr && b.status !== 'cancelled');
 }
 
@@ -48,7 +52,7 @@ function MonthView({ currentDate, bookings, onBookingClick, onDateClick }: Omit<
   }, [currentDate]);
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = toLocalDateStr(today);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden">
@@ -66,7 +70,7 @@ function MonthView({ currentDate, bookings, onBookingClick, onDateClick }: Omit<
         <div key={wi} className="grid grid-cols-7">
           {week.map((date, di) => {
             if (!date) return <div key={`e-${di}`} className="min-h-[100px] border-b border-r border-border bg-muted/10" />;
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(date);
             const isToday = dateStr === todayStr;
             const dayBookings = getBookingsForDate(bookings, date);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
@@ -130,7 +134,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
   }, [config]);
 
   const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = toLocalDateStr(today);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden overflow-x-auto">
@@ -138,7 +142,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
       <div className="grid grid-cols-[60px_repeat(7,1fr)] bg-muted/30 border-b border-border">
         <div />
         {weekDays.map(d => {
-          const dateStr = d.toISOString().split('T')[0];
+          const dateStr = toLocalDateStr(d);
           return (
             <div key={dateStr} className={cn(
               "text-center py-2.5 border-l border-border",
@@ -163,7 +167,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
             {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
           </div>
           {weekDays.map(d => {
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(d);
             const dayBookings = getBookingsForDate(bookings, d).filter(b => {
               const h = parseInt(b.booking_time.split(':')[0]) || 
                 (b.booking_time.includes('PM') && !b.booking_time.startsWith('12')
