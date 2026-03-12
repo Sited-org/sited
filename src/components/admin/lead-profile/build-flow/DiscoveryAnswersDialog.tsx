@@ -29,11 +29,11 @@ const LABEL_MAP: Record<string, string> = {
 };
 
 const BUDGET_MAP: Record<string, string> = {
-  under_1k: 'Under £1k',
-  '1k_3k': '£1k – £3k',
-  '3k_5k': '£3k – £5k',
-  '5k_10k': '£5k – £10k',
-  '10k_plus': '£10k+',
+  under_1k: 'Under $1k',
+  '1k_3k': '$1k – $3k',
+  '3k_5k': '$3k – $5k',
+  '5k_10k': '$5k – $10k',
+  '10k_plus': '$10k+',
 };
 
 const PROJECT_TYPE_MAP: Record<string, string> = {

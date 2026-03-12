@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 interface ProposalGeneratorProps {
   buildFlowId: string;
+  leadId: string;
   businessName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,7 +35,7 @@ const PROJECT_TYPE_MAP: Record<string, string> = {
   booking: 'Booking / Service Website',
 };
 
-export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
+export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
@@ -162,6 +163,26 @@ export function ProposalGenerator({ buildFlowId, businessName, open, onOpenChang
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      // Auto-generate billing charge for the proposal amount
+      if (selectedProduct && actualPrice > 0) {
+        const { error: txError } = await supabase.from('transactions').insert({
+          lead_id: leadId,
+          item: `${selectedProduct.name} Package — ${businessName}`,
+          debit: actualPrice,
+          credit: 0,
+          status: 'completed',
+          invoice_status: 'not_sent',
+          payment_method: 'pending',
+          notes: `Auto-generated from proposal (${fileName})`,
+        });
+        if (txError) {
+          console.error('Failed to create billing entry:', txError);
+          toast.error('Proposal saved but billing entry failed');
+        } else {
+          toast.success('Billing charge added to client account');
+        }
+      }
 
       // Then open Google Drive upload page
       setTimeout(() => {

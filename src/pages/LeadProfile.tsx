@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,15 @@ import type { LeadStatus } from '@/hooks/useLeads';
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { userRole } = useAuth();
   const canEdit = userRole?.can_edit_leads ?? false;
+
+  const activeTab = searchParams.get('tab') || 'profile';
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  };
 
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -159,7 +165,7 @@ export default function LeadProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7 max-w-3xl">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
