@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,6 +35,22 @@ const PROJECT_TYPE_MAP: Record<string, string> = {
   booking: 'Booking / Service Website',
 };
 
+// Brand colours
+const SLATE_900 = '#0f172a';
+const SLATE_700 = '#334155';
+const SLATE_500 = '#64748b';
+const SLATE_400 = '#94a3b8';
+const SLATE_200 = '#e2e8f0';
+const SLATE_100 = '#f1f5f9';
+const SLATE_50 = '#f8fafc';
+const GREEN_600 = '#16a34a';
+const GREEN_50 = '#f0fdf4';
+const AMBER_100 = '#fde68a';
+const AMBER_50 = '#fffbeb';
+const AMBER_800 = '#92400e';
+const SITED_BLUE = '#3b82f6';
+const WHITE = '#ffffff';
+
 export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
@@ -42,7 +58,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const renderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -96,9 +111,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const fileName = `${fileSlug}.sited.sow.pdf`;
 
   const projectType = PROJECT_TYPE_MAP[answers.projectType] || answers.projectType || 'Website';
-  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Build all row items
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
   pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${PAGE_PRICE}`, isFree: false }));
   features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${FEATURE_PRICE}`, isFree: false }));
@@ -108,41 +122,269 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
 
   const generatePdfBlob = useCallback(async (): Promise<Blob | null> => {
-    const el = renderRef.current;
-    if (!el) return null;
-
-    const html2canvas = (await import('html2canvas')).default;
     const { jsPDF } = await import('jspdf');
 
-    const canvas = await html2canvas(el, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      width: 794,
-      windowWidth: 794,
+    const W = 595.28; // A4 width in pt
+    const H = 841.89; // A4 height in pt
+    const ML = 48; // margin left
+    const MR = 48;
+    const MT = 48;
+    const MB = 60;
+    const CW = W - ML - MR; // content width
+
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    let y = MT;
+
+    const checkPage = (needed: number) => {
+      if (y + needed > H - MB) {
+        // Footer on current page
+        drawFooter(pdf, W, H);
+        pdf.addPage();
+        y = MT;
+      }
+    };
+
+    const drawFooter = (doc: any, w: number, h: number) => {
+      doc.setDrawColor(SLATE_200);
+      doc.setLineWidth(0.5);
+      doc.line(ML, h - 40, w - MR, h - 40);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(SLATE_400);
+      doc.text('Sited · Web Design & Development', ML, h - 28);
+      doc.text(`${fileSlug}.sited.sow`, w - MR, h - 28, { align: 'right' });
+    };
+
+    // ─── HEADER ───
+    // Logo: "Sited." in black, ".co" in blue
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(24);
+    pdf.setTextColor(SLATE_900);
+    pdf.text('Sited.', ML, y + 20);
+    const sitedWidth = pdf.getTextWidth('Sited.');
+    pdf.setTextColor(SITED_BLUE);
+    pdf.text('co', ML + sitedWidth, y + 20);
+
+    // Right side: SOW ref
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(10);
+    pdf.setTextColor(SLATE_900);
+    pdf.text('STATEMENT OF WORK', W - MR, y + 8, { align: 'right' });
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(SLATE_500);
+    pdf.text(`Ref: SOW-${fileSlug.toUpperCase().slice(0, 8)}`, W - MR, y + 20, { align: 'right' });
+    pdf.text(today, W - MR, y + 31, { align: 'right' });
+
+    y += 44;
+
+    // Gradient divider
+    const gradSteps = 60;
+    for (let i = 0; i < gradSteps; i++) {
+      const ratio = i / gradSteps;
+      const r = Math.round(15 + ratio * (226 - 15));
+      const g = Math.round(23 + ratio * (232 - 23));
+      const b = Math.round(42 + ratio * (240 - 42));
+      pdf.setDrawColor(r, g, b);
+      pdf.setLineWidth(2.5);
+      const segW = CW / gradSteps;
+      pdf.line(ML + i * segW, y, ML + (i + 1) * segW, y);
+    }
+    y += 20;
+
+    // ─── CLIENT NAME & PROJECT TYPE ───
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(20);
+    pdf.setTextColor(SLATE_900);
+    pdf.text(businessName, ML, y + 16);
+    y += 26;
+
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(SLATE_500);
+    pdf.text(`${projectType}  ·  Prepared by Sited  ·  ${today}`, ML, y + 8);
+    y += 28;
+
+    // ─── STAT CARDS ───
+    const cardW = (CW - 16) / 3;
+    const stats = [
+      { num: String(pages.length), label: 'PAGES' },
+      { num: String(features.length), label: 'FEATURES' },
+      { num: String(integrations.length), label: 'INTEGRATIONS' },
+    ];
+    stats.forEach((s, i) => {
+      const x = ML + i * (cardW + 8);
+      pdf.setDrawColor(SLATE_200);
+      pdf.setFillColor(SLATE_50);
+      pdf.roundedRect(x, y, cardW, 52, 6, 6, 'FD');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(22);
+      pdf.setTextColor(SLATE_900);
+      pdf.text(s.num, x + cardW / 2, y + 26, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(SLATE_400);
+      pdf.text(s.label, x + cardW / 2, y + 40, { align: 'center' });
+    });
+    y += 68;
+
+    // ─── SCOPE SECTION TITLE ───
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(SLATE_400);
+    pdf.text('SCOPE OF WORKS', ML, y + 8);
+    y += 20;
+
+    // ─── TABLE HEADER ───
+    const colNum = 40;
+    const colPrice = 70;
+    const colDesc = CW - colNum - colPrice;
+    const rowH = 28;
+    const headerH = 30;
+
+    const drawTableHeader = () => {
+      pdf.setFillColor(SLATE_900);
+      pdf.roundedRect(ML, y, CW, headerH, 4, 4, 'F');
+      // Cover bottom corners
+      pdf.rect(ML, y + headerH - 4, CW, 4, 'F');
+      
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(WHITE);
+      pdf.text('#', ML + 14, y + 18);
+      pdf.text('ITEM DESCRIPTION', ML + colNum + 14, y + 18);
+      pdf.text('PRICE', W - MR - 14, y + 18, { align: 'right' });
+      y += headerH;
+    };
+
+    drawTableHeader();
+
+    // ─── TABLE ROWS ───
+    allItems.forEach((item, i) => {
+      checkPage(rowH);
+
+      // If we're at top of a new page, re-draw the header
+      if (y === MT) {
+        drawTableHeader();
+      }
+
+      const bgColor = i % 2 === 1 ? SLATE_50 : WHITE;
+      pdf.setFillColor(bgColor);
+      pdf.rect(ML, y, CW, rowH, 'F');
+
+      // Bottom border
+      pdf.setDrawColor(SLATE_100);
+      pdf.setLineWidth(0.3);
+      pdf.line(ML, y + rowH, ML + CW, y + rowH);
+
+      // Row number
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(SLATE_400);
+      pdf.text(String(i + 1).padStart(2, '0'), ML + 14, y + 17);
+
+      // Description
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(SLATE_900);
+      pdf.text(item.desc, ML + colNum + 14, y + 17);
+
+      // Price
+      if (item.isFree) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(8);
+        pdf.setTextColor(GREEN_600);
+      } else {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(SLATE_700);
+      }
+      pdf.text(item.price, W - MR - 14, y + 17, { align: 'right' });
+
+      y += rowH;
     });
 
-    const pdf = new jsPDF('p', 'px', [794, 1123]);
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = 794;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    y += 12;
 
-    let heightLeft = imgHeight;
-    let position = 0;
+    // ─── TOTALS SECTION ───
+    checkPage(110);
 
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= 1123;
+    // Itemised total (struck through)
+    pdf.setFillColor(SLATE_50);
+    pdf.roundedRect(ML, y, CW, 36, 6, 6, 'F');
+    // Cover bottom corners for middle join
+    pdf.rect(ML, y + 30, CW, 6, 'F');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(SLATE_400);
+    pdf.text('Itemised Total', ML + 20, y + 22);
+    const itemTotalStr = `$${totalItemized.toLocaleString()}`;
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    const itW = pdf.getTextWidth(itemTotalStr);
+    pdf.text(itemTotalStr, W - MR - 20, y + 22, { align: 'right' });
+    // Strikethrough line
+    pdf.setDrawColor(SLATE_400);
+    pdf.setLineWidth(0.8);
+    pdf.line(W - MR - 20 - itW, y + 19, W - MR - 20, y + 19);
+    y += 36;
 
-    while (heightLeft > 0) {
-      position -= 1123;
-      pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= 1123;
+    // You Save
+    pdf.setFillColor(GREEN_50);
+    pdf.rect(ML, y, CW, 36, 'F');
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(9);
+    pdf.setTextColor(GREEN_600);
+    pdf.text('You Save', ML + 20, y + 22);
+    pdf.setFontSize(12);
+    pdf.text(`$${savings.toLocaleString()}`, W - MR - 20, y + 22, { align: 'right' });
+    y += 36;
+
+    // Your Price (dark bar)
+    pdf.setFillColor(SLATE_900);
+    pdf.roundedRect(ML, y, CW, 48, 6, 6, 'F');
+    // Cover top corners
+    pdf.rect(ML, y, CW, 6, 'F');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(SLATE_400);
+    pdf.text('Your Price', ML + 20, y + 30);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(22);
+    pdf.setTextColor(WHITE);
+    const priceStr = `$${actualPrice.toLocaleString()}`;
+    pdf.text(priceStr, W - MR - 20, y + 32, { align: 'right' });
+    // Package badge
+    if (selectedProduct) {
+      const badgeText = `${selectedProduct.name} Package`.toUpperCase();
+      pdf.setFontSize(7);
+      const bw = pdf.getTextWidth(badgeText) + 14;
+      const bx = W - MR - 20 - pdf.getTextWidth(priceStr) - bw - 12;
+      pdf.setFillColor(SLATE_700);
+      pdf.roundedRect(bx, y + 21, bw, 16, 3, 3, 'F');
+      pdf.setTextColor(SLATE_200);
+      pdf.text(badgeText, bx + 7, y + 32);
     }
+    y += 62;
+
+    // ─── DISCLAIMER ───
+    checkPage(70);
+    pdf.setDrawColor(AMBER_100);
+    pdf.setFillColor(AMBER_50);
+    pdf.roundedRect(ML, y, CW, 56, 6, 6, 'FD');
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(AMBER_800);
+    const disclaimerText = 'All pages, features, and integrations listed above & as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.';
+    const splitDisclaimer = pdf.splitTextToSize(disclaimerText, CW - 36);
+    pdf.text(splitDisclaimer, ML + 18, y + 18);
+    y += 70;
+
+    // ─── FOOTER ───
+    drawFooter(pdf, W, H);
 
     return pdf.output('blob');
-  }, []);
+  }, [allItems, businessName, projectType, today, fileSlug, totalItemized, savings, actualPrice, selectedProduct]);
 
   const handleSaveToGoogleDrive = async () => {
     setGenerating(true);
@@ -153,10 +395,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      // Create a temporary object URL and open Google Drive upload
       const url = URL.createObjectURL(blob);
 
-      // First, trigger a local download so the user has the file
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
@@ -184,7 +424,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         }
       }
 
-      // Then open Google Drive upload page
       setTimeout(() => {
         window.open('https://drive.google.com/drive/my-drive', '_blank');
         URL.revokeObjectURL(url);
@@ -210,137 +449,41 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            {/* Scrollable preview of the rendered proposal */}
-            <ScrollArea className="flex-1 max-h-[62vh] border rounded-lg bg-white">
-              <div
-                ref={renderRef}
-                style={{
-                  width: 794,
-                  padding: '48px 52px',
-                  fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-                  color: '#1e293b',
-                  fontSize: '12.5px',
-                  lineHeight: 1.5,
-                  background: '#ffffff',
-                }}
-              >
-                {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 40 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                      width: 44, height: 44,
-                      background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-                      borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: '#fff', fontWeight: 800, fontSize: 20,
-                    }}>S</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: -0.5 }}>Sited</div>
+            <div className="flex-1 max-h-[62vh] border rounded-lg bg-muted/30 flex items-center justify-center p-8">
+              <div className="text-center space-y-4">
+                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+                  <FileText className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">PDF Ready to Generate</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    A4 professional SOW document for <strong>{businessName}</strong>
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-xl font-bold">{pages.length}</p>
+                    <p className="text-xs text-muted-foreground">Pages</p>
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: 11, color: '#64748b', lineHeight: 1.7 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', letterSpacing: 1.5 }}>
-                      Statement of Work
-                    </div>
-                    Ref: SOW-{fileSlug.toUpperCase().slice(0, 8)}<br />{today}
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-xl font-bold">{features.length}</p>
+                    <p className="text-xs text-muted-foreground">Features</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-xl font-bold">{integrations.length}</p>
+                    <p className="text-xs text-muted-foreground">Integrations</p>
                   </div>
                 </div>
-
-                {/* Divider */}
-                <div style={{ height: 3, background: 'linear-gradient(90deg, #0f172a 0%, #64748b 50%, #e2e8f0 100%)', borderRadius: 2, marginBottom: 36 }} />
-
-                {/* Title */}
-                <div style={{ marginBottom: 32 }}>
-                  <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>{businessName}</h1>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>
-                    {projectType} <span style={{ margin: '0 6px', color: '#cbd5e1' }}>·</span> Prepared by Sited <span style={{ margin: '0 6px', color: '#cbd5e1' }}>·</span> {today}
-                  </div>
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <span className="text-muted-foreground line-through">${totalItemized.toLocaleString()}</span>
+                  <span className="font-bold text-lg">${actualPrice.toLocaleString()}</span>
+                  <Badge variant="secondary">{selectedProduct?.name}</Badge>
                 </div>
-
-                {/* Stat Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 36 }}>
-                  {[
-                    { num: pages.length, label: 'Pages' },
-                    { num: features.length, label: 'Features' },
-                    { num: integrations.length, label: 'Integrations' },
-                  ].map((s, i) => (
-                    <div key={i} style={{ border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '16px 18px', textAlign: 'center', background: '#f8fafc' }}>
-                      <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>{s.num}</div>
-                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: '#94a3b8', marginTop: 2 }}>{s.label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Section Title */}
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#94a3b8', marginBottom: 14 }}>
-                  Scope of Works
-                </div>
-
-                {/* Table */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', marginBottom: 24 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ background: '#0f172a', color: '#f8fafc', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, padding: '12px 18px', fontWeight: 600, textAlign: 'left', width: 50 }}>#</th>
-                      <th style={{ background: '#0f172a', color: '#f8fafc', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, padding: '12px 18px', fontWeight: 600, textAlign: 'left' }}>Item Description</th>
-                      <th style={{ background: '#0f172a', color: '#f8fafc', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, padding: '12px 18px', fontWeight: 600, textAlign: 'right' }}>Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allItems.map((item, i) => (
-                      <tr key={i} style={{ background: i % 2 === 1 ? '#fafbfd' : '#ffffff' }}>
-                        <td style={{ padding: '11px 18px', fontSize: 11, color: '#94a3b8', fontWeight: 700, width: 50, borderBottom: '1px solid #f1f5f9' }}>
-                          {String(i + 1).padStart(2, '0')}
-                        </td>
-                        <td style={{ padding: '11px 18px', fontSize: 12.5, fontWeight: 500, color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}>
-                          {item.desc}
-                        </td>
-                        <td style={{
-                          padding: '11px 18px', textAlign: 'right', fontWeight: item.isFree ? 700 : 600,
-                          color: item.isFree ? '#16a34a' : '#334155', fontSize: item.isFree ? 11 : 12.5,
-                          letterSpacing: item.isFree ? 0.5 : 0, borderBottom: '1px solid #f1f5f9', whiteSpace: 'nowrap',
-                        }}>
-                          {item.price}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {/* Totals */}
-                <div style={{ border: '1.5px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', marginBottom: 32 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: '#fafbfd', borderBottom: '1px solid #f1f5f9' }}>
-                    <span style={{ color: '#94a3b8', fontSize: 12 }}>Itemised Total</span>
-                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: 15, fontWeight: 600 }}>${totalItemized.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', background: '#f0fdf4', borderBottom: '1px solid #dcfce7' }}>
-                    <span style={{ color: '#16a34a', fontSize: 12, fontWeight: 600 }}>You Save</span>
-                    <span style={{ color: '#16a34a', fontSize: 15, fontWeight: 700 }}>${savings.toLocaleString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', background: '#0f172a' }}>
-                    <span style={{ color: '#94a3b8', fontSize: 13, fontWeight: 600 }}>Your Price</span>
-                    <span style={{ color: '#ffffff', fontSize: 26, fontWeight: 800 }}>
-                      ${actualPrice.toLocaleString()}
-                      <span style={{
-                        display: 'inline-block', background: 'rgba(255,255,255,0.15)', color: '#e2e8f0',
-                        fontSize: 10, fontWeight: 600, padding: '3px 10px', borderRadius: 4,
-                        letterSpacing: 0.5, textTransform: 'uppercase', marginLeft: 12, verticalAlign: 'middle',
-                      }}>{selectedProduct?.name} Package</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Disclaimer */}
-                <div style={{
-                  border: '1.5px solid #fde68a', borderRadius: 10, background: '#fffbeb',
-                  padding: '18px 22px', fontSize: 11.5, color: '#92400e', lineHeight: 1.7, marginBottom: 40,
-                }}>
-                  All pages, features, and integrations listed above &amp; as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.
-                </div>
-
-                {/* Footer */}
-                <div style={{ borderTop: '1.5px solid #e2e8f0', paddingTop: 16, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8' }}>
-                  <span>Sited · Web Design &amp; Development</span>
-                  <span>{fileSlug}.sited.sow</span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  <code className="bg-muted px-1.5 py-0.5 rounded">{fileName}</code>
+                </p>
               </div>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
               <Button variant="outline" onClick={() => setShowPreview(false)}>
