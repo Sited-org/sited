@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, ArrowRight, Loader2, MapPin, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, ArrowRight, Loader2, MapPin, Globe, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -83,6 +83,11 @@ const OnboardingBookingInline = ({
   const [locationQuery, setLocationQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaQuestion, setCaptchaQuestion] = useState<string | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "", lastName: "", email: customerEmail, phone: customerPhone,
     businessName: customerBusinessName, businessType: "", businessLocation: "",
@@ -167,7 +172,24 @@ const OnboardingBookingInline = ({
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     setStep("form");
+    // Pre-fetch captcha when moving to form step
+    fetchCaptcha();
   };
+
+  const fetchCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(null);
+    setCaptchaAnswer("");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-captcha");
+      if (error || !data) throw new Error("Failed to load captcha");
+      setCaptchaToken(data.token);
+      setCaptchaQuestion(data.question);
+    } catch {
+      setCaptchaError("Could not load verification. Please try again.");
+    }
+    setCaptchaLoading(false);
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -182,62 +204,89 @@ const OnboardingBookingInline = ({
 
   const isFormValid =
     form.firstName.trim() && form.lastName.trim() && form.email.trim() &&
-    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim();
+    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim() &&
+    captchaAnswer.trim();
 
   const handleSubmit = async () => {
-    if (!isFormValid || !selectedDay || !selectedTime) return;
+    if (!isFormValid || !selectedDay || !selectedTime || !captchaToken) return;
     setIsSubmitting(true);
+    setCaptchaError(null);
 
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
     const dateStr = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}-${String(bookingDate.getDate()).padStart(2, '0')}`;
 
-    const { data: insertData, error } = await supabase.from("bookings").insert({
-      first_name: form.firstName.trim(), last_name: form.lastName.trim(),
-      email: form.email.trim(), phone: form.phone.trim(),
-      business_name: form.businessName.trim(), business_type: form.businessType,
-      business_location: form.businessLocation.trim(), booking_date: dateStr,
-      booking_time: selectedTime, booking_type: BOOKING_TYPE, duration_minutes: DURATION,
-      notes: `Plan Call — ${tierName} (${DURATION} min)`,
-    }).select('id').single();
-
-    if (error) {
-      setIsSubmitting(false);
-      toast.error("Something went wrong. Please try again.");
-      return;
-    }
-
     try {
-      const [timePart, ampm] = selectedTime!.split(' ');
-      const [hStr, mStr] = timePart.split(':');
-      let hours = parseInt(hStr);
-      if (ampm === 'PM' && hours !== 12) hours += 12;
-      if (ampm === 'AM' && hours === 12) hours = 0;
-      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
-
-      await supabase.functions.invoke('create-zoom-meeting', {
+      const { data: result, error } = await supabase.functions.invoke("submit-booking", {
         body: {
-          booking_id: insertData.id,
-          topic: `Plan Call – ${form.businessName.trim()}`,
-          start_time: startDate.toISOString(),
-          duration: DURATION,
-          attendee_email: form.email.trim(),
-          attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: BOOKING_TYPE,
-          business_name: form.businessName.trim(),
-          attendee_phone: form.phone.trim(),
-          attendee_timezone: selectedTimezone,
-          create_lead: true,
-          business_type: form.businessType,
-          business_location: form.businessLocation.trim(),
+          captcha_token: captchaToken,
+          captcha_answer: Number(captchaAnswer),
+          booking: {
+            first_name: form.firstName.trim(),
+            last_name: form.lastName.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            business_name: form.businessName.trim(),
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+            booking_date: dateStr,
+            booking_time: selectedTime,
+            booking_type: BOOKING_TYPE,
+            duration_minutes: DURATION,
+            notes: `${CALL_LABEL} — ${tierName} (${DURATION} min)`,
+          },
         },
       });
-    } catch (e) {
-      console.error('Zoom meeting creation failed:', e);
-    }
 
-    setIsSubmitting(false);
-    setIsBooked(true);
-    onBooked?.();
+      if (error || !result?.booking_id) {
+        const errMsg = result?.error || "Something went wrong. Please try again.";
+        console.error("submit-booking error:", error, result);
+        setCaptchaError(errMsg);
+        await fetchCaptcha();
+        setIsSubmitting(false);
+        return;
+      }
+
+      const bookingId = result.booking_id;
+
+      // Create Zoom meeting
+      try {
+        const [timePart, ampm] = selectedTime!.split(' ');
+        const [hStr, mStr] = timePart.split(':');
+        let hours = parseInt(hStr);
+        if (ampm === 'PM' && hours !== 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
+        const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+
+        await supabase.functions.invoke('create-zoom-meeting', {
+          body: {
+            booking_id: bookingId,
+            topic: `${CALL_LABEL} – ${form.businessName.trim()}`,
+            start_time: startDate.toISOString(),
+            duration: DURATION,
+            attendee_email: form.email.trim(),
+            attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+            booking_type: BOOKING_TYPE,
+            business_name: form.businessName.trim(),
+            attendee_phone: form.phone.trim(),
+            attendee_timezone: selectedTimezone,
+            create_lead: true,
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+          },
+        });
+      } catch (e) {
+        console.error('Zoom meeting creation failed:', e);
+      }
+
+      setIsSubmitting(false);
+      setIsBooked(true);
+      onBooked?.();
+    } catch (err) {
+      console.error("Booking submission error:", err);
+      toast.error("Something went wrong. Please try again.");
+      await fetchCaptcha();
+      setIsSubmitting(false);
+    }
   };
 
   if (isBooked) {
@@ -404,6 +453,39 @@ const OnboardingBookingInline = ({
                   </div>
                 )}
               </div>
+            </div>
+            {/* Captcha verification */}
+            <div className="space-y-1.5 pt-2 border-t border-border">
+              <Label className="text-xs">Quick verification *</Label>
+              {captchaLoading ? (
+                <div className="flex items-center gap-2 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : captchaQuestion ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md">
+                    <span className="text-sm font-mono font-semibold text-foreground">{captchaQuestion} =</span>
+                  </div>
+                  <Input
+                    type="number"
+                    value={captchaAnswer}
+                    onChange={(e) => { setCaptchaAnswer(e.target.value); setCaptchaError(null); }}
+                    placeholder="?"
+                    className="h-10 w-20 text-sm text-center"
+                  />
+                  <button type="button" onClick={fetchCaptcha} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title="New question">
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={fetchCaptcha} className="text-sm text-primary hover:underline">
+                  Load verification
+                </button>
+              )}
+              {captchaError && (
+                <p className="text-xs text-destructive">{captchaError}</p>
+              )}
             </div>
             <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting} variant="hero" size="lg" className="w-full mt-2">
               {isSubmitting ? "Booking..." : `Confirm ${CALL_LABEL}`}
