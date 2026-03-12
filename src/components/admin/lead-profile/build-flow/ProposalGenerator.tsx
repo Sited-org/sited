@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 
 interface ProposalGeneratorProps {
   buildFlowId: string;
+  leadId: string;
   businessName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
