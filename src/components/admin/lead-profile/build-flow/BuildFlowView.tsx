@@ -303,6 +303,7 @@ export function BuildFlowView({
       {/* Proposal Generator Dialog */}
       <ProposalGenerator
         buildFlowId={buildFlow.id}
+        leadId={buildFlow.lead_id}
         businessName={businessName}
         open={showProposalGenerator}
         onOpenChange={setShowProposalGenerator}

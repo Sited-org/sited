@@ -165,7 +165,7 @@ export default function LeadProfile() {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7 max-w-3xl">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
