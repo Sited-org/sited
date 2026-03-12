@@ -241,11 +241,11 @@ export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: Discover
               <Select value={data.budgetRange} onValueChange={v => setData({ ...data, budgetRange: v })}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select budget range" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="under_1k">Under £1k</SelectItem>
-                  <SelectItem value="1k_3k">£1k – £3k</SelectItem>
-                  <SelectItem value="3k_5k">£3k – £5k</SelectItem>
-                  <SelectItem value="5k_10k">£5k – £10k</SelectItem>
-                  <SelectItem value="10k_plus">£10k+</SelectItem>
+                  <SelectItem value="under_1k">Under $1k</SelectItem>
+                  <SelectItem value="1k_3k">$1k – $3k</SelectItem>
+                  <SelectItem value="3k_5k">$3k – $5k</SelectItem>
+                  <SelectItem value="5k_10k">$5k – $10k</SelectItem>
+                  <SelectItem value="10k_plus">$10k+</SelectItem>
                 </SelectContent>
               </Select>
             </div>
