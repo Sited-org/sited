@@ -171,8 +171,9 @@ const OnboardingBookingInline = ({
     fetchSlots();
   }, [selectedDay, year, monthOffset, selectedTimezone]);
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (slot: TimeSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedAdminTime(slot.adminTime || slot.time);
     setStep("form");
     // Pre-fetch captcha when moving to form step
     fetchCaptcha();
