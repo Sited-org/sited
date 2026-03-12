@@ -270,7 +270,7 @@ const OnboardingBookingInline = ({
           body: {
             booking_id: bookingId,
             topic: `${CALL_LABEL} – ${form.businessName.trim()}`,
-            start_time: startDate.toISOString(),
+            start_time: `${isoDateStr}${adminTzOffset}`,
             duration: DURATION,
             attendee_email: form.email.trim(),
             attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
