@@ -394,7 +394,7 @@ const OnboardingBookingInline = ({
                   {timeSlots.filter((s) => s.available).map((slot) => (
                     <button
                       key={slot.time}
-                      onClick={() => handleTimeSelect(slot.time)}
+                      onClick={() => handleTimeSelect(slot)}
                       className="py-2.5 px-3 rounded-md border border-gray-200 text-sm font-medium text-gray-900 active:bg-sited-blue active:text-white active:border-sited-blue transition-colors"
                     >{slot.time}</button>
                   ))}

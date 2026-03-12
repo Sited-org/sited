@@ -167,7 +167,7 @@ function WeekView({ currentDate, bookings, config, onBookingClick }: Omit<Calend
             {hour > 12 ? `${hour - 12} PM` : hour === 12 ? '12 PM' : `${hour} AM`}
           </div>
           {weekDays.map(d => {
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = toLocalDateStr(d);
             const dayBookings = getBookingsForDate(bookings, d).filter(b => {
               const h = parseInt(b.booking_time.split(':')[0]) || 
                 (b.booking_time.includes('PM') && !b.booking_time.startsWith('12')
