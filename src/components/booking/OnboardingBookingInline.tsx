@@ -172,7 +172,24 @@ const OnboardingBookingInline = ({
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     setStep("form");
+    // Pre-fetch captcha when moving to form step
+    fetchCaptcha();
   };
+
+  const fetchCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(null);
+    setCaptchaAnswer("");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-captcha");
+      if (error || !data) throw new Error("Failed to load captcha");
+      setCaptchaToken(data.token);
+      setCaptchaQuestion(data.question);
+    } catch {
+      setCaptchaError("Could not load verification. Please try again.");
+    }
+    setCaptchaLoading(false);
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -187,62 +204,89 @@ const OnboardingBookingInline = ({
 
   const isFormValid =
     form.firstName.trim() && form.lastName.trim() && form.email.trim() &&
-    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim();
+    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim() &&
+    captchaAnswer.trim();
 
   const handleSubmit = async () => {
-    if (!isFormValid || !selectedDay || !selectedTime) return;
+    if (!isFormValid || !selectedDay || !selectedTime || !captchaToken) return;
     setIsSubmitting(true);
+    setCaptchaError(null);
 
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
     const dateStr = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}-${String(bookingDate.getDate()).padStart(2, '0')}`;
 
-    const { data: insertData, error } = await supabase.from("bookings").insert({
-      first_name: form.firstName.trim(), last_name: form.lastName.trim(),
-      email: form.email.trim(), phone: form.phone.trim(),
-      business_name: form.businessName.trim(), business_type: form.businessType,
-      business_location: form.businessLocation.trim(), booking_date: dateStr,
-      booking_time: selectedTime, booking_type: BOOKING_TYPE, duration_minutes: DURATION,
-      notes: `Plan Call — ${tierName} (${DURATION} min)`,
-    }).select('id').single();
-
-    if (error) {
-      setIsSubmitting(false);
-      toast.error("Something went wrong. Please try again.");
-      return;
-    }
-
     try {
-      const [timePart, ampm] = selectedTime!.split(' ');
-      const [hStr, mStr] = timePart.split(':');
-      let hours = parseInt(hStr);
-      if (ampm === 'PM' && hours !== 12) hours += 12;
-      if (ampm === 'AM' && hours === 12) hours = 0;
-      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
-
-      await supabase.functions.invoke('create-zoom-meeting', {
+      const { data: result, error } = await supabase.functions.invoke("submit-booking", {
         body: {
-          booking_id: insertData.id,
-          topic: `Plan Call – ${form.businessName.trim()}`,
-          start_time: startDate.toISOString(),
-          duration: DURATION,
-          attendee_email: form.email.trim(),
-          attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: BOOKING_TYPE,
-          business_name: form.businessName.trim(),
-          attendee_phone: form.phone.trim(),
-          attendee_timezone: selectedTimezone,
-          create_lead: true,
-          business_type: form.businessType,
-          business_location: form.businessLocation.trim(),
+          captcha_token: captchaToken,
+          captcha_answer: Number(captchaAnswer),
+          booking: {
+            first_name: form.firstName.trim(),
+            last_name: form.lastName.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            business_name: form.businessName.trim(),
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+            booking_date: dateStr,
+            booking_time: selectedTime,
+            booking_type: BOOKING_TYPE,
+            duration_minutes: DURATION,
+            notes: `${CALL_LABEL} — ${tierName} (${DURATION} min)`,
+          },
         },
       });
-    } catch (e) {
-      console.error('Zoom meeting creation failed:', e);
-    }
 
-    setIsSubmitting(false);
-    setIsBooked(true);
-    onBooked?.();
+      if (error || !result?.booking_id) {
+        const errMsg = result?.error || "Something went wrong. Please try again.";
+        console.error("submit-booking error:", error, result);
+        setCaptchaError(errMsg);
+        await fetchCaptcha();
+        setIsSubmitting(false);
+        return;
+      }
+
+      const bookingId = result.booking_id;
+
+      // Create Zoom meeting
+      try {
+        const [timePart, ampm] = selectedTime!.split(' ');
+        const [hStr, mStr] = timePart.split(':');
+        let hours = parseInt(hStr);
+        if (ampm === 'PM' && hours !== 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
+        const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+
+        await supabase.functions.invoke('create-zoom-meeting', {
+          body: {
+            booking_id: bookingId,
+            topic: `${CALL_LABEL} – ${form.businessName.trim()}`,
+            start_time: startDate.toISOString(),
+            duration: DURATION,
+            attendee_email: form.email.trim(),
+            attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+            booking_type: BOOKING_TYPE,
+            business_name: form.businessName.trim(),
+            attendee_phone: form.phone.trim(),
+            attendee_timezone: selectedTimezone,
+            create_lead: true,
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+          },
+        });
+      } catch (e) {
+        console.error('Zoom meeting creation failed:', e);
+      }
+
+      setIsSubmitting(false);
+      setIsBooked(true);
+      onBooked?.();
+    } catch (err) {
+      console.error("Booking submission error:", err);
+      toast.error("Something went wrong. Please try again.");
+      await fetchCaptcha();
+      setIsSubmitting(false);
+    }
   };
 
   if (isBooked) {
