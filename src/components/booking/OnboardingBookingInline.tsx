@@ -251,14 +251,20 @@ const OnboardingBookingInline = ({
 
       const bookingId = result.booking_id;
 
-      // Create Zoom meeting
+      // Create Zoom meeting using admin timezone time for correct scheduling
       try {
-        const [timePart, ampm] = selectedTime!.split(' ');
+        const adminTime = selectedAdminTime || selectedTime!;
+        const [timePart, ampm] = adminTime.split(' ');
         const [hStr, mStr] = timePart.split(':');
         let hours = parseInt(hStr);
         if (ampm === 'PM' && hours !== 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
-        const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+        // Build ISO string in admin timezone (Australia/Sydney default)
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const isoDateStr = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
+        // Use Intl to get the UTC offset for the admin timezone
+        const tempDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+        const adminTzOffset = getTimezoneOffsetString(tempDate, 'Australia/Sydney');
 
         await supabase.functions.invoke('create-zoom-meeting', {
           body: {
