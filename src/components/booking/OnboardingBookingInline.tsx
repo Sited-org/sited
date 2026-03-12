@@ -43,6 +43,17 @@ function guessTimezoneFromLocation(location: string): string {
   return "Australia/Sydney";
 }
 
+function getTimezoneOffsetString(date: Date, timezone: string): string {
+  const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+  const diffMin = Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
+  const sign = diffMin >= 0 ? '+' : '-';
+  const absMin = Math.abs(diffMin);
+  const h = String(Math.floor(absMin / 60)).padStart(2, '0');
+  const m = String(absMin % 60).padStart(2, '0');
+  return `${sign}${h}:${m}`;
+}
+
 interface TimeSlot {
   time: string;
   available: boolean;
