@@ -20,9 +20,15 @@ import type { LeadStatus } from '@/hooks/useLeads';
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { userRole } = useAuth();
   const canEdit = userRole?.can_edit_leads ?? false;
+
+  const activeTab = searchParams.get('tab') || 'profile';
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab }, { replace: true });
+  };
 
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
