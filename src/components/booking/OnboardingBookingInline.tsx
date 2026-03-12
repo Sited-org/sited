@@ -454,6 +454,39 @@ const OnboardingBookingInline = ({
                 )}
               </div>
             </div>
+            {/* Captcha verification */}
+            <div className="space-y-1.5 pt-2 border-t border-border">
+              <Label className="text-xs">Quick verification *</Label>
+              {captchaLoading ? (
+                <div className="flex items-center gap-2 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : captchaQuestion ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-muted px-3 py-2 rounded-md">
+                    <span className="text-sm font-mono font-semibold text-foreground">{captchaQuestion} =</span>
+                  </div>
+                  <Input
+                    type="number"
+                    value={captchaAnswer}
+                    onChange={(e) => { setCaptchaAnswer(e.target.value); setCaptchaError(null); }}
+                    placeholder="?"
+                    className="h-10 w-20 text-sm text-center"
+                  />
+                  <button type="button" onClick={fetchCaptcha} className="p-2 text-muted-foreground hover:text-foreground transition-colors" title="New question">
+                    <RefreshCw size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={fetchCaptcha} className="text-sm text-primary hover:underline">
+                  Load verification
+                </button>
+              )}
+              {captchaError && (
+                <p className="text-xs text-destructive">{captchaError}</p>
+              )}
+            </div>
             <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting} variant="hero" size="lg" className="w-full mt-2">
               {isSubmitting ? "Booking..." : `Confirm ${CALL_LABEL}`}
               <ArrowRight size={16} />
