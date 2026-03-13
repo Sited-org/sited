@@ -176,6 +176,9 @@ export function ProfileTab({
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} disabled={!canEdit} placeholder="Add notes about this lead..." rows={6} />
           </CardContent>
         </Card>
+
+        {/* Upcoming Calls */}
+        <UpcomingCallsSection lead={lead} />
       </div>
 
       {/* Sidebar */}
