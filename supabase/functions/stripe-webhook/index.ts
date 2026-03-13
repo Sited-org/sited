@@ -278,13 +278,11 @@ serve(async (req) => {
         const invoice = event.data.object as Stripe.Invoice;
         console.log("[STRIPE-WEBHOOK] Invoice created:", invoice.id, "Status:", invoice.status, "Billing reason:", invoice.billing_reason);
         
-        // Process draft invoices for subscriptions (both initial and renewals)
-        // This is CRITICAL - credit must be applied BEFORE the invoice is finalized to prevent charging
         const isSubscriptionInvoice = !!invoice.subscription && 
           (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create');
         
         if (isSubscriptionInvoice && invoice.status === 'draft') {
-          console.log("[STRIPE-WEBHOOK] Subscription draft invoice detected - applying credit BEFORE charge");
+          console.log("[STRIPE-WEBHOOK] Subscription draft invoice detected - checking credit");
           
           try {
             const subscriptionId = typeof invoice.subscription === 'string' 
@@ -298,36 +296,80 @@ serve(async (req) => {
             
             if (leadId && invoice.amount_due) {
               const invoiceAmount = invoice.amount_due / 100;
-              
-              // Check available credit
               const availableCredit = await getAvailableCredit(leadId);
               const creditToApply = Math.min(availableCredit, invoiceAmount);
               const netAmount = invoiceAmount - creditToApply;
               
-              console.log("[STRIPE-WEBHOOK] Credit calculation for subscription:", {
-                invoiceAmount,
-                availableCredit,
-                creditToApply,
-                netAmount
+              console.log("[STRIPE-WEBHOOK] Credit calculation:", {
+                invoiceAmount, availableCredit, creditToApply, netAmount
               });
               
-              // Apply credit as a negative invoice item on the Stripe invoice
-              // This MUST happen before the invoice is finalized to reduce the charge amount
-              if (creditToApply > 0) {
+              if (creditToApply >= invoiceAmount) {
+                // FULLY COVERED BY CREDIT — void the Stripe invoice, handle internally
+                console.log("[STRIPE-WEBHOOK] Fully covered by credit — voiding draft invoice");
+                
+                // Record credit consumption
+                await supabaseAdmin
+                  .from('transactions')
+                  .insert({
+                    lead_id: leadId,
+                    item: `Credit Applied: ${membershipName || 'Subscription'}`,
+                    credit: 0,
+                    debit: creditToApply,
+                    notes: `Account credit fully covered subscription invoice ${invoice.id}. Amount: $${invoiceAmount}`,
+                    transaction_date: new Date().toISOString(),
+                    is_recurring: false,
+                    status: 'completed',
+                    invoice_status: 'paid',
+                    stripe_invoice_id: invoice.id,
+                  });
+                
+                // Record billing cycle debit as paid
+                await supabaseAdmin
+                  .from('transactions')
+                  .insert({
+                    lead_id: leadId,
+                    item: membershipName || 'Subscription Renewal',
+                    credit: 0,
+                    debit: invoiceAmount,
+                    notes: `Subscription billing cycle — paid via account credit. Stripe Subscription: ${subscriptionId}`,
+                    transaction_date: new Date().toISOString(),
+                    is_recurring: false,
+                    status: 'completed',
+                    invoice_status: 'paid',
+                    stripe_invoice_id: invoice.id,
+                  });
+                
+                // Void the draft invoice on Stripe (delete draft)
+                try {
+                  await stripe.invoices.del(invoice.id);
+                  console.log("[STRIPE-WEBHOOK] Deleted draft invoice (credit covered)");
+                } catch (delErr: any) {
+                  // If delete fails, try voiding after finalize
+                  console.log("[STRIPE-WEBHOOK] Could not delete draft, trying void:", delErr.message);
+                  try {
+                    await stripe.invoices.finalizeInvoice(invoice.id);
+                    await stripe.invoices.voidInvoice(invoice.id);
+                    console.log("[STRIPE-WEBHOOK] Voided invoice instead");
+                  } catch (voidErr: any) {
+                    console.error("[STRIPE-WEBHOOK] Could not void invoice:", voidErr.message);
+                  }
+                }
+                
+              } else if (creditToApply > 0) {
+                // PARTIAL CREDIT — add negative line item for credit portion
+                const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer!.id;
+                
                 await stripe.invoiceItems.create({
-                  customer: typeof invoice.customer === 'string' ? invoice.customer : invoice.customer!.id,
+                  customer: customerId,
                   invoice: invoice.id,
-                  amount: -Math.round(creditToApply * 100), // Negative = credit
+                  amount: -Math.round(creditToApply * 100),
                   currency: invoice.currency || 'aud',
                   description: 'Account credit applied',
-                  metadata: {
-                    type: 'account_credit',
-                    lead_id: leadId,
-                  },
+                  metadata: { type: 'account_credit', lead_id: leadId },
                 });
-                console.log("[STRIPE-WEBHOOK] Applied credit as negative line item:", creditToApply);
+                console.log("[STRIPE-WEBHOOK] Applied partial credit as negative line item:", creditToApply);
                 
-                // Update the invoice metadata to track credit applied
                 await stripe.invoices.update(invoice.id, {
                   metadata: {
                     ...invoice.metadata,
@@ -338,9 +380,8 @@ serve(async (req) => {
                     invoice_net_total: netAmount.toString(),
                   },
                 });
-                console.log("[STRIPE-WEBHOOK] Updated invoice metadata with credit info");
                 
-                // Record the credit consumption in our ledger IMMEDIATELY
+                // Record credit consumption
                 await supabaseAdmin
                   .from('transactions')
                   .insert({
@@ -348,16 +389,32 @@ serve(async (req) => {
                     item: `Credit Applied: ${membershipName || 'Subscription'}`,
                     credit: 0,
                     debit: creditToApply,
-                    notes: `Account credit applied to subscription invoice ${invoice.id}. Original: $${invoiceAmount}, Credit: $${creditToApply}, Net to charge: $${netAmount}`,
+                    notes: `Account credit applied to subscription invoice ${invoice.id}. Original: $${invoiceAmount}, Credit: $${creditToApply}, Net: $${netAmount}`,
                     transaction_date: new Date().toISOString(),
                     is_recurring: false,
                     status: 'completed',
-                    invoice_status: 'paid', // Credit is consumed immediately
+                    invoice_status: 'paid',
                     stripe_invoice_id: invoice.id,
                   });
-                console.log("[STRIPE-WEBHOOK] Recorded credit application in ledger");
+                
+                // Record billing cycle debit
+                await supabaseAdmin
+                  .from('transactions')
+                  .insert({
+                    lead_id: leadId,
+                    item: membershipName || 'Subscription Renewal',
+                    credit: 0,
+                    debit: invoiceAmount,
+                    notes: `Subscription billing cycle ($${creditToApply.toFixed(2)} credit applied, $${netAmount.toFixed(2)} to charge). Stripe Subscription: ${subscriptionId}`,
+                    transaction_date: new Date().toISOString(),
+                    is_recurring: false,
+                    status: 'completed',
+                    invoice_status: 'processing',
+                    stripe_invoice_id: invoice.id,
+                  });
+                
               } else {
-                // No credit to apply, but still update metadata for tracking
+                // NO CREDIT — just track metadata and create debit
                 await stripe.invoices.update(invoice.id, {
                   metadata: {
                     ...invoice.metadata,
@@ -368,29 +425,22 @@ serve(async (req) => {
                     invoice_net_total: invoiceAmount.toString(),
                   },
                 });
+                
+                await supabaseAdmin
+                  .from('transactions')
+                  .insert({
+                    lead_id: leadId,
+                    item: membershipName || 'Subscription Renewal',
+                    credit: 0,
+                    debit: invoiceAmount,
+                    notes: `Subscription billing cycle. Stripe Subscription: ${subscriptionId}`,
+                    transaction_date: new Date().toISOString(),
+                    is_recurring: false,
+                    status: 'completed',
+                    invoice_status: 'processing',
+                    stripe_invoice_id: invoice.id,
+                  });
               }
-              
-              // Create a debit transaction for this billing cycle (full amount for audit trail)
-              const creditNote = creditToApply > 0 
-                ? ` ($${creditToApply.toFixed(2)} credit applied, $${netAmount.toFixed(2)} to charge)`
-                : '';
-              
-              await supabaseAdmin
-                .from('transactions')
-                .insert({
-                  lead_id: leadId,
-                  item: membershipName || 'Subscription Renewal',
-                  credit: 0,
-                  debit: invoiceAmount, // Full amount as debit (before credit)
-                  notes: `Auto-generated for subscription billing cycle${creditNote}`,
-                  transaction_date: new Date().toISOString(),
-                  is_recurring: true,
-                  recurring_interval: 'monthly',
-                  status: 'completed',
-                  invoice_status: 'processing',
-                  stripe_invoice_id: invoice.id,
-                });
-              console.log("[STRIPE-WEBHOOK] Created debit transaction for subscription cycle:", invoiceAmount);
             }
           } catch (subError: any) {
             console.error("[STRIPE-WEBHOOK] Error handling subscription invoice:", subError.message);
