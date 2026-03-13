@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -85,13 +85,14 @@ serve(async (req) => {
 
     // Update local transactions if lead_id provided
     if (lead_id) {
-      // First fetch existing notes to preserve them
+      // First fetch existing notes to preserve them — filter by specific subscription ID
       const { data: existingTxs } = await supabaseAdmin
         .from('transactions')
         .select('id, notes')
         .eq('lead_id', lead_id)
         .eq('is_recurring', true)
-        .is('recurring_end_date', null);
+        .is('recurring_end_date', null)
+        .ilike('notes', `%Stripe Subscription: ${subscription_id}%`);
 
       for (const tx of (existingTxs || [])) {
         const existingNotes = tx.notes || '';
