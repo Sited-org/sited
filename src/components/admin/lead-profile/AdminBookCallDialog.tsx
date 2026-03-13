@@ -103,6 +103,21 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
     const businessType = lead.form_data?.businessType || lead.form_data?.business_type || 'Other';
     const businessLocation = lead.form_data?.businessLocation || lead.form_data?.business_location || 'Australia';
 
+    // Double-booking check
+    const { data: existingBooking } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('booking_date', dateStr)
+      .eq('booking_time', selectedTime)
+      .neq('status', 'cancelled')
+      .maybeSingle();
+
+    if (existingBooking) {
+      toast.error('This time slot is already booked. Please choose another time.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const { data: insertData, error } = await supabase.from('bookings').insert({
       first_name: firstName,
       last_name: lastName,
