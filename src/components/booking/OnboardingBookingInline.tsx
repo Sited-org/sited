@@ -270,18 +270,14 @@ const OnboardingBookingInline = ({
         let hours = parseInt(hStr);
         if (ampm === 'PM' && hours !== 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
-        // Build ISO string in admin timezone (Australia/Sydney default)
         const pad = (n: number) => String(n).padStart(2, '0');
-        const isoDateStr = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
-        // Use Intl to get the UTC offset for the admin timezone
-        const tempDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
-        const adminTzOffset = getTimezoneOffsetString(tempDate, 'Australia/Sydney');
+        const localStartTime = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
 
         await supabase.functions.invoke('create-zoom-meeting', {
           body: {
             booking_id: bookingId,
             topic: `${CALL_LABEL} – ${form.businessName.trim()}`,
-            start_time: `${isoDateStr}${adminTzOffset}`,
+            start_time: localStartTime,
             duration: DURATION,
             attendee_email: form.email.trim(),
             attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,

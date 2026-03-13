@@ -141,14 +141,14 @@ export function CalendarBookingDialog({ open, onOpenChange, preselectedDate, pre
       let hours = parseInt(hStr);
       if (ampm === 'PM' && hours !== 12) hours += 12;
       if (ampm === 'AM' && hours === 12) hours = 0;
-      const [yr, mo, dy] = preselectedDate.split('-').map(Number);
-      const startDate = new Date(yr, mo - 1, dy, hours, parseInt(mStr));
+      // Format as local datetime string (NOT UTC) for Zoom
+      const localStartTime = `${preselectedDate}T${String(hours).padStart(2, '0')}:${mStr.padStart(2, '0')}:00`;
 
       await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
           topic: `${callLabel} – ${selectedLead.business_name || selectedLead.name || selectedLead.email}`,
-          start_time: startDate.toISOString(),
+          start_time: localStartTime,
           duration,
           attendee_email: selectedLead.email,
           attendee_name: selectedLead.name || firstName,

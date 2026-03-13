@@ -202,13 +202,14 @@ const OnboardingBookingDialog = ({
       let hours = parseInt(hStr);
       if (ampm === 'PM' && hours !== 12) hours += 12;
       if (ampm === 'AM' && hours === 12) hours = 0;
-      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const localStartTime = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
 
       await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
           topic: `Plan Call – ${form.businessName.trim()}`,
-          start_time: startDate.toISOString(),
+          start_time: localStartTime,
           duration: DURATION,
           attendee_email: form.email.trim(),
           attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,

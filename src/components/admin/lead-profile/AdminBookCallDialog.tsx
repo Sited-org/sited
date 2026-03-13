@@ -146,13 +146,14 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
       let hours = parseInt(hStr);
       if (ampm === 'PM' && hours !== 12) hours += 12;
       if (ampm === 'AM' && hours === 12) hours = 0;
-      const startDate = new Date(year, currentMonth.getMonth(), selectedDay, hours, parseInt(mStr));
+      // Format as local datetime string (NOT UTC) for Zoom
+      const localStartTime = `${dateStr}T${String(hours).padStart(2, '0')}:${mStr.padStart(2, '0')}:00`;
 
       await supabase.functions.invoke('create-zoom-meeting', {
         body: {
           booking_id: insertData.id,
           topic: `${callLabel} – ${lead.business_name || lead.name || lead.email}`,
-          start_time: startDate.toISOString(),
+          start_time: localStartTime,
           duration,
           attendee_email: lead.email,
           attendee_name: lead.name || firstName,
