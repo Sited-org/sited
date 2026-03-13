@@ -73,6 +73,21 @@ export function ClientOverviewTab({
 }: ClientOverviewTabProps) {
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [bookCheckinOpen, setBookCheckinOpen] = useState(false);
+  const [upcomingCalls, setUpcomingCalls] = useState<any[]>([]);
+  const [loadingCalls, setLoadingCalls] = useState(true);
+
+  const fetchUpcomingCalls = useCallback(async () => {
+    if (!lead.email) return;
+    try {
+      const { data } = await supabase.functions.invoke('get-client-data', {
+        body: { lead_id: lead.id, email: lead.email, session_token: sessionToken },
+      });
+      // Fetch bookings via submit-booking isn't possible from client, so we query via get-client-data
+      // Actually, bookings table has admin-only RLS, so let's fetch via an edge function call
+    } catch {}
+    setLoadingCalls(false);
+  }, [lead.email, lead.id, sessionToken]);
 
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalDue = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
