@@ -3,11 +3,16 @@ import { useBookings, type Booking } from '@/hooks/useBookings';
 import { CalendarView } from '@/components/admin/calendar/CalendarView';
 import { CalendarSettings } from '@/components/admin/calendar/CalendarSettings';
 import { BookingDetailSheet } from '@/components/admin/calendar/BookingDetailSheet';
+import { CalendarBookingDialog } from '@/components/admin/calendar/CalendarBookingDialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 type ViewMode = 'month' | 'week' | 'day';
+
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function AdminCalendar() {
   const { bookings, calendarConfig, loading, updateBookingStatus, updateCalendarConfig, refreshBookings } = useBookings();
@@ -15,6 +20,9 @@ export default function AdminCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [bookingDate, setBookingDate] = useState<string | null>(null);
+  const [bookingTime, setBookingTime] = useState<string | null>(null);
 
   const navigate = (dir: number) => {
     const d = new Date(currentDate);
@@ -31,13 +39,18 @@ export default function AdminCalendar() {
     if (viewMode === 'day') {
       return currentDate.toLocaleString('default', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     }
-    // week
     const start = new Date(currentDate);
     start.setDate(start.getDate() - start.getDay() + 1);
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
     return `${start.toLocaleDateString('default', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   }, [currentDate, viewMode]);
+
+  const openBookingDialog = (date: string, time: string | null) => {
+    setBookingDate(date);
+    setBookingTime(time);
+    setBookingDialogOpen(true);
+  };
 
   if (loading) {
     return (
@@ -57,10 +70,16 @@ export default function AdminCalendar() {
             {bookings.filter(b => b.status === 'pending').length} pending bookings
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2 w-fit">
-          <Settings2 className="h-4 w-4" />
-          Settings
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" className="gap-2" onClick={() => openBookingDialog(toLocalDateStr(new Date()), null)}>
+            <Plus className="h-4 w-4" />
+            New Booking
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} className="gap-2">
+            <Settings2 className="h-4 w-4" />
+            Settings
+          </Button>
+        </div>
       </div>
 
       {/* Controls */}
@@ -98,6 +117,7 @@ export default function AdminCalendar() {
           setCurrentDate(d);
           setViewMode('day');
         }}
+        onTimeSlotClick={openBookingDialog}
       />
 
       {/* Booking Detail */}
@@ -107,6 +127,15 @@ export default function AdminCalendar() {
         onOpenChange={(open) => !open && setSelectedBooking(null)}
         onUpdateStatus={updateBookingStatus}
         onRefresh={refreshBookings}
+      />
+
+      {/* New Booking Dialog */}
+      <CalendarBookingDialog
+        open={bookingDialogOpen}
+        onOpenChange={setBookingDialogOpen}
+        preselectedDate={bookingDate}
+        preselectedTime={bookingTime}
+        onBooked={refreshBookings}
       />
 
       {/* Settings */}
