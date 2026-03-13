@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Mail, CheckCircle2, XCircle, Clock, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { UpcomingCallsSection } from './UpcomingCallsSection';
 
 interface EmailLog {
   id: string;
@@ -19,6 +20,7 @@ interface EmailLog {
 interface CommunicationsTabProps {
   leadId: string;
   leadEmail: string;
+  lead?: any;
 }
 
 const templateLabels: Record<string, string> = {
