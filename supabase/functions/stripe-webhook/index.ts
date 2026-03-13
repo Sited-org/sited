@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-08-27.basil",
 });
 
 const supabaseAdmin = createClient(
@@ -475,17 +475,27 @@ serve(async (req) => {
         
         const leadId = subscription.metadata?.lead_id;
         if (leadId) {
-          // Mark recurring transactions as ended and no longer recurring
-          await supabaseAdmin
+          // Mark ONLY the specific subscription's recurring transactions as ended
+          const { data: matchingTxs } = await supabaseAdmin
             .from('transactions')
-            .update({ 
-              is_recurring: false,
-              recurring_end_date: new Date().toISOString()
-            })
+            .select('id')
             .eq('lead_id', leadId)
             .eq('is_recurring', true)
-            .is('recurring_end_date', null);
-          console.log("[STRIPE-WEBHOOK] Marked recurring transactions as ended for lead:", leadId);
+            .is('recurring_end_date', null)
+            .ilike('notes', `%Stripe Subscription: ${subscription.id}%`);
+
+          if (matchingTxs && matchingTxs.length > 0) {
+            await supabaseAdmin
+              .from('transactions')
+              .update({ 
+                is_recurring: false,
+                recurring_end_date: new Date().toISOString()
+              })
+              .in('id', matchingTxs.map(t => t.id));
+            console.log("[STRIPE-WEBHOOK] Marked", matchingTxs.length, "transactions as ended for subscription:", subscription.id);
+          } else {
+            console.log("[STRIPE-WEBHOOK] No matching recurring transactions found for subscription:", subscription.id);
+          }
         }
         break;
       }
