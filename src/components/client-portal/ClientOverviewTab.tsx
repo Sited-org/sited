@@ -339,6 +339,90 @@ export function ClientOverviewTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Upcoming Calls & Book Check-in */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              Upcoming Calls
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setBookCheckinOpen(true)} className="text-xs">
+              <Plus className="h-3.5 w-3.5 mr-1" /> Book Check-in
+            </Button>
+          </div>
+          {upcomingCalls.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground mb-3">No upcoming calls scheduled.</p>
+              <Button variant="default" size="sm" onClick={() => setBookCheckinOpen(true)}>
+                <CalendarDays className="h-4 w-4 mr-1" /> Book a Check-in Call
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingCalls.map((b) => (
+                <div key={b.id} className="p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      {getCallLabel(b.booking_type)}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{b.status}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {format(parseISO(b.booking_date), 'EEE, MMM d yyyy')}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {b.booking_time}
+                    </span>
+                    <span>{b.duration_minutes} min</span>
+                  </div>
+                  {b.zoom_join_url && (
+                    <a href={b.zoom_join_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-2">
+                      <Video className="h-3 w-3" /> Join Meeting <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Method Prompt */}
+      {!hasPaymentMethod && (
+        <Card className="border-dashed">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Payment Method</p>
+                  <p className="text-xs text-muted-foreground">Add a card for automatic billing</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => onNavigate('payments')}>
+                Add
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Check-in Booking Dialog */}
+      {sessionToken && (
+        <ClientBookCheckinDialog
+          open={bookCheckinOpen}
+          onOpenChange={setBookCheckinOpen}
+          lead={lead}
+          sessionToken={sessionToken}
+          onBooked={onRequestCreated}
+        />
+      )}
     </div>
   );
 }
