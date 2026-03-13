@@ -85,17 +85,29 @@ serve(async (req) => {
 
     // Update local transactions if lead_id provided
     if (lead_id) {
-      await supabaseAdmin
+      // First fetch existing notes to preserve them
+      const { data: existingTxs } = await supabaseAdmin
         .from('transactions')
-        .update({ 
-          is_recurring: false,
-          recurring_end_date: new Date().toISOString(),
-          notes: `Subscription cancelled: ${subscription_id}`,
-        })
+        .select('id, notes')
         .eq('lead_id', lead_id)
         .eq('is_recurring', true)
         .is('recurring_end_date', null);
-      logStep("Updated local transactions");
+
+      for (const tx of (existingTxs || [])) {
+        const existingNotes = tx.notes || '';
+        const cancelNote = `[Cancelled ${new Date().toISOString().split('T')[0]}]`;
+        const updatedNotes = existingNotes ? `${existingNotes}\n${cancelNote}` : cancelNote;
+
+        await supabaseAdmin
+          .from('transactions')
+          .update({
+            is_recurring: false,
+            recurring_end_date: new Date().toISOString(),
+            notes: updatedNotes,
+          })
+          .eq('id', tx.id);
+      }
+      logStep("Updated local transactions", { count: existingTxs?.length || 0 });
     }
 
     return new Response(
