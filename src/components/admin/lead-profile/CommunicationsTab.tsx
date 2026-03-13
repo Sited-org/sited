@@ -36,7 +36,7 @@ const templateLabels: Record<string, string> = {
   booking_cancellation: 'Booking Cancellation',
 };
 
-export function CommunicationsTab({ leadId, leadEmail }: CommunicationsTabProps) {
+export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTabProps) {
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
 
