@@ -12,10 +12,16 @@ import {
   Send,
   Trash2,
   Loader2,
+  CalendarDays,
+  Clock,
+  Video,
+  Phone,
+  Plus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, isPast, parseISO } from 'date-fns';
+import { ClientBookCheckinDialog } from './ClientBookCheckinDialog';
 
 interface Transaction {
   id: string;
@@ -34,6 +40,16 @@ interface ClientRequest {
   created_at: string;
 }
 
+interface ClientBooking {
+  id: string;
+  booking_date: string;
+  booking_time: string;
+  booking_type: string;
+  duration_minutes: number;
+  status: string;
+  zoom_join_url: string | null;
+}
+
 interface ClientOverviewTabProps {
   lead: {
     id: string;
@@ -45,9 +61,11 @@ interface ClientOverviewTabProps {
     created_at: string;
     website_url?: string;
     form_data?: any;
+    phone?: string;
   };
   transactions: Transaction[];
   requests: ClientRequest[];
+  bookings: ClientBooking[];
   hasPaymentMethod: boolean;
   onNavigate: (tab: string) => void;
   sessionToken?: string;
@@ -59,6 +77,7 @@ export function ClientOverviewTab({
   lead, 
   transactions, 
   requests,
+  bookings,
   hasPaymentMethod,
   onNavigate,
   sessionToken,
@@ -67,6 +86,10 @@ export function ClientOverviewTab({
 }: ClientOverviewTabProps) {
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [bookCheckinOpen, setBookCheckinOpen] = useState(false);
+
+  const upcomingCalls = (bookings || []).filter(b => !isPast(parseISO(b.booking_date + 'T23:59:59')));
+  const getCallLabel = (type: string) => type === 'discovery' ? 'Discovery Call' : type === 'checkin' ? 'Check-in Call' : 'Plan Call';
 
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalDue = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
@@ -297,6 +320,60 @@ export function ClientOverviewTab({
         </Card>
       )}
 
+
+      {/* Upcoming Calls & Book Check-in */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              Upcoming Calls
+            </p>
+            <Button variant="outline" size="sm" onClick={() => setBookCheckinOpen(true)} className="text-xs">
+              <Plus className="h-3.5 w-3.5 mr-1" /> Book Check-in
+            </Button>
+          </div>
+          {upcomingCalls.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground mb-3">No upcoming calls scheduled.</p>
+              <Button variant="default" size="sm" onClick={() => setBookCheckinOpen(true)}>
+                <CalendarDays className="h-4 w-4 mr-1" /> Book a Check-in Call
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingCalls.map((b) => (
+                <div key={b.id} className="p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      {getCallLabel(b.booking_type)}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{b.status}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {format(parseISO(b.booking_date), 'EEE, MMM d yyyy')}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {b.booking_time}
+                    </span>
+                    <span>{b.duration_minutes} min</span>
+                  </div>
+                  {b.zoom_join_url && (
+                    <a href={b.zoom_join_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-2">
+                      <Video className="h-3 w-3" /> Join Meeting <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Payment Method Prompt */}
       {!hasPaymentMethod && (
         <Card className="border-dashed">
@@ -315,6 +392,17 @@ export function ClientOverviewTab({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Check-in Booking Dialog */}
+      {sessionToken && (
+        <ClientBookCheckinDialog
+          open={bookCheckinOpen}
+          onOpenChange={setBookCheckinOpen}
+          lead={lead}
+          sessionToken={sessionToken}
+          onBooked={onRequestCreated}
+        />
       )}
     </div>
   );

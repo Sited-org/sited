@@ -59,7 +59,7 @@ export function UpcomingCallsSection({ lead, compact = false }: UpcomingCallsSec
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-sm font-medium capitalize flex items-center gap-1.5">
           <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-          {booking.booking_type === 'discovery' ? 'Discovery Call' : 'Plan Call'}
+          {booking.booking_type === 'discovery' ? 'Discovery Call' : booking.booking_type === 'checkin' ? 'Check-in Call' : 'Plan Call'}
         </span>
         <Badge variant={getStatusVariant(booking.status)} className="text-[10px] px-1.5 py-0">
           {booking.status}

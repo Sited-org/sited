@@ -65,6 +65,7 @@ export default function ClientPortalDashboard() {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [requests, setRequests] = useState<ClientRequest[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const hasFetchedRef = useRef(false);
@@ -124,6 +125,7 @@ export default function ClientPortalDashboard() {
 
       setTransactions(data.transactions || []);
       setRequests(data.clientRequests || []);
+      setBookings(data.bookings || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
     } catch (err: any) {
       console.error('Error fetching client data:', err);
@@ -245,6 +247,7 @@ export default function ClientPortalDashboard() {
                 lead={session.lead}
                 transactions={transactions}
                 requests={requests}
+                bookings={bookings}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
                 sessionToken={session.token}

@@ -1,12 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Check, Loader2, Globe } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Loader2, Globe, CalendarDays } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+const DURATION = 30;
+const CALL_LABEL = 'Check-in Call';
 
 const AUSTRALIA_TIMEZONES = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST/AEDT)' },
@@ -18,22 +21,23 @@ const AUSTRALIA_TIMEZONES = [
   { value: 'Australia/Darwin', label: 'Darwin (ACST)' },
 ];
 
-interface AdminBookCallDialogProps {
+interface ClientBookCheckinDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead: {
+    id: string;
     name?: string;
     email: string;
     phone?: string;
     business_name?: string;
     form_data?: any;
   };
+  sessionToken: string;
   onBooked?: () => void;
 }
 
-export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: AdminBookCallDialogProps) {
-  const [step, setStep] = useState<'type' | 'calendar' | 'confirm'>('type');
-  const [callType, setCallType] = useState<'discovery' | 'plan' | 'checkin'>('discovery');
+export function ClientBookCheckinDialog({ open, onOpenChange, lead, sessionToken, onBooked }: ClientBookCheckinDialogProps) {
+  const [step, setStep] = useState<'calendar' | 'confirm'>('calendar');
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -42,9 +46,6 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
-
-  const duration = callType === 'discovery' ? 20 : callType === 'checkin' ? 30 : 45;
-  const callLabel = callType === 'discovery' ? 'Discovery Call' : callType === 'checkin' ? 'Check-in Call' : 'Plan Call';
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
@@ -76,7 +77,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
       const dateStr = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, '0')}-${String(dd.getDate()).padStart(2, '0')}`;
       try {
         const { data, error } = await supabase.functions.invoke('get-available-slots', {
-          body: { date: dateStr, duration_override: duration, timezone: selectedTimezone },
+          body: { date: dateStr, duration_override: DURATION, timezone: selectedTimezone },
         });
         if (!error && data) {
           setTimeSlots(data.slots || []);
@@ -88,7 +89,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
       setLoadingSlots(false);
     };
     fetchSlots();
-  }, [selectedDay, year, monthOffset, selectedTimezone, duration, step]);
+  }, [selectedDay, year, monthOffset, selectedTimezone, step]);
 
   const handleSubmit = async () => {
     if (!selectedDay || !selectedTime) return;
@@ -103,29 +104,44 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
     const businessType = lead.form_data?.businessType || lead.form_data?.business_type || 'Other';
     const businessLocation = lead.form_data?.businessLocation || lead.form_data?.business_location || 'Australia';
 
-    const { data: insertData, error } = await supabase.from('bookings').insert({
-      first_name: firstName,
-      last_name: lastName,
-      email: lead.email,
-      phone: lead.phone || '',
-      business_name: lead.business_name || '',
-      business_type: businessType,
-      business_location: businessLocation,
-      booking_date: dateStr,
-      booking_time: selectedTime,
-      booking_type: callType,
-      duration_minutes: duration,
-      status: 'confirmed',
-    }).select('id').single();
-
-    if (error) {
-      toast.error('Failed to create booking');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Create Zoom meeting
+    // Use the submit-booking edge function (service role, no auth needed)
     try {
+      // First get a captcha token
+      const { data: captchaData } = await supabase.functions.invoke('generate-captcha');
+      if (!captchaData?.token || captchaData?.answer === undefined) {
+        toast.error('Failed to verify. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data: bookingResult, error: bookingError } = await supabase.functions.invoke('submit-booking', {
+        body: {
+          captcha_token: captchaData.token,
+          captcha_answer: captchaData.answer,
+          booking: {
+            first_name: firstName,
+            last_name: lastName,
+            email: lead.email,
+            phone: lead.phone || '',
+            business_name: lead.business_name || '',
+            business_type: businessType,
+            business_location: businessLocation,
+            booking_date: dateStr,
+            booking_time: selectedTime,
+            booking_type: 'checkin',
+            duration_minutes: DURATION,
+            notes: 'Booked from client portal',
+          },
+        },
+      });
+
+      if (bookingError || bookingResult?.error) {
+        toast.error(bookingResult?.error || 'Failed to create booking');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create Zoom meeting
       const [timePart, ampm] = selectedTime.split(' ');
       const [hStr, mStr] = timePart.split(':');
       let hours = parseInt(hStr);
@@ -135,13 +151,13 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
 
       await supabase.functions.invoke('create-zoom-meeting', {
         body: {
-          booking_id: insertData.id,
-          topic: `${callLabel} – ${lead.business_name || lead.name || lead.email}`,
+          booking_id: bookingResult.booking_id,
+          topic: `Check-in Call – ${lead.business_name || lead.name || lead.email}`,
           start_time: startDate.toISOString(),
-          duration,
+          duration: DURATION,
           attendee_email: lead.email,
           attendee_name: lead.name || firstName,
-          booking_type: callType,
+          booking_type: 'checkin',
           business_name: lead.business_name || '',
           attendee_phone: lead.phone || '',
           attendee_timezone: selectedTimezone,
@@ -150,32 +166,31 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
           business_location: businessLocation,
         },
       });
-    } catch (e) {
-      console.error('Zoom meeting creation failed:', e);
-    }
 
-    toast.success(`${callLabel} booked for ${dateStr} at ${selectedTime}`);
+      toast.success(`Check-in Call booked for ${dateStr} at ${selectedTime}`);
+      setIsBooked(true);
+      onBooked?.();
+    } catch {
+      toast.error('Failed to create booking');
+    }
     setIsSubmitting(false);
-    setIsBooked(true);
-    onBooked?.();
   };
 
   const handleClose = () => {
     onOpenChange(false);
     setTimeout(() => {
-      setStep('type');
+      setStep('calendar');
       setSelectedDay(null);
       setSelectedTime(null);
       setIsBooked(false);
       setMonthOffset(0);
-      setCallType('discovery');
     }, 300);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-[92vw] sm:max-w-lg p-0 gap-0 border-border/50 bg-card overflow-hidden max-h-[90vh] overflow-y-auto rounded-2xl">
-        <DialogTitle className="sr-only">Book a Call</DialogTitle>
+        <DialogTitle className="sr-only">Book a Check-in Call</DialogTitle>
 
         <AnimatePresence mode="wait">
           {isBooked ? (
@@ -183,42 +198,20 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 15 }} className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
                 <Check className="w-8 h-8 text-green-500" />
               </motion.div>
-              <p className="text-lg font-semibold text-green-500 mb-1">Booked</p>
+              <p className="text-lg font-semibold text-green-500 mb-1">Booked!</p>
               <p className="text-sm text-muted-foreground text-center">
-                {callLabel} · {monthName} {selectedDay}, {year} at {selectedTime} · {duration} min
+                {CALL_LABEL} · {monthName} {selectedDay}, {year} at {selectedTime} · {DURATION} min
               </p>
               <Button variant="outline" className="mt-6" onClick={handleClose}>Close</Button>
             </motion.div>
 
-          ) : step === 'type' ? (
-            <motion.div key="type" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6 sm:p-8">
-              <h3 className="text-lg font-semibold mb-1">Book a Call</h3>
-              <p className="text-sm text-muted-foreground mb-6">Select the type of call for {lead.name || lead.email}</p>
-              <div className="space-y-3">
-                {([
-                  { type: 'discovery' as const, label: 'Discovery Call', desc: '20 min · Initial consultation' },
-                  { type: 'plan' as const, label: 'Plan Call', desc: '45 min · Detailed project planning' },
-                  { type: 'checkin' as const, label: 'Check-in Call', desc: '30 min · Progress check-in with client' },
-                ]).map(({ type, label, desc }) => (
-                  <button
-                    key={type}
-                    onClick={() => { setCallType(type); setStep('calendar'); }}
-                    className={`w-full p-4 rounded-xl border text-left transition-all hover:border-primary/50 hover:bg-muted/30 ${callType === type ? 'border-primary bg-primary/5' : 'border-border/50'}`}
-                  >
-                    <p className="font-medium">{label}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-
           ) : step === 'calendar' ? (
-            <motion.div key="calendar" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="p-6 sm:p-8">
-              <button onClick={() => { setStep('type'); setSelectedDay(null); setSelectedTime(null); }} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-                <ChevronLeft size={16} /> Back
-              </button>
-              <h3 className="text-lg font-semibold mb-1">{callLabel}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{duration}-minute call · Pick a date and time</p>
+            <motion.div key="calendar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-6 sm:p-8">
+              <div className="flex items-center gap-2 mb-1">
+                <CalendarDays className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Book a Check-in Call</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">{DURATION}-minute call · Pick a date and time</p>
 
               {/* Timezone */}
               <div className="mb-4">
@@ -278,7 +271,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
                 {selectedDay && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                     <div className="pt-4 mt-4 border-t border-border/50">
-                      <p className="text-sm text-muted-foreground mb-3">Available times ({duration} min)</p>
+                      <p className="text-sm text-muted-foreground mb-3">Available times ({DURATION} min)</p>
                       {loadingSlots ? (
                         <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
                       ) : timeSlots.filter(s => s.available).length === 0 ? (
@@ -289,7 +282,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
                             <button
                               key={slot.time}
                               onClick={() => { setSelectedTime(slot.time); setStep('confirm'); }}
-                              className={`py-2.5 px-3 rounded-lg border text-sm font-medium transition-colors ${selectedTime === slot.time ? 'border-primary bg-primary/10' : 'border-border/50 hover:border-foreground/20 hover:bg-muted/50'}`}
+                              className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium transition-colors hover:border-foreground/20 hover:bg-muted/50"
                             >
                               {slot.time}
                             </button>
@@ -312,7 +305,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
               <div className="space-y-3 rounded-xl border border-border/50 p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Type</span>
-                  <span className="font-medium">{callLabel}</span>
+                  <span className="font-medium">{CALL_LABEL}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Date</span>
@@ -324,15 +317,7 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Duration</span>
-                  <span className="font-medium">{duration} min</span>
-                </div>
-                <div className="border-t border-border/50 pt-3 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Client</span>
-                  <span className="font-medium">{lead.name || lead.email}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Email</span>
-                  <span className="font-medium">{lead.email}</span>
+                  <span className="font-medium">{DURATION} min</span>
                 </div>
               </div>
 
