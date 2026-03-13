@@ -43,8 +43,8 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
 
-  const duration = callType === 'discovery' ? 20 : 45;
-  const callLabel = callType === 'discovery' ? 'Discovery Call' : 'Plan Call';
+  const duration = callType === 'discovery' ? 20 : callType === 'checkin' ? 30 : 45;
+  const callLabel = callType === 'discovery' ? 'Discovery Call' : callType === 'checkin' ? 'Check-in Call' : 'Plan Call';
 
   const today = new Date();
   const currentMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
