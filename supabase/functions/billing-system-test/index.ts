@@ -60,7 +60,7 @@ serve(async (req) => {
         business_name: 'Billing Test Pty Ltd',
         project_type: 'test',
         form_data: { test: true, created_by: 'billing-system-test' },
-        status: 'client',
+        status: 'current_mbr',
       })
       .select()
       .single();
