@@ -92,7 +92,8 @@ serve(async (req) => {
         .eq('lead_id', lead_id)
         .eq('is_recurring', true)
         .is('recurring_end_date', null)
-        .ilike('notes', `%Stripe Subscription: ${subscription_id}%`);
+        .ilike('notes', `%Stripe Subscription: ${subscription_id}\n%`)
+        .or(`notes.ilike.%Stripe Subscription: ${subscription_id}`, `notes.eq.Stripe Subscription: ${subscription_id}`);
 
       for (const tx of (existingTxs || [])) {
         const existingNotes = tx.notes || '';

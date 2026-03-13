@@ -381,7 +381,12 @@ serve(async (req) => {
             break;
           case 'monthly':
             const sameDay = txDate.getDate();
-            shouldBill = today.getDate() === sameDay || (today.getDate() === 1 && monthsElapsed >= 1);
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            // If membership was created on a day that doesn't exist this month (e.g. 31st in a 30-day month),
+            // bill on the last day of the current month instead
+            shouldBill = today.getDate() === sameDay 
+              || (sameDay > lastDayOfMonth && today.getDate() === lastDayOfMonth)
+              || (today.getDate() === 1 && monthsElapsed >= 1);
             break;
           case 'yearly':
             shouldBill = today.getMonth() === txDate.getMonth() && today.getDate() === txDate.getDate();
