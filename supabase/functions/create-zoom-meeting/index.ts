@@ -188,10 +188,12 @@ serve(async (req) => {
     }).eq('id', booking_id);
 
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    const formattedDate = formatDateForTz(start_time, clientTz);
-    const formattedTime = formatTimeForTz(start_time, clientTz);
-    const adminDate = formatDateForTz(start_time, 'Australia/Sydney');
-    const adminTime = formatTimeForTz(start_time, 'Australia/Sydney');
+    // start_time is a local datetime string in admin TZ (e.g. "2026-03-15T09:00:00")
+    const parsed = parseLocalDateTime(start_time);
+    const formattedDate = parsed.date;
+    const formattedTime = parsed.time;
+    const adminDate = parsed.date;
+    const adminTime = parsed.time;
     const firstName = attendee_name?.split(' ')[0] || 'there';
 
     // 1. Create lead from discovery call booking
