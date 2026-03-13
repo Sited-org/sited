@@ -160,19 +160,27 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch admin timezone from calendar config
+    const { data: configData } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'calendar_config')
+      .maybeSingle();
+    const adminTimezone = (configData?.setting_value as any)?.timezone || 'Australia/Brisbane';
+
     const accessToken = await getZoomAccessToken();
     const meetingDuration = duration || 20;
     const typeLabel = getTypeLabel(booking_type);
     const meetingTopic = topic || `Sited ${typeLabel}`;
-    const clientTz = attendee_timezone || 'Australia/Sydney';
+    const clientTz = attendee_timezone || adminTimezone;
     const tzAbbr = getTzAbbr(clientTz);
 
-    // Create Zoom meeting
+    // Create Zoom meeting — use admin timezone so local time string is interpreted correctly
     const meetingResponse = await fetch('https://api.zoom.us/v2/users/me/meetings', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        topic: meetingTopic, type: 2, start_time, duration: meetingDuration, timezone: 'Australia/Sydney',
+        topic: meetingTopic, type: 2, start_time, duration: meetingDuration, timezone: adminTimezone,
         settings: { host_video: true, participant_video: true, join_before_host: false, waiting_room: true, meeting_authentication: false, auto_recording: 'none' },
       }),
     });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { type Booking } from '@/hooks/useBookings';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink, Video, CalendarX, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Mail, Phone, Building2, MapPin, ExternalLink, Video, CalendarX, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,6 +30,34 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<{ time: string; available: boolean }[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Fetch available slots when date changes in reschedule mode
+  useEffect(() => {
+    if (!rescheduleMode || !newDate || !booking) return;
+    const fetchSlots = async () => {
+      setLoadingSlots(true);
+      setNewTime('');
+      try {
+        const { data, error } = await supabase.functions.invoke('get-available-slots', {
+          body: { date: newDate, duration_override: booking.duration_minutes || 20, timezone: 'Australia/Brisbane' },
+        });
+        if (!error && data) {
+          // Filter to only available slots, and also allow the booking's current slot if same date
+          const slots = (data.slots || []).map((s: { time: string; available: boolean }) => ({
+            ...s,
+            available: s.available || (newDate === booking.booking_date && s.time === booking.booking_time),
+          }));
+          setAvailableSlots(slots);
+        }
+      } catch {
+        setAvailableSlots([]);
+      }
+      setLoadingSlots(false);
+    };
+    fetchSlots();
+  }, [newDate, rescheduleMode, booking]);
 
   if (!booking) return null;
 
@@ -41,7 +69,6 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
   const handleCancel = async () => {
     setProcessing(true);
     try {
-      // Delete the Zoom meeting
       if (booking.zoom_meeting_id) {
         await supabase.functions.invoke('manage-booking', {
           body: { action: 'cancel', booking_id: booking.id, zoom_meeting_id: booking.zoom_meeting_id },
@@ -66,8 +93,15 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
     }
     setProcessing(true);
     try {
-      const startTime = `${newDate}T${newTime}:00`;
-      await supabase.functions.invoke('manage-booking', {
+      // Convert AM/PM time to 24h for the start_time string
+      const [timePart, ampm] = newTime.split(' ');
+      const [hStr, mStr] = timePart.split(':');
+      let hours = parseInt(hStr);
+      if (ampm === 'PM' && hours !== 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      const startTime = `${newDate}T${String(hours).padStart(2, '0')}:${mStr.padStart(2, '0')}:00`;
+
+      const { data, error } = await supabase.functions.invoke('manage-booking', {
         body: {
           action: 'reschedule',
           booking_id: booking.id,
@@ -81,6 +115,13 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
           booking_type: booking.booking_type,
         },
       });
+      if (error) throw error;
+      // Check for 409 conflict returned as JSON error
+      if (data?.error) {
+        toast.error(data.error);
+        setProcessing(false);
+        return;
+      }
       toast.success('Booking rescheduled and client notified');
       setRescheduleMode(false);
       onOpenChange(false);
@@ -92,6 +133,8 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
       setProcessing(false);
     }
   };
+
+  const availableOnly = availableSlots.filter(s => s.available);
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) setRescheduleMode(false); onOpenChange(o); }}>
@@ -198,18 +241,40 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
           {rescheduleMode && (
             <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/30">
               <h4 className="text-sm font-medium">Reschedule to:</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">New Date</Label>
-                  <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
-                </div>
-                <div>
-                  <Label className="text-xs">New Time</Label>
-                  <Input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} />
-                </div>
+              <div>
+                <Label className="text-xs">New Date</Label>
+                <Input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
               </div>
+
+              {newDate && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">Available Times</Label>
+                  {loadingSlots ? (
+                    <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+                  ) : availableOnly.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No available times on this date</p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1.5 max-h-[200px] overflow-y-auto">
+                      {availableOnly.map((slot) => (
+                        <button
+                          key={slot.time}
+                          onClick={() => setNewTime(slot.time)}
+                          className={`py-1.5 px-2 rounded-md border text-xs font-medium transition-colors ${
+                            newTime === slot.time
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border/50 hover:border-primary/50 hover:bg-muted/50'
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleReschedule} disabled={processing}>
+                <Button size="sm" onClick={handleReschedule} disabled={processing || !newTime}>
                   {processing ? 'Rescheduling...' : 'Confirm Reschedule'}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setRescheduleMode(false)}>Cancel</Button>
@@ -227,7 +292,7 @@ export function BookingDetailSheet({ booking, open, onOpenChange, onUpdateStatus
                 {booking.status === 'confirmed' && (
                   <Button size="sm" onClick={() => handleStatus('completed')}>Mark Complete</Button>
                 )}
-                <Button size="sm" variant="outline" className="gap-1" onClick={() => { setRescheduleMode(true); setNewDate(booking.booking_date); setNewTime(booking.booking_time); }}>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => { setRescheduleMode(true); setNewDate(booking.booking_date); }}>
                   <RefreshCw className="h-3 w-3" />
                   Reschedule
                 </Button>
