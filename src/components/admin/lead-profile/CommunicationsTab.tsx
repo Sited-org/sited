@@ -77,6 +77,9 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
 
   return (
     <div className="space-y-4">
+      {/* Upcoming Calls */}
+      {lead && <UpcomingCallsSection lead={lead} compact />}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
