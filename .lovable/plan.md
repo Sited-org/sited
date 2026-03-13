@@ -1,44 +1,62 @@
 
 
-## Animation Timing & Ingle Brown Screenshot Fix
+## Plan: Fix Billing Logic — Credit-Only, Invoice-Only, and Subscription Sync
 
-### 1. Animation Start Time (both components)
+### Problem Summary
+The `process-recurring-invoices` function currently creates a Stripe invoice for **every** recurring charge, even when the client has enough credit to cover it entirely. This means:
+- Clients with credit still get Stripe invoices (wrong — credit should be silently deducted)
+- The credit is applied as a negative line item on Stripe, adding unnecessary complexity
+- Clients without payment details should receive a payable Stripe invoice (this part works but needs hardening)
 
-**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+### Changes Required
 
-Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+#### 1. `process-recurring-invoices/index.ts` — Credit-first logic (major rewrite of billing loop)
 
-- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
-- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+**Current behavior**: Always creates a Stripe invoice, applies credit as a negative line item.
 
-### 2. Ingle Brown Screenshot Issue
+**New behavior**:
+- **If credit >= total amount**: Skip Stripe entirely. Deduct credit internally by inserting a "Credit Applied" debit transaction and marking the billing cycle as `paid`. No Stripe invoice created.
+- **If credit < total amount but > 0**: Create Stripe invoice for the **net amount only** (no negative line items). Record credit deduction separately.
+- **If no credit and no payment method**: Create Stripe invoice with `collection_method: 'send_invoice'` and `days_until_due: 7`. The existing webhook (`invoice.paid`) already captures payment details and saves them to the lead profile.
+- **If no credit but has payment method**: Create Stripe invoice with `collection_method: 'charge_automatically'` using the saved payment method.
+- **Ensure Stripe customer exists**: For every lead being billed, create a Stripe customer if one doesn't exist yet (already in the code, just confirming it stays).
 
-The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
+#### 2. `stripe-webhook/index.ts` — Minor adjustments to `invoice.created` handler
 
-**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
+The `invoice.created` handler currently applies credit to subscription draft invoices. This needs the same logic: if credit fully covers, void/delete the draft invoice on Stripe and handle internally. For partial credit, only add the net items.
 
-- Add `&scroll=true` to the microlink URL to handle sticky headers properly
-- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
-- After updating the function, re-run it to generate a corrected screenshot
+#### 3. `cancel-subscription/index.ts` — Already works correctly
+The function already cancels the Stripe subscription and updates local records. No changes needed, but will verify the `customer.subscription.deleted` webhook handler also properly cleans up.
+
+#### 4. No UI changes needed
+The `ActiveSubscriptions` component and `PaymentsTab` already display the correct states. The changes are purely backend logic.
 
 ### Technical Details
 
-**WebsiteShowcaseGrid.tsx (line 72):**
+**`process-recurring-invoices` billing loop rewrite:**
 ```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+For each lead with due memberships:
+  1. Ensure Stripe customer exists (create if not)
+  2. Calculate totalAmount and availableCredit
+  3. IF credit >= totalAmount:
+     - Insert "Credit Applied" debit transaction (invoice_status: 'paid')
+     - Insert billing cycle debit transaction (invoice_status: 'paid')  
+     - Do NOT create any Stripe invoice
+     - Log as "fully covered by credit"
+  4. ELSE:
+     - netAmount = totalAmount - creditToApply
+     - Create Stripe invoice for netAmount ONLY
+     - Add invoice items for net amount
+     - IF lead has payment method → charge_automatically
+     - ELSE → send_invoice with 7-day due date
+     - Record credit deduction if any
+     - Record billing cycle debit transaction
 ```
 
-**SocialProofSection.tsx (line 63):**
-```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
+**Webhook `invoice.created` (subscription drafts):**
+Same credit-first logic — if credit fully covers a subscription renewal draft invoice, void it on Stripe and handle internally.
 
-**capture-site-screenshots/index.ts (line 33):**
-Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
+### Files to Modify
+1. `supabase/functions/process-recurring-invoices/index.ts` — Main billing logic rewrite
+2. `supabase/functions/stripe-webhook/index.ts` — Update `invoice.created` handler for subscription drafts
 
