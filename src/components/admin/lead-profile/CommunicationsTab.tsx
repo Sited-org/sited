@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Mail, CheckCircle2, XCircle, Clock, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { UpcomingCallsSection } from './UpcomingCallsSection';
 
 interface EmailLog {
   id: string;
@@ -19,6 +20,7 @@ interface EmailLog {
 interface CommunicationsTabProps {
   leadId: string;
   leadEmail: string;
+  lead?: any;
 }
 
 const templateLabels: Record<string, string> = {
@@ -34,7 +36,7 @@ const templateLabels: Record<string, string> = {
   booking_cancellation: 'Booking Cancellation',
 };
 
-export function CommunicationsTab({ leadId, leadEmail }: CommunicationsTabProps) {
+export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTabProps) {
   const [emails, setEmails] = useState<EmailLog[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,6 +77,9 @@ export function CommunicationsTab({ leadId, leadEmail }: CommunicationsTabProps)
 
   return (
     <div className="space-y-4">
+      {/* Upcoming Calls */}
+      {lead && <UpcomingCallsSection lead={lead} compact />}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
