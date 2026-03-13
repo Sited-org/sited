@@ -115,18 +115,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get or create Stripe customer - ALWAYS use AUD currency
     let customerId: string;
-    const customerCurrency: string = 'aud'; // ALWAYS AUD - never use customer's stored currency
+    const customerCurrency: string = 'aud'; // ALWAYS AUD
     
-    // Check if lead already has a Stripe customer ID
-    const { data: lead } = await supabaseAdmin
-      .from('leads')
-      .select('stripe_customer_id')
-      .eq('id', leadId)
-      .maybeSingle();
-
-    if (lead?.stripe_customer_id) {
-      customerId = lead.stripe_customer_id;
-      console.log("[SEND-INVOICE] Using existing customer:", customerId, "currency:", customerCurrency);
+    if (leadRecord.stripe_customer_id) {
+      customerId = leadRecord.stripe_customer_id;
+      console.log("[SEND-INVOICE] Using existing customer:", customerId);
       
       // Update existing customer's name to business name (if provided) to ensure invoices show correct name
       if (businessName) {
