@@ -475,10 +475,11 @@ serve(async (req) => {
         
         const leadId = subscription.metadata?.lead_id;
         if (leadId) {
-          // Mark recurring transactions as ended
+          // Mark recurring transactions as ended and no longer recurring
           await supabaseAdmin
             .from('transactions')
             .update({ 
+              is_recurring: false,
               recurring_end_date: new Date().toISOString()
             })
             .eq('lead_id', leadId)

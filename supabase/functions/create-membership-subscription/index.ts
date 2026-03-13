@@ -254,6 +254,7 @@ serve(async (req) => {
     });
 
     // Create the initial transaction record
+    const isFutureStart = start_date && new Date(start_date) > new Date();
     const transactionDate = start_date || new Date().toISOString();
     const { data: transaction, error: transactionError } = await supabaseAdmin
       .from('transactions')

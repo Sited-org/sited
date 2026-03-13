@@ -85,13 +85,14 @@ serve(async (req) => {
 
     // Update local transactions if lead_id provided
     if (lead_id) {
-      // First fetch existing notes to preserve them
+      // First fetch existing notes to preserve them — filter by specific subscription ID
       const { data: existingTxs } = await supabaseAdmin
         .from('transactions')
         .select('id, notes')
         .eq('lead_id', lead_id)
         .eq('is_recurring', true)
-        .is('recurring_end_date', null);
+        .is('recurring_end_date', null)
+        .ilike('notes', `%Stripe Subscription: ${subscription_id}%`);
 
       for (const tx of (existingTxs || [])) {
         const existingNotes = tx.notes || '';
