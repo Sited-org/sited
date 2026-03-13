@@ -196,15 +196,37 @@ serve(async (req) => {
     });
     logStep("Created price", { priceId: price.id, amount: priceInCents, interval: stripeInterval });
 
-    // Calculate billing cycle anchor if start_date is in the future
+    // Always anchor billing to the 1st of the month
     const now = new Date();
     const startDateTime = start_date ? new Date(start_date) : now;
-    const isFutureStart = startDateTime > now;
     
+    // Calculate the next 1st of month for billing anchor
+    // If start_date is provided, use the 1st of that month (or next month if start_date is after the 1st)
+    let anchorDate: Date;
+    if (start_date) {
+      // Use the 1st of the start_date's month
+      anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
+      // If the 1st has already passed this month, use the 1st of next month
+      if (anchorDate <= now) {
+        anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth() + 1, 1));
+      }
+    } else {
+      // No start date — anchor to the 1st of next month
+      anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+    }
+
+    logStep("Billing anchor calculated", { 
+      startDate: start_date, 
+      anchorDate: anchorDate.toISOString(),
+      anchorTimestamp: Math.floor(anchorDate.getTime() / 1000)
+    });
+
     // Create the subscription - use invoice collection if no payment method
     const subscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: customerId,
       items: [{ price: price.id }],
+      billing_cycle_anchor: Math.floor(anchorDate.getTime() / 1000),
+      proration_behavior: 'none',
       metadata: {
         lead_id: lead.id,
         membership_name: membership_name,
@@ -217,17 +239,10 @@ serve(async (req) => {
       subscriptionParams.payment_behavior = 'error_if_incomplete';
       logStep("Using auto-charge mode with saved payment method");
     } else {
-      // Send invoices for manual payment - payment method will be saved on first payment
+      // Send invoices for manual payment
       subscriptionParams.collection_method = 'send_invoice';
-      subscriptionParams.days_until_due = 7; // Give 7 days to pay
-      logStep("Using invoice collection mode - client will receive invoice emails");
-    }
-
-    // If start date is in the future, use billing_cycle_anchor
-    if (isFutureStart) {
-      subscriptionParams.billing_cycle_anchor = Math.floor(startDateTime.getTime() / 1000);
-      subscriptionParams.proration_behavior = 'none';
-      logStep("Setting future start date", { billing_cycle_anchor: subscriptionParams.billing_cycle_anchor });
+      subscriptionParams.days_until_due = 7;
+      logStep("Using invoice collection mode");
     }
 
     const subscription = await stripe.subscriptions.create(subscriptionParams);
