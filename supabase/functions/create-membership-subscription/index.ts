@@ -196,19 +196,20 @@ serve(async (req) => {
     });
     logStep("Created price", { priceId: price.id, amount: priceInCents, interval: stripeInterval });
 
-    // Always anchor billing to the 1st of the month
+    // Determine if start_date is mid-month (not the 1st)
     const now = new Date();
-    const startDateTime = start_date ? new Date(start_date) : now;
-    
-    // Calculate the next 1st of month for billing anchor
-    // If start_date is provided, use the 1st of that month (or next month if start_date is after the 1st)
+    const startDateTime = start_date ? new Date(start_date) : null;
+    const isMidMonth = startDateTime && startDateTime.getUTCDate() !== 1;
+
+    // Anchor is always the 1st of a month
     let anchorDate: Date;
-    if (start_date) {
-      // Use the 1st of the start_date's month
-      anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
-      // If the 1st has already passed this month, use the 1st of next month
-      if (anchorDate <= now) {
+    if (startDateTime) {
+      if (isMidMonth) {
+        // Mid-month start: anchor subscription to 1st of following month
         anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth() + 1, 1));
+      } else {
+        // 1st of month start: anchor to that date
+        anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
       }
     } else {
       // No start date — anchor to the 1st of next month
@@ -217,13 +218,71 @@ serve(async (req) => {
 
     logStep("Billing anchor calculated", { 
       startDate: start_date, 
+      isMidMonth,
       anchorDate: anchorDate.toISOString(),
       anchorTimestamp: Math.floor(anchorDate.getTime() / 1000)
     });
 
-    // Create the subscription - use invoice collection if no payment method
+    // --- MID-MONTH: Create a one-off invoice for the full amount on the start date ---
+    let oneOffInvoiceId: string | null = null;
+    if (isMidMonth) {
+      logStep("Mid-month start — creating one-off invoice for full charge");
+
+      // Create an invoice item for the full membership price
+      await stripe.invoiceItems.create({
+        customer: customerId!,
+        amount: priceInCents,
+        currency: 'aud',
+        description: `${membership_name} — initial charge (${start_date})`,
+        metadata: { lead_id: lead.id, membership_name },
+      });
+
+      // Create and finalize the one-off invoice
+      const oneOffInvoiceParams: Stripe.InvoiceCreateParams = {
+        customer: customerId!,
+        auto_advance: true,
+        metadata: { lead_id: lead.id, membership_name, type: 'mid_month_initial' },
+      };
+
+      if (hasPaymentMethod) {
+        oneOffInvoiceParams.default_payment_method = lead.stripe_payment_method_id;
+      } else {
+        oneOffInvoiceParams.collection_method = 'send_invoice';
+        oneOffInvoiceParams.days_until_due = 7;
+      }
+
+      const oneOffInvoice = await stripe.invoices.create(oneOffInvoiceParams);
+      const finalizedInvoice = await stripe.invoices.finalizeInvoice(oneOffInvoice.id);
+      oneOffInvoiceId = finalizedInvoice.id;
+
+      logStep("One-off invoice created and finalized", { 
+        invoiceId: oneOffInvoiceId, 
+        status: finalizedInvoice.status,
+        amountDue: finalizedInvoice.amount_due,
+      });
+
+      // Record the one-off charge transaction
+      await supabaseAdmin
+        .from('transactions')
+        .insert({
+          lead_id: lead.id,
+          item: `${membership_name} — Initial Charge`,
+          credit: 0,
+          debit: membership_price,
+          notes: notes ? `${notes}\nOne-off initial charge for mid-month start (${start_date})` : `One-off initial charge for mid-month start (${start_date})`,
+          transaction_date: start_date,
+          is_recurring: false,
+          status: 'completed',
+          invoice_status: hasPaymentMethod ? 'processing' : 'sent',
+          stripe_invoice_id: oneOffInvoiceId,
+        });
+
+      logStep("Created one-off transaction record");
+    }
+
+    // --- Create the recurring subscription anchored to the 1st ---
     const subscriptionParams: Stripe.SubscriptionCreateParams = {
-      customer: customerId,
+      customer: customerId!,
       items: [{ price: price.id }],
       billing_cycle_anchor: Math.floor(anchorDate.getTime() / 1000),
       proration_behavior: 'none',
@@ -234,12 +293,10 @@ serve(async (req) => {
     };
 
     if (hasPaymentMethod) {
-      // Auto-charge with saved payment method
       subscriptionParams.default_payment_method = lead.stripe_payment_method_id;
       subscriptionParams.payment_behavior = 'error_if_incomplete';
       logStep("Using auto-charge mode with saved payment method");
     } else {
-      // Send invoices for manual payment
       subscriptionParams.collection_method = 'send_invoice';
       subscriptionParams.days_until_due = 7;
       logStep("Using invoice collection mode");
@@ -253,8 +310,7 @@ serve(async (req) => {
       currentPeriodEnd: subscription.current_period_end,
     });
 
-    // Create the initial transaction record
-    const isFutureStart = start_date && new Date(start_date) > new Date();
+    // Create the recurring definition transaction record
     const transactionDate = start_date || new Date().toISOString();
     const { data: transaction, error: transactionError } = await supabaseAdmin
       .from('transactions')
@@ -263,13 +319,13 @@ serve(async (req) => {
         item: membership_name,
         credit: 0,
         debit: membership_price,
-        notes: notes || `Stripe Subscription: ${subscription.id}`,
+        notes: notes ? `${notes}\nStripe Subscription: ${subscription.id}` : `Stripe Subscription: ${subscription.id}`,
         transaction_date: transactionDate,
         is_recurring: true,
         recurring_interval: billing_interval,
         recurring_end_date: null,
         status: 'completed',
-        invoice_status: isFutureStart ? 'not_sent' : 'processing',
+        invoice_status: 'not_sent',
         stripe_invoice_id: subscription.latest_invoice?.toString() || null,
       })
       .select()
@@ -278,7 +334,7 @@ serve(async (req) => {
     if (transactionError) {
       logStep("Warning: Failed to create transaction record", { error: transactionError.message });
     } else {
-      logStep("Created transaction record", { transactionId: transaction?.id });
+      logStep("Created recurring transaction record", { transactionId: transaction?.id });
     }
 
     return new Response(
@@ -288,6 +344,7 @@ serve(async (req) => {
         subscription_status: subscription.status,
         customer_id: customerId,
         next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
+        one_off_invoice_id: oneOffInvoiceId,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,42 +1,44 @@
 
 
-# Add Missing Webhooks & Fix Billing Anchor Logic
+## Animation Timing & Ingle Brown Screenshot Fix
 
-## 1. Add `invoice.voided` and `invoice.marked_uncollectible` webhook handlers
+### 1. Animation Start Time (both components)
 
-**File:** `supabase/functions/stripe-webhook/index.ts`
+**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
 
-Add two new cases before the `default` case (before line 541):
+Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
 
-- **`invoice.voided`** — Find matching transaction by `stripe_invoice_id`, set `invoice_status: 'voided'`, `status: 'voided'`
-- **`invoice.marked_uncollectible`** — Find matching transaction by `stripe_invoice_id`, set `invoice_status: 'uncollectible'`
+- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
+- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
 
-Both are simple lookups on `transactions.stripe_invoice_id` and status updates.
+### 2. Ingle Brown Screenshot Issue
 
-## 2. Fix billing anchor logic — full charge on start date, then 1st of following month
+The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
 
-**File:** `supabase/functions/create-membership-subscription/index.ts` (lines 199-274)
+**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
 
-Replace the entire anchor/subscription creation block with this logic:
+- Add `&scroll=true` to the microlink URL to handle sticky headers properly
+- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
+- After updating the function, re-run it to generate a corrected screenshot
 
-**If start_date is on the 1st of a month (or no start_date):**
-- Anchor = that 1st (or 1st of next month if no start_date)
-- Create subscription with `proration_behavior: 'none'` — single standard flow, first charge on anchor date
+### Technical Details
 
-**If start_date is mid-month (not the 1st):**
-1. Create a **one-off invoice** for the full membership amount, dated on the start_date — this is the immediate mid-month charge
-2. Create the **subscription** anchored to the 1st of the following month with `proration_behavior: 'none'` — recurring charges start from the 1st onward
-3. Record **two** transaction rows: one for the immediate charge, one for the recurring definition
+**WebsiteShowcaseGrid.tsx (line 72):**
+```
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+```
 
-The one-off invoice uses `stripe.invoiceItems.create()` + `stripe.invoices.create()` + `stripe.invoices.finalizeInvoice()` against the customer. If a saved payment method exists, it auto-charges; otherwise it sends the invoice with 7-day terms.
+**SocialProofSection.tsx (line 63):**
+```
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+```
 
-This ensures: March 15 start → full charge March 15 + full charge April 1 + monthly on the 1st thereafter. No proration, no missed months.
-
-## Summary
-
-| Change | File | Lines |
-|--------|------|-------|
-| Add `invoice.voided` handler | `stripe-webhook/index.ts` | Before line 541 |
-| Add `invoice.marked_uncollectible` handler | `stripe-webhook/index.ts` | Before line 541 |
-| Replace anchor logic with mid-month one-off + 1st-of-month subscription | `create-membership-subscription/index.ts` | Lines 199-274 |
+**capture-site-screenshots/index.ts (line 33):**
+Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
 
