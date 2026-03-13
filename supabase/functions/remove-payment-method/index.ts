@@ -81,7 +81,7 @@ serve(async (req) => {
       throw new Error("No payment method on file");
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Detach the payment method from Stripe
     try {

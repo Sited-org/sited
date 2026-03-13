@@ -66,7 +66,7 @@ serve(async (req) => {
       throw new Error("Missing required fields: name, price");
     }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Check if product already has Stripe IDs
     const { data: existingProduct, error: fetchError } = await supabaseAdmin

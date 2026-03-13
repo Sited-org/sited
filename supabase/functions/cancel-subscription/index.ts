@@ -57,7 +57,7 @@ serve(async (req) => {
     }
     logStep("Permission validated", { permission: 'can_charge_cards' });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const { subscription_id, lead_id, cancel_at_period_end } = await req.json();
     logStep("Received request", { subscription_id, lead_id, cancel_at_period_end });
