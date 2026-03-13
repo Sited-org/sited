@@ -33,7 +33,7 @@ interface AdminBookCallDialogProps {
 
 export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: AdminBookCallDialogProps) {
   const [step, setStep] = useState<'type' | 'calendar' | 'confirm'>('type');
-  const [callType, setCallType] = useState<'discovery' | 'plan'>('discovery');
+  const [callType, setCallType] = useState<'discovery' | 'plan' | 'checkin'>('discovery');
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
