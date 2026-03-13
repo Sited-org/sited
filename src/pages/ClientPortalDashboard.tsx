@@ -125,6 +125,7 @@ export default function ClientPortalDashboard() {
 
       setTransactions(data.transactions || []);
       setRequests(data.clientRequests || []);
+      setBookings(data.bookings || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
     } catch (err: any) {
       console.error('Error fetching client data:', err);
