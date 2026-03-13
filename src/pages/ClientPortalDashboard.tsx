@@ -247,6 +247,7 @@ export default function ClientPortalDashboard() {
                 lead={session.lead}
                 transactions={transactions}
                 requests={requests}
+                bookings={bookings}
                 hasPaymentMethod={!!savedPaymentMethod}
                 onNavigate={setActiveTab}
                 sessionToken={session.token}
