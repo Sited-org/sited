@@ -16,12 +16,10 @@ import {
   Clock,
   Video,
   Phone,
-  Plus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isPast, parseISO } from 'date-fns';
-import { ClientBookCheckinDialog } from './ClientBookCheckinDialog';
 
 interface Transaction {
   id: string;
