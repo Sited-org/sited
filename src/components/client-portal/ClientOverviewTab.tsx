@@ -361,6 +361,26 @@ export function ClientOverviewTab({
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Method Prompt */}
+      {!hasPaymentMethod && (
+        <Card className="border-dashed">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Payment Method</p>
+                  <p className="text-xs text-muted-foreground">Add a card for automatic billing</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => onNavigate('payments')}>
+                Add
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
