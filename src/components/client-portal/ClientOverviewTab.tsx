@@ -84,7 +84,7 @@ export function ClientOverviewTab({
 }: ClientOverviewTabProps) {
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
-  const [bookCheckinOpen, setBookCheckinOpen] = useState(false);
+  
 
   const upcomingCalls = (bookings || []).filter(b => !isPast(parseISO(b.booking_date + 'T23:59:59')));
   const getCallLabel = (type: string) => type === 'discovery' ? 'Discovery Call' : type === 'checkin' ? 'Check-in Call' : 'Plan Call';
