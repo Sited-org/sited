@@ -307,6 +307,7 @@ serve(async (req) => {
         projectUpdates: projectUpdates || [],
         clientRequests: clientRequests || [],
         projectMilestones: projectMilestones || [],
+        bookings: bookings || [],
         savedPaymentMethod,
       }),
       {
