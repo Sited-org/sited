@@ -396,6 +396,33 @@ export function useTransactions(leadId: string | undefined) {
   };
 
   const cancelRecurring = async (transactionId: string) => {
+    // First, check if this transaction has a linked Stripe subscription
+    const transaction = transactions.find(t => t.id === transactionId);
+    const subscriptionMatch = transaction?.notes?.match(/Stripe Subscription:\s*(sub_\w+)/);
+    
+    if (subscriptionMatch) {
+      // Cancel the Stripe subscription via edge function
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('cancel-subscription', {
+          body: {
+            subscription_id: subscriptionMatch[1],
+            lead_id: transaction.lead_id,
+            cancel_at_period_end: false,
+          },
+        });
+        if (fnError) throw fnError;
+        if (!data?.success) throw new Error(data?.error || 'Failed to cancel Stripe subscription');
+        
+        toast({ title: 'Subscription cancelled', description: 'Stripe subscription and local record updated' });
+        fetchTransactions();
+        return { error: null };
+      } catch (err: any) {
+        toast({ title: 'Error cancelling subscription', description: err.message, variant: 'destructive' });
+        return { error: err };
+      }
+    }
+
+    // No Stripe subscription — just update local record
     const { error } = await supabase
       .from('transactions')
       .update({ is_recurring: false, recurring_interval: null, recurring_end_date: null })
