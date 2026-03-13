@@ -23,12 +23,29 @@ async function getZoomAccessToken(): Promise<string> {
   return (await response.json()).access_token;
 }
 
-function formatDateForTz(dateStr: string, tz: string): string {
-  return new Date(dateStr).toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz });
-}
+/**
+ * Format a local datetime string (YYYY-MM-DDTHH:mm:ss) for display.
+ * Since start_time is already in the admin timezone (Australia/Sydney),
+ * we parse it directly without timezone conversion to avoid UTC shift.
+ */
+function parseLocalDateTime(localStr: string): { date: string; time: string } {
+  // localStr is like "2026-03-15T09:00:00"
+  const [datePart, timePart] = localStr.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes] = timePart.split(':').map(Number);
 
-function formatTimeForTz(dateStr: string, tz: string): string {
-  return new Date(dateStr).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz });
+  const dateObj = new Date(year, month - 1, day);
+  const weekday = dateObj.toLocaleDateString('en-AU', { weekday: 'long' });
+  const monthName = dateObj.toLocaleDateString('en-AU', { month: 'long' });
+
+  const period = hours >= 12 ? 'pm' : 'am';
+  const displayH = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+  const timeStr = `${displayH}:${String(minutes).padStart(2, '0')} ${period}`;
+
+  return {
+    date: `${weekday}, ${day} ${monthName} ${year}`,
+    time: timeStr,
+  };
 }
 
 function getTzAbbr(tz: string): string {
