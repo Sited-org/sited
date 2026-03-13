@@ -72,12 +72,7 @@ serve(async (req) => {
       },
     });
 
-    // Create or update lead in Supabase as "sold"
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Store the payment intent ID and tier in metadata for later confirmation
+    // Return client secret for frontend to complete payment
     return new Response(
       JSON.stringify({
         clientSecret: paymentIntent.client_secret,
