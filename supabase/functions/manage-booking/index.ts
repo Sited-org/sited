@@ -184,7 +184,23 @@ serve(async (req) => {
       let newZoomStartUrl = booking.zoom_meeting_url || '';
       let newZoomMeetingId = booking.zoom_meeting_id;
 
-      // 1. Update Zoom meeting time
+      // 0. Double-booking check — reject if slot is taken
+      const { data: conflicting } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('booking_date', new_date)
+        .eq('booking_time', new_time)
+        .neq('status', 'cancelled')
+        .neq('id', booking_id)
+        .maybeSingle();
+
+      if (conflicting) {
+        return new Response(JSON.stringify({ error: 'This time slot is already booked' }), {
+          status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 1. Update Zoom meeting time — use admin timezone (not Sydney)
       if (zoom_meeting_id) {
         try {
           const accessToken = await getZoomAccessToken();
@@ -194,7 +210,7 @@ serve(async (req) => {
             body: JSON.stringify({
               start_time: new_start_time,
               duration: duration || 20,
-              timezone: 'Australia/Sydney',
+              timezone: adminTimezone,
             }),
           });
           if (!patchRes.ok && patchRes.status !== 204) {
