@@ -238,6 +238,18 @@ serve(async (req) => {
       logStep("Error fetching project milestones", { error: milestonesError.message });
     }
 
+    // Fetch bookings for this client
+    const { data: bookings, error: bookingsError } = await supabaseClient
+      .from("bookings")
+      .select("id, booking_date, booking_time, booking_type, duration_minutes, status, zoom_join_url, notes")
+      .eq("email", email.toLowerCase().trim())
+      .neq("status", "cancelled")
+      .order("booking_date", { ascending: true });
+
+    if (bookingsError) {
+      logStep("Error fetching bookings", { error: bookingsError.message });
+    }
+
     // Fetch saved payment method if exists
     let savedPaymentMethod = null;
     if (lead.stripe_payment_method_id) {
