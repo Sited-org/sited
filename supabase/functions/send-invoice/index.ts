@@ -17,8 +17,9 @@ interface InvoiceItem {
 
 interface SendInvoiceRequest {
   leadId: string;
-  clientEmail: string;
-  clientName: string;
+  // clientEmail, clientName, businessName are IGNORED if provided — always sourced from DB
+  clientEmail?: string;
+  clientName?: string;
   businessName?: string;
   items: InvoiceItem[];
   totalAmount: number;
