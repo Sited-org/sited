@@ -542,16 +542,22 @@ serve(async (req) => {
         const invoice = event.data.object as Stripe.Invoice;
         console.log("[STRIPE-WEBHOOK] Invoice voided:", invoice.id);
         
+        // Only void transactions that aren't already marked 'paid' (credit-covered).
+        // When a subscription invoice is fully covered by credit, the code deletes the
+        // draft.  If deletion fails it falls back to finalize+void, which fires this
+        // webhook.  We must NOT undo the credit consumption that was already recorded
+        // with invoice_status='paid'.
         const { data: voidedTxs, error: voidedErr } = await supabaseAdmin
           .from('transactions')
           .update({ invoice_status: 'voided', status: 'voided' })
           .eq('stripe_invoice_id', invoice.id)
+          .neq('invoice_status', 'paid')
           .select('id');
         
         if (voidedErr) {
           console.error("[STRIPE-WEBHOOK] Error updating voided transactions:", voidedErr.message);
         } else {
-          console.log("[STRIPE-WEBHOOK] Voided transactions:", voidedTxs?.length || 0);
+          console.log("[STRIPE-WEBHOOK] Voided transactions:", voidedTxs?.length || 0, "(skipped already-paid/credit-covered)");
         }
         break;
       }
