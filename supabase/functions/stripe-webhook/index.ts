@@ -482,7 +482,7 @@ serve(async (req) => {
             .eq('lead_id', leadId)
             .eq('is_recurring', true)
             .is('recurring_end_date', null)
-            .ilike('notes', `%Stripe Subscription: ${subscription.id}%`);
+            .like('notes', `%Stripe Subscription: ${subscription.id}%`);
 
           if (matchingTxs && matchingTxs.length > 0) {
             await supabaseAdmin
