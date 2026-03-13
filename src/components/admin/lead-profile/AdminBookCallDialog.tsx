@@ -195,16 +195,18 @@ export function AdminBookCallDialog({ open, onOpenChange, lead, onBooked }: Admi
               <h3 className="text-lg font-semibold mb-1">Book a Call</h3>
               <p className="text-sm text-muted-foreground mb-6">Select the type of call for {lead.name || lead.email}</p>
               <div className="space-y-3">
-                {(['discovery', 'plan'] as const).map((type) => (
+                {([
+                  { type: 'discovery' as const, label: 'Discovery Call', desc: '20 min · Initial consultation' },
+                  { type: 'plan' as const, label: 'Plan Call', desc: '45 min · Detailed project planning' },
+                  { type: 'checkin' as const, label: 'Check-in Call', desc: '30 min · Progress check-in with client' },
+                ]).map(({ type, label, desc }) => (
                   <button
                     key={type}
                     onClick={() => { setCallType(type); setStep('calendar'); }}
                     className={`w-full p-4 rounded-xl border text-left transition-all hover:border-primary/50 hover:bg-muted/30 ${callType === type ? 'border-primary bg-primary/5' : 'border-border/50'}`}
                   >
-                    <p className="font-medium">{type === 'discovery' ? 'Discovery Call' : 'Plan Call'}</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      {type === 'discovery' ? '20 min · Initial consultation' : '45 min · Detailed project planning'}
-                    </p>
+                    <p className="font-medium">{label}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>
                   </button>
                 ))}
               </div>

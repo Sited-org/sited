@@ -41,7 +41,9 @@ function getTzAbbr(tz: string): string {
 }
 
 function getTypeLabel(bookingType: string): string {
-  return bookingType === 'plan' ? 'Plan Call' : 'Discovery Call';
+  if (bookingType === 'plan') return 'Plan Call';
+  if (bookingType === 'checkin') return 'Check-in Call';
+  return 'Discovery Call';
 }
 
 function buildConfirmationEmail(p: { attendeeName: string; date: string; time: string; duration: number; typeLabel: string; zoomJoinUrl: string; tzAbbr: string }): string {
