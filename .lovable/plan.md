@@ -1,43 +1,44 @@
 
 
-## Problem
+## Animation Timing & Ingle Brown Screenshot Fix
 
-The `manage-booking` edge function code for rescheduling (PATCH) and cancelling (DELETE) Zoom meetings is correct. The issue is that your **Zoom Server-to-Server OAuth app** doesn't have the required scopes. The edge function logs confirm this:
+### 1. Animation Start Time (both components)
 
+**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+
+Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+
+- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
+- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+
+### 2. Ingle Brown Screenshot Issue
+
+The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
+
+**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
+
+- Add `&scroll=true` to the microlink URL to handle sticky headers properly
+- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
+- After updating the function, re-run it to generate a corrected screenshot
+
+### Technical Details
+
+**WebsiteShowcaseGrid.tsx (line 72):**
 ```
-Zoom update error: {"code":4711,"message":"Invalid access token, does not contain scopes:
-[meeting:update:meeting:admin, meeting:update:meeting]."}
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
 ```
 
-## Root Cause
+**SocialProofSection.tsx (line 63):**
+```
+// Before
+const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
+// After
+const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
+```
 
-Your Zoom app currently has scopes to **create** meetings but not to **update** or **delete** them.
-
-## Fix
-
-### 1. Add missing Zoom OAuth scopes (manual — Zoom Marketplace)
-
-Go to [marketplace.zoom.us](https://marketplace.zoom.us) → your Server-to-Server app → **Scopes** and add:
-
-- `meeting:update:meeting:admin` — required for PATCH (reschedule)
-- `meeting:delete:meeting:admin` — required for DELETE (cancel)
-
-Save and re-activate the app.
-
-### 2. Update `getTypeLabel` in manage-booking
-
-The function currently returns "Discovery Call" for check-in types. Add the `checkin` label to match the rest of the system.
-
-### 3. Fix the `new_start_time` timezone format
-
-The reschedule PATCH sends `start_time` to Zoom but the value may not include the timezone suffix. Ensure it's sent as a local datetime string with the `timezone: 'Australia/Sydney'` field (already present), matching the pattern used in `create-zoom-meeting`.
-
-### Technical changes
-
-| File | Change |
-|------|--------|
-| **Zoom Marketplace** (manual) | Add `meeting:update:meeting:admin` and `meeting:delete:meeting:admin` scopes |
-| `supabase/functions/manage-booking/index.ts` | Fix `getTypeLabel` to handle `checkin` type; ensure reschedule start_time format is consistent |
-
-No database changes needed. No new edge functions needed — the existing code already handles both actions correctly; it just fails silently when Zoom rejects the request due to missing scopes.
+**capture-site-screenshots/index.ts (line 33):**
+Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
 

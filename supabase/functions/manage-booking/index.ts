@@ -23,7 +23,9 @@ async function getZoomAccessToken(): Promise<string> {
 }
 
 function getTypeLabel(bt: string): string {
-  return bt === 'plan' ? 'Plan Call' : 'Discovery Call';
+  if (bt === 'plan') return 'Plan Call';
+  if (bt === 'checkin') return 'Check-In Call';
+  return 'Discovery Call';
 }
 
 function buildCancellationEmail(p: { name: string; typeLabel: string; date: string; time: string }): string {
