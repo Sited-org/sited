@@ -244,8 +244,6 @@ export function ProfileTab({
           </CardContent>
         </Card>
 
-        {/* Booking Card */}
-        <BookingCard leadEmail={email} />
       </div>
     </div>
   );
