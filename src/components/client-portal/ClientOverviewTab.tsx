@@ -321,25 +321,15 @@ export function ClientOverviewTab({
       )}
 
 
-      {/* Upcoming Calls & Book Check-in */}
+      {/* Upcoming Calls (read-only) */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-medium flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              Upcoming Calls
-            </p>
-            <Button variant="outline" size="sm" onClick={() => setBookCheckinOpen(true)} className="text-xs">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Book Check-in
-            </Button>
-          </div>
+          <p className="text-sm font-medium flex items-center gap-2 mb-3">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            Upcoming Calls
+          </p>
           {upcomingCalls.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground mb-3">No upcoming calls scheduled.</p>
-              <Button variant="default" size="sm" onClick={() => setBookCheckinOpen(true)}>
-                <CalendarDays className="h-4 w-4 mr-1" /> Book a Check-in Call
-              </Button>
-            </div>
+            <p className="text-sm text-muted-foreground text-center py-4">No upcoming calls scheduled.</p>
           ) : (
             <div className="space-y-2">
               {upcomingCalls.map((b) => (
@@ -373,37 +363,6 @@ export function ClientOverviewTab({
           )}
         </CardContent>
       </Card>
-
-      {/* Payment Method Prompt */}
-      {!hasPaymentMethod && (
-        <Card className="border-dashed">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">Payment Method</p>
-                  <p className="text-xs text-muted-foreground">Add a card for automatic billing</p>
-                </div>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => onNavigate('payments')}>
-                Add
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Check-in Booking Dialog */}
-      {sessionToken && (
-        <ClientBookCheckinDialog
-          open={bookCheckinOpen}
-          onOpenChange={setBookCheckinOpen}
-          lead={lead}
-          sessionToken={sessionToken}
-          onBooked={onRequestCreated}
-        />
-      )}
     </div>
   );
 }
