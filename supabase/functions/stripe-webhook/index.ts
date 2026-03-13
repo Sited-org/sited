@@ -538,6 +538,42 @@ serve(async (req) => {
         break;
       }
 
+      case "invoice.voided": {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log("[STRIPE-WEBHOOK] Invoice voided:", invoice.id);
+        
+        const { data: voidedTxs, error: voidedErr } = await supabaseAdmin
+          .from('transactions')
+          .update({ invoice_status: 'voided', status: 'voided' })
+          .eq('stripe_invoice_id', invoice.id)
+          .select('id');
+        
+        if (voidedErr) {
+          console.error("[STRIPE-WEBHOOK] Error updating voided transactions:", voidedErr.message);
+        } else {
+          console.log("[STRIPE-WEBHOOK] Voided transactions:", voidedTxs?.length || 0);
+        }
+        break;
+      }
+
+      case "invoice.marked_uncollectible": {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log("[STRIPE-WEBHOOK] Invoice marked uncollectible:", invoice.id);
+        
+        const { data: uncollectibleTxs, error: uncollectibleErr } = await supabaseAdmin
+          .from('transactions')
+          .update({ invoice_status: 'uncollectible' })
+          .eq('stripe_invoice_id', invoice.id)
+          .select('id');
+        
+        if (uncollectibleErr) {
+          console.error("[STRIPE-WEBHOOK] Error updating uncollectible transactions:", uncollectibleErr.message);
+        } else {
+          console.log("[STRIPE-WEBHOOK] Marked uncollectible transactions:", uncollectibleTxs?.length || 0);
+        }
+        break;
+      }
+
       default:
         console.log("[STRIPE-WEBHOOK] Unhandled event type:", event.type);
     }
