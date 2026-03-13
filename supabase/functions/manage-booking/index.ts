@@ -116,6 +116,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
+    // Fetch admin timezone from calendar config
+    const { data: configData } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'calendar_config')
+      .maybeSingle();
+    const adminTimezone = (configData?.setting_value as any)?.timezone || 'Australia/Brisbane';
+
     // Fetch booking details
     const { data: booking } = await supabase.from('bookings').select('*').eq('id', booking_id).single();
     if (!booking) throw new Error('Booking not found');
