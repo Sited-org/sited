@@ -17,8 +17,9 @@ interface InvoiceItem {
 
 interface SendInvoiceRequest {
   leadId: string;
-  clientEmail: string;
-  clientName: string;
+  // clientEmail, clientName, businessName are IGNORED if provided — always sourced from DB
+  clientEmail?: string;
+  clientName?: string;
   businessName?: string;
   items: InvoiceItem[];
   totalAmount: number;
@@ -83,9 +84,29 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("[SEND-INVOICE] Permission validated", { permission: 'can_charge_cards' });
 
     const body: SendInvoiceRequest = await req.json();
-    console.log("[SEND-INVOICE] Request for:", body.clientEmail, "Items:", body.items.length);
+    const { leadId, items, totalAmount, dueDate, notes, transactionIds } = body;
 
-    const { leadId, clientEmail, clientName, businessName, items, totalAmount, dueDate, notes, transactionIds } = body;
+    // ALWAYS source client details from the database — never trust frontend-provided values
+    const { data: leadRecord, error: leadFetchError } = await supabaseAdmin
+      .from('leads')
+      .select('name, email, business_name, stripe_customer_id')
+      .eq('id', leadId)
+      .single();
+
+    if (leadFetchError || !leadRecord) {
+      console.error("[SEND-INVOICE] Failed to fetch lead from DB:", leadFetchError?.message);
+      return new Response(
+        JSON.stringify({ error: "Lead not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const clientEmail = leadRecord.email;
+    const clientName = leadRecord.name || 'Valued Client';
+    const businessName = leadRecord.business_name || undefined;
+
+    console.log("[SEND-INVOICE] Client details sourced from DB:", { clientEmail, clientName, businessName });
+    console.log("[SEND-INVOICE] Items:", items.length);
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -94,18 +115,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get or create Stripe customer - ALWAYS use AUD currency
     let customerId: string;
-    const customerCurrency: string = 'aud'; // ALWAYS AUD - never use customer's stored currency
+    const customerCurrency: string = 'aud'; // ALWAYS AUD
     
-    // Check if lead already has a Stripe customer ID
-    const { data: lead } = await supabaseAdmin
-      .from('leads')
-      .select('stripe_customer_id')
-      .eq('id', leadId)
-      .maybeSingle();
-
-    if (lead?.stripe_customer_id) {
-      customerId = lead.stripe_customer_id;
-      console.log("[SEND-INVOICE] Using existing customer:", customerId, "currency:", customerCurrency);
+    if (leadRecord.stripe_customer_id) {
+      customerId = leadRecord.stripe_customer_id;
+      console.log("[SEND-INVOICE] Using existing customer:", customerId);
       
       // Update existing customer's name to business name (if provided) to ensure invoices show correct name
       if (businessName) {
