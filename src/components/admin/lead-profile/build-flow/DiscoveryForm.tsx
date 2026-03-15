@@ -8,7 +8,8 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase, Send, StickyNote } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DiscoveryFormProps {
   leadId: string;
@@ -21,7 +22,6 @@ export interface DiscoveryData {
   businessName: string;
   projectType: 'brochure' | 'ecommerce' | 'webapp' | 'booking';
   primaryGoal: string;
-  targetAudience: string;
   desiredLaunchDate: string;
   selectedPages: string[];
   selectedFeatures: string[];
@@ -32,12 +32,12 @@ export interface DiscoveryData {
   notes: string;
   existingWebsite: string;
   competitorSites: string;
-  // New conditional fields
   selectedPortals: string[];
   frontEnd: FrontEndData;
   adminPortal: AdminPortalData;
   clientPortal: ClientPortalData;
   staffPortal: StaffPortalData;
+  stepNotes: Record<string, string>;
 }
 
 interface FrontEndData {
@@ -106,8 +106,7 @@ const FE_CTAS = ['Book a Call', 'Enquire', 'Free Quote', 'Get Quote', 'Contact',
 const FE_DESIGN_STYLES = ['Professional / Minimalist', 'Bold / Maximalist', 'Artistic / Colourful'];
 const FE_LOGO_TYPES = ['Icon', 'Mascot', 'Text'];
 const FE_INTEGRATIONS = [
-  'Stripe Payments', 'Google Analytics', 'Google Maps', 'Live Chat', 'Social Media Feed',
-  'Email Marketing', 'Booking System', 'Reviews Widget', 'AI Chatbot', 'Blog / CMS',
+  'Calendar / Booking', 'Google Maps', 'Social Media Feed', 'AI Chatbot', 'Reviews Widget', 'Payments',
 ];
 
 // Admin Portal options
@@ -118,8 +117,8 @@ const ADMIN_FEATURES = [
 const ADMIN_WIDGETS = ['Revenue Chart', 'Lead Pipeline', 'Recent Activity', 'Upcoming Bookings', 'Task Summary', 'Conversion Funnel'];
 const ADMIN_AUTH_METHODS = ['Email + OTP', 'Email + Password', 'SSO / Google OAuth'];
 const ADMIN_ROLES = ['Owner', 'Admin', 'Editor', 'Viewer'];
-const ADMIN_NOTIFICATIONS = ['Email Alerts', 'In-App Notifications', 'Slack Integration', 'SMS Alerts'];
-const ADMIN_INTEGRATIONS = ['Stripe', 'Zapier', 'Google Workspace', 'Slack', 'HubSpot', 'Resend / SendGrid'];
+const ADMIN_NOTIFICATIONS = ['Email Alerts', 'Slack Integration', 'SMS Alerts'];
+const ADMIN_INTEGRATIONS = ['Stripe', 'Slack', 'Resend', 'Zapier', 'Google Analytics', 'Blog / CMS', 'Service M8', 'Xero', 'HubSpot', 'Mailchimp', 'Salesforce', 'GHL'];
 
 // Client Portal options
 const CLIENT_FEATURES = [
@@ -129,7 +128,6 @@ const CLIENT_FEATURES = [
 const CLIENT_LOGIN_METHODS = ['Email + OTP (Passwordless)', 'Email + Password', 'Access Code', 'Magic Link'];
 const CLIENT_SELF_SERVICE = ['Update Profile', 'View Invoices', 'Make Payments', 'Submit Requests', 'Download Files', 'View Project Status'];
 const CLIENT_COMMS = ['In-Portal Messaging', 'Email Notifications', 'SMS Updates', 'File Sharing'];
-const CLIENT_INTEGRATIONS = ['Stripe (Payments)', 'Google Drive', 'DocuSign', 'Calendly', 'Intercom'];
 
 // Staff Portal options
 const STAFF_FEATURES = [
@@ -150,7 +148,6 @@ function getDefaultData(leadBusinessName: string): DiscoveryData {
     businessName: leadBusinessName || '',
     projectType: 'brochure',
     primaryGoal: '',
-    targetAudience: '',
     desiredLaunchDate: '',
     selectedPages: [],
     selectedFeatures: [],
@@ -162,6 +159,7 @@ function getDefaultData(leadBusinessName: string): DiscoveryData {
     existingWebsite: '',
     competitorSites: '',
     selectedPortals: [],
+    stepNotes: {},
     frontEnd: {
       corePages: [], marketingPages: [], customPages: [], ctas: [], customCtas: [],
       hasExistingBranding: '', designStyle: '', mainColour: '', secondaryColour: '', accentColour: '',
@@ -184,6 +182,7 @@ function getDefaultData(leadBusinessName: string): DiscoveryData {
 
 export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: DiscoveryFormProps) {
   const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
   const storageKey = `${STORAGE_KEY_PREFIX}${leadId}`;
   const initialised = useRef(false);
 
@@ -193,7 +192,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed?.data) return parsed.data as DiscoveryData;
+        if (parsed?.data) return { ...getDefaultData(leadBusinessName), ...parsed.data };
       }
     } catch { /* ignore corrupt data */ }
     return getDefaultData(leadBusinessName);
@@ -206,7 +205,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
       { id: 'portals', label: 'Select Portals' },
     ];
 
-    // Front End steps (3 sub-steps)
     if (data.selectedPortals.includes('front_end')) {
       steps.push({ id: 'fe_pages', label: 'Pages', portalLabel: 'Front End' });
       steps.push({ id: 'fe_marketing', label: 'Marketing & CTAs', portalLabel: 'Front End' });
@@ -221,7 +219,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
 
     if (data.selectedPortals.includes('client_portal')) {
       steps.push({ id: 'client_features', label: 'Features & Access', portalLabel: 'Client Portal' });
-      steps.push({ id: 'client_integrations', label: 'Integrations', portalLabel: 'Client Portal' });
     }
 
     if (data.selectedPortals.includes('staff_portal')) {
@@ -269,6 +266,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [data, leadBusinessName]);
+
   const currentStep = steps[stepIndex] || steps[0];
   const totalSteps = steps.length;
   const progress = ((stepIndex + 1) / totalSteps) * 100;
@@ -280,7 +278,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   };
 
   const goNext = () => {
-    // Recalculate steps in case portals changed
     const newSteps = buildSteps();
     if (stepIndex < newSteps.length - 1) {
       setStepIndex(stepIndex + 1);
@@ -306,7 +303,9 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   const updateStaff = (partial: Partial<StaffPortalData>) =>
     setData(d => ({ ...d, staffPortal: { ...d.staffPortal, ...partial } }));
 
-  // Flatten all selected pages/features/integrations for the parent's mapFeatureKeys
+  const updateStepNote = (stepId: string, value: string) =>
+    setData(d => ({ ...d, stepNotes: { ...d.stepNotes, [stepId]: value } }));
+
   const flattenForSubmit = (): DiscoveryData => {
     const allPages = [...data.frontEnd.corePages, ...data.frontEnd.marketingPages, ...data.frontEnd.customPages];
     const allFeatures = [
@@ -322,9 +321,16 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   const handleSubmit = async () => {
     setSubmitting(true);
     await onSubmit(flattenForSubmit());
-    // Clear draft on successful submit
     try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     setSubmitting(false);
+  };
+
+  const handleSendBrandingAcquisition = () => {
+    toast({
+      title: 'Branding acquisition sent',
+      description: 'A branding collection form has been sent to the client portal.',
+    });
+    // TODO: Implement backend — create client portal task, send notification, log in comms
   };
 
   // ─── Reusable sub-components ─────────────────────────────────────────────
@@ -368,6 +374,22 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
     <Label className="text-muted-foreground mb-2 block text-xs uppercase tracking-wider font-semibold">{children}</Label>
   );
 
+  const StepNotesSection = ({ stepId }: { stepId: string }) => (
+    <div className="mt-6 pt-4 border-t border-border">
+      <div className="flex items-center gap-2 mb-2">
+        <StickyNote className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium">Notes</Label>
+      </div>
+      <Textarea
+        value={data.stepNotes?.[stepId] || ''}
+        onChange={e => updateStepNote(stepId, e.target.value)}
+        placeholder="Add any specific notes, client requests, or details discussed for this section..."
+        rows={3}
+        className="text-sm"
+      />
+    </div>
+  );
+
   // ─── Step content ────────────────────────────────────────────────────────
 
   const renderStep = () => {
@@ -386,10 +408,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Textarea value={data.primaryGoal} onChange={e => setData({ ...data, primaryGoal: e.target.value })} placeholder="What is the main purpose of this website?" className="mt-1" rows={3} />
             </div>
             <div>
-              <Label>Target Audience</Label>
-              <Input value={data.targetAudience} onChange={e => setData({ ...data, targetAudience: e.target.value })} placeholder="Who is this website for?" className="mt-1" />
-            </div>
-            <div>
               <Label>Existing Website URL</Label>
               <Input value={data.existingWebsite} onChange={e => setData({ ...data, existingWebsite: e.target.value })} placeholder="https://..." className="mt-1" />
             </div>
@@ -397,6 +415,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label className="flex items-center gap-2"><Calendar className="h-4 w-4" /> Desired Launch Date</Label>
               <Input type="date" value={data.desiredLaunchDate} onChange={e => setData({ ...data, desiredLaunchDate: e.target.value })} className="mt-1" />
             </div>
+            <StepNotesSection stepId="basics" />
           </div>
         );
 
@@ -426,6 +445,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 );
               })}
             </div>
+            <StepNotesSection stepId="portals" />
           </div>
         );
 
@@ -451,6 +471,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 placeholder="Enter custom page name"
               />
             </div>
+            <StepNotesSection stepId="fe_pages" />
           </div>
         );
 
@@ -472,6 +493,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 placeholder="Enter custom CTA text"
               />
             </div>
+            <StepNotesSection stepId="fe_marketing" />
           </div>
         );
 
@@ -490,6 +512,27 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 ))}
               </div>
             </div>
+
+            {/* Send Branding Acquisition button for Yes or Partial */}
+            {(data.frontEnd.hasExistingBranding === 'yes' || data.frontEnd.hasExistingBranding === 'partial') && (
+              <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {data.frontEnd.hasExistingBranding === 'yes'
+                        ? 'Collect existing branding assets from the client'
+                        : 'Collect partial branding & gather remaining preferences'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sends a branding collection form to the client portal as a pending task.
+                    </p>
+                  </div>
+                  <Button type="button" size="sm" onClick={handleSendBrandingAcquisition} className="flex-shrink-0">
+                    <Send className="h-4 w-4 mr-2" /> Send Branding Acquisition
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {(data.frontEnd.hasExistingBranding === 'no' || data.frontEnd.hasExistingBranding === 'partial') && (
               <>
@@ -548,13 +591,9 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                     </div>
                   </div>
                 )}
-                {data.frontEnd.needsLogo === 'no' && (
-                  <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
-                    📎 A branding acquisition link will be sent to the client to collect their existing assets.
-                  </div>
-                )}
               </>
             )}
+            <StepNotesSection stepId="fe_design" />
           </div>
         );
 
@@ -568,6 +607,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <SectionLabel>Other Integrations</SectionLabel>
               <Textarea value={data.frontEnd.customIntegrations} onChange={e => updateFE({ customIntegrations: e.target.value })} placeholder="List any other integrations needed..." rows={2} />
             </div>
+            <StepNotesSection stepId="fe_integrations" />
           </div>
         );
 
@@ -618,6 +658,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.adminPortal.customNeeds} onChange={e => updateAdmin({ customNeeds: e.target.value })} placeholder="Any other admin portal needs..." className="mt-1" rows={2} />
             </div>
+            <StepNotesSection stepId="admin_features" />
           </div>
         );
 
@@ -626,11 +667,12 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
         return (
           <div className="space-y-5">
             <h3 className="text-lg font-semibold">Admin Portal — Integrations</h3>
-            <CheckboxGroup items={ADMIN_INTEGRATIONS} selected={data.adminPortal.integrations} onToggle={item => updateAdmin({ integrations: toggleItem(data.adminPortal.integrations, item) })} />
+            <CheckboxGroup items={ADMIN_INTEGRATIONS} selected={data.adminPortal.integrations} onToggle={item => updateAdmin({ integrations: toggleItem(data.adminPortal.integrations, item) })} cols={3} />
             <div>
               <SectionLabel>Other Integrations</SectionLabel>
               <Textarea value={data.adminPortal.customIntegrations} onChange={e => updateAdmin({ customIntegrations: e.target.value })} placeholder="List any other integrations..." rows={2} />
             </div>
+            <StepNotesSection stepId="admin_integrations" />
           </div>
         );
 
@@ -665,19 +707,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.clientPortal.customNeeds} onChange={e => updateClient({ customNeeds: e.target.value })} placeholder="Any other client portal needs..." className="mt-1" rows={2} />
             </div>
-          </div>
-        );
-
-      // ── CLIENT PORTAL: INTEGRATIONS ──
-      case 'client_integrations':
-        return (
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold">Client Portal — Integrations</h3>
-            <CheckboxGroup items={CLIENT_INTEGRATIONS} selected={data.clientPortal.integrations} onToggle={item => updateClient({ integrations: toggleItem(data.clientPortal.integrations, item) })} />
-            <div>
-              <SectionLabel>Other Integrations</SectionLabel>
-              <Textarea value={data.clientPortal.customIntegrations} onChange={e => updateClient({ customIntegrations: e.target.value })} placeholder="List any other integrations..." rows={2} />
-            </div>
+            <StepNotesSection stepId="client_features" />
           </div>
         );
 
@@ -716,6 +746,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.staffPortal.customNeeds} onChange={e => updateStaff({ customNeeds: e.target.value })} placeholder="Any other staff portal needs..." className="mt-1" rows={2} />
             </div>
+            <StepNotesSection stepId="staff_features" />
           </div>
         );
 
@@ -729,6 +760,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <SectionLabel>Other Integrations</SectionLabel>
               <Textarea value={data.staffPortal.customIntegrations} onChange={e => updateStaff({ customIntegrations: e.target.value })} placeholder="List any other integrations..." rows={2} />
             </div>
+            <StepNotesSection stepId="staff_integrations" />
           </div>
         );
 
@@ -774,6 +806,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Notes</Label>
               <Textarea value={data.notes} onChange={e => setData({ ...data, notes: e.target.value })} placeholder="Any other notes or requests..." className="mt-1" rows={3} />
             </div>
+            <StepNotesSection stepId="expectations" />
           </div>
         );
 
