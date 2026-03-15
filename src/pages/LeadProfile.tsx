@@ -33,6 +33,9 @@ export default function LeadProfile() {
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAutoSavingRef = useRef(false);
 
   // Editable fields
   const [name, setName] = useState('');
