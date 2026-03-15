@@ -67,7 +67,9 @@ export default function ClientPortalDashboard() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (tab: string) => setSearchParams({ tab }, { replace: true });
   const hasFetchedRef = useRef(false);
   const navigate = useNavigate();
 

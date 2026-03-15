@@ -191,7 +191,7 @@ export default function LeadProfile() {
         {canEdit && (
           <Button onClick={handleSave} disabled={saving || !hasUnsavedChanges}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : autoSaved ? '✓ Auto-saved' : 'Save Changes'}
           </Button>
         )}
       </div>
