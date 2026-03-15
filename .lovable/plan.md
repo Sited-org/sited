@@ -1,44 +1,50 @@
 
 
-## Animation Timing & Ingle Brown Screenshot Fix
+## Problem
 
-### 1. Animation Start Time (both components)
+When you edit fields on the Lead Profile page (e.g. name, notes, deal amount on the Profile tab) and then switch to another tab or navigate away, the edits are lost because:
 
-**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+1. **No auto-save**: The page requires manually clicking "Save Changes". If you switch tabs or navigate away without clicking save, edits exist only in React state which is fine for tab-switching (state lives at the parent level), but navigating away from the page entirely destroys the component and all state.
+2. **No navigation guard**: There is no `beforeunload` or route-blocking prompt warning you about unsaved changes.
+3. **Client portal tab position**: The client portal uses `useState('overview')` for its active tab — no URL persistence, so refreshing loses the tab position.
 
-Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+## Plan
 
-- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
-- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+### 1. Auto-save with debounce on LeadProfile
 
-### 2. Ingle Brown Screenshot Issue
+Add a `useEffect` that watches all editable fields and debounces an auto-save to the database after 1.5 seconds of inactivity. This means:
+- You type into any field, and after a brief pause it saves automatically to the DB
+- No more lost data when switching tabs or navigating away
+- The manual "Save Changes" button remains as an instant-save option
+- A subtle "Auto-saved" indicator replaces the save button text momentarily after auto-save fires
 
-The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
+**File**: `src/pages/LeadProfile.tsx`
+- Add a `useEffect` with a 1500ms debounce timer watching `name`, `email`, `phone`, `businessName`, `websiteUrl`, `billingAddress`, `status`, `notes`, `dealAmount`
+- Only trigger if `hasUnsavedChanges` is true, `canEdit` is true, and `lead` is loaded
+- Reuse the existing `handleSave` logic (extracted to a shared function)
+- Track an `autoSaved` state to show brief feedback
 
-**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
+### 2. Navigation guard for unsaved changes
 
-- Add `&scroll=true` to the microlink URL to handle sticky headers properly
-- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
-- After updating the function, re-run it to generate a corrected screenshot
+Add a `beforeunload` event listener that warns if there are unsaved changes when closing/refreshing the browser tab.
 
-### Technical Details
+**File**: `src/pages/LeadProfile.tsx`
+- Add `useEffect` that attaches `beforeunload` when `hasUnsavedChanges` is true
 
-**WebsiteShowcaseGrid.tsx (line 72):**
-```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
+### 3. Client portal tab persistence via URL
 
-**SocialProofSection.tsx (line 63):**
-```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
+Mirror the LeadProfile pattern: use `useSearchParams` instead of `useState` for the active tab.
 
-**capture-site-screenshots/index.ts (line 33):**
-Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
+**File**: `src/pages/ClientPortalDashboard.tsx`
+- Replace `const [activeTab, setActiveTab] = useState('overview')` with URL search param logic
+- Use `searchParams.get('tab') || 'overview'`
+
+### Summary of changes
+
+| File | Change |
+|------|--------|
+| `src/pages/LeadProfile.tsx` | Add debounced auto-save effect + `beforeunload` guard |
+| `src/pages/ClientPortalDashboard.tsx` | Persist active tab in URL search params |
+
+No database changes needed.
 
