@@ -143,10 +143,10 @@ const STAFF_INTEGRATIONS = ['GitHub', 'Figma', 'Slack', 'Jira', 'Notion', 'Linea
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: DiscoveryFormProps) {
-  const [submitting, setSubmitting] = useState(false);
+const STORAGE_KEY_PREFIX = 'discovery_draft_';
 
-  const [data, setData] = useState<DiscoveryData>({
+function getDefaultData(leadBusinessName: string): DiscoveryData {
+  return {
     businessName: leadBusinessName || '',
     projectType: 'brochure',
     primaryGoal: '',
@@ -179,6 +179,24 @@ export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: Discover
       features: [], roleTypes: [], customRoles: [], permissions: [], managementFeatures: [],
       integrations: [], customIntegrations: '', customNeeds: '',
     },
+  };
+}
+
+export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: DiscoveryFormProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const storageKey = `${STORAGE_KEY_PREFIX}${leadId}`;
+  const initialised = useRef(false);
+
+  // Restore draft from localStorage on mount
+  const [data, setData] = useState<DiscoveryData>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.data) return parsed.data as DiscoveryData;
+      }
+    } catch { /* ignore corrupt data */ }
+    return getDefaultData(leadBusinessName);
   });
 
   // ─── Dynamic step calculation ────────────────────────────────────────────
