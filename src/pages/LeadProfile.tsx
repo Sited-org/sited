@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +33,9 @@ export default function LeadProfile() {
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isAutoSavingRef = useRef(false);
 
   // Editable fields
   const [name, setName] = useState('');
@@ -91,8 +94,9 @@ export default function LeadProfile() {
     dealAmount !== String(lead.deal_amount || 0)
   );
 
-  const handleSave = async () => {
-    if (!id || !canEdit) return;
+  const performSave = useCallback(async (isAuto = false) => {
+    if (!id || !canEdit || !lead) return;
+    if (isAuto) isAutoSavingRef.current = true;
     setSaving(true);
 
     const currentFormData = lead.form_data || {};
@@ -120,7 +124,6 @@ export default function LeadProfile() {
     if (error) {
       toast({ title: 'Error saving', description: error.message, variant: 'destructive' });
     } else {
-      // Log status change to history
       if (status !== originalStatus) {
         await supabase.from('lead_status_history').insert({
           lead_id: id,
@@ -128,12 +131,44 @@ export default function LeadProfile() {
           to_status: status,
         });
       }
-      toast({ title: 'Lead updated' });
+      if (isAuto) {
+        setAutoSaved(true);
+        setTimeout(() => setAutoSaved(false), 2000);
+      } else {
+        toast({ title: 'Lead updated' });
+      }
       setLead({ ...lead, ...updates });
       setOriginalStatus(status);
     }
     setSaving(false);
-  };
+    if (isAuto) isAutoSavingRef.current = false;
+  }, [id, canEdit, lead, name, email, phone, businessName, websiteUrl, billingAddress, status, notes, dealAmount, originalStatus, toast]);
+
+  const handleSave = () => performSave(false);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!lead || !canEdit || !hasUnsavedChanges || isAutoSavingRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      performSave(true);
+    }, 1500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [name, email, phone, businessName, websiteUrl, billingAddress, status, notes, dealAmount, lead, canEdit, hasUnsavedChanges, performSave]);
+
+  // Navigation guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
 
   if (loading) {
     return <div className="animate-pulse text-muted-foreground p-8">Loading lead...</div>;
@@ -159,7 +194,7 @@ export default function LeadProfile() {
         {canEdit && (
           <Button onClick={handleSave} disabled={saving || !hasUnsavedChanges}>
             <Save className="h-4 w-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? 'Saving...' : autoSaved ? '✓ Auto-saved' : 'Save Changes'}
           </Button>
         )}
       </div>

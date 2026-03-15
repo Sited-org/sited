@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, LogOut, Home, MessageSquarePlus, CreditCard, User, Globe } from 'lucide-react';
@@ -67,7 +67,9 @@ export default function ClientPortalDashboard() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (tab: string) => setSearchParams({ tab }, { replace: true });
   const hasFetchedRef = useRef(false);
   const navigate = useNavigate();
 
