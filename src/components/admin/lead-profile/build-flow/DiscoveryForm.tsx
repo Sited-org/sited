@@ -322,6 +322,8 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   const handleSubmit = async () => {
     setSubmitting(true);
     await onSubmit(flattenForSubmit());
+    // Clear draft on successful submit
+    try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     setSubmitting(false);
   };
 
