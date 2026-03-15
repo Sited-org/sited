@@ -234,7 +234,41 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   }, [data.selectedPortals]);
 
   const steps = buildSteps();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.stepIndex === 'number') return Math.min(parsed.stepIndex, steps.length - 1);
+      }
+    } catch { /* ignore */ }
+    return 0;
+  });
+
+  // Auto-save draft to localStorage (debounced 500ms)
+  useEffect(() => {
+    if (!initialised.current) {
+      initialised.current = true;
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ data, stepIndex }));
+      } catch { /* storage full — silently ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [data, stepIndex, storageKey]);
+
+  // beforeunload guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (data.selectedPortals.length > 0 || data.businessName !== leadBusinessName) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [data, leadBusinessName]);
   const currentStep = steps[stepIndex] || steps[0];
   const totalSteps = steps.length;
   const progress = ((stepIndex + 1) / totalSteps) * 100;
