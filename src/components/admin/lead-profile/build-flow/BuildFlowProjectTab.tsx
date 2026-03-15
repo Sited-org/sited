@@ -92,6 +92,7 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
   if (!buildFlow) {
     return (
       <DiscoveryForm
+        leadId={lead.id}
         leadName={lead.name || lead.email}
         leadBusinessName={lead.business_name || ''}
         onSubmit={handleDiscoverySubmit}

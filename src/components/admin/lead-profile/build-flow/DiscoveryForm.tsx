@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase } from 'lucide-react';
 
 interface DiscoveryFormProps {
+  leadId: string;
   leadName: string;
   leadBusinessName: string;
   onSubmit: (data: DiscoveryData) => Promise<void>;
@@ -142,10 +143,10 @@ const STAFF_INTEGRATIONS = ['GitHub', 'Figma', 'Slack', 'Jira', 'Notion', 'Linea
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: DiscoveryFormProps) {
-  const [submitting, setSubmitting] = useState(false);
+const STORAGE_KEY_PREFIX = 'discovery_draft_';
 
-  const [data, setData] = useState<DiscoveryData>({
+function getDefaultData(leadBusinessName: string): DiscoveryData {
+  return {
     businessName: leadBusinessName || '',
     projectType: 'brochure',
     primaryGoal: '',
@@ -178,6 +179,24 @@ export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: Discover
       features: [], roleTypes: [], customRoles: [], permissions: [], managementFeatures: [],
       integrations: [], customIntegrations: '', customNeeds: '',
     },
+  };
+}
+
+export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: DiscoveryFormProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const storageKey = `${STORAGE_KEY_PREFIX}${leadId}`;
+  const initialised = useRef(false);
+
+  // Restore draft from localStorage on mount
+  const [data, setData] = useState<DiscoveryData>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.data) return parsed.data as DiscoveryData;
+      }
+    } catch { /* ignore corrupt data */ }
+    return getDefaultData(leadBusinessName);
   });
 
   // ─── Dynamic step calculation ────────────────────────────────────────────
@@ -215,7 +234,41 @@ export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: Discover
   }, [data.selectedPortals]);
 
   const steps = buildSteps();
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.stepIndex === 'number') return Math.min(parsed.stepIndex, steps.length - 1);
+      }
+    } catch { /* ignore */ }
+    return 0;
+  });
+
+  // Auto-save draft to localStorage (debounced 500ms)
+  useEffect(() => {
+    if (!initialised.current) {
+      initialised.current = true;
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ data, stepIndex }));
+      } catch { /* storage full — silently ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [data, stepIndex, storageKey]);
+
+  // beforeunload guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (data.selectedPortals.length > 0 || data.businessName !== leadBusinessName) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [data, leadBusinessName]);
   const currentStep = steps[stepIndex] || steps[0];
   const totalSteps = steps.length;
   const progress = ((stepIndex + 1) / totalSteps) * 100;
@@ -269,6 +322,8 @@ export function DiscoveryForm({ leadName, leadBusinessName, onSubmit }: Discover
   const handleSubmit = async () => {
     setSubmitting(true);
     await onSubmit(flattenForSubmit());
+    // Clear draft on successful submit
+    try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
     setSubmitting(false);
   };
 
