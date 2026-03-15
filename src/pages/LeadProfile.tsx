@@ -91,8 +91,9 @@ export default function LeadProfile() {
     dealAmount !== String(lead.deal_amount || 0)
   );
 
-  const handleSave = async () => {
-    if (!id || !canEdit) return;
+  const performSave = useCallback(async (isAuto = false) => {
+    if (!id || !canEdit || !lead) return;
+    if (isAuto) isAutoSavingRef.current = true;
     setSaving(true);
 
     const currentFormData = lead.form_data || {};
@@ -120,7 +121,6 @@ export default function LeadProfile() {
     if (error) {
       toast({ title: 'Error saving', description: error.message, variant: 'destructive' });
     } else {
-      // Log status change to history
       if (status !== originalStatus) {
         await supabase.from('lead_status_history').insert({
           lead_id: id,
@@ -128,12 +128,44 @@ export default function LeadProfile() {
           to_status: status,
         });
       }
-      toast({ title: 'Lead updated' });
+      if (isAuto) {
+        setAutoSaved(true);
+        setTimeout(() => setAutoSaved(false), 2000);
+      } else {
+        toast({ title: 'Lead updated' });
+      }
       setLead({ ...lead, ...updates });
       setOriginalStatus(status);
     }
     setSaving(false);
-  };
+    if (isAuto) isAutoSavingRef.current = false;
+  }, [id, canEdit, lead, name, email, phone, businessName, websiteUrl, billingAddress, status, notes, dealAmount, originalStatus, toast]);
+
+  const handleSave = () => performSave(false);
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!lead || !canEdit || !hasUnsavedChanges || isAutoSavingRef.current) return;
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      performSave(true);
+    }, 1500);
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    };
+  }, [name, email, phone, businessName, websiteUrl, billingAddress, status, notes, dealAmount, lead, canEdit, hasUnsavedChanges, performSave]);
+
+  // Navigation guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
 
   if (loading) {
     return <div className="animate-pulse text-muted-foreground p-8">Loading lead...</div>;
