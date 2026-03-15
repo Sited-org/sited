@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase } from 'lucide-react';
 
 interface DiscoveryFormProps {
+  leadId: string;
   leadName: string;
   leadBusinessName: string;
   onSubmit: (data: DiscoveryData) => Promise<void>;
