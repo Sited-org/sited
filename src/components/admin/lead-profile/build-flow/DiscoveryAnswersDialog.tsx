@@ -334,7 +334,7 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
       className="gap-1.5 text-xs"
       onClick={() => copySectionToClipboard(keys, sectionId, sectionLabel)}
     >
-      {copiedTab === sectionId ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+      {copiedTab === sectionId ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
       {copiedTab === sectionId ? 'Copied' : 'Copy'}
     </Button>
   );
