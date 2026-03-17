@@ -44,6 +44,7 @@ export function BuildFlowView({
   const [completingStep, setCompletingStep] = useState<BuildStep | null>(null);
   const [showDiscoveryAnswers, setShowDiscoveryAnswers] = useState(false);
   const [showProposalGenerator, setShowProposalGenerator] = useState(false);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
 

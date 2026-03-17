@@ -394,6 +394,7 @@ export function useBuildFlow(leadId: string | undefined) {
     skipStep,
     toggleClientView,
     createBuildFlow,
+    restartBuildFlow,
     refetch: fetchBuildFlow,
     setClientAssets,
     setBrandColours,
