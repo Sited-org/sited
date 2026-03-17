@@ -72,6 +72,7 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
     skipStep,
     toggleClientView,
     createBuildFlow,
+    restartBuildFlow,
     refetch,
   } = useBuildFlow(lead.id);
 

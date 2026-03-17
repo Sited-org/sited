@@ -325,6 +325,14 @@ export function BuildFlowView({
         open={showProposalGenerator}
         onOpenChange={setShowProposalGenerator}
       />
+
+      {/* Restart Flow Dialog */}
+      <RestartFlowDialog
+        open={showRestartDialog}
+        onOpenChange={setShowRestartDialog}
+        businessName={businessName}
+        onConfirm={onRestartFlow}
+      />
     </div>
   );
 }
