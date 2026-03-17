@@ -281,7 +281,20 @@ export function BuildFlowView({
               </CardContent>
             </Card>
           )}
+      </div>
+
+      {/* Restart Flow */}
+      {canEdit && (
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant="destructive"
+            className="w-full sm:w-auto"
+            onClick={() => setShowRestartDialog(true)}
+          >
+            <AlertTriangle className="h-4 w-4 mr-1" /> Restart Flow
+          </Button>
         </div>
+      )}
       </div>
 
       {/* Step Complete Modal */}
