@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, MessageSquare } from 'lucide-react';
+import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DiscoveryAnswersDialogProps {
@@ -64,6 +64,17 @@ const LABEL_MAP: Record<string, string> = {
   // Integrations
   'integrations.selected': 'Selected Integrations',
   'integrations.customIntegrations': 'Custom Integrations',
+  // Step Notes (flattened)
+  'stepNotes.basics': 'Project Basics Notes',
+  'stepNotes.portals': 'Portal Selection Notes',
+  'stepNotes.fe_pages': 'Pages Notes',
+  'stepNotes.fe_marketing': 'Marketing & CTAs Notes',
+  'stepNotes.fe_design': 'Design & Branding Notes',
+  'stepNotes.admin_features': 'Admin Features & Auth Notes',
+  'stepNotes.client_features': 'Client Features & Access Notes',
+  'stepNotes.staff_features': 'Staff Features & Roles Notes',
+  'stepNotes.integrations': 'Integrations Notes',
+  'stepNotes.expectations': 'Expectations Notes',
 };
 
 const BUDGET_MAP: Record<string, string> = {
@@ -88,36 +99,23 @@ const PORTAL_LABEL_MAP: Record<string, string> = {
   staff_portal: 'Staff Portal',
 };
 
-// Step notes mapped to their section
-const STEP_NOTES_SECTION: Record<string, string> = {
-  basics: 'general',
-  portals: 'general',
-  fe_pages: 'front_end',
-  fe_marketing: 'front_end',
-  fe_design: 'front_end',
-  admin_features: 'admin_portal',
-  client_features: 'client_portal',
-  staff_features: 'staff_portal',
-  integrations: 'general',
-  expectations: 'general',
+// Map stepNote keys to their section for rendering
+const STEP_NOTE_SECTION: Record<string, string> = {
+  'stepNotes.basics': 'general',
+  'stepNotes.portals': 'general',
+  'stepNotes.fe_pages': 'front_end',
+  'stepNotes.fe_marketing': 'front_end',
+  'stepNotes.fe_design': 'front_end',
+  'stepNotes.admin_features': 'admin_portal',
+  'stepNotes.client_features': 'client_portal',
+  'stepNotes.staff_features': 'staff_portal',
+  'stepNotes.integrations': 'general',
+  'stepNotes.expectations': 'general',
 };
 
-const STEP_NOTES_LABELS: Record<string, string> = {
-  basics: 'Project Basics Notes',
-  portals: 'Portal Selection Notes',
-  fe_pages: 'Pages Notes',
-  fe_marketing: 'Marketing & CTAs Notes',
-  fe_design: 'Design & Branding Notes',
-  admin_features: 'Features & Auth Notes',
-  client_features: 'Features & Access Notes',
-  staff_features: 'Features & Roles Notes',
-  integrations: 'Integrations Notes',
-  expectations: 'Expectations Notes',
-};
-
-// Keys belonging to each view tab
+// Keys belonging to each view tab (data keys, excluding notes)
 const GENERAL_KEYS = ['businessName', 'projectType', 'primaryGoal', 'desiredLaunchDate', 'existingWebsite', 'selectedPortals', 'budgetRange', 'revisionRounds', 'communicationMethod', 'competitorSites', 'notes', 'integrations.selected', 'integrations.customIntegrations'];
-const FRONT_END_KEYS = ['selectedPages', 'frontEnd.corePages', 'frontEnd.marketingPages', 'frontEnd.customPages', 'frontEnd.ctas', 'frontEnd.customCtas', 'frontEnd.hasExistingBranding', 'frontEnd.designStyle', 'frontEnd.mainColour', 'frontEnd.secondaryColour', 'frontEnd.accentColour', 'frontEnd.needsLogo', 'frontEnd.logoType'];
+const FRONT_END_KEYS = ['frontEnd.corePages', 'frontEnd.marketingPages', 'frontEnd.customPages', 'frontEnd.ctas', 'frontEnd.customCtas', 'frontEnd.hasExistingBranding', 'frontEnd.designStyle', 'frontEnd.mainColour', 'frontEnd.secondaryColour', 'frontEnd.accentColour', 'frontEnd.needsLogo', 'frontEnd.logoType'];
 const ADMIN_KEYS = ['adminPortal.features', 'adminPortal.dashboardWidgets', 'adminPortal.authMethod', 'adminPortal.userRoles', 'adminPortal.customRoles', 'adminPortal.notifications', 'adminPortal.customNeeds'];
 const CLIENT_KEYS = ['clientPortal.features', 'clientPortal.loginMethod', 'clientPortal.selfServiceFeatures', 'clientPortal.communicationFeatures', 'clientPortal.customNeeds'];
 const STAFF_KEYS = ['staffPortal.features', 'staffPortal.roleTypes', 'staffPortal.customRoles', 'staffPortal.permissions', 'staffPortal.managementFeatures', 'staffPortal.customNeeds'];
@@ -136,7 +134,24 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
       .then(({ data }) => {
         const map: Record<string, string> = {};
         (data || []).forEach((row: any) => {
-          map[row.question_key] = row.answer_value;
+          const key = row.question_key;
+          const val = row.answer_value;
+
+          // Handle legacy shallow keys: if a key like "frontEnd" has a JSON object value,
+          // expand it into dot-notation keys
+          if (!key.includes('.') && ['frontEnd', 'adminPortal', 'clientPortal', 'staffPortal', 'integrations', 'stepNotes'].includes(key)) {
+            try {
+              const parsed = JSON.parse(val);
+              if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                for (const [subKey, subVal] of Object.entries(parsed)) {
+                  map[`${key}.${subKey}`] = typeof subVal === 'string' ? subVal : JSON.stringify(subVal);
+                }
+                return; // don't store the parent key
+              }
+            } catch { /* not JSON, store as-is */ }
+          }
+
+          map[key] = val;
         });
         setAnswers(map);
         setLoading(false);
@@ -149,9 +164,16 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
     if (key === 'selectedPortals') {
       try {
         const parsed = JSON.parse(val);
-        if (Array.isArray(parsed)) return parsed.map(p => PORTAL_LABEL_MAP[p] || p);
+        if (Array.isArray(parsed)) return parsed.map((p: string) => PORTAL_LABEL_MAP[p] || p);
       } catch {}
       return val;
+    }
+    if (key === 'frontEnd.hasExistingBranding') {
+      const map: Record<string, string> = { yes: 'Yes', no: 'No', partial: 'Partial' };
+      return map[val] || val;
+    }
+    if (key === 'frontEnd.needsLogo') {
+      return val === 'yes' ? 'Yes' : val === 'no' ? 'No' : val;
     }
     try {
       const parsed = JSON.parse(val);
@@ -160,11 +182,24 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
     return val;
   };
 
-  const isColourKey = (key: string) => key.includes('Colour') || key.includes('mainColour') || key.includes('secondaryColour') || key.includes('accentColour');
+  const isColourKey = (key: string) => key.includes('Colour');
+  const isNoteKey = (key: string) => key.startsWith('stepNotes.');
+  const isEmptyValue = (val: string) => !val || val === '[]' || val === '' || val === '""' || val === '0';
 
   const renderAnswerItem = (key: string, rawVal: string) => {
     const label = LABEL_MAP[key] || key;
     const val = formatValue(key, rawVal);
+
+    // Render notes differently
+    if (isNoteKey(key)) {
+      return (
+        <div key={key} className="bg-muted/50 rounded-lg p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-1">{label}</p>
+          <p className="text-sm whitespace-pre-wrap">{rawVal}</p>
+        </div>
+      );
+    }
+
     return (
       <div key={key} className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
@@ -174,70 +209,53 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
               <Badge key={i} variant="secondary" className="text-xs">{item}</Badge>
             ))}
           </div>
-        ) : isColourKey(key) && val.startsWith('#') ? (
+        ) : isColourKey(key) && typeof val === 'string' && val.startsWith('#') ? (
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded border border-border" style={{ backgroundColor: val }} />
             <p className="text-sm">{val}</p>
           </div>
         ) : (
-          <p className="text-sm">{val || '—'}</p>
+          <p className="text-sm">{(typeof val === 'string' ? val : String(val)) || '—'}</p>
         )}
       </div>
     );
   };
 
-  // Parse stepNotes from answers
-  const stepNotes: Record<string, string> = {};
-  try {
-    const notesStr = answers['stepNotes'];
-    if (notesStr) {
-      const parsed = JSON.parse(notesStr);
-      if (typeof parsed === 'object' && parsed !== null) {
-        Object.assign(stepNotes, parsed);
-      }
-    }
-  } catch {}
-
-  const renderNotesForSection = (section: string) => {
-    const relevantNotes = Object.entries(STEP_NOTES_SECTION)
-      .filter(([, sec]) => sec === section)
-      .map(([stepId]) => ({ stepId, note: stepNotes[stepId] }))
-      .filter(n => n.note && n.note.trim());
-
-    if (relevantNotes.length === 0) return null;
-
-    return (
-      <div className="mt-4 pt-4 border-t border-border">
-        <div className="flex items-center gap-2 mb-3">
-          <StickyNote className="h-4 w-4 text-muted-foreground" />
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes</p>
-        </div>
-        <div className="space-y-3">
-          {relevantNotes.map(({ stepId, note }) => (
-            <div key={stepId} className="bg-muted/50 rounded-lg p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">{STEP_NOTES_LABELS[stepId] || stepId}</p>
-              <p className="text-sm whitespace-pre-wrap">{note}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  // Get notes for a given section
+  const getNotesForSection = (sectionId: string) => {
+    return Object.entries(STEP_NOTE_SECTION)
+      .filter(([, sec]) => sec === sectionId)
+      .map(([noteKey]) => ({ noteKey, value: answers[noteKey] }))
+      .filter(n => n.value && n.value.trim());
   };
 
   const renderSection = (keys: string[], sectionId: string) => {
-    const entries = keys
-      .filter(k => answers[k] && answers[k] !== '[]' && answers[k] !== '' && answers[k] !== '""')
+    const dataEntries = keys
+      .filter(k => answers[k] && !isEmptyValue(answers[k]))
       .map(k => [k, answers[k]] as [string, string]);
+
+    const sectionNotes = getNotesForSection(sectionId);
+
+    if (dataEntries.length === 0 && sectionNotes.length === 0) {
+      return (
+        <div className="py-4 text-center text-muted-foreground text-sm">No answers recorded for this section.</div>
+      );
+    }
 
     return (
       <div className="space-y-4">
-        {entries.length === 0 && !renderNotesForSection(sectionId) ? (
-          <div className="py-4 text-center text-muted-foreground text-sm">No answers recorded for this section.</div>
-        ) : (
-          <>
-            {entries.map(([key, val]) => renderAnswerItem(key, val))}
-            {renderNotesForSection(sectionId)}
-          </>
+        {dataEntries.map(([key, val]) => renderAnswerItem(key, val))}
+
+        {sectionNotes.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <StickyNote className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes</p>
+            </div>
+            <div className="space-y-3">
+              {sectionNotes.map(({ noteKey, value }) => renderAnswerItem(noteKey, value))}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -282,7 +300,6 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
           ) : Object.keys(answers).length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">No discovery answers found.</div>
           ) : tabs.length <= 1 ? (
-            // Single tab — no need for tab UI
             renderSection(GENERAL_KEYS, 'general')
           ) : (
             <Tabs defaultValue="general" className="w-full">
