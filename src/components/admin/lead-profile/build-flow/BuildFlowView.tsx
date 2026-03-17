@@ -15,6 +15,7 @@ import type { BuildFlow, BuildPhase, BuildStep } from '@/hooks/useBuildFlow';
 import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
 import { ProposalGenerator } from './ProposalGenerator';
+import { RestartFlowDialog } from './RestartFlowDialog';
 
 interface BuildFlowViewProps {
   buildFlow: BuildFlow;
