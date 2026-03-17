@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, Wrench } from 'lucide-react';
+import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, Wrench, Copy, Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DiscoveryAnswersDialogProps {
@@ -121,8 +123,10 @@ const CLIENT_KEYS = ['clientPortal.features', 'clientPortal.loginMethod', 'clien
 const STAFF_KEYS = ['staffPortal.features', 'staffPortal.roleTypes', 'staffPortal.customRoles', 'staffPortal.permissions', 'staffPortal.managementFeatures', 'staffPortal.customNeeds'];
 
 export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: DiscoveryAnswersDialogProps) {
+  const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -261,6 +265,44 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
     );
   };
 
+  const formatValueForCopy = (key: string, rawVal: string): string => {
+    const val = formatValue(key, rawVal);
+    if (Array.isArray(val)) return val.join(', ');
+    return typeof val === 'string' ? val : String(val);
+  };
+
+  const copySectionToClipboard = (keys: string[], sectionId: string, sectionLabel: string) => {
+    const dataEntries = keys
+      .filter(k => answers[k] && !isEmptyValue(answers[k]))
+      .map(k => {
+        const label = LABEL_MAP[k] || k;
+        const value = formatValueForCopy(k, answers[k]);
+        return `${label}: ${value}`;
+      });
+
+    const sectionNotes = getNotesForSection(sectionId)
+      .map(({ noteKey, value }) => {
+        const label = LABEL_MAP[noteKey] || noteKey;
+        return `${label}: ${value}`;
+      });
+
+    const lines: string[] = [`── ${sectionLabel} ──`, ''];
+    if (dataEntries.length > 0) {
+      lines.push(...dataEntries, '');
+    }
+    if (sectionNotes.length > 0) {
+      lines.push('Notes:', ...sectionNotes, '');
+    }
+    if (dataEntries.length === 0 && sectionNotes.length === 0) {
+      lines.push('No answers recorded.', '');
+    }
+
+    navigator.clipboard.writeText(lines.join('\n'));
+    setCopiedTab(sectionId);
+    toast({ title: `${sectionLabel} answers copied to clipboard` });
+    setTimeout(() => setCopiedTab(null), 2000);
+  };
+
   // Determine which portals were selected
   const selectedPortals: string[] = [];
   try {
@@ -285,6 +327,18 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
     tabs.push({ id: 'staff_portal', label: 'Staff', icon: <Briefcase className="h-4 w-4" />, keys: STAFF_KEYS, section: 'staff_portal' });
   }
 
+  const renderCopyButton = (keys: string[], sectionId: string, sectionLabel: string) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="gap-1.5 text-xs"
+      onClick={() => copySectionToClipboard(keys, sectionId, sectionLabel)}
+    >
+      {copiedTab === sectionId ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+      {copiedTab === sectionId ? 'Copied' : 'Copy'}
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[80vh]">
@@ -300,7 +354,12 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
           ) : Object.keys(answers).length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">No discovery answers found.</div>
           ) : tabs.length <= 1 ? (
-            renderSection(GENERAL_KEYS, 'general')
+            <div className="space-y-3">
+              <div className="flex justify-end">
+                {renderCopyButton(GENERAL_KEYS, 'general', 'General')}
+              </div>
+              {renderSection(GENERAL_KEYS, 'general')}
+            </div>
           ) : (
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="w-full flex-wrap h-auto gap-1 mb-4">
@@ -313,6 +372,9 @@ export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: Disc
               </TabsList>
               {tabs.map(tab => (
                 <TabsContent key={tab.id} value={tab.id}>
+                  <div className="flex justify-end mb-3">
+                    {renderCopyButton(tab.keys, tab.section, tab.label)}
+                  </div>
                   {renderSection(tab.keys, tab.section)}
                 </TabsContent>
               ))}
