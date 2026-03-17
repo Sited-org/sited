@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase, Send, StickyNote } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase, Send, StickyNote, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface DiscoveryFormProps {
@@ -38,6 +38,7 @@ export interface DiscoveryData {
   clientPortal: ClientPortalData;
   staffPortal: StaffPortalData;
   stepNotes: Record<string, string>;
+  integrations: IntegrationsData;
 }
 
 interface FrontEndData {
@@ -53,8 +54,6 @@ interface FrontEndData {
   accentColour: string;
   needsLogo: 'yes' | 'no' | '';
   logoType: string;
-  integrations: string[];
-  customIntegrations: string;
 }
 
 interface AdminPortalData {
@@ -64,8 +63,6 @@ interface AdminPortalData {
   userRoles: string[];
   customRoles: string[];
   notifications: string[];
-  integrations: string[];
-  customIntegrations: string;
   customNeeds: string;
 }
 
@@ -74,8 +71,6 @@ interface ClientPortalData {
   loginMethod: string;
   selfServiceFeatures: string[];
   communicationFeatures: string[];
-  integrations: string[];
-  customIntegrations: string;
   customNeeds: string;
 }
 
@@ -85,18 +80,21 @@ interface StaffPortalData {
   customRoles: string[];
   permissions: string[];
   managementFeatures: string[];
-  integrations: string[];
-  customIntegrations: string;
   customNeeds: string;
+}
+
+interface IntegrationsData {
+  selected: string[];
+  customIntegrations: string;
 }
 
 // ─── Options ───────────────────────────────────────────────────────────────────
 
 const PORTAL_OPTIONS = [
-  { value: 'front_end', label: 'Front End', icon: Monitor, desc: 'Public-facing website' },
-  { value: 'admin_portal', label: 'Admin Portal', icon: ShieldCheck, desc: 'Internal management dashboard' },
-  { value: 'client_portal', label: 'Client Portal', icon: Users, desc: 'Client self-service area' },
-  { value: 'staff_portal', label: 'Staff Portal', icon: Briefcase, desc: 'Employee/team workspace' },
+  { value: 'front_end', label: 'Front End', icon: Monitor, desc: 'Public-facing website', requiresAdmin: false },
+  { value: 'admin_portal', label: 'Admin Portal', icon: ShieldCheck, desc: 'Internal management dashboard', requiresAdmin: false },
+  { value: 'client_portal', label: 'Client Portal', icon: Users, desc: 'Client self-service area', requiresAdmin: true },
+  { value: 'staff_portal', label: 'Staff Portal', icon: Briefcase, desc: 'Employee/team workspace', requiresAdmin: true },
 ];
 
 // Front End options
@@ -105,9 +103,6 @@ const FE_MARKETING_PAGES = ['Landing Page (Campaign)', 'Offer', 'Book'];
 const FE_CTAS = ['Book a Call', 'Enquire', 'Free Quote', 'Get Quote', 'Contact', 'Buy Now'];
 const FE_DESIGN_STYLES = ['Professional / Minimalist', 'Bold / Maximalist', 'Artistic / Colourful'];
 const FE_LOGO_TYPES = ['Icon', 'Mascot', 'Text'];
-const FE_INTEGRATIONS = [
-  'Calendar / Booking', 'Google Maps', 'Social Media Feed', 'AI Chatbot', 'Reviews Widget', 'Payments',
-];
 
 // Admin Portal options
 const ADMIN_FEATURES = [
@@ -118,7 +113,6 @@ const ADMIN_WIDGETS = ['Revenue Chart', 'Lead Pipeline', 'Recent Activity', 'Upc
 const ADMIN_AUTH_METHODS = ['Email + OTP', 'Email + Password', 'SSO / Google OAuth'];
 const ADMIN_ROLES = ['Owner', 'Admin', 'Editor', 'Viewer'];
 const ADMIN_NOTIFICATIONS = ['Email Alerts', 'Slack Integration', 'SMS Alerts'];
-const ADMIN_INTEGRATIONS = ['Stripe', 'Slack', 'Resend', 'Zapier', 'Google Analytics', 'Blog / CMS', 'Service M8', 'Xero', 'HubSpot', 'Mailchimp', 'Salesforce', 'GHL'];
 
 // Client Portal options
 const CLIENT_FEATURES = [
@@ -137,7 +131,14 @@ const STAFF_FEATURES = [
 const STAFF_ROLE_TYPES = ['Developer', 'Designer', 'Project Manager', 'Sales Rep', 'Support'];
 const STAFF_PERMISSIONS = ['View All Projects', 'Edit Assigned Only', 'Manage Team', 'Access Financials', 'Admin Override'];
 const STAFF_MANAGEMENT = ['Kanban Board', 'Gantt Chart', 'Daily Standup Notes', 'Sprint Planning', 'Bug Tracker'];
-const STAFF_INTEGRATIONS = ['GitHub', 'Figma', 'Slack', 'Jira', 'Notion', 'Linear'];
+
+// Unified integrations list
+const ALL_INTEGRATIONS = [
+  'Stripe', 'Slack', 'Resend', 'Zapier', 'Google Analytics', 'Blog / CMS',
+  'Service M8', 'Xero', 'HubSpot', 'Mailchimp', 'Salesforce', 'GHL',
+  'Calendar / Booking', 'Google Maps', 'Social Media Feed', 'AI Chatbot',
+  'Reviews Widget', 'GitHub', 'Figma', 'Jira', 'Notion', 'Linear',
+];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -163,19 +164,22 @@ function getDefaultData(leadBusinessName: string): DiscoveryData {
     frontEnd: {
       corePages: [], marketingPages: [], customPages: [], ctas: [], customCtas: [],
       hasExistingBranding: '', designStyle: '', mainColour: '', secondaryColour: '', accentColour: '',
-      needsLogo: '', logoType: '', integrations: [], customIntegrations: '',
+      needsLogo: '', logoType: '',
     },
     adminPortal: {
       features: [], dashboardWidgets: [], authMethod: '', userRoles: [], customRoles: [],
-      notifications: [], integrations: [], customIntegrations: '', customNeeds: '',
+      notifications: [], customNeeds: '',
     },
     clientPortal: {
       features: [], loginMethod: '', selfServiceFeatures: [], communicationFeatures: [],
-      integrations: [], customIntegrations: '', customNeeds: '',
+      customNeeds: '',
     },
     staffPortal: {
       features: [], roleTypes: [], customRoles: [], permissions: [], managementFeatures: [],
-      integrations: [], customIntegrations: '', customNeeds: '',
+      customNeeds: '',
+    },
+    integrations: {
+      selected: [], customIntegrations: '',
     },
   };
 }
@@ -209,12 +213,10 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
       steps.push({ id: 'fe_pages', label: 'Pages', portalLabel: 'Front End' });
       steps.push({ id: 'fe_marketing', label: 'Marketing & CTAs', portalLabel: 'Front End' });
       steps.push({ id: 'fe_design', label: 'Design & Branding', portalLabel: 'Front End' });
-      steps.push({ id: 'fe_integrations', label: 'Integrations', portalLabel: 'Front End' });
     }
 
     if (data.selectedPortals.includes('admin_portal')) {
       steps.push({ id: 'admin_features', label: 'Features & Auth', portalLabel: 'Admin Portal' });
-      steps.push({ id: 'admin_integrations', label: 'Integrations', portalLabel: 'Admin Portal' });
     }
 
     if (data.selectedPortals.includes('client_portal')) {
@@ -223,9 +225,10 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
 
     if (data.selectedPortals.includes('staff_portal')) {
       steps.push({ id: 'staff_features', label: 'Features & Roles', portalLabel: 'Staff Portal' });
-      steps.push({ id: 'staff_integrations', label: 'Integrations', portalLabel: 'Staff Portal' });
     }
 
+    // Unified integrations step
+    steps.push({ id: 'integrations', label: 'Integrations' });
     steps.push({ id: 'expectations', label: 'Client Expectations' });
     return steps;
   }, [data.selectedPortals]);
@@ -267,6 +270,19 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
     return () => window.removeEventListener('beforeunload', handler);
   }, [data, leadBusinessName]);
 
+  // When admin is deselected, also deselect client_portal and staff_portal
+  useEffect(() => {
+    if (!data.selectedPortals.includes('admin_portal')) {
+      const needsCleanup = data.selectedPortals.includes('client_portal') || data.selectedPortals.includes('staff_portal');
+      if (needsCleanup) {
+        setData(d => ({
+          ...d,
+          selectedPortals: d.selectedPortals.filter(p => p !== 'client_portal' && p !== 'staff_portal'),
+        }));
+      }
+    }
+  }, [data.selectedPortals]);
+
   const currentStep = steps[stepIndex] || steps[0];
   const totalSteps = steps.length;
   const progress = ((stepIndex + 1) / totalSteps) * 100;
@@ -306,16 +322,20 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   const updateStepNote = (stepId: string, value: string) =>
     setData(d => ({ ...d, stepNotes: { ...d.stepNotes, [stepId]: value } }));
 
+  const updateIntegrations = (partial: Partial<IntegrationsData>) =>
+    setData(d => ({ ...d, integrations: { ...d.integrations, ...partial } }));
+
   const flattenForSubmit = (): DiscoveryData => {
     const allPages = [...data.frontEnd.corePages, ...data.frontEnd.marketingPages, ...data.frontEnd.customPages];
     const allFeatures = [
       ...data.adminPortal.features, ...data.clientPortal.features, ...data.staffPortal.features,
     ];
-    const allIntegrations = [
-      ...data.frontEnd.integrations, ...data.adminPortal.integrations,
-      ...data.clientPortal.integrations, ...data.staffPortal.integrations,
-    ];
-    return { ...data, selectedPages: allPages, selectedFeatures: allFeatures, selectedIntegrations: [...new Set(allIntegrations)] };
+    return {
+      ...data,
+      selectedPages: allPages,
+      selectedFeatures: allFeatures,
+      selectedIntegrations: [...data.integrations.selected],
+    };
   };
 
   const handleSubmit = async () => {
@@ -392,6 +412,8 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
 
   // ─── Step content ────────────────────────────────────────────────────────
 
+  const hasAdmin = data.selectedPortals.includes('admin_portal');
+
   const renderStep = () => {
     switch (currentStep.id) {
       // ── BASICS ──
@@ -429,17 +451,34 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               {PORTAL_OPTIONS.map(opt => {
                 const selected = data.selectedPortals.includes(opt.value);
                 const Icon = opt.icon;
+                const isLocked = opt.requiresAdmin && !hasAdmin;
                 return (
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => setData(d => ({ ...d, selectedPortals: toggleItem(d.selectedPortals, opt.value) }))}
-                    className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${selected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-muted-foreground/40'}`}
+                    disabled={isLocked}
+                    onClick={() => {
+                      if (isLocked) return;
+                      setData(d => ({ ...d, selectedPortals: toggleItem(d.selectedPortals, opt.value) }));
+                    }}
+                    className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                      isLocked
+                        ? 'border-border opacity-50 cursor-not-allowed'
+                        : selected
+                          ? 'border-primary bg-primary/5 shadow-sm'
+                          : 'border-border hover:border-muted-foreground/40'
+                    }`}
                   >
-                    <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    {isLocked ? (
+                      <Lock className="h-5 w-5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                    ) : (
+                      <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${selected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    )}
                     <div>
                       <div className="font-medium text-sm">{opt.label}</div>
-                      <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {isLocked ? 'Requires Admin Portal to be selected' : opt.desc}
+                      </div>
                     </div>
                   </button>
                 );
@@ -597,20 +636,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
           </div>
         );
 
-      // ── FRONT END: INTEGRATIONS ──
-      case 'fe_integrations':
-        return (
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold">Front End — Integrations</h3>
-            <CheckboxGroup items={FE_INTEGRATIONS} selected={data.frontEnd.integrations} onToggle={item => updateFE({ integrations: toggleItem(data.frontEnd.integrations, item) })} />
-            <div>
-              <SectionLabel>Other Integrations</SectionLabel>
-              <Textarea value={data.frontEnd.customIntegrations} onChange={e => updateFE({ customIntegrations: e.target.value })} placeholder="List any other integrations needed..." rows={2} />
-            </div>
-            <StepNotesSection stepId="fe_integrations" />
-          </div>
-        );
-
       // ── ADMIN PORTAL: FEATURES ──
       case 'admin_features':
         return (
@@ -659,20 +684,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Textarea value={data.adminPortal.customNeeds} onChange={e => updateAdmin({ customNeeds: e.target.value })} placeholder="Any other admin portal needs..." className="mt-1" rows={2} />
             </div>
             <StepNotesSection stepId="admin_features" />
-          </div>
-        );
-
-      // ── ADMIN PORTAL: INTEGRATIONS ──
-      case 'admin_integrations':
-        return (
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold">Admin Portal — Integrations</h3>
-            <CheckboxGroup items={ADMIN_INTEGRATIONS} selected={data.adminPortal.integrations} onToggle={item => updateAdmin({ integrations: toggleItem(data.adminPortal.integrations, item) })} cols={3} />
-            <div>
-              <SectionLabel>Other Integrations</SectionLabel>
-              <Textarea value={data.adminPortal.customIntegrations} onChange={e => updateAdmin({ customIntegrations: e.target.value })} placeholder="List any other integrations..." rows={2} />
-            </div>
-            <StepNotesSection stepId="admin_integrations" />
           </div>
         );
 
@@ -750,17 +761,28 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
           </div>
         );
 
-      // ── STAFF PORTAL: INTEGRATIONS ──
-      case 'staff_integrations':
+      // ── UNIFIED INTEGRATIONS ──
+      case 'integrations':
         return (
           <div className="space-y-5">
-            <h3 className="text-lg font-semibold">Staff Portal — Integrations</h3>
-            <CheckboxGroup items={STAFF_INTEGRATIONS} selected={data.staffPortal.integrations} onToggle={item => updateStaff({ integrations: toggleItem(data.staffPortal.integrations, item) })} />
+            <h3 className="text-lg font-semibold">Integrations</h3>
+            <p className="text-sm text-muted-foreground">Select all integrations needed across the entire website.</p>
+            <CheckboxGroup
+              items={ALL_INTEGRATIONS}
+              selected={data.integrations.selected}
+              onToggle={item => updateIntegrations({ selected: toggleItem(data.integrations.selected, item) })}
+              cols={3}
+            />
             <div>
               <SectionLabel>Other Integrations</SectionLabel>
-              <Textarea value={data.staffPortal.customIntegrations} onChange={e => updateStaff({ customIntegrations: e.target.value })} placeholder="List any other integrations..." rows={2} />
+              <Textarea
+                value={data.integrations.customIntegrations}
+                onChange={e => updateIntegrations({ customIntegrations: e.target.value })}
+                placeholder="List any other integrations needed..."
+                rows={2}
+              />
             </div>
-            <StepNotesSection stepId="staff_integrations" />
+            <StepNotesSection stepId="integrations" />
           </div>
         );
 
