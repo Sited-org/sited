@@ -25,6 +25,7 @@ interface BuildFlowViewProps {
   onMarkComplete: (step: BuildStep, description: string, screenshotUrl?: string | null, userId?: string) => Promise<void>;
   onSkipStep: (stepId: string) => Promise<void>;
   onToggleClientView: () => Promise<void>;
+  onRestartFlow: () => Promise<void>;
 }
 
 export function BuildFlowView({
