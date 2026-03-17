@@ -109,11 +109,19 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
   const pages = parseArray(answers.selectedPages);
   const features = parseArray(answers.selectedFeatures);
-  const integrations = parseArray(answers.selectedIntegrations);
+  const integrations = parseArray(answers.selectedIntegrations || answers['integrations.selected']);
+  const selectedPortals = parseArray(answers.selectedPortals);
   const revisionRounds = answers.revisionRounds || '2';
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
-  const totalItemized = (pages.length * PAGE_PRICE) + (features.length * FEATURE_PRICE) + (integrations.length * INTEGRATION_PRICE);
+
+  // Calculate portal surcharges
+  let portalTotal = 0;
+  if (selectedPortals.includes('admin_portal')) portalTotal += ADMIN_PORTAL_PRICE;
+  if (selectedPortals.includes('client_portal')) portalTotal += CLIENT_PORTAL_PRICE;
+  if (selectedPortals.includes('staff_portal')) portalTotal += STAFF_PORTAL_PRICE;
+
+  const totalItemized = (pages.length * PAGE_PRICE) + (features.length * FEATURE_PRICE) + (integrations.length * INTEGRATION_PRICE) + portalTotal;
   const actualPrice = selectedProduct?.price || 0;
   const savings = totalItemized - actualPrice;
   const fileSlug = toSlug(businessName);
@@ -123,6 +131,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
+  // Portal line items
+  if (selectedPortals.includes('admin_portal')) {
+    allItems.push({ desc: 'Admin Portal', price: `$${ADMIN_PORTAL_PRICE}`, isFree: false });
+  }
+  if (selectedPortals.includes('client_portal')) {
+    allItems.push({ desc: 'Client Portal', price: `$${CLIENT_PORTAL_PRICE}`, isFree: false });
+  }
+  if (selectedPortals.includes('staff_portal')) {
+    allItems.push({ desc: 'Staff Portal', price: `$${STAFF_PORTAL_PRICE}`, isFree: false });
+  }
   pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${PAGE_PRICE}`, isFree: false }));
   features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${FEATURE_PRICE}`, isFree: false }));
   integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${INTEGRATION_PRICE}`, isFree: false }));
