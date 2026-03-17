@@ -123,8 +123,10 @@ const CLIENT_KEYS = ['clientPortal.features', 'clientPortal.loginMethod', 'clien
 const STAFF_KEYS = ['staffPortal.features', 'staffPortal.roleTypes', 'staffPortal.customRoles', 'staffPortal.permissions', 'staffPortal.managementFeatures', 'staffPortal.customNeeds'];
 
 export function DiscoveryAnswersDialog({ buildFlowId, open, onOpenChange }: DiscoveryAnswersDialogProps) {
+  const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
