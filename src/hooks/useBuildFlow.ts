@@ -319,6 +319,36 @@ export function useBuildFlow(leadId: string | undefined) {
     toast({ title: newVal ? 'Client view enabled' : 'Client view disabled' });
   };
 
+  const restartBuildFlow = async () => {
+    if (!buildFlow) return;
+    const flowId = buildFlow.id;
+
+    // Delete in dependency order
+    await supabase.from('step_completions').delete().eq('build_flow_id', flowId);
+    await supabase.from('discovery_answers').delete().eq('build_flow_id', flowId);
+    await supabase.from('credential_vault').delete().eq('build_flow_id', flowId);
+    await supabase.from('brand_fonts').delete().eq('build_flow_id', flowId);
+    await supabase.from('brand_colours').delete().eq('build_flow_id', flowId);
+    await supabase.from('client_assets').delete().eq('build_flow_id', flowId);
+
+    // Delete steps, then phases, then the flow itself
+    const phaseIds = phases.map(p => p.id);
+    if (phaseIds.length > 0) {
+      await supabase.from('build_steps').delete().in('phase_id', phaseIds);
+    }
+    await supabase.from('build_phases').delete().eq('build_flow_id', flowId);
+    await supabase.from('build_flows').delete().eq('id', flowId);
+
+    setBuildFlow(null);
+    setPhases([]);
+    setClientAssets(null);
+    setBrandColours([]);
+    setBrandFonts([]);
+    setCredentials([]);
+
+    toast({ title: 'Build flow deleted', description: 'You can now restart the discovery process.' });
+  };
+
   const createBuildFlow = async (
     projectType: string,
     selectedFeatures: string[],
@@ -364,6 +394,7 @@ export function useBuildFlow(leadId: string | undefined) {
     skipStep,
     toggleClientView,
     createBuildFlow,
+    restartBuildFlow,
     refetch: fetchBuildFlow,
     setClientAssets,
     setBrandColours,

@@ -8,13 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BuildFlow, BuildPhase, BuildStep } from '@/hooks/useBuildFlow';
 import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
 import { ProposalGenerator } from './ProposalGenerator';
+import { RestartFlowDialog } from './RestartFlowDialog';
 
 interface BuildFlowViewProps {
   buildFlow: BuildFlow;
@@ -24,6 +25,7 @@ interface BuildFlowViewProps {
   onMarkComplete: (step: BuildStep, description: string, screenshotUrl?: string | null, userId?: string) => Promise<void>;
   onSkipStep: (stepId: string) => Promise<void>;
   onToggleClientView: () => Promise<void>;
+  onRestartFlow: () => Promise<void>;
 }
 
 export function BuildFlowView({
@@ -34,6 +36,7 @@ export function BuildFlowView({
   onMarkComplete,
   onSkipStep,
   onToggleClientView,
+  onRestartFlow,
 }: BuildFlowViewProps) {
   const [activePhaseId, setActivePhaseId] = useState<string | null>(
     phases.find(p => !p.is_completed && !p.is_locked && !p.is_skipped)?.id || phases[0]?.id || null
@@ -41,6 +44,7 @@ export function BuildFlowView({
   const [completingStep, setCompletingStep] = useState<BuildStep | null>(null);
   const [showDiscoveryAnswers, setShowDiscoveryAnswers] = useState(false);
   const [showProposalGenerator, setShowProposalGenerator] = useState(false);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
 
@@ -277,7 +281,20 @@ export function BuildFlowView({
               </CardContent>
             </Card>
           )}
+      </div>
+
+      {/* Restart Flow */}
+      {canEdit && (
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant="destructive"
+            className="w-full sm:w-auto"
+            onClick={() => setShowRestartDialog(true)}
+          >
+            <AlertTriangle className="h-4 w-4 mr-1" /> Restart Flow
+          </Button>
         </div>
+      )}
       </div>
 
       {/* Step Complete Modal */}
@@ -307,6 +324,14 @@ export function BuildFlowView({
         businessName={businessName}
         open={showProposalGenerator}
         onOpenChange={setShowProposalGenerator}
+      />
+
+      {/* Restart Flow Dialog */}
+      <RestartFlowDialog
+        open={showRestartDialog}
+        onOpenChange={setShowRestartDialog}
+        businessName={businessName}
+        onConfirm={onRestartFlow}
       />
     </div>
   );

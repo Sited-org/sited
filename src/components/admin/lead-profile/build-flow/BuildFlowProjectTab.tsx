@@ -72,6 +72,7 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
     skipStep,
     toggleClientView,
     createBuildFlow,
+    restartBuildFlow,
     refetch,
   } = useBuildFlow(lead.id);
 
@@ -131,6 +132,7 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
           onMarkComplete={markStepComplete}
           onSkipStep={skipStep}
           onToggleClientView={toggleClientView}
+          onRestartFlow={restartBuildFlow}
         />
       </TabsContent>
 
