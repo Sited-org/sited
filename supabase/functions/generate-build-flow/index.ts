@@ -467,13 +467,33 @@ Deno.serve(async (req) => {
     const ctx: BuildContext = { project_type, selected_features, selected_pages, selected_integrations };
     const phases = generatePhases(ctx);
 
-    // Save discovery answers if provided
+    // Save discovery answers if provided — deep-flatten nested objects to dot-notation keys
     if (discovery_data && typeof discovery_data === "object") {
-      const answerRows = Object.entries(discovery_data).map(([key, value]) => ({
-        build_flow_id: flow.id,
-        question_key: key,
-        answer_value: typeof value === "string" ? value : JSON.stringify(value),
-      }));
+      const answerRows: { build_flow_id: string; question_key: string; answer_value: string }[] = [];
+
+      function flattenObj(obj: Record<string, unknown>, prefix = "") {
+        for (const [key, value] of Object.entries(obj)) {
+          const fullKey = prefix ? `${prefix}.${key}` : key;
+          if (
+            value !== null &&
+            typeof value === "object" &&
+            !Array.isArray(value)
+          ) {
+            // Recurse into plain objects (but not arrays)
+            flattenObj(value as Record<string, unknown>, fullKey);
+          } else {
+            answerRows.push({
+              build_flow_id: flow.id,
+              question_key: fullKey,
+              answer_value:
+                typeof value === "string" ? value : JSON.stringify(value),
+            });
+          }
+        }
+      }
+
+      flattenObj(discovery_data as Record<string, unknown>);
+
       if (answerRows.length > 0) {
         await supabase.from("discovery_answers").insert(answerRows);
       }
