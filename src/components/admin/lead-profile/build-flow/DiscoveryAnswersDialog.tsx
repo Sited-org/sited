@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, Wrench } from 'lucide-react';
+import { FileText, StickyNote, Monitor, ShieldCheck, Users, Briefcase, Settings, Wrench, Copy, Check } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DiscoveryAnswersDialogProps {
