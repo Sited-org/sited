@@ -471,62 +471,62 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         if (existingProposalTxs && existingProposalTxs.length > 0) {
           toast.info('Billing entries already exist for this proposal — skipping duplicate charges.');
         } else {
+          const transactions: any[] = [];
 
-        if (existingDepositPaid) {
-          // Deposit already paid — only assign the remaining balance
-          const remaining = actualPrice - Math.min(depositAmount, actualPrice);
-          if (remaining > 0) {
-            transactions.push({
-              lead_id: leadId,
-              item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
-              debit: remaining,
-              credit: 0,
-              status: 'completed',
-              invoice_status: 'not_sent',
-              payment_method: 'pending',
-              notes: `Package balance (deposit already paid). From proposal: ${fileName}`,
-            });
-          }
-        } else {
-          // No deposit paid — create both deposit and balance
-          const deposit = Math.min(depositAmount, actualPrice);
-          const remaining = actualPrice - deposit;
-
-          if (deposit > 0) {
-            transactions.push({
-              lead_id: leadId,
-              item: `Deposit — ${businessName}`,
-              debit: deposit,
-              credit: 0,
-              status: 'completed',
-              invoice_status: 'not_sent',
-              payment_method: 'pending',
-              notes: `Auto-generated deposit from proposal (${fileName})`,
-            });
-          }
-          if (remaining > 0) {
-            transactions.push({
-              lead_id: leadId,
-              item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
-              debit: remaining,
-              credit: 0,
-              status: 'completed',
-              invoice_status: 'not_sent',
-              payment_method: 'pending',
-              notes: `Auto-generated balance from proposal (${fileName})`,
-            });
-          }
-        }
-
-        if (transactions.length > 0) {
-          const { error: txError } = await supabase.from('transactions').insert(transactions);
-          if (txError) {
-            console.error('Failed to create billing entries:', txError);
+          if (existingDepositPaid) {
+            const remaining = actualPrice - Math.min(depositAmount, actualPrice);
+            if (remaining > 0) {
+              transactions.push({
+                lead_id: leadId,
+                item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+                debit: remaining,
+                credit: 0,
+                status: 'completed',
+                invoice_status: 'not_sent',
+                payment_method: 'pending',
+                notes: `Package balance (deposit already paid). From proposal: ${fileName}`,
+              });
+            }
           } else {
-            toast.success(existingDepositPaid
-              ? 'Package charge added (deposit already paid)'
-              : 'Deposit & package charges added to client account'
-            );
+            const deposit = Math.min(depositAmount, actualPrice);
+            const remaining = actualPrice - deposit;
+
+            if (deposit > 0) {
+              transactions.push({
+                lead_id: leadId,
+                item: `Deposit — ${businessName}`,
+                debit: deposit,
+                credit: 0,
+                status: 'completed',
+                invoice_status: 'not_sent',
+                payment_method: 'pending',
+                notes: `Auto-generated deposit from proposal (${fileName})`,
+              });
+            }
+            if (remaining > 0) {
+              transactions.push({
+                lead_id: leadId,
+                item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+                debit: remaining,
+                credit: 0,
+                status: 'completed',
+                invoice_status: 'not_sent',
+                payment_method: 'pending',
+                notes: `Auto-generated balance from proposal (${fileName})`,
+              });
+            }
+          }
+
+          if (transactions.length > 0) {
+            const { error: txError } = await supabase.from('transactions').insert(transactions);
+            if (txError) {
+              console.error('Failed to create billing entries:', txError);
+            } else {
+              toast.success(existingDepositPaid
+                ? 'Package charge added (deposit already paid)'
+                : 'Deposit & package charges added to client account'
+              );
+            }
           }
         }
       }
