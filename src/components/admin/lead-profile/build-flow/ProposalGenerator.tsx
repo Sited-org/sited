@@ -551,43 +551,13 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            <div className="flex-1 flex flex-col items-center bg-muted/50 rounded-lg overflow-hidden">
-              {previewPages.length > 0 ? (
-                <>
-                  <div className="flex-1 flex items-center justify-center p-4 max-h-[58vh]">
-                    <img
-                      src={previewPages[currentPage]}
-                      alt={`Page ${currentPage + 1}`}
-                      className="max-h-full max-w-full rounded shadow-lg border border-border"
-                      style={{ objectFit: 'contain' }}
-                    />
-                  </div>
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-3 py-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        disabled={currentPage === 0}
-                        onClick={() => setCurrentPage(p => p - 1)}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Page {currentPage + 1} of {totalPages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        disabled={currentPage === totalPages - 1}
-                        onClick={() => setCurrentPage(p => p + 1)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </>
+            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden">
+              {previewUrl ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-[62vh] border-0 rounded-md"
+                  title="Proposal Preview"
+                />
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
                   Loading preview...
