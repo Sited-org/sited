@@ -653,7 +653,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     )}
                     {integrations.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${INTEGRATION_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${pricing.integration})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {integrations.map((ig, i) => <Badge key={i} variant="outline" className="text-xs">{ig}</Badge>)}
                         </div>
