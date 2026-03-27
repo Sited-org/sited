@@ -461,12 +461,26 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     }
   };
 
-  // Preview margin constants (scaled from PDF pts to preview px)
-  const previewW = 500;
-  const scale = previewW / 595.28;
-  const pML = Math.round(ML * scale);
-  const pMR = Math.round(MR * scale);
-  const pMT = Math.round(MT * scale);
+  const handleShowPreview = async () => {
+    setGenerating(true);
+    try {
+      const blob = await generatePdfBlob();
+      if (!blob) {
+        toast.error('Failed to generate preview');
+        setGenerating(false);
+        return;
+      }
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setShowPreview(true);
+    } catch (err) {
+      console.error('Preview generation failed:', err);
+      toast.error('Failed to generate preview');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
