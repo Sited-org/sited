@@ -23,14 +23,17 @@ interface Product {
   name: string;
   price: number;
   is_active: boolean;
+  product_type: string;
 }
 
-const PAGE_PRICE = 159;
-const FEATURE_PRICE = 300;
-const INTEGRATION_PRICE = 199;
-const ADMIN_PORTAL_PRICE = 1200;
-const CLIENT_PORTAL_PRICE = 1000;
-const STAFF_PORTAL_PRICE = 800;
+interface PricingMap {
+  page: number;
+  feature: number;
+  integration: number;
+  portal_admin: number;
+  portal_client: number;
+  portal_staff: number;
+}
 
 const PROJECT_TYPE_MAP: Record<string, string> = {
   brochure: 'Brochure / Information Website',
