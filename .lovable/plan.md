@@ -2,61 +2,47 @@
 
 ## Problem
 
-Currently, when a SOW is sent, a single transaction is created for the full package price. There is no deposit concept, and the line items in the proposal are hardcoded constants rather than being derived from the admin Products catalog. You need:
+Two issues:
 
-1. A configurable **deposit amount** in admin settings (synced with Stripe)
-2. Proposal billing to create **two transactions**: deposit + remaining balance
-3. Line-item pricing derived from the **products table** rather than hardcoded constants
+1. **Slow proposal generation**: The preview step dynamically imports `pdfjs-dist` (~2MB), loads its web worker from a CDN, then renders each page at 2x scale to canvas and converts to PNG data URLs. This is extremely slow — especially on first run when the library hasn't been cached.
+
+2. **Stripe product sync**: Products saved in admin settings call `sync-product-stripe` which correctly creates/updates Stripe products and prices. No issue here — this already works. The deposit amount is stored in `system_settings` but is NOT synced to Stripe as its own product (it's just an internal billing split). If you want the deposit to also be a Stripe line item, that's a separate concern.
 
 ## Plan
 
-### 1. Add deposit configuration to Products settings page
+### 1. Remove `pdfjs-dist` and use iframe-based preview instead
 
-**File**: `src/components/admin/settings/ProductsSettingsTab.tsx`
-- Add a "Deposit Settings" card above the products table
-- Contains a single editable field: **Deposit Amount ($)** with a Save button
-- Reads/writes to `system_settings` table with key `deposit_amount`
-- On save, also syncs the deposit as a Stripe product/price via `sync-product-stripe` edge function
-
-### 2. Store deposit amount in system_settings
-
-**No migration needed** — the `system_settings` table already exists. We'll insert/update a row with `setting_key = 'deposit_amount'` and `setting_value = { amount: 49 }`.
-
-Add an RLS policy so this setting is readable by authenticated admins (already covered by existing admin SELECT policy).
-
-### 3. Update ProposalGenerator billing logic
+The heaviest bottleneck is importing and rendering via `pdfjs-dist`. Replace it with a simple `<iframe>` pointing at the blob URL — browsers have built-in PDF renderers that are instant and support scrolling/paging natively.
 
 **File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx`
 
-Currently (lines 442-458), a single transaction is created on send. Change to:
+- Remove the `pdfjs-dist` import and all canvas rendering logic (lines 541-559)
+- Remove `previewPages`, `currentPage`, `totalPages` state
+- In `handleShowPreview`: just generate the blob, create a blob URL, set `showPreview = true`
+- In the preview UI: replace the `<img>` + page arrows with a single `<iframe src={previewUrl}>` that fills the dialog. The browser's native PDF viewer handles paging, zoom, and scrolling
+- This eliminates the ~3-5 second rendering delay entirely
 
-- Fetch the deposit amount from `system_settings` on dialog open
-- On "Send Proposal", create **two transactions**:
-  - **Transaction 1**: `item: "Deposit — {BusinessName}"`, `debit: depositAmount`, `status: 'completed'`, `invoice_status: 'not_sent'`
-  - **Transaction 2**: `item: "{PackageName} Package — {BusinessName}"`, `debit: actualPrice - depositAmount`, `status: 'completed'`, `invoice_status: 'not_sent'`
-- The SOW PDF itself still shows the **full package price** (e.g. $1000) — the deposit split is an internal billing concern
+**File**: `package.json`
+- Remove `pdfjs-dist` dependency (no longer needed)
 
-### 4. Derive line-item pricing from products table
+### 2. Optimize PDF generation itself
 
-**Database migration**: Add columns to `products` table for categorizing product types:
-```sql
-ALTER TABLE products ADD COLUMN product_type text NOT NULL DEFAULT 'package';
--- product_type values: 'package', 'page', 'feature', 'integration', 'portal_admin', 'portal_client', 'portal_staff'
-```
+**File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx`
 
-**File**: `src/hooks/useProducts.ts` — Update `Product` interface to include `product_type`
+- Reduce gradient divider steps from 20 to 8 (visual difference is negligible, saves draw calls)
+- Use `compress: true` already set — good
+- Lazy-load `jspdf` only once and cache the import (it's already dynamic, but we can memoize it)
 
-**File**: `src/components/admin/settings/ProductsSettingsTab.tsx` — Add a "Type" dropdown when creating/editing products (Package, Page Add-on, Feature Add-on, Integration Add-on, Admin Portal, Client Portal, Staff Portal)
+### 3. Ensure Stripe sync covers all product types
 
-**File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx` — Replace hardcoded `PAGE_PRICE`, `FEATURE_PRICE`, `INTEGRATION_PRICE`, `ADMIN_PORTAL_PRICE`, etc. with values fetched from products where `product_type` matches
+The existing `sync-product-stripe` edge function and `useProducts` hook already handle creating/updating Stripe products and prices for any product type. When an admin changes a price in the Products settings, it syncs to Stripe automatically. No changes needed here — this is already working correctly.
 
-### Summary of changes
+### Summary
 
 | File | Change |
 |------|--------|
-| **Migration** | Add `product_type` column to `products` table |
-| `src/hooks/useProducts.ts` | Add `product_type` to Product interface |
-| `src/components/admin/settings/ProductsSettingsTab.tsx` | Add deposit config card + product type dropdown |
-| `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx` | Fetch deposit from settings, create 2 transactions on send, use product-derived pricing |
-| `supabase/functions/sync-product-stripe/index.ts` | No change needed — already handles any product |
+| `ProposalGenerator.tsx` | Replace pdfjs-dist canvas rendering with native iframe PDF viewer; reduce gradient steps |
+| `package.json` | Remove `pdfjs-dist` dependency |
+
+The primary speedup comes from eliminating `pdfjs-dist` entirely. The PDF generation via `jspdf` itself is fast (~200ms); the bottleneck was the subsequent parsing and canvas rendering.
 
