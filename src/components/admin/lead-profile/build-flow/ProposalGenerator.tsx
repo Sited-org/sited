@@ -71,9 +71,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [previewPage, setPreviewPage] = useState(1);
   const [previewTotalPages, setPreviewTotalPages] = useState(1);
+  const pdfBlobRef = useRef<Blob | null>(null);
   const [depositAmount, setDepositAmount] = useState(49);
   const [pricing, setPricing] = useState<PricingMap>({
     page: 159, feature: 300, integration: 199,
