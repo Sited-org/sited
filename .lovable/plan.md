@@ -1,44 +1,62 @@
 
 
-## Animation Timing & Ingle Brown Screenshot Fix
+## Problem
 
-### 1. Animation Start Time (both components)
+Currently, when a SOW is sent, a single transaction is created for the full package price. There is no deposit concept, and the line items in the proposal are hardcoded constants rather than being derived from the admin Products catalog. You need:
 
-**Files:** `src/components/work/WebsiteShowcaseGrid.tsx` and `src/components/offer/SocialProofSection.tsx`
+1. A configurable **deposit amount** in admin settings (synced with Stripe)
+2. Proposal billing to create **two transactions**: deposit + remaining balance
+3. Line-item pricing derived from the **products table** rather than hardcoded constants
 
-Change the stagger delay formula in both `MacBookCard` and `MiniMacBookCard`:
+## Plan
 
-- **Current:** `index * 1000 + 1500` (WebsiteShowcaseGrid) / `index * 1200 + 1500` (SocialProofSection)
-- **New:** `index * 500 + 750` -- 0.75s base delay, 0.5s offset between each card
+### 1. Add deposit configuration to Products settings page
 
-### 2. Ingle Brown Screenshot Issue
+**File**: `src/components/admin/settings/ProductsSettingsTab.tsx`
+- Add a "Deposit Settings" card above the products table
+- Contains a single editable field: **Deposit Amount ($)** with a Save button
+- Reads/writes to `system_settings` table with key `deposit_amount`
+- On save, also syncs the deposit as a Stripe product/price via `sync-product-stripe` edge function
 
-The Ingle Brown site (`inglebrown.sited.co`) is a React SPA. The microlink.io capture uses `fullPage=true` with a 5-second wait, but React SPAs with sticky/fixed headers can cause the header to render at the bottom of a full-page capture due to how the browser composites fixed-position elements during a full-page screenshot stitch.
+### 2. Store deposit amount in system_settings
 
-**Fix:** Re-capture the Ingle Brown screenshot with `scroll=true` and a longer wait time to allow the SPA to fully hydrate, and add `waitUntil=networkidle` to ensure all assets load before capture. The edge function `capture-site-screenshots` will be updated:
+**No migration needed** — the `system_settings` table already exists. We'll insert/update a row with `setting_key = 'deposit_amount'` and `setting_value = { amount: 49 }`.
 
-- Add `&scroll=true` to the microlink URL to handle sticky headers properly
-- Increase `waitForTimeout` from 5000 to 8000ms for better React hydration
-- After updating the function, re-run it to generate a corrected screenshot
+Add an RLS policy so this setting is readable by authenticated admins (already covered by existing admin SELECT policy).
 
-### Technical Details
+### 3. Update ProposalGenerator billing logic
 
-**WebsiteShowcaseGrid.tsx (line 72):**
+**File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx`
+
+Currently (lines 442-458), a single transaction is created on send. Change to:
+
+- Fetch the deposit amount from `system_settings` on dialog open
+- On "Send Proposal", create **two transactions**:
+  - **Transaction 1**: `item: "Deposit — {BusinessName}"`, `debit: depositAmount`, `status: 'completed'`, `invoice_status: 'not_sent'`
+  - **Transaction 2**: `item: "{PackageName} Package — {BusinessName}"`, `debit: actualPrice - depositAmount`, `status: 'completed'`, `invoice_status: 'not_sent'`
+- The SOW PDF itself still shows the **full package price** (e.g. $1000) — the deposit split is an internal billing concern
+
+### 4. Derive line-item pricing from products table
+
+**Database migration**: Add columns to `products` table for categorizing product types:
+```sql
+ALTER TABLE products ADD COLUMN product_type text NOT NULL DEFAULT 'package';
+-- product_type values: 'package', 'page', 'feature', 'integration', 'portal_admin', 'portal_client', 'portal_staff'
 ```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1000 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
 
-**SocialProofSection.tsx (line 63):**
-```
-// Before
-const timer = setTimeout(() => setScrollActive(true), index * 1200 + 1500);
-// After
-const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
-```
+**File**: `src/hooks/useProducts.ts` — Update `Product` interface to include `product_type`
 
-**capture-site-screenshots/index.ts (line 33):**
-Update the microlink URL to include scroll and longer timeout parameters to fix sticky header rendering in full-page captures.
+**File**: `src/components/admin/settings/ProductsSettingsTab.tsx` — Add a "Type" dropdown when creating/editing products (Package, Page Add-on, Feature Add-on, Integration Add-on, Admin Portal, Client Portal, Staff Portal)
+
+**File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx` — Replace hardcoded `PAGE_PRICE`, `FEATURE_PRICE`, `INTEGRATION_PRICE`, `ADMIN_PORTAL_PRICE`, etc. with values fetched from products where `product_type` matches
+
+### Summary of changes
+
+| File | Change |
+|------|--------|
+| **Migration** | Add `product_type` column to `products` table |
+| `src/hooks/useProducts.ts` | Add `product_type` to Product interface |
+| `src/components/admin/settings/ProductsSettingsTab.tsx` | Add deposit config card + product type dropdown |
+| `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx` | Fetch deposit from settings, create 2 transactions on send, use product-derived pricing |
+| `supabase/functions/sync-product-stripe/index.ts` | No change needed — already handles any product |
 
