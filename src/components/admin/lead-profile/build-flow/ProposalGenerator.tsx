@@ -121,9 +121,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       // Build dynamic pricing from products table
       const newPricing = { ...pricing };
       prods.forEach(p => {
-        const t = p.product_type as keyof PricingMap;
-        if (t && t !== 'package' && t in newPricing) {
-          newPricing[t] = p.price;
+        if (p.product_type && p.product_type !== 'package' && p.product_type in newPricing) {
+          (newPricing as any)[p.product_type] = p.price;
         }
       });
       setPricing(newPricing);
