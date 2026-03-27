@@ -324,6 +324,7 @@ export function BuildFlowView({
         businessName={businessName}
         open={showProposalGenerator}
         onOpenChange={setShowProposalGenerator}
+        onProposalSent={refetch}
       />
 
       {/* Restart Flow Dialog */}
