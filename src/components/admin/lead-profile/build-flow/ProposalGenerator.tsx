@@ -645,7 +645,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     )}
                     {features.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Features ({features.length} × ${FEATURE_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Features ({features.length} × ${pricing.feature})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {features.map((f, i) => <Badge key={i} variant="outline" className="text-xs">{f}</Badge>)}
                         </div>
