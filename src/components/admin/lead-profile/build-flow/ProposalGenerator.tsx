@@ -433,9 +433,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     // ─── FOOTER ───
     drawFooter(pdf, W, H);
 
-    const pageCount = typeof (pdf as any).getNumberOfPages === 'function'
-      ? (pdf as any).getNumberOfPages()
-      : pdf.internal.getNumberOfPages();
+    const pageCount = (pdf as any).internal.getNumberOfPages();
 
     return { blob: pdf.output('blob'), pageCount };
   }, [allItems, businessName, projectType, today, fileSlug, totalItemized, savings, actualPrice, selectedProduct]);
