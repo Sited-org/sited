@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, FileText, Eye, ArrowLeft, Send } from 'lucide-react';
+import { Loader2, FileText, Eye, ArrowLeft, ArrowRight, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -69,10 +69,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     if (!open) {
       setShowPreview(false);
+      setPreviewPages([]);
+      setCurrentPage(0);
+      setTotalPages(0);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
@@ -368,14 +374,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     const priceStr = `$${actualPrice.toLocaleString()}`;
     pdf.text(priceStr, W - MR - 20, y + 32, { align: 'right' });
     if (selectedProduct) {
-      const badgeText = `${selectedProduct.name} Package`.toUpperCase();
+      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
+      const badgeText = `${productName} Package`.toUpperCase();
       pdf.setFontSize(7);
       const bw = pdf.getTextWidth(badgeText) + 14;
-      const bx = W - MR - 20 - pdf.getTextWidth(priceStr) - bw - 12;
+      // Position badge to the left of "Your Price" label
+      const bx = ML + 120;
       pdf.setFillColor(SLATE_700);
-      pdf.roundedRect(bx, y + 21, bw, 16, 3, 3, 'F');
+      pdf.roundedRect(bx, y - 14 + 21, bw, 16, 3, 3, 'F');
       pdf.setTextColor(SLATE_200);
-      pdf.text(badgeText, bx + 7, y + 32);
+      pdf.text(badgeText, bx + 7, y - 14 + 32);
     }
     y += 62;
 
@@ -473,6 +481,29 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
+
+      // Render PDF pages to canvas images using jsPDF internal pages
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const numPages = pdfDoc.numPages;
+      setTotalPages(numPages);
+      setCurrentPage(0);
+
+      const pageImages: string[] = [];
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const scale = 2;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d')!;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+        pageImages.push(canvas.toDataURL('image/png'));
+      }
+      setPreviewPages(pageImages);
       setShowPreview(true);
     } catch (err) {
       console.error('Preview generation failed:', err);
@@ -494,14 +525,43 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            <div className="flex-1 max-h-[65vh] bg-muted/50 rounded-lg overflow-hidden">
-              {previewUrl ? (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full border-0 rounded-lg"
-                  style={{ minHeight: '60vh' }}
-                  title="Proposal Preview"
-                />
+            <div className="flex-1 flex flex-col items-center bg-muted/50 rounded-lg overflow-hidden">
+              {previewPages.length > 0 ? (
+                <>
+                  <div className="flex-1 flex items-center justify-center p-4 max-h-[58vh]">
+                    <img
+                      src={previewPages[currentPage]}
+                      alt={`Page ${currentPage + 1}`}
+                      className="max-h-full max-w-full rounded shadow-lg border border-border"
+                      style={{ objectFit: 'contain' }}
+                    />
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-3 py-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={currentPage === 0}
+                        onClick={() => setCurrentPage(p => p - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Page {currentPage + 1} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={currentPage === totalPages - 1}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
                   Loading preview...
@@ -579,7 +639,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                       <p className="text-sm text-muted-foreground line-through">Total: ${totalItemized.toLocaleString()}</p>
                       <p className="text-lg font-bold">
                         {selectedProduct ? `$${actualPrice.toLocaleString()}` : '—'}
-                        {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name} Package</span>}
+                        {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name.replace(/\s*package\s*/i, '')} Package</span>}
                       </p>
                     </div>
                   </div>
