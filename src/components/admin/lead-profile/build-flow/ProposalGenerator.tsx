@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, FileText, Eye, ArrowLeft, Send, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, FileText, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -69,27 +69,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [previewPages, setPreviewPages] = useState<string[]>([]);
-  const [previewPage, setPreviewPage] = useState(1);
-  const [previewTotalPages, setPreviewTotalPages] = useState(1);
-  const pdfBlobRef = useRef<Blob | null>(null);
   const [depositAmount, setDepositAmount] = useState(49);
+  const [existingDepositPaid, setExistingDepositPaid] = useState(false);
   const [pricing, setPricing] = useState<PricingMap>({
     page: 159, feature: 300, integration: 199,
     portal_admin: 1200, portal_client: 1000, portal_staff: 800,
   });
 
   useEffect(() => {
-    if (!open) {
-      setShowPreview(false);
-      setPreviewPage(1);
-      setPreviewTotalPages(1);
-      setPreviewPages([]);
-      pdfBlobRef.current = null;
-      return;
-    }
+    if (!open) return;
     setLoading(true);
     Promise.all([
       supabase
@@ -106,7 +95,13 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         .select('setting_value')
         .eq('setting_key', 'deposit_amount')
         .maybeSingle(),
-    ]).then(([answersRes, productsRes, depositRes]) => {
+      // Check if deposit already exists for this lead
+      supabase
+        .from('transactions')
+        .select('id, item, debit, status')
+        .eq('lead_id', leadId)
+        .ilike('item', '%Deposit%'),
+    ]).then(([answersRes, productsRes, depositRes, existingTxRes]) => {
       const map: Record<string, string> = {};
       (answersRes.data || []).forEach((row: any) => {
         map[row.question_key] = row.answer_value;
@@ -136,9 +131,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         setDepositAmount(val.amount ?? 49);
       }
 
+      // Check if deposit is already paid
+      const depositTxs = (existingTxRes.data || []) as any[];
+      const hasPaidDeposit = depositTxs.some(
+        (tx: any) => tx.status === 'completed' || tx.status === 'paid'
+      );
+      setExistingDepositPaid(hasPaidDeposit);
+
       setLoading(false);
     });
-  }, [open, buildFlowId]);
+  }, [open, buildFlowId, leadId]);
 
   const parseArray = (val: string | undefined): string[] => {
     if (!val) return [];
@@ -189,12 +191,12 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   allItems.push({ desc: 'Device Design Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
 
-  const generatePdfBlob = useCallback(async (): Promise<{ blob: Blob; pageCount: number } | null> => {
+  const generatePdfBlob = useCallback(async (): Promise<Blob | null> => {
     const { jsPDF } = await import('jspdf');
 
-    const W = 595.28; // A4 width in pt
-    const H = 841.89; // A4 height in pt
-    const CW = W - ML - MR; // content width
+    const W = 595.28;
+    const H = 841.89;
+    const CW = W - ML - MR;
 
     const pdf = new jsPDF({ unit: 'pt', format: 'a4', compress: true });
     let y = MT;
@@ -239,7 +241,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
     y += 44;
 
-    // Simple gradient divider (fewer segments for smaller file)
+    // Gradient divider
     const gradSteps = 8;
     for (let i = 0; i < gradSteps; i++) {
       const ratio = i / gradSteps;
@@ -297,16 +299,14 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     y += 20;
 
     // ─── TABLE HEADER ───
-    const colNum = 40;
-    const colPrice = 70;
     const rowH = 28;
     const headerH = 30;
+    const colNum = 40;
 
     const drawTableHeader = () => {
       pdf.setFillColor(SLATE_900);
       pdf.roundedRect(ML, y, CW, headerH, 4, 4, 'F');
       pdf.rect(ML, y + headerH - 4, CW, 4, 'F');
-
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(7.5);
       pdf.setTextColor(WHITE);
@@ -321,15 +321,11 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     // ─── TABLE ROWS ───
     allItems.forEach((item, i) => {
       checkPage(rowH);
-
-      if (y === MT) {
-        drawTableHeader();
-      }
+      if (y === MT) drawTableHeader();
 
       const bgColor = i % 2 === 1 ? SLATE_50 : WHITE;
       pdf.setFillColor(bgColor);
       pdf.rect(ML, y, CW, rowH, 'F');
-
       pdf.setDrawColor(SLATE_100);
       pdf.setLineWidth(0.3);
       pdf.line(ML, y + rowH, ML + CW, y + rowH);
@@ -354,7 +350,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         pdf.setTextColor(SLATE_700);
       }
       pdf.text(item.price, W - MR - 14, y + 17, { align: 'right' });
-
       y += rowH;
     });
 
@@ -393,6 +388,20 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setFillColor(SLATE_900);
     pdf.roundedRect(ML, y, CW, 48, 6, 6, 'F');
     pdf.rect(ML, y, CW, 6, 'F');
+
+    // Package badge — positioned to the left
+    if (selectedProduct) {
+      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
+      const badgeText = `${productName} Package`.toUpperCase();
+      pdf.setFontSize(7);
+      const bw = pdf.getTextWidth(badgeText) + 14;
+      const bx = ML + 120;
+      pdf.setFillColor(SLATE_700);
+      pdf.roundedRect(bx, y + 7, bw, 16, 3, 3, 'F');
+      pdf.setTextColor(SLATE_200);
+      pdf.text(badgeText, bx + 7, y + 18);
+    }
+
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
     pdf.setTextColor(SLATE_400);
@@ -400,20 +409,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(22);
     pdf.setTextColor(WHITE);
-    const priceStr = `$${actualPrice.toLocaleString()}`;
-    pdf.text(priceStr, W - MR - 20, y + 32, { align: 'right' });
-    if (selectedProduct) {
-      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
-      const badgeText = `${productName} Package`.toUpperCase();
-      pdf.setFontSize(7);
-      const bw = pdf.getTextWidth(badgeText) + 14;
-      // Position badge to the left of "Your Price" label
-      const bx = ML + 120;
-      pdf.setFillColor(SLATE_700);
-      pdf.roundedRect(bx, y - 14 + 21, bw, 16, 3, 3, 'F');
-      pdf.setTextColor(SLATE_200);
-      pdf.text(badgeText, bx + 7, y - 14 + 32);
-    }
+    pdf.text(`$${actualPrice.toLocaleString()}`, W - MR - 20, y + 32, { align: 'right' });
     y += 62;
 
     // ─── DISCLAIMER ───
@@ -427,26 +423,21 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     const disclaimerText = 'All pages, features, and integrations listed above & as discussed in our discovery call will be completed into what we build for you, using your personalised design preferences, and requests — Additional features may come at an additional cost, unless you are covered with the "Sited Care Plan" for all changes.';
     const splitDisclaimer = pdf.splitTextToSize(disclaimerText, CW - 36);
     pdf.text(splitDisclaimer, ML + 18, y + 18);
-    y += 70;
 
     // ─── FOOTER ───
     drawFooter(pdf, W, H);
 
-    const pageCount = (pdf as any).internal.getNumberOfPages();
-
-    return { blob: pdf.output('blob'), pageCount };
+    return pdf.output('blob');
   }, [allItems, businessName, projectType, today, fileSlug, totalItemized, savings, actualPrice, selectedProduct]);
 
   const handleSendProposal = async () => {
     setGenerating(true);
     try {
-      const pdfResult = await generatePdfBlob();
-      if (!pdfResult) {
+      const blob = await generatePdfBlob();
+      if (!blob) {
         toast.error('Failed to generate PDF');
         return;
       }
-
-      const { blob } = pdfResult;
 
       // Convert blob to base64
       const arrayBuffer = await blob.arrayBuffer();
@@ -459,12 +450,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
       // Send via edge function
       const { error } = await supabase.functions.invoke('send-proposal-email', {
-        body: {
-          leadId,
-          pdfBase64,
-          fileName,
-          buildFlowId,
-        },
+        body: { leadId, pdfBase64, fileName, buildFlowId },
       });
 
       if (error) {
@@ -472,35 +458,54 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      // Auto-generate billing: split into deposit + remaining balance
+      // Auto-generate billing: deposit-aware split
       if (selectedProduct && actualPrice > 0) {
-        const deposit = Math.min(depositAmount, actualPrice);
-        const remaining = actualPrice - deposit;
-        
         const transactions: any[] = [];
-        if (deposit > 0) {
-          transactions.push({
-            lead_id: leadId,
-            item: `Deposit — ${businessName}`,
-            debit: deposit,
-            credit: 0,
-            status: 'completed',
-            invoice_status: 'not_sent',
-            payment_method: 'pending',
-            notes: `Auto-generated deposit from proposal (${fileName})`,
-          });
-        }
-        if (remaining > 0) {
-          transactions.push({
-            lead_id: leadId,
-            item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
-            debit: remaining,
-            credit: 0,
-            status: 'completed',
-            invoice_status: 'not_sent',
-            payment_method: 'pending',
-            notes: `Auto-generated balance from proposal (${fileName})`,
-          });
+
+        if (existingDepositPaid) {
+          // Deposit already paid — only assign the remaining balance
+          const remaining = actualPrice - Math.min(depositAmount, actualPrice);
+          if (remaining > 0) {
+            transactions.push({
+              lead_id: leadId,
+              item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+              debit: remaining,
+              credit: 0,
+              status: 'completed',
+              invoice_status: 'not_sent',
+              payment_method: 'pending',
+              notes: `Package balance (deposit already paid). From proposal: ${fileName}`,
+            });
+          }
+        } else {
+          // No deposit paid — create both deposit and balance
+          const deposit = Math.min(depositAmount, actualPrice);
+          const remaining = actualPrice - deposit;
+
+          if (deposit > 0) {
+            transactions.push({
+              lead_id: leadId,
+              item: `Deposit — ${businessName}`,
+              debit: deposit,
+              credit: 0,
+              status: 'completed',
+              invoice_status: 'not_sent',
+              payment_method: 'pending',
+              notes: `Auto-generated deposit from proposal (${fileName})`,
+            });
+          }
+          if (remaining > 0) {
+            transactions.push({
+              lead_id: leadId,
+              item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+              debit: remaining,
+              credit: 0,
+              status: 'completed',
+              invoice_status: 'not_sent',
+              payment_method: 'pending',
+              notes: `Auto-generated balance from proposal (${fileName})`,
+            });
+          }
         }
 
         if (transactions.length > 0) {
@@ -508,7 +513,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
           if (txError) {
             console.error('Failed to create billing entries:', txError);
           } else {
-            toast.success('Billing charges added to client account');
+            toast.success(existingDepositPaid
+              ? 'Package charge added (deposit already paid)'
+              : 'Deposit & package charges added to client account'
+            );
           }
         }
       }
@@ -517,51 +525,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       onProposalSent?.();
       onOpenChange(false);
     } catch (err) {
-      console.error('PDF generation failed:', err);
+      console.error('Send proposal failed:', err);
       toast.error('Failed to send proposal');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const renderPagesToImages = async (blob: Blob): Promise<string[]> => {
-    const pdfjsLib = await import('pdfjs-dist');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-    const arrayBuffer = await blob.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const images: string[] = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d')!;
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      images.push(canvas.toDataURL('image/png'));
-    }
-    return images;
-  };
-
-  const handleShowPreview = async () => {
-    setGenerating(true);
-    try {
-      const pdfResult = await generatePdfBlob();
-      if (!pdfResult) {
-        toast.error('Failed to generate preview');
-        setGenerating(false);
-        return;
-      }
-      const { blob, pageCount } = pdfResult;
-      pdfBlobRef.current = blob;
-      const images = await renderPagesToImages(blob);
-      setPreviewPages(images);
-      setPreviewPage(1);
-      setPreviewTotalPages(pageCount);
-      setShowPreview(true);
-    } catch (err) {
-      console.error('Preview generation failed:', err);
-      toast.error('Failed to generate preview');
     } finally {
       setGenerating(false);
     }
@@ -573,141 +538,126 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            {showPreview ? 'Proposal Preview' : 'Generate Proposal'} — {businessName}
+            Generate & Send Proposal — {businessName}
           </DialogTitle>
         </DialogHeader>
 
-        {showPreview ? (
-          <>
-            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden flex items-center justify-center">
-              {previewPages.length > 0 ? (
-                <img
-                  src={previewPages[previewPage - 1]}
-                  alt={`Proposal page ${previewPage}`}
-                  className="max-h-[62vh] w-auto object-contain rounded-md shadow-md"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
-                  Loading preview...
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="flex-row flex-wrap items-center justify-between sm:justify-between gap-2">
-              <Button variant="outline" onClick={() => setShowPreview(false)}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={previewPage <= 1}
-                  onClick={() => setPreviewPage((page) => Math.max(1, page - 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="min-w-24 text-center text-sm text-muted-foreground">
-                  Page {previewPage} of {previewTotalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={previewPage >= previewTotalPages}
-                  onClick={() => setPreviewPage((page) => Math.min(previewTotalPages, page + 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+        <ScrollArea className="max-h-[55vh] pr-4">
+          {loading ? (
+            <div className="py-8 text-center text-muted-foreground">Loading data…</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Package Tier</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
+                  <SelectContent>
+                    {packageProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} — ${p.price.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Button onClick={handleSendProposal} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                Send Proposal to Client
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <ScrollArea className="max-h-[55vh] pr-4">
-              {loading ? (
-                <div className="py-8 text-center text-muted-foreground">Loading data…</div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Package Tier</Label>
-                    <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                      <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
-                      <SelectContent>
-                        {packageProducts.map(p => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name} — ${p.price.toLocaleString()}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <h4 className="text-sm font-semibold">Scope of Works</h4>
-                    {pages.length > 0 && (
-                      <div>
-                        <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${pricing.page})</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {pages.map((p, i) => <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>)}
-                        </div>
-                      </div>
-                    )}
-                    {features.length > 0 && (
-                      <div>
-                        <span className="text-xs text-muted-foreground">Features ({features.length} × ${pricing.feature})</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {features.map((f, i) => <Badge key={i} variant="outline" className="text-xs">{f}</Badge>)}
-                        </div>
-                      </div>
-                    )}
-                    {integrations.length > 0 && (
-                      <div>
-                        <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${pricing.integration})</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {integrations.map((ig, i) => <Badge key={i} variant="outline" className="text-xs">{ig}</Badge>)}
-                        </div>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-xs text-muted-foreground">Included at no extra cost</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <Badge variant="secondary" className="text-xs">SEO Optimisation — FREE</Badge>
-                        <Badge variant="secondary" className="text-xs">Device Design Optimisation — FREE</Badge>
-                        <Badge variant="secondary" className="text-xs">{revisionRounds} Revision Round{revisionRounds === '1' ? '' : 's'} — FREE</Badge>
-                      </div>
-                    </div>
-                    <div className="border-t pt-3 mt-3 text-right space-y-1">
-                      <p className="text-sm text-muted-foreground line-through">Total: ${totalItemized.toLocaleString()}</p>
-                      <p className="text-lg font-bold">
-                        {selectedProduct ? `$${actualPrice.toLocaleString()}` : '—'}
-                        {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name.replace(/\s*package\s*/i, '')} Package</span>}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    File: <code className="bg-muted px-1 rounded">{fileName}</code>
+              {existingDepositPaid && (
+                <div className="rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3">
+                  <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                    ✓ Deposit already paid — only the package balance will be charged.
                   </p>
                 </div>
               )}
-            </ScrollArea>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={handleShowPreview} disabled={loading || !selectedProductId || generating}>
-                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Eye className="h-4 w-4 mr-2" />}
-                Generate Proposal
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+
+              <div className="rounded-lg border p-4 space-y-3">
+                <h4 className="text-sm font-semibold">Scope of Works</h4>
+                {pages.length > 0 && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${pricing.page})</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {pages.map((p, i) => <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {features.length > 0 && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Features ({features.length} × ${pricing.feature})</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {features.map((f, i) => <Badge key={i} variant="outline" className="text-xs">{f}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                {integrations.length > 0 && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${pricing.integration})</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {integrations.map((ig, i) => <Badge key={i} variant="outline" className="text-xs">{ig}</Badge>)}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <span className="text-xs text-muted-foreground">Included at no extra cost</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    <Badge variant="secondary" className="text-xs">SEO Optimisation — FREE</Badge>
+                    <Badge variant="secondary" className="text-xs">Device Design Optimisation — FREE</Badge>
+                    <Badge variant="secondary" className="text-xs">{revisionRounds} Revision Round{revisionRounds === '1' ? '' : 's'} — FREE</Badge>
+                  </div>
+                </div>
+                <div className="border-t pt-3 mt-3 space-y-1">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Itemised Total</span>
+                    <span className="line-through">${totalItemized.toLocaleString()}</span>
+                  </div>
+                  {savings > 0 && (
+                    <div className="flex justify-between text-sm text-green-600 font-medium">
+                      <span>Savings</span>
+                      <span>${savings.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-lg font-bold pt-1">
+                    <span>
+                      Package Price
+                      {selectedProduct && (
+                        <span className="text-xs font-normal text-muted-foreground ml-2">
+                          {selectedProduct.name.replace(/\s*package\s*/i, '')} Package
+                        </span>
+                      )}
+                    </span>
+                    <span>{selectedProduct ? `$${actualPrice.toLocaleString()}` : '—'}</span>
+                  </div>
+                  {!existingDepositPaid && actualPrice > 0 && (
+                    <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t">
+                      <span>Deposit</span>
+                      <span>${Math.min(depositAmount, actualPrice).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {actualPrice > 0 && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Balance Due</span>
+                      <span>
+                        ${(existingDepositPaid
+                          ? actualPrice - Math.min(depositAmount, actualPrice)
+                          : actualPrice - Math.min(depositAmount, actualPrice)
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                File: <code className="bg-muted px-1 rounded">{fileName}</code>
+              </p>
+            </div>
+          )}
+        </ScrollArea>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSendProposal} disabled={loading || !selectedProductId || generating}>
+            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+            Send Proposal to Client
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
