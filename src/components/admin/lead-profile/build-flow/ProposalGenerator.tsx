@@ -646,7 +646,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                       <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
                       <SelectContent>
-                        {products.map(p => (
+                        {packageProducts.map(p => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name} — ${p.price.toLocaleString()}
                           </SelectItem>
