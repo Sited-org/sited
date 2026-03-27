@@ -471,22 +471,44 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      // Auto-generate billing charge for the proposal amount
+      // Auto-generate billing: split into deposit + remaining balance
       if (selectedProduct && actualPrice > 0) {
-        const { error: txError } = await supabase.from('transactions').insert({
-          lead_id: leadId,
-          item: `${selectedProduct.name} Package — ${businessName}`,
-          debit: actualPrice,
-          credit: 0,
-          status: 'completed',
-          invoice_status: 'not_sent',
-          payment_method: 'pending',
-          notes: `Auto-generated from proposal (${fileName})`,
-        });
-        if (txError) {
-          console.error('Failed to create billing entry:', txError);
-        } else {
-          toast.success('Billing charge added to client account');
+        const deposit = Math.min(depositAmount, actualPrice);
+        const remaining = actualPrice - deposit;
+        
+        const transactions: any[] = [];
+        if (deposit > 0) {
+          transactions.push({
+            lead_id: leadId,
+            item: `Deposit — ${businessName}`,
+            debit: deposit,
+            credit: 0,
+            status: 'completed',
+            invoice_status: 'not_sent',
+            payment_method: 'pending',
+            notes: `Auto-generated deposit from proposal (${fileName})`,
+          });
+        }
+        if (remaining > 0) {
+          transactions.push({
+            lead_id: leadId,
+            item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+            debit: remaining,
+            credit: 0,
+            status: 'completed',
+            invoice_status: 'not_sent',
+            payment_method: 'pending',
+            notes: `Auto-generated balance from proposal (${fileName})`,
+          });
+        }
+
+        if (transactions.length > 0) {
+          const { error: txError } = await supabase.from('transactions').insert(transactions);
+          if (txError) {
+            console.error('Failed to create billing entries:', txError);
+          } else {
+            toast.success('Billing charges added to client account');
+          }
         }
       }
 
