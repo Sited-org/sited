@@ -481,6 +481,29 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
+
+      // Render PDF pages to canvas images using jsPDF internal pages
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+      const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const numPages = pdfDoc.numPages;
+      setTotalPages(numPages);
+      setCurrentPage(0);
+
+      const pageImages: string[] = [];
+      for (let i = 1; i <= numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const scale = 2;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d')!;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        pageImages.push(canvas.toDataURL('image/png'));
+      }
+      setPreviewPages(pageImages);
       setShowPreview(true);
     } catch (err) {
       console.error('Preview generation failed:', err);
