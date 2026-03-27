@@ -15,6 +15,7 @@ interface ProposalGeneratorProps {
   businessName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProposalSent?: () => void;
 }
 
 interface Product {
