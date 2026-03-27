@@ -86,10 +86,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       setShowPreview(false);
       setPreviewPage(1);
       setPreviewTotalPages(1);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
+      setPreviewPages([]);
+      pdfBlobRef.current = null;
       return;
     }
     setLoading(true);
