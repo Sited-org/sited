@@ -241,7 +241,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     y += 44;
 
     // Simple gradient divider (fewer segments for smaller file)
-    const gradSteps = 20;
+    const gradSteps = 8;
     for (let i = 0; i < gradSteps; i++) {
       const ratio = i / gradSteps;
       const r = Math.round(15 + ratio * (226 - 15));
