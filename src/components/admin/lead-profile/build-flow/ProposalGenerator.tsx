@@ -530,15 +530,18 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const handleShowPreview = async () => {
     setGenerating(true);
     try {
-      const blob = await generatePdfBlob();
-      if (!blob) {
+      const pdfResult = await generatePdfBlob();
+      if (!pdfResult) {
         toast.error('Failed to generate preview');
         setGenerating(false);
         return;
       }
+      const { blob, pageCount } = pdfResult;
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
+      setPreviewPage(1);
+      setPreviewTotalPages(pageCount);
       setShowPreview(true);
     } catch (err) {
       console.error('Preview generation failed:', err);
