@@ -68,6 +68,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
