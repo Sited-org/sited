@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Loader2, FileText, Eye, ArrowLeft, Send } from 'lucide-react';
+import { Loader2, FileText, Eye, ArrowLeft, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -72,7 +72,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  // removed pdfjs-dist state — using iframe preview now
+  const [previewPage, setPreviewPage] = useState(1);
+  const [previewTotalPages, setPreviewTotalPages] = useState(1);
   const [depositAmount, setDepositAmount] = useState(49);
   const [pricing, setPricing] = useState<PricingMap>({
     page: 159, feature: 300, integration: 199,
@@ -82,6 +83,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   useEffect(() => {
     if (!open) {
       setShowPreview(false);
+      setPreviewPage(1);
+      setPreviewTotalPages(1);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
@@ -187,7 +190,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   allItems.push({ desc: 'Device Design Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
 
-  const generatePdfBlob = useCallback(async (): Promise<Blob | null> => {
+  const generatePdfBlob = useCallback(async (): Promise<{ blob: Blob; pageCount: number } | null> => {
     const { jsPDF } = await import('jspdf');
 
     const W = 595.28; // A4 width in pt
@@ -238,7 +241,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     y += 44;
 
     // Simple gradient divider (fewer segments for smaller file)
-    const gradSteps = 20;
+    const gradSteps = 8;
     for (let i = 0; i < gradSteps; i++) {
       const ratio = i / gradSteps;
       const r = Math.round(15 + ratio * (226 - 15));
@@ -430,17 +433,21 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     // ─── FOOTER ───
     drawFooter(pdf, W, H);
 
-    return pdf.output('blob');
+    const pageCount = (pdf as any).internal.getNumberOfPages();
+
+    return { blob: pdf.output('blob'), pageCount };
   }, [allItems, businessName, projectType, today, fileSlug, totalItemized, savings, actualPrice, selectedProduct]);
 
   const handleSendProposal = async () => {
     setGenerating(true);
     try {
-      const blob = await generatePdfBlob();
-      if (!blob) {
+      const pdfResult = await generatePdfBlob();
+      if (!pdfResult) {
         toast.error('Failed to generate PDF');
         return;
       }
+
+      const { blob } = pdfResult;
 
       // Convert blob to base64
       const arrayBuffer = await blob.arrayBuffer();
@@ -521,15 +528,18 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const handleShowPreview = async () => {
     setGenerating(true);
     try {
-      const blob = await generatePdfBlob();
-      if (!blob) {
+      const pdfResult = await generatePdfBlob();
+      if (!pdfResult) {
         toast.error('Failed to generate preview');
         setGenerating(false);
         return;
       }
+      const { blob, pageCount } = pdfResult;
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
+      setPreviewPage(1);
+      setPreviewTotalPages(pageCount);
       setShowPreview(true);
     } catch (err) {
       console.error('Preview generation failed:', err);
@@ -554,9 +564,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
             <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden">
               {previewUrl ? (
                 <iframe
-                  src={previewUrl}
+                  key={previewPage}
+                  src={`${previewUrl}#page=${previewPage}&view=FitH`}
                   className="w-full h-[62vh] border-0 rounded-md"
-                  title="Proposal Preview"
+                  title={`Proposal Preview Page ${previewPage}`}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
@@ -565,11 +576,36 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
               )}
             </div>
 
-            <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
+            <DialogFooter className="flex-row flex-wrap items-center justify-between sm:justify-between gap-2">
               <Button variant="outline" onClick={() => setShowPreview(false)}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={previewPage <= 1}
+                  onClick={() => setPreviewPage((page) => Math.max(1, page - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-24 text-center text-sm text-muted-foreground">
+                  Page {previewPage} of {previewTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={previewPage >= previewTotalPages}
+                  onClick={() => setPreviewPage((page) => Math.min(previewTotalPages, page + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
               <Button onClick={handleSendProposal} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 Send Proposal to Client
