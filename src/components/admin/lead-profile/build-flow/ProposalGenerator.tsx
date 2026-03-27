@@ -61,7 +61,7 @@ const MR = 28;
 const MT = 43;
 const MB = 50;
 
-export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange }: ProposalGeneratorProps) {
+export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onOpenChange, onProposalSent }: ProposalGeneratorProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
