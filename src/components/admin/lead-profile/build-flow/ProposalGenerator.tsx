@@ -458,9 +458,19 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      // Auto-generate billing: deposit-aware split
+      // Auto-generate billing: deposit-aware split (with duplicate guard)
       if (selectedProduct && actualPrice > 0) {
-        const transactions: any[] = [];
+        // Check if billing entries already exist from a previous proposal send
+        const { data: existingProposalTxs } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('lead_id', leadId)
+          .ilike('notes', `%From proposal: ${fileName}%`)
+          .limit(1);
+
+        if (existingProposalTxs && existingProposalTxs.length > 0) {
+          toast.info('Billing entries already exist for this proposal — skipping duplicate charges.');
+        } else {
 
         if (existingDepositPaid) {
           // Deposit already paid — only assign the remaining balance
