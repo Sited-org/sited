@@ -579,13 +579,12 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden">
-              {previewUrl ? (
-                <iframe
-                  key={previewPage}
-                  src={`${previewUrl}#page=${previewPage}&view=FitH`}
-                  className="w-full h-[62vh] border-0 rounded-md"
-                  title={`Proposal Preview Page ${previewPage}`}
+            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden flex items-center justify-center">
+              {previewPages.length > 0 ? (
+                <img
+                  src={previewPages[previewPage - 1]}
+                  alt={`Proposal page ${previewPage}`}
+                  className="max-h-[62vh] w-auto object-contain rounded-md shadow-md"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
