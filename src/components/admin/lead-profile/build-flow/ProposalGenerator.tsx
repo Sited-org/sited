@@ -71,9 +71,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [loading, setLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [previewPage, setPreviewPage] = useState(1);
   const [previewTotalPages, setPreviewTotalPages] = useState(1);
+  const pdfBlobRef = useRef<Blob | null>(null);
   const [depositAmount, setDepositAmount] = useState(49);
   const [pricing, setPricing] = useState<PricingMap>({
     page: 159, feature: 300, integration: 199,
@@ -85,10 +86,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       setShowPreview(false);
       setPreviewPage(1);
       setPreviewTotalPages(1);
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(null);
-      }
+      setPreviewPages([]);
+      pdfBlobRef.current = null;
       return;
     }
     setLoading(true);
@@ -525,6 +524,25 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     }
   };
 
+  const renderPagesToImages = async (blob: Blob): Promise<string[]> => {
+    const pdfjsLib = await import('pdfjs-dist');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    const arrayBuffer = await blob.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const images: string[] = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d')!;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      images.push(canvas.toDataURL('image/png'));
+    }
+    return images;
+  };
+
   const handleShowPreview = async () => {
     setGenerating(true);
     try {
@@ -535,9 +553,9 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
       const { blob, pageCount } = pdfResult;
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      pdfBlobRef.current = blob;
+      const images = await renderPagesToImages(blob);
+      setPreviewPages(images);
       setPreviewPage(1);
       setPreviewTotalPages(pageCount);
       setShowPreview(true);
@@ -561,13 +579,12 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
         {showPreview ? (
           <>
-            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden">
-              {previewUrl ? (
-                <iframe
-                  key={previewPage}
-                  src={`${previewUrl}#page=${previewPage}&view=FitH`}
-                  className="w-full h-[62vh] border-0 rounded-md"
-                  title={`Proposal Preview Page ${previewPage}`}
+            <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden flex items-center justify-center">
+              {previewPages.length > 0 ? (
+                <img
+                  src={previewPages[previewPage - 1]}
+                  alt={`Proposal page ${previewPage}`}
+                  className="max-h-[62vh] w-auto object-contain rounded-md shadow-md"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
