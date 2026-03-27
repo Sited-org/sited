@@ -75,6 +75,11 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(49);
+  const [pricing, setPricing] = useState<PricingMap>({
+    page: 159, feature: 300, integration: 199,
+    portal_admin: 1200, portal_client: 1000, portal_staff: 800,
+  });
 
   useEffect(() => {
     if (!open) {
@@ -96,10 +101,15 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         .eq('build_flow_id', buildFlowId),
       supabase
         .from('products')
-        .select('id, name, price, is_active')
+        .select('id, name, price, is_active, product_type')
         .eq('is_active', true)
         .order('price', { ascending: true }),
-    ]).then(([answersRes, productsRes]) => {
+      supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'deposit_amount')
+        .maybeSingle(),
+    ]).then(([answersRes, productsRes, depositRes]) => {
       const map: Record<string, string> = {};
       (answersRes.data || []).forEach((row: any) => {
         map[row.question_key] = row.answer_value;
@@ -107,9 +117,29 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       setAnswers(map);
       const prods = (productsRes.data || []) as Product[];
       setProducts(prods);
-      if (prods.length > 0 && !selectedProductId) {
-        setSelectedProductId(prods[0].id);
+
+      // Build dynamic pricing from products table
+      const newPricing = { ...pricing };
+      prods.forEach(p => {
+        const t = p.product_type as keyof PricingMap;
+        if (t && t !== 'package' && t in newPricing) {
+          newPricing[t] = p.price;
+        }
+      });
+      setPricing(newPricing);
+
+      // Filter to only package-type products for the tier selector
+      const packageProducts = prods.filter(p => p.product_type === 'package');
+      if (packageProducts.length > 0 && !selectedProductId) {
+        setSelectedProductId(packageProducts[0].id);
       }
+
+      // Load deposit amount
+      if (depositRes.data?.setting_value) {
+        const val = depositRes.data.setting_value as any;
+        setDepositAmount(val.amount ?? 49);
+      }
+
       setLoading(false);
     });
   }, [open, buildFlowId]);
@@ -128,15 +158,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const selectedPortals = parseArray(answers.selectedPortals);
   const revisionRounds = answers.revisionRounds || '2';
 
+  const packageProducts = products.filter(p => p.product_type === 'package');
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
-  // Calculate portal surcharges
+  // Calculate portal surcharges using dynamic pricing
   let portalTotal = 0;
-  if (selectedPortals.includes('admin_portal')) portalTotal += ADMIN_PORTAL_PRICE;
-  if (selectedPortals.includes('client_portal')) portalTotal += CLIENT_PORTAL_PRICE;
-  if (selectedPortals.includes('staff_portal')) portalTotal += STAFF_PORTAL_PRICE;
+  if (selectedPortals.includes('admin_portal')) portalTotal += pricing.portal_admin;
+  if (selectedPortals.includes('client_portal')) portalTotal += pricing.portal_client;
+  if (selectedPortals.includes('staff_portal')) portalTotal += pricing.portal_staff;
 
-  const totalItemized = (pages.length * PAGE_PRICE) + (features.length * FEATURE_PRICE) + (integrations.length * INTEGRATION_PRICE) + portalTotal;
+  const totalItemized = (pages.length * pricing.page) + (features.length * pricing.feature) + (integrations.length * pricing.integration) + portalTotal;
   const actualPrice = selectedProduct?.price || 0;
   const savings = totalItemized - actualPrice;
   const fileSlug = toSlug(businessName);
@@ -146,19 +177,18 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
-  // Portal line items
   if (selectedPortals.includes('admin_portal')) {
-    allItems.push({ desc: 'Admin Portal', price: `$${ADMIN_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Admin Portal', price: `$${pricing.portal_admin}`, isFree: false });
   }
   if (selectedPortals.includes('client_portal')) {
-    allItems.push({ desc: 'Client Portal', price: `$${CLIENT_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Client Portal', price: `$${pricing.portal_client}`, isFree: false });
   }
   if (selectedPortals.includes('staff_portal')) {
-    allItems.push({ desc: 'Staff Portal', price: `$${STAFF_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Staff Portal', price: `$${pricing.portal_staff}`, isFree: false });
   }
-  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${PAGE_PRICE}`, isFree: false }));
-  features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${FEATURE_PRICE}`, isFree: false }));
-  integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${INTEGRATION_PRICE}`, isFree: false }));
+  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
+  features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${pricing.feature}`, isFree: false }));
+  integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${pricing.integration}`, isFree: false }));
   allItems.push({ desc: 'SEO Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: 'Device Design Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
