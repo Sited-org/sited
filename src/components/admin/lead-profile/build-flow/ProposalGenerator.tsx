@@ -605,9 +605,9 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Button onClick={handleSaveToGoogleDrive} disabled={generating}>
-                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                Save to Google Drive
+              <Button onClick={handleSendProposal} disabled={generating}>
+                {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+                Send Proposal to Client
               </Button>
             </DialogFooter>
           </>
