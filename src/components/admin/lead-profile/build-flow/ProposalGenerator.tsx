@@ -72,9 +72,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewPages, setPreviewPages] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  // removed pdfjs-dist state — using iframe preview now
   const [depositAmount, setDepositAmount] = useState(49);
   const [pricing, setPricing] = useState<PricingMap>({
     page: 159, feature: 300, integration: 199,
