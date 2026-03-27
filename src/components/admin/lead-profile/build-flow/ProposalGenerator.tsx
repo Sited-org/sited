@@ -23,14 +23,17 @@ interface Product {
   name: string;
   price: number;
   is_active: boolean;
+  product_type: string;
 }
 
-const PAGE_PRICE = 159;
-const FEATURE_PRICE = 300;
-const INTEGRATION_PRICE = 199;
-const ADMIN_PORTAL_PRICE = 1200;
-const CLIENT_PORTAL_PRICE = 1000;
-const STAFF_PORTAL_PRICE = 800;
+interface PricingMap {
+  page: number;
+  feature: number;
+  integration: number;
+  portal_admin: number;
+  portal_client: number;
+  portal_staff: number;
+}
 
 const PROJECT_TYPE_MAP: Record<string, string> = {
   brochure: 'Brochure / Information Website',
@@ -72,6 +75,11 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(49);
+  const [pricing, setPricing] = useState<PricingMap>({
+    page: 159, feature: 300, integration: 199,
+    portal_admin: 1200, portal_client: 1000, portal_staff: 800,
+  });
 
   useEffect(() => {
     if (!open) {
@@ -93,10 +101,15 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         .eq('build_flow_id', buildFlowId),
       supabase
         .from('products')
-        .select('id, name, price, is_active')
+        .select('id, name, price, is_active, product_type')
         .eq('is_active', true)
         .order('price', { ascending: true }),
-    ]).then(([answersRes, productsRes]) => {
+      supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'deposit_amount')
+        .maybeSingle(),
+    ]).then(([answersRes, productsRes, depositRes]) => {
       const map: Record<string, string> = {};
       (answersRes.data || []).forEach((row: any) => {
         map[row.question_key] = row.answer_value;
@@ -104,9 +117,28 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
       setAnswers(map);
       const prods = (productsRes.data || []) as Product[];
       setProducts(prods);
-      if (prods.length > 0 && !selectedProductId) {
-        setSelectedProductId(prods[0].id);
+
+      // Build dynamic pricing from products table
+      const newPricing = { ...pricing };
+      prods.forEach(p => {
+        if (p.product_type && p.product_type !== 'package' && p.product_type in newPricing) {
+          (newPricing as any)[p.product_type] = p.price;
+        }
+      });
+      setPricing(newPricing);
+
+      // Filter to only package-type products for the tier selector
+      const packageProducts = prods.filter(p => p.product_type === 'package');
+      if (packageProducts.length > 0 && !selectedProductId) {
+        setSelectedProductId(packageProducts[0].id);
       }
+
+      // Load deposit amount
+      if (depositRes.data?.setting_value) {
+        const val = depositRes.data.setting_value as any;
+        setDepositAmount(val.amount ?? 49);
+      }
+
       setLoading(false);
     });
   }, [open, buildFlowId]);
@@ -125,15 +157,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const selectedPortals = parseArray(answers.selectedPortals);
   const revisionRounds = answers.revisionRounds || '2';
 
+  const packageProducts = products.filter(p => p.product_type === 'package');
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
-  // Calculate portal surcharges
+  // Calculate portal surcharges using dynamic pricing
   let portalTotal = 0;
-  if (selectedPortals.includes('admin_portal')) portalTotal += ADMIN_PORTAL_PRICE;
-  if (selectedPortals.includes('client_portal')) portalTotal += CLIENT_PORTAL_PRICE;
-  if (selectedPortals.includes('staff_portal')) portalTotal += STAFF_PORTAL_PRICE;
+  if (selectedPortals.includes('admin_portal')) portalTotal += pricing.portal_admin;
+  if (selectedPortals.includes('client_portal')) portalTotal += pricing.portal_client;
+  if (selectedPortals.includes('staff_portal')) portalTotal += pricing.portal_staff;
 
-  const totalItemized = (pages.length * PAGE_PRICE) + (features.length * FEATURE_PRICE) + (integrations.length * INTEGRATION_PRICE) + portalTotal;
+  const totalItemized = (pages.length * pricing.page) + (features.length * pricing.feature) + (integrations.length * pricing.integration) + portalTotal;
   const actualPrice = selectedProduct?.price || 0;
   const savings = totalItemized - actualPrice;
   const fileSlug = toSlug(businessName);
@@ -143,19 +176,18 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
-  // Portal line items
   if (selectedPortals.includes('admin_portal')) {
-    allItems.push({ desc: 'Admin Portal', price: `$${ADMIN_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Admin Portal', price: `$${pricing.portal_admin}`, isFree: false });
   }
   if (selectedPortals.includes('client_portal')) {
-    allItems.push({ desc: 'Client Portal', price: `$${CLIENT_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Client Portal', price: `$${pricing.portal_client}`, isFree: false });
   }
   if (selectedPortals.includes('staff_portal')) {
-    allItems.push({ desc: 'Staff Portal', price: `$${STAFF_PORTAL_PRICE}`, isFree: false });
+    allItems.push({ desc: 'Staff Portal', price: `$${pricing.portal_staff}`, isFree: false });
   }
-  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${PAGE_PRICE}`, isFree: false }));
-  features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${FEATURE_PRICE}`, isFree: false }));
-  integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${INTEGRATION_PRICE}`, isFree: false }));
+  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
+  features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${pricing.feature}`, isFree: false }));
+  integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${pricing.integration}`, isFree: false }));
   allItems.push({ desc: 'SEO Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: 'Device Design Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
@@ -439,22 +471,44 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      // Auto-generate billing charge for the proposal amount
+      // Auto-generate billing: split into deposit + remaining balance
       if (selectedProduct && actualPrice > 0) {
-        const { error: txError } = await supabase.from('transactions').insert({
-          lead_id: leadId,
-          item: `${selectedProduct.name} Package — ${businessName}`,
-          debit: actualPrice,
-          credit: 0,
-          status: 'completed',
-          invoice_status: 'not_sent',
-          payment_method: 'pending',
-          notes: `Auto-generated from proposal (${fileName})`,
-        });
-        if (txError) {
-          console.error('Failed to create billing entry:', txError);
-        } else {
-          toast.success('Billing charge added to client account');
+        const deposit = Math.min(depositAmount, actualPrice);
+        const remaining = actualPrice - deposit;
+        
+        const transactions: any[] = [];
+        if (deposit > 0) {
+          transactions.push({
+            lead_id: leadId,
+            item: `Deposit — ${businessName}`,
+            debit: deposit,
+            credit: 0,
+            status: 'completed',
+            invoice_status: 'not_sent',
+            payment_method: 'pending',
+            notes: `Auto-generated deposit from proposal (${fileName})`,
+          });
+        }
+        if (remaining > 0) {
+          transactions.push({
+            lead_id: leadId,
+            item: `${selectedProduct.name.replace(/\s*package\s*/i, '')} Package — ${businessName}`,
+            debit: remaining,
+            credit: 0,
+            status: 'completed',
+            invoice_status: 'not_sent',
+            payment_method: 'pending',
+            notes: `Auto-generated balance from proposal (${fileName})`,
+          });
+        }
+
+        if (transactions.length > 0) {
+          const { error: txError } = await supabase.from('transactions').insert(transactions);
+          if (txError) {
+            console.error('Failed to create billing entries:', txError);
+          } else {
+            toast.success('Billing charges added to client account');
+          }
         }
       }
 
@@ -592,7 +646,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                       <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
                       <SelectContent>
-                        {products.map(p => (
+                        {packageProducts.map(p => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name} — ${p.price.toLocaleString()}
                           </SelectItem>
@@ -605,7 +659,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     <h4 className="text-sm font-semibold">Scope of Works</h4>
                     {pages.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${PAGE_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${pricing.page})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {pages.map((p, i) => <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>)}
                         </div>
@@ -613,7 +667,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     )}
                     {features.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Features ({features.length} × ${FEATURE_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Features ({features.length} × ${pricing.feature})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {features.map((f, i) => <Badge key={i} variant="outline" className="text-xs">{f}</Badge>)}
                         </div>
@@ -621,7 +675,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     )}
                     {integrations.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${INTEGRATION_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Integrations ({integrations.length} × ${pricing.integration})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {integrations.map((ig, i) => <Badge key={i} variant="outline" className="text-xs">{ig}</Badge>)}
                         </div>

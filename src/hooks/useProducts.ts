@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export type ProductType = 'package' | 'page' | 'feature' | 'integration' | 'portal_admin' | 'portal_client' | 'portal_staff';
+
 export interface Product {
   id: string;
   name: string;
   description: string | null;
   price: number;
   is_active: boolean;
+  product_type: ProductType;
   created_at: string;
   updated_at: string;
   created_by: string | null;
