@@ -371,14 +371,16 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     const priceStr = `$${actualPrice.toLocaleString()}`;
     pdf.text(priceStr, W - MR - 20, y + 32, { align: 'right' });
     if (selectedProduct) {
-      const badgeText = `${selectedProduct.name} Package`.toUpperCase();
+      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
+      const badgeText = `${productName} Package`.toUpperCase();
       pdf.setFontSize(7);
       const bw = pdf.getTextWidth(badgeText) + 14;
-      const bx = W - MR - 20 - pdf.getTextWidth(priceStr) - bw - 12;
+      // Position badge to the left of "Your Price" label
+      const bx = ML + 120;
       pdf.setFillColor(SLATE_700);
-      pdf.roundedRect(bx, y + 21, bw, 16, 3, 3, 'F');
+      pdf.roundedRect(bx, y - 14 + 21, bw, 16, 3, 3, 'F');
       pdf.setTextColor(SLATE_200);
-      pdf.text(badgeText, bx + 7, y + 32);
+      pdf.text(badgeText, bx + 7, y - 14 + 32);
     }
     y += 62;
 
