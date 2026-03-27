@@ -26,6 +26,7 @@ interface BuildFlowViewProps {
   onSkipStep: (stepId: string) => Promise<void>;
   onToggleClientView: () => Promise<void>;
   onRestartFlow: () => Promise<void>;
+  refetch?: () => Promise<void>;
 }
 
 export function BuildFlowView({
