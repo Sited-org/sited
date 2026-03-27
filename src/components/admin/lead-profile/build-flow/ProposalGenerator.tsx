@@ -190,7 +190,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   allItems.push({ desc: 'Device Design Optimisation', price: 'FREE', isFree: true });
   allItems.push({ desc: `${revisionRounds} Revision Round${revisionRounds === '1' ? '' : 's'} Included`, price: 'FREE', isFree: true });
 
-  const generatePdfBlob = useCallback(async (): Promise<Blob | null> => {
+  const generatePdfBlob = useCallback(async (): Promise<{ blob: Blob; pageCount: number } | null> => {
     const { jsPDF } = await import('jspdf');
 
     const W = 595.28; // A4 width in pt
