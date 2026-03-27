@@ -393,7 +393,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     return pdf.output('blob');
   }, [allItems, businessName, projectType, today, fileSlug, totalItemized, savings, actualPrice, selectedProduct]);
 
-  const handleSaveToGoogleDrive = async () => {
+  const handleSendProposal = async () => {
     setGenerating(true);
     try {
       const blob = await generatePdfBlob();
@@ -402,14 +402,29 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         return;
       }
 
-      const url = URL.createObjectURL(blob);
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const pdfBase64 = btoa(binary);
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // Send via edge function
+      const { error } = await supabase.functions.invoke('send-proposal-email', {
+        body: {
+          leadId,
+          pdfBase64,
+          fileName,
+          buildFlowId,
+        },
+      });
+
+      if (error) {
+        toast.error('Failed to send proposal: ' + error.message);
+        return;
+      }
 
       // Auto-generate billing charge for the proposal amount
       if (selectedProduct && actualPrice > 0) {
@@ -425,20 +440,17 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         });
         if (txError) {
           console.error('Failed to create billing entry:', txError);
-          toast.error('Proposal saved but billing entry failed');
         } else {
           toast.success('Billing charge added to client account');
         }
       }
 
-      setTimeout(() => {
-        window.open('https://drive.google.com/drive/my-drive', '_blank');
-        URL.revokeObjectURL(url);
-        toast.success('PDF downloaded! Upload it to the Google Drive window that just opened.');
-      }, 500);
+      toast.success('Proposal sent to client!');
+      onProposalSent?.();
+      onOpenChange(false);
     } catch (err) {
       console.error('PDF generation failed:', err);
-      toast.error('Failed to generate PDF');
+      toast.error('Failed to send proposal');
     } finally {
       setGenerating(false);
     }
