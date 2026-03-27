@@ -639,7 +639,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                       <p className="text-sm text-muted-foreground line-through">Total: ${totalItemized.toLocaleString()}</p>
                       <p className="text-lg font-bold">
                         {selectedProduct ? `$${actualPrice.toLocaleString()}` : '—'}
-                        {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name} Package</span>}
+                        {selectedProduct && <span className="text-xs font-normal text-muted-foreground ml-2">{selectedProduct.name.replace(/\s*package\s*/i, '')} Package</span>}
                       </p>
                     </div>
                   </div>
