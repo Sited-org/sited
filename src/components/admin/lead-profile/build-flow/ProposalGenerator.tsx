@@ -566,9 +566,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
             <div className="flex-1 bg-muted/50 rounded-lg overflow-hidden">
               {previewUrl ? (
                 <iframe
-                  src={previewUrl}
+                  key={previewPage}
+                  src={`${previewUrl}#page=${previewPage}&view=FitH`}
                   className="w-full h-[62vh] border-0 rounded-md"
-                  title="Proposal Preview"
+                  title={`Proposal Preview Page ${previewPage}`}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full py-20 text-muted-foreground">
@@ -577,11 +578,36 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
               )}
             </div>
 
-            <DialogFooter className="flex-row justify-between sm:justify-between gap-2">
+            <DialogFooter className="flex-row flex-wrap items-center justify-between sm:justify-between gap-2">
               <Button variant="outline" onClick={() => setShowPreview(false)}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={previewPage <= 1}
+                  onClick={() => setPreviewPage((page) => Math.max(1, page - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="min-w-24 text-center text-sm text-muted-foreground">
+                  Page {previewPage} of {previewTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={previewPage >= previewTotalPages}
+                  onClick={() => setPreviewPage((page) => Math.min(previewTotalPages, page + 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
               <Button onClick={handleSendProposal} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 Send Proposal to Client
