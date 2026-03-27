@@ -443,11 +443,13 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const handleSendProposal = async () => {
     setGenerating(true);
     try {
-      const blob = await generatePdfBlob();
-      if (!blob) {
+      const pdfResult = await generatePdfBlob();
+      if (!pdfResult) {
         toast.error('Failed to generate PDF');
         return;
       }
+
+      const { blob } = pdfResult;
 
       // Convert blob to base64
       const arrayBuffer = await blob.arrayBuffer();
