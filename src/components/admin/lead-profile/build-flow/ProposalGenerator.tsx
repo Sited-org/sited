@@ -500,7 +500,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         const ctx = canvas.getContext('2d')!;
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
         pageImages.push(canvas.toDataURL('image/png'));
       }
       setPreviewPages(pageImages);
