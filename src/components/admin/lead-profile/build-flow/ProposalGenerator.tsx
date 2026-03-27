@@ -95,12 +95,12 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         .select('setting_value')
         .eq('setting_key', 'deposit_amount')
         .maybeSingle(),
-      // Check if deposit already exists for this lead
+      // Check if deposit already exists (paid via front-end or manually)
       supabase
         .from('transactions')
-        .select('id, item, debit, status')
+        .select('id, item, debit, credit, status')
         .eq('lead_id', leadId)
-        .ilike('item', '%Deposit%'),
+        .or('item.ilike.%Deposit%,item.ilike.%deposit%'),
     ]).then(([answersRes, productsRes, depositRes, existingTxRes]) => {
       const map: Record<string, string> = {};
       (answersRes.data || []).forEach((row: any) => {
