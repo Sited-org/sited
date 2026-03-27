@@ -76,6 +76,9 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   useEffect(() => {
     if (!open) {
       setShowPreview(false);
+      setPreviewPages([]);
+      setCurrentPage(0);
+      setTotalPages(0);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
