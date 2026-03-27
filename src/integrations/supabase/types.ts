@@ -1278,6 +1278,7 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          product_type: string
           stripe_price_id: string | null
           stripe_product_id: string | null
           updated_at: string
@@ -1290,6 +1291,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          product_type?: string
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           updated_at?: string
@@ -1302,6 +1304,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          product_type?: string
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           updated_at?: string
