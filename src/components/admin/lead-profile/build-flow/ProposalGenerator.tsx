@@ -131,10 +131,10 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
         setDepositAmount(val.amount ?? 49);
       }
 
-      // Check if deposit is already paid
+      // Check if deposit is already paid (credit > 0 means money received)
       const depositTxs = (existingTxRes.data || []) as any[];
       const hasPaidDeposit = depositTxs.some(
-        (tx: any) => tx.status === 'completed' || tx.status === 'paid'
+        (tx: any) => (tx.credit > 0) && (tx.status === 'completed' || tx.status === 'paid')
       );
       setExistingDepositPaid(hasPaidDeposit);
 
