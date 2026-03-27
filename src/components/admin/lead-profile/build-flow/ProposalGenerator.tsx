@@ -637,7 +637,7 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
                     <h4 className="text-sm font-semibold">Scope of Works</h4>
                     {pages.length > 0 && (
                       <div>
-                        <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${PAGE_PRICE})</span>
+                        <span className="text-xs text-muted-foreground">Pages ({pages.length} × ${pricing.page})</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {pages.map((p, i) => <Badge key={i} variant="secondary" className="text-xs">{p}</Badge>)}
                         </div>
