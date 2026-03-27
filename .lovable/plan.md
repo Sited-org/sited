@@ -2,47 +2,49 @@
 
 ## Problem
 
-Two issues:
+The iframe `#page=N` fragment hint is unreliable — most embedded PDF viewers ignore it or only honor it on initial load. Changing the `key` forces the iframe to remount, but the browser's viewer just reloads the same blob and lands on page 1 every time. Result: every page arrow click shows the same first page.
 
-1. **Slow proposal generation**: The preview step dynamically imports `pdfjs-dist` (~2MB), loads its web worker from a CDN, then renders each page at 2x scale to canvas and converts to PNG data URLs. This is extremely slow — especially on first run when the library hasn't been cached.
+## Solution: Render each page as a canvas image during PDF generation
 
-2. **Stripe product sync**: Products saved in admin settings call `sync-product-stripe` which correctly creates/updates Stripe products and prices. No issue here — this already works. The deposit amount is stored in `system_settings` but is NOT synced to Stripe as its own product (it's just an internal billing split). If you want the deposit to also be a Stripe line item, that's a separate concern.
+Instead of fighting with iframe page anchors, we render each PDF page to a data-URL image at generation time using `pdfjs-dist` in a minimal, efficient way — **one render pass, 1x scale** (not the old 2x approach). This gives us an array of page images that can be displayed instantly with arrow navigation.
 
-## Plan
+### Why not just let the iframe scroll?
+The embedded PDF viewer inside a dialog doesn't reliably show native scrollbar/page controls. Custom arrow navigation with pre-rendered page images is the only approach that guarantees correct per-page display across all browsers.
 
-### 1. Remove `pdfjs-dist` and use iframe-based preview instead
-
-The heaviest bottleneck is importing and rendering via `pdfjs-dist`. Replace it with a simple `<iframe>` pointing at the blob URL — browsers have built-in PDF renderers that are instant and support scrolling/paging natively.
-
-**File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx`
-
-- Remove the `pdfjs-dist` import and all canvas rendering logic (lines 541-559)
-- Remove `previewPages`, `currentPage`, `totalPages` state
-- In `handleShowPreview`: just generate the blob, create a blob URL, set `showPreview = true`
-- In the preview UI: replace the `<img>` + page arrows with a single `<iframe src={previewUrl}>` that fills the dialog. The browser's native PDF viewer handles paging, zoom, and scrolling
-- This eliminates the ~3-5 second rendering delay entirely
+### Implementation
 
 **File**: `package.json`
-- Remove `pdfjs-dist` dependency (no longer needed)
-
-### 2. Optimize PDF generation itself
+- Re-add `pdfjs-dist` (needed for reliable page-by-page rendering)
 
 **File**: `src/components/admin/lead-profile/build-flow/ProposalGenerator.tsx`
 
-- Reduce gradient divider steps from 20 to 8 (visual difference is negligible, saves draw calls)
-- Use `compress: true` already set — good
-- Lazy-load `jspdf` only once and cache the import (it's already dynamic, but we can memoize it)
+1. **Add a `renderPagesToImages` helper** after `generatePdfBlob`:
+   - Takes the PDF blob, loads it with `pdfjs-dist` (worker disabled — runs on main thread, fast for 2-3 page docs)
+   - Renders each page at 1x scale to a `<canvas>`, converts to PNG data URL
+   - Returns `string[]` of page images
 
-### 3. Ensure Stripe sync covers all product types
+2. **Update state**: Replace `previewUrl` with `previewPages: string[]` (array of data URLs)
 
-The existing `sync-product-stripe` edge function and `useProducts` hook already handle creating/updating Stripe products and prices for any product type. When an admin changes a price in the Products settings, it syncs to Stripe automatically. No changes needed here — this is already working correctly.
+3. **Update `handleShowPreview`**:
+   - Call `generatePdfBlob()` → get blob + pageCount
+   - Call `renderPagesToImages(blob)` → get page image array
+   - Store the blob separately (for sending) and the images for display
+   - Set `previewPages`, `previewPage = 1`, `previewTotalPages`
+
+4. **Update preview UI**:
+   - Replace `<iframe>` with `<img src={previewPages[previewPage - 1]}>` inside a container styled to A4 aspect ratio
+   - Arrow buttons update `previewPage` — the image swaps instantly (no reload, no iframe)
+
+5. **Performance notes**:
+   - Worker disabled (`GlobalWorkerOptions.workerSrc = ''`) — avoids CDN fetch
+   - 1x scale rendering (~150ms per page for A4)
+   - Only runs when "Preview" is clicked, not on dialog open
+   - Total overhead: ~300ms for a 2-page SOW (vs 3-5s with the old 2x canvas approach)
 
 ### Summary
 
 | File | Change |
 |------|--------|
-| `ProposalGenerator.tsx` | Replace pdfjs-dist canvas rendering with native iframe PDF viewer; reduce gradient steps |
-| `package.json` | Remove `pdfjs-dist` dependency |
-
-The primary speedup comes from eliminating `pdfjs-dist` entirely. The PDF generation via `jspdf` itself is fast (~200ms); the bottleneck was the subsequent parsing and canvas rendering.
+| `package.json` | Re-add `pdfjs-dist` |
+| `ProposalGenerator.tsx` | Add `renderPagesToImages` helper, replace iframe with `<img>` per-page display, keep blob for send |
 
