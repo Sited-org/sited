@@ -26,6 +26,7 @@ interface BuildFlowViewProps {
   onSkipStep: (stepId: string) => Promise<void>;
   onToggleClientView: () => Promise<void>;
   onRestartFlow: () => Promise<void>;
+  refetch?: () => Promise<void>;
 }
 
 export function BuildFlowView({
@@ -37,6 +38,7 @@ export function BuildFlowView({
   onSkipStep,
   onToggleClientView,
   onRestartFlow,
+  refetch,
 }: BuildFlowViewProps) {
   const [activePhaseId, setActivePhaseId] = useState<string | null>(
     phases.find(p => !p.is_completed && !p.is_locked && !p.is_skipped)?.id || phases[0]?.id || null
@@ -324,6 +326,7 @@ export function BuildFlowView({
         businessName={businessName}
         open={showProposalGenerator}
         onOpenChange={setShowProposalGenerator}
+        onProposalSent={refetch}
       />
 
       {/* Restart Flow Dialog */}

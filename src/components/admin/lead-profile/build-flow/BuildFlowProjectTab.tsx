@@ -133,6 +133,7 @@ export function BuildFlowProjectTab({ lead, canEdit, onLeadUpdate }: BuildFlowPr
           onSkipStep={skipStep}
           onToggleClientView={toggleClientView}
           onRestartFlow={restartBuildFlow}
+          refetch={refetch}
         />
       </TabsContent>
 
