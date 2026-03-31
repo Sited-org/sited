@@ -389,8 +389,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setSelectedPaymentItems([]);
       setPartialPaymentAmount('');
       
-      // Refresh transactions to show the new credit entry
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error processing payment:', error);
       toast.error(error.message || 'Failed to process payment');
