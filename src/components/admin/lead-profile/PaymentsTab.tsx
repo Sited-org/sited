@@ -39,7 +39,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     voidTransaction,
     canDeleteTransaction,
     canVoidTransaction,
-    cancelRecurring 
+    cancelRecurring,
+    refetch 
   } = useTransactions(lead.id);
 
   const { activeMemberships } = useMemberships();
@@ -150,8 +151,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setMembershipStartDate('');
       setTransactionNotes('');
       
-      // Refresh to show the new transaction
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error creating subscription:', error);
       toast.error(error.message || 'Failed to create subscription');
@@ -254,8 +255,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setInvoiceNotes('');
       setInvoiceDueDate('');
       
-      // Refresh transactions to show updated status
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error sending invoice:', error);
       toast.error(error.message || 'Failed to send invoice');
@@ -389,8 +390,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setSelectedPaymentItems([]);
       setPartialPaymentAmount('');
       
-      // Refresh transactions to show the new credit entry
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error processing payment:', error);
       toast.error(error.message || 'Failed to process payment');
@@ -515,8 +516,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setManualPaymentDate('');
       setSelectedManualPaymentItems([]);
       
-      // Refresh transactions
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error recording manual payment:', error);
       toast.error(error.message || 'Failed to record payment');
@@ -558,8 +559,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setCreditAmount('');
       setCreditDescription('');
       
-      // Refresh transactions
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error adding credit:', error);
       toast.error(error.message || 'Failed to add credit');
