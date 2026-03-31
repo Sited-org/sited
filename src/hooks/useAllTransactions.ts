@@ -383,11 +383,7 @@ export function useAllTransactions() {
       return { error: updateError };
     }
     
-    const successMessage = wasInvoiceSentButNotPaid 
-      ? 'Invoice voided - charge can now be re-invoiced' 
-      : 'Transaction voided successfully';
     toast({ title: successMessage });
-    fetchTransactions();
     return { error: null };
   };
 
