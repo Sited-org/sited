@@ -282,24 +282,35 @@ export function useTransactions(leadId: string | undefined) {
     const voidAmount = Number(transaction.debit) > 0 ? Number(transaction.debit) : Number(transaction.credit);
     const isDebit = Number(transaction.debit) > 0;
     
-    // Check if this is voiding a "sent" invoice that wasn't paid - allow re-invoicing
-    const wasInvoiceSentButNotPaid = transaction.invoice_status === 'sent' || transaction.invoice_status === 'processing';
+    // Void Stripe invoice if one exists
+    if (transaction.stripe_invoice_id) {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('void-stripe-invoice', {
+          body: { stripe_invoice_id: transaction.stripe_invoice_id },
+        });
+        if (fnError) console.error('Stripe void error:', fnError);
+        else if (data?.message) console.log('Stripe void:', data.message);
+      } catch (stripeErr) {
+        console.error('Failed to void Stripe invoice:', stripeErr);
+        // Continue with local void even if Stripe fails
+      }
+    }
     
-    // Create a void transaction (reverses the original)
+    // Create a reversing void entry to zero out the charge
     const { error: insertError } = await supabase
       .from('transactions')
       .insert({
         lead_id: transaction.lead_id,
         item: `VOID: ${transaction.item}`,
-        credit: isDebit ? voidAmount : 0, // If original was debit, void as credit
-        debit: isDebit ? 0 : voidAmount, // If original was credit, void as debit
-        notes: `Reason: ${reason}`,
+        credit: isDebit ? voidAmount : 0,
+        debit: isDebit ? 0 : voidAmount,
+        notes: `Voided — ${reason}`,
         transaction_date: new Date().toISOString(),
         is_recurring: false,
         recurring_interval: null,
         recurring_end_date: null,
         status: 'void',
-        invoice_status: 'void', // Mark void entry so it can't be invoiced
+        invoice_status: 'void',
         parent_transaction_id: transactionId,
         created_by: userData.user?.id,
       });
@@ -309,26 +320,14 @@ export function useTransactions(leadId: string | undefined) {
       return { error: insertError };
     }
     
-    // Update original transaction to mark it as voided
-    // If invoice was sent but not paid, reset invoice_status to allow re-invoicing
-    const updateData: Record<string, unknown> = {
-      notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
-    };
-    
-    if (wasInvoiceSentButNotPaid) {
-      // Reset to allow re-invoicing after edits - clear the old invoice reference
-      updateData.invoice_status = null;
-      updateData.stripe_invoice_id = null;
-      updateData.status = 'void'; // Mark as void so it shows correctly in history
-    } else {
-      // For paid invoices or never-sent charges, mark as void to prevent invoicing
-      updateData.invoice_status = 'void';
-      updateData.status = 'void';
-    }
-    
+    // Mark original transaction as voided with reason in notes
     const { error: updateError } = await supabase
       .from('transactions')
-      .update(updateData)
+      .update({
+        status: 'void',
+        invoice_status: 'void',
+        notes: `${transaction.notes ? transaction.notes + ' | ' : ''}[VOIDED: ${reason}]`,
+      })
       .eq('id', transactionId);
     
     if (updateError) {
@@ -336,10 +335,7 @@ export function useTransactions(leadId: string | undefined) {
       return { error: updateError };
     }
     
-    const successMessage = wasInvoiceSentButNotPaid 
-      ? 'Invoice voided - charge can now be re-invoiced' 
-      : 'Transaction voided successfully';
-    toast({ title: successMessage });
+    toast({ title: 'Transaction voided successfully' });
     fetchTransactions();
     return { error: null };
   };
@@ -370,13 +366,9 @@ export function useTransactions(leadId: string | undefined) {
     if ('isFuture' in transaction && transaction.isFuture) {
       return false;
     }
-    // Can only void if invoice was sent/paid OR if it's a payment (credit)
-    const isInvoiced = transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing';
-    const isPayment = Number(transaction.credit) > 0;
     // Check if already voided
-    const isVoided = transaction.item.startsWith('VOID:') || (transaction.notes?.includes('[VOIDED:') ?? false);
-    
-    return (isInvoiced || isPayment) && !isVoided;
+    const isVoided = transaction.item.startsWith('VOID:') || (transaction.notes?.includes('[VOIDED:') ?? false) || transaction.status === 'void';
+    return !isVoided;
   };
 
   const updateTransactionStatus = async (transactionId: string, status: 'completed' | 'pending' | 'scheduled') => {
