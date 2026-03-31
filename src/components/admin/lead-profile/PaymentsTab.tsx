@@ -39,7 +39,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     voidTransaction,
     canDeleteTransaction,
     canVoidTransaction,
-    cancelRecurring 
+    cancelRecurring,
+    refetch 
   } = useTransactions(lead.id);
 
   const { activeMemberships } = useMemberships();
