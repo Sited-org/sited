@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { BuildFlow, BuildPhase, BuildStep } from '@/hooks/useBuildFlow';
 import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
@@ -47,8 +49,32 @@ export function BuildFlowView({
   const [showDiscoveryAnswers, setShowDiscoveryAnswers] = useState(false);
   const [showProposalGenerator, setShowProposalGenerator] = useState(false);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [sendingDepositLink, setSendingDepositLink] = useState(false);
+  const depositAutoChecked = useRef(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
+
+  // Auto-complete deposit_received step if deposit is already paid
+  useEffect(() => {
+    if (depositAutoChecked.current) return;
+    const depositStep = phases.flatMap(p => p.steps).find(s => s.step_key === 'deposit_received');
+    if (!depositStep || depositStep.is_completed || depositStep.is_locked) return;
+
+    depositAutoChecked.current = true;
+    supabase
+      .from('transactions')
+      .select('id, item, credit, status')
+      .eq('lead_id', buildFlow.lead_id)
+      .or('item.ilike.%Deposit%,item.ilike.%deposit%')
+      .then(({ data }) => {
+        const hasPaid = (data || []).some(
+          (tx: any) => tx.credit > 0 && (tx.status === 'completed' || tx.status === 'paid')
+        );
+        if (hasPaid) {
+          onMarkComplete(depositStep, 'Deposit automatically confirmed from payment records', null, userId);
+        }
+      });
+  }, [phases, buildFlow.lead_id]);
 
   const getPhaseProgress = (phase: BuildPhase) => {
     const total = phase.steps.filter(s => !s.is_skipped).length;
@@ -74,6 +100,53 @@ export function BuildFlowView({
   const isDiscoveryStep = (step: BuildStep) => step.step_key === 'discovery_call';
   // Check if a step is the proposal step (P1S2) - show proposal generator
   const isProposalStep = (step: BuildStep) => step.step_key === 'proposal_sent';
+  // Check if a step is the deposit step
+  const isDepositStep = (step: BuildStep) => step.step_key === 'deposit_received';
+
+  const handleSendDepositLink = async () => {
+    setSendingDepositLink(true);
+    try {
+      const { data: lead } = await supabase
+        .from('leads')
+        .select('email, name, business_name')
+        .eq('id', buildFlow.lead_id)
+        .single();
+
+      if (!lead?.email) {
+        toast.error('No client email found');
+        return;
+      }
+
+      // Get deposit amount from settings
+      const { data: depositSetting } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'deposit_amount')
+        .maybeSingle();
+
+      const depositAmount = (depositSetting?.setting_value as any)?.amount ?? 49;
+
+      const { error } = await supabase.functions.invoke('create-offer-payment-intent', {
+        body: {
+          email: lead.email,
+          name: lead.name,
+          amount: depositAmount * 100, // cents
+          description: `Deposit — ${lead.business_name || businessName}`,
+        },
+      });
+
+      if (error) {
+        toast.error('Failed to create payment link');
+      } else {
+        toast.success(`Deposit payment link sent to ${lead.email}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to send deposit link');
+    } finally {
+      setSendingDepositLink(false);
+    }
+  };
 
   // Derive business name from staging URL
   const businessName = buildFlow.staging_url
@@ -256,8 +329,20 @@ export function BuildFlowView({
                             </div>
                           )}
 
+                          {/* Special: Deposit step - show send payment link if not completed */}
+                          {isDepositStep(step) && !step.is_completed && !step.is_locked && canEdit && (
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={handleSendDepositLink} disabled={sendingDepositLink}>
+                                <CreditCard className="h-4 w-4 mr-1" /> {sendingDepositLink ? 'Sending…' : 'Send Deposit Payment Link'}
+                              </Button>
+                              <Button size="sm" onClick={() => setCompletingStep(step)}>
+                                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Normal actions for non-special steps */}
-                          {!isProposalStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
+                          {!isProposalStep(step) && !isDepositStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
                             <div className="flex gap-2">
                               <Button size="sm" onClick={() => setCompletingStep(step)}>
                                 <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete

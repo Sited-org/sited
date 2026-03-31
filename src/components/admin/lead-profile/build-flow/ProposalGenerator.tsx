@@ -175,6 +175,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
+  // Order: Pages → Portals → Features → Integrations → Free Add-Ons
+  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
   if (selectedPortals.includes('admin_portal')) {
     allItems.push({ desc: 'Admin Portal', price: `$${pricing.portal_admin}`, isFree: false });
   }
@@ -184,7 +186,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   if (selectedPortals.includes('staff_portal')) {
     allItems.push({ desc: 'Staff Portal', price: `$${pricing.portal_staff}`, isFree: false });
   }
-  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
   features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${pricing.feature}`, isFree: false }));
   integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${pricing.integration}`, isFree: false }));
   allItems.push({ desc: 'SEO Optimisation', price: 'FREE', isFree: true });
@@ -388,19 +389,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.setFillColor(SLATE_900);
     pdf.roundedRect(ML, y, CW, 48, 6, 6, 'F');
     pdf.rect(ML, y, CW, 6, 'F');
-
-    // Package badge — positioned to the left
-    if (selectedProduct) {
-      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
-      const badgeText = `${productName} Package`.toUpperCase();
-      pdf.setFontSize(7);
-      const bw = pdf.getTextWidth(badgeText) + 14;
-      const bx = ML + 120;
-      pdf.setFillColor(SLATE_700);
-      pdf.roundedRect(bx, y + 7, bw, 16, 3, 3, 'F');
-      pdf.setTextColor(SLATE_200);
-      pdf.text(badgeText, bx + 7, y + 18);
-    }
 
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
