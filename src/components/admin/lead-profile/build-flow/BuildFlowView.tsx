@@ -315,14 +315,14 @@ export function BuildFlowView({
                             </div>
                           )}
 
-                          {/* Special: Deposit step - show send payment link if not completed */}
+                          {/* Special: Deposit step - Pay Now or Send Payment Link */}
                           {isDepositStep(step) && !step.is_completed && !step.is_locked && canEdit && (
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={handleSendDepositLink} disabled={sendingDepositLink}>
-                                <CreditCard className="h-4 w-4 mr-1" /> {sendingDepositLink ? 'Sending…' : 'Send Deposit Payment Link'}
+                              <Button size="sm" onClick={() => setShowPayNowDialog(true)}>
+                                <CreditCard className="h-4 w-4 mr-1" /> Pay Now
                               </Button>
-                              <Button size="sm" onClick={() => setCompletingStep(step)}>
-                                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
+                              <Button size="sm" variant="outline" onClick={handleSendDepositLink} disabled={sendingDepositLink}>
+                                <Send className="h-4 w-4 mr-1" /> {sendingDepositLink ? 'Sending…' : 'Send Payment Link'}
                               </Button>
                             </div>
                           )}
