@@ -407,6 +407,15 @@ export function BuildFlowView({
         businessName={businessName}
         onConfirm={onRestartFlow}
       />
+
+      {/* Admin Pay Now Dialog */}
+      <AdminPayNowDialog
+        open={showPayNowDialog}
+        onOpenChange={setShowPayNowDialog}
+        leadId={buildFlow.lead_id}
+        businessName={businessName}
+        onPaymentComplete={handleDepositPaymentComplete}
+      />
     </div>
   );
 }
