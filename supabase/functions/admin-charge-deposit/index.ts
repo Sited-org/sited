@@ -7,6 +7,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Canonical Stripe product & price for deposit
+const DEPOSIT_PRODUCT_ID = "prod_U0SzXJ49io3TW3";
+const DEPOSIT_PRICE_ID = "price_1T2S3HKEOhx2BLuXpqoFZGO2";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -41,7 +45,7 @@ serve(async (req) => {
       });
     }
 
-    // Get deposit amount
+    // Get deposit amount from settings
     const { data: depositSetting } = await supabase
       .from("system_settings")
       .select("setting_value")
@@ -64,21 +68,24 @@ serve(async (req) => {
         });
         customerId = customer.id;
       }
-      // Save to lead
       await supabase.from("leads").update({ stripe_customer_id: customerId }).eq("id", lead_id);
     }
 
-    // Create a PaymentIntent for admin to collect card details
+    // Create a PaymentIntent linked to canonical deposit product
+    // setup_future_usage saves the card for future off-session charges
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: "aud",
       customer: customerId,
+      setup_future_usage: "off_session",
       description: `Deposit — ${lead.business_name || lead.name}`,
       metadata: {
         lead_id,
         type: "deposit",
         customer_name: lead.name || "",
         customer_email: lead.email,
+        stripe_product_id: DEPOSIT_PRODUCT_ID,
+        stripe_price_id: DEPOSIT_PRICE_ID,
       },
     });
 

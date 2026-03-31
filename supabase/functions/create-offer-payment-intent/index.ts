@@ -1,13 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// All tiers use $49 AUD deposit
-const DEPOSIT_AMOUNT = 4900; // cents
+// Canonical Stripe product & price for deposit
+const DEPOSIT_PRODUCT_ID = "prod_U0SzXJ49io3TW3";
+const DEPOSIT_PRICE_ID = "price_1T2S3HKEOhx2BLuXpqoFZGO2";
 const CURRENCY = "aud";
 
 serve(async (req) => {
@@ -41,8 +43,21 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
-
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Get deposit amount from system settings
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: depositSetting } = await supabase
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "deposit_amount")
+      .maybeSingle();
+
+    const depositAmount = (depositSetting?.setting_value as any)?.amount ?? 49;
+    const amountCents = Math.round(depositAmount * 100);
 
     // Find or create Stripe customer
     let customerId: string | undefined;
@@ -58,21 +73,25 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
-    // Create PaymentIntent for $49 deposit
+    // Create PaymentIntent linked to the canonical deposit product
+    // setup_future_usage saves the card for future charges
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: DEPOSIT_AMOUNT,
+      amount: amountCents,
       currency: CURRENCY,
       customer: customerId,
-      description: `${tierLabel} — $49 Website Deposit`,
+      setup_future_usage: "off_session",
+      description: `${tierLabel} — $${depositAmount} Website Deposit`,
       metadata: {
         tier,
         customer_name: name,
         customer_email: email,
         customer_phone: phone || "",
+        stripe_product_id: DEPOSIT_PRODUCT_ID,
+        stripe_price_id: DEPOSIT_PRICE_ID,
+        type: "deposit",
       },
     });
 
-    // Return client secret for frontend to complete payment
     return new Response(
       JSON.stringify({
         clientSecret: paymentIntent.client_secret,
