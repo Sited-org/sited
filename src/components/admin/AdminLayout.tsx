@@ -173,7 +173,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-w-0 overflow-hidden flex flex-col max-w-full">
+      <main className="flex-1 min-w-0 min-h-0 overflow-hidden flex flex-col max-w-full">
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-30 bg-background border-b border-border p-4 flex items-center gap-4">
           <button
@@ -187,7 +187,7 @@ export default function AdminLayout() {
           </span>
         </header>
 
-        <div className="flex-1 overflow-y-auto overflow-x-auto p-6 lg:p-8">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto p-6 lg:p-8 bg-background">
           <Outlet />
         </div>
       </main>
