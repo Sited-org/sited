@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { BuildFlow, BuildPhase, BuildStep } from '@/hooks/useBuildFlow';
 import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
