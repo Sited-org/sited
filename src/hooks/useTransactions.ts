@@ -366,13 +366,9 @@ export function useTransactions(leadId: string | undefined) {
     if ('isFuture' in transaction && transaction.isFuture) {
       return false;
     }
-    // Can only void if invoice was sent/paid OR if it's a payment (credit)
-    const isInvoiced = transaction.invoice_status === 'sent' || transaction.invoice_status === 'paid' || transaction.invoice_status === 'processing';
-    const isPayment = Number(transaction.credit) > 0;
     // Check if already voided
-    const isVoided = transaction.item.startsWith('VOID:') || (transaction.notes?.includes('[VOIDED:') ?? false);
-    
-    return (isInvoiced || isPayment) && !isVoided;
+    const isVoided = transaction.item.startsWith('VOID:') || (transaction.notes?.includes('[VOIDED:') ?? false) || transaction.status === 'void';
+    return !isVoided;
   };
 
   const updateTransactionStatus = async (transactionId: string, status: 'completed' | 'pending' | 'scheduled') => {
