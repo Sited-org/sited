@@ -12,6 +12,42 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-MEMBERSHIP-SUB] ${step}${detailsStr}`);
 };
 
+// Canonical Stripe subscription products & prices (AUD monthly)
+const SUBSCRIPTION_CATALOG: Record<string, { product_id: string; price_id: string }> = {
+  "Website Maintenance (50% Off)": {
+    product_id: "prod_TnRZxaGBaJrIr0",
+    price_id: "price_1SpqgCKEOhx2BLuXsg4dudMG", // $60/mo
+  },
+  "Essential Blue": {
+    product_id: "prod_UFLBBm0VRlSry9",
+    price_id: "price_1TGqUjKEOhx2BLuXq1GvYlEF", // $120/mo
+  },
+  "Gold": {
+    product_id: "prod_UFLB6tozCem5F8",
+    price_id: "price_1TGqUkKEOhx2BLuXw4C6vcGG", // $139/mo
+  },
+  "Platinum": {
+    product_id: "prod_UFLBRkmrYptvDJ",
+    price_id: "price_1TGqUkKEOhx2BLuXJG24q0Fx", // $180/mo
+  },
+};
+
+// Fuzzy-match membership name to canonical catalog entry
+function findCatalogEntry(name: string): { product_id: string; price_id: string } | null {
+  const lower = name.toLowerCase().trim();
+  for (const [key, val] of Object.entries(SUBSCRIPTION_CATALOG)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) {
+      return val;
+    }
+  }
+  // Try partial matches
+  if (lower.includes("maintenance") || lower.includes("50%")) return SUBSCRIPTION_CATALOG["Website Maintenance (50% Off)"];
+  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Essential Blue"];
+  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold"];
+  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum"];
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -43,7 +79,6 @@ serve(async (req) => {
     if (userError || !userData.user) throw new Error("Unauthorized");
     logStep("User authenticated", { userId: userData.user.id });
 
-    // Check if user has permission to manage subscriptions (requires can_charge_cards)
     const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('can_charge_cards')
@@ -51,291 +86,184 @@ serve(async (req) => {
       .single();
 
     if (roleError || !userRole?.can_charge_cards) {
-      logStep("Permission denied", { userId: userData.user.id, requiredPermission: 'can_charge_cards' });
       return new Response(
-        JSON.stringify({ error: 'Insufficient permissions: cannot manage subscriptions' }),
+        JSON.stringify({ error: 'Insufficient permissions' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    logStep("Permission validated", { permission: 'can_charge_cards' });
 
     const body = await req.json();
-    const { 
-      lead_id, 
-      membership_name, 
-      membership_price, 
-      billing_interval, 
-      start_date,
-      notes 
-    } = body;
-
-    logStep("Request body", { lead_id, membership_name, membership_price, billing_interval, start_date });
+    const { lead_id, membership_name, membership_price, billing_interval, start_date, notes } = body;
 
     if (!lead_id || !membership_name || !membership_price || !billing_interval) {
       throw new Error("Missing required fields: lead_id, membership_name, membership_price, billing_interval");
     }
 
-    // Get the lead details
+    logStep("Request", { lead_id, membership_name, membership_price, billing_interval });
+
+    // Get the lead
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('leads')
       .select('*')
       .eq('id', lead_id)
       .single();
 
-    if (leadError || !lead) {
-      throw new Error(`Lead not found: ${leadError?.message || 'Unknown error'}`);
-    }
-
+    if (leadError || !lead) throw new Error(`Lead not found: ${leadError?.message}`);
     logStep("Lead found", { email: lead.email, name: lead.name });
 
-    // Check if lead has a saved payment method - if not, we'll use invoice-based collection
     const hasPaymentMethod = !!lead.stripe_payment_method_id;
-    logStep("Payment method status", { hasPaymentMethod });
 
     // Get or create Stripe customer
     let customerId = lead.stripe_customer_id;
-    
     if (!customerId) {
-      // Check if customer exists by email
       const customers = await stripe.customers.list({ email: lead.email, limit: 1 });
-      
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
-        logStep("Found existing Stripe customer", { customerId });
       } else {
-        // Create new customer - use ONLY business name for invoicing (no fallback to personal name)
         const customer = await stripe.customers.create({
           email: lead.email,
-          name: lead.business_name || undefined, // Only business name - never personal name on invoices
-          metadata: {
-            lead_id: lead.id,
-          },
+          name: lead.business_name || undefined,
+          metadata: { lead_id: lead.id },
         });
         customerId = customer.id;
-        logStep("Created new Stripe customer with business name only", { customerId, businessName: lead.business_name });
       }
-      
-      // Save customer ID to lead
-      await supabaseAdmin
-        .from('leads')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', lead.id);
+      await supabaseAdmin.from('leads').update({ stripe_customer_id: customerId }).eq('id', lead.id);
     }
 
-    // If payment method exists, attach it and set as default
+    // Attach payment method if exists
     if (hasPaymentMethod) {
       try {
-        await stripe.paymentMethods.attach(lead.stripe_payment_method_id, {
-          customer: customerId,
-        });
-        logStep("Attached payment method to customer");
-      } catch (attachError: any) {
-        // Payment method might already be attached
-        if (!attachError.message?.includes('already been attached')) {
-          logStep("Payment method attachment note", { message: attachError.message });
+        await stripe.paymentMethods.attach(lead.stripe_payment_method_id, { customer: customerId });
+      } catch (e: any) {
+        if (!e.message?.includes('already been attached')) {
+          logStep("Payment method attachment note", { message: e.message });
         }
       }
-
-      // Set as default payment method
       await stripe.customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: lead.stripe_payment_method_id,
-        },
+        invoice_settings: { default_payment_method: lead.stripe_payment_method_id },
       });
-      logStep("Set default payment method");
-    } else {
-      logStep("No payment method - subscription will use invoice collection");
     }
 
-    // Convert billing interval to Stripe interval
-    const intervalMap: Record<string, Stripe.PriceCreateParams.Recurring.Interval> = {
-      'daily': 'day',
-      'weekly': 'week',
-      'monthly': 'month',
-      'yearly': 'year',
-    };
-    
-    const stripeInterval = intervalMap[billing_interval.toLowerCase()] || 'month';
+    // --- Resolve the Stripe price to use ---
+    // Try canonical catalog first
+    const catalogEntry = findCatalogEntry(membership_name);
+    let priceId: string;
 
-    // Create or find a product for this membership
-    const productName = `Membership: ${membership_name}`;
-    let product: Stripe.Product;
-    
-    // Search for existing product
-    const existingProducts = await stripe.products.search({
-      query: `name:'${productName.replace(/'/g, "\\'")}' active:'true'`,
-    });
-
-    if (existingProducts.data.length > 0) {
-      product = existingProducts.data[0];
-      logStep("Found existing product", { productId: product.id });
+    if (catalogEntry) {
+      priceId = catalogEntry.price_id;
+      logStep("Using canonical price", { priceId, productId: catalogEntry.product_id });
     } else {
-      product = await stripe.products.create({
-        name: productName,
-        metadata: {
-          membership_name: membership_name,
-          lead_id: lead.id,
-        },
+      // Fallback: create ad-hoc product & price (rare edge case for custom memberships)
+      logStep("No canonical match — creating ad-hoc product/price", { membership_name });
+      const intervalMap: Record<string, string> = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
+      const stripeInterval = intervalMap[billing_interval.toLowerCase()] || 'month';
+      const product = await stripe.products.create({
+        name: membership_name,
+        metadata: { membership_name },
       });
-      logStep("Created new product", { productId: product.id });
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Math.round(membership_price * 100),
+        currency: 'aud',
+        recurring: { interval: stripeInterval as any },
+      });
+      priceId = price.id;
+      logStep("Created ad-hoc price", { priceId, productId: product.id });
     }
 
-    // Create a price for this subscription
-    const priceInCents = Math.round(membership_price * 100);
-    const price = await stripe.prices.create({
-      product: product.id,
-      unit_amount: priceInCents,
-      currency: 'aud',
-      recurring: {
-        interval: stripeInterval,
-      },
-      metadata: {
-        membership_name: membership_name,
-        lead_id: lead.id,
-      },
-    });
-    logStep("Created price", { priceId: price.id, amount: priceInCents, interval: stripeInterval });
-
-    // Determine if start_date is mid-month (not the 1st)
+    // Determine billing anchor
     const now = new Date();
     const startDateTime = start_date ? new Date(start_date) : null;
     const isMidMonth = startDateTime && startDateTime.getUTCDate() !== 1;
 
-    // Anchor is always the 1st of a month
     let anchorDate: Date;
     if (startDateTime) {
-      if (isMidMonth) {
-        // Mid-month start: anchor subscription to 1st of following month
-        anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth() + 1, 1));
-      } else {
-        // 1st of month start: anchor to that date
-        anchorDate = new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
-      }
+      anchorDate = isMidMonth
+        ? new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth() + 1, 1))
+        : new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
     } else {
-      // No start date — anchor to the 1st of next month
       anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
     }
 
-    logStep("Billing anchor calculated", { 
-      startDate: start_date, 
-      isMidMonth,
-      anchorDate: anchorDate.toISOString(),
-      anchorTimestamp: Math.floor(anchorDate.getTime() / 1000)
-    });
+    logStep("Billing anchor", { isMidMonth, anchorDate: anchorDate.toISOString() });
 
-    // --- MID-MONTH: Create a one-off invoice for the full amount on the start date ---
+    // Mid-month: one-off invoice for the full amount
     let oneOffInvoiceId: string | null = null;
     if (isMidMonth) {
-      logStep("Mid-month start — creating one-off invoice for full charge");
-
-      // Create an invoice item for the full membership price
+      logStep("Mid-month start — creating one-off invoice");
       await stripe.invoiceItems.create({
         customer: customerId!,
-        amount: priceInCents,
+        amount: Math.round(membership_price * 100),
         currency: 'aud',
         description: `${membership_name} — initial charge (${start_date})`,
         metadata: { lead_id: lead.id, membership_name },
       });
 
-      // Create and finalize the one-off invoice
-      const oneOffInvoiceParams: Stripe.InvoiceCreateParams = {
+      const invoiceParams: any = {
         customer: customerId!,
         auto_advance: true,
         metadata: { lead_id: lead.id, membership_name, type: 'mid_month_initial' },
       };
-
       if (hasPaymentMethod) {
-        oneOffInvoiceParams.default_payment_method = lead.stripe_payment_method_id;
+        invoiceParams.default_payment_method = lead.stripe_payment_method_id;
       } else {
-        oneOffInvoiceParams.collection_method = 'send_invoice';
-        oneOffInvoiceParams.days_until_due = 7;
+        invoiceParams.collection_method = 'send_invoice';
+        invoiceParams.days_until_due = 7;
       }
 
-      const oneOffInvoice = await stripe.invoices.create(oneOffInvoiceParams);
+      const oneOffInvoice = await stripe.invoices.create(invoiceParams);
       const finalizedInvoice = await stripe.invoices.finalizeInvoice(oneOffInvoice.id);
       oneOffInvoiceId = finalizedInvoice.id;
 
-      logStep("One-off invoice created and finalized", { 
-        invoiceId: oneOffInvoiceId, 
-        status: finalizedInvoice.status,
-        amountDue: finalizedInvoice.amount_due,
+      await supabaseAdmin.from('transactions').insert({
+        lead_id: lead.id,
+        item: `${membership_name} — Initial Charge`,
+        credit: 0,
+        debit: membership_price,
+        notes: notes ? `${notes}\nOne-off initial charge (${start_date})` : `One-off initial charge (${start_date})`,
+        transaction_date: start_date,
+        is_recurring: false,
+        status: 'completed',
+        invoice_status: hasPaymentMethod ? 'processing' : 'sent',
+        stripe_invoice_id: oneOffInvoiceId,
       });
-
-      // Record the one-off charge transaction
-      await supabaseAdmin
-        .from('transactions')
-        .insert({
-          lead_id: lead.id,
-          item: `${membership_name} — Initial Charge`,
-          credit: 0,
-          debit: membership_price,
-          notes: notes ? `${notes}\nOne-off initial charge for mid-month start (${start_date})` : `One-off initial charge for mid-month start (${start_date})`,
-          transaction_date: start_date,
-          is_recurring: false,
-          status: 'completed',
-          invoice_status: hasPaymentMethod ? 'processing' : 'sent',
-          stripe_invoice_id: oneOffInvoiceId,
-        });
-
-      logStep("Created one-off transaction record");
     }
 
-    // --- Create the recurring subscription anchored to the 1st ---
-    const subscriptionParams: Stripe.SubscriptionCreateParams = {
+    // Create subscription
+    const subParams: any = {
       customer: customerId!,
-      items: [{ price: price.id }],
+      items: [{ price: priceId }],
       billing_cycle_anchor: Math.floor(anchorDate.getTime() / 1000),
       proration_behavior: 'none',
-      metadata: {
-        lead_id: lead.id,
-        membership_name: membership_name,
-      },
+      metadata: { lead_id: lead.id, membership_name },
     };
 
     if (hasPaymentMethod) {
-      subscriptionParams.default_payment_method = lead.stripe_payment_method_id;
-      subscriptionParams.payment_behavior = 'error_if_incomplete';
-      logStep("Using auto-charge mode with saved payment method");
+      subParams.default_payment_method = lead.stripe_payment_method_id;
+      subParams.payment_behavior = 'error_if_incomplete';
     } else {
-      subscriptionParams.collection_method = 'send_invoice';
-      subscriptionParams.days_until_due = 7;
-      logStep("Using invoice collection mode");
+      subParams.collection_method = 'send_invoice';
+      subParams.days_until_due = 7;
     }
 
-    const subscription = await stripe.subscriptions.create(subscriptionParams);
-    logStep("Created subscription", { 
-      subscriptionId: subscription.id, 
-      status: subscription.status,
-      currentPeriodStart: subscription.current_period_start,
-      currentPeriodEnd: subscription.current_period_end,
+    const subscription = await stripe.subscriptions.create(subParams);
+    logStep("Created subscription", { id: subscription.id, status: subscription.status });
+
+    // Record recurring transaction
+    await supabaseAdmin.from('transactions').insert({
+      lead_id: lead.id,
+      item: membership_name,
+      credit: 0,
+      debit: membership_price,
+      notes: notes ? `${notes}\nStripe Subscription: ${subscription.id}` : `Stripe Subscription: ${subscription.id}`,
+      transaction_date: start_date || new Date().toISOString(),
+      is_recurring: true,
+      recurring_interval: billing_interval,
+      recurring_end_date: null,
+      status: 'completed',
+      invoice_status: 'not_sent',
+      stripe_invoice_id: subscription.latest_invoice?.toString() || null,
     });
-
-    // Create the recurring definition transaction record
-    const transactionDate = start_date || new Date().toISOString();
-    const { data: transaction, error: transactionError } = await supabaseAdmin
-      .from('transactions')
-      .insert({
-        lead_id: lead.id,
-        item: membership_name,
-        credit: 0,
-        debit: membership_price,
-        notes: notes ? `${notes}\nStripe Subscription: ${subscription.id}` : `Stripe Subscription: ${subscription.id}`,
-        transaction_date: transactionDate,
-        is_recurring: true,
-        recurring_interval: billing_interval,
-        recurring_end_date: null,
-        status: 'completed',
-        invoice_status: 'not_sent',
-        stripe_invoice_id: subscription.latest_invoice?.toString() || null,
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      logStep("Warning: Failed to create transaction record", { error: transactionError.message });
-    } else {
-      logStep("Created recurring transaction record", { transactionId: transaction?.id });
-    }
 
     return new Response(
       JSON.stringify({
@@ -346,20 +274,13 @@ serve(async (req) => {
         next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
         one_off_invoice_id: oneOffInvoiceId,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
-
   } catch (error: any) {
     logStep("ERROR", { message: error.message });
     return new Response(
       JSON.stringify({ error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });

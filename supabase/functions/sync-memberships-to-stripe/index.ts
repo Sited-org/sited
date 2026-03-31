@@ -12,6 +12,38 @@ const logStep = (step: string, details?: any) => {
   console.log(`[SYNC-MEMBERSHIPS] ${step}${detailsStr}`);
 };
 
+// Canonical Stripe subscription products & prices (AUD monthly)
+const SUBSCRIPTION_CATALOG: Record<string, { product_id: string; price_id: string }> = {
+  "Website Maintenance (50% Off)": {
+    product_id: "prod_TnRZxaGBaJrIr0",
+    price_id: "price_1SpqgCKEOhx2BLuXsg4dudMG",
+  },
+  "Essential Blue": {
+    product_id: "prod_UFLBBm0VRlSry9",
+    price_id: "price_1TGqUjKEOhx2BLuXq1GvYlEF",
+  },
+  "Gold": {
+    product_id: "prod_UFLB6tozCem5F8",
+    price_id: "price_1TGqUkKEOhx2BLuXw4C6vcGG",
+  },
+  "Platinum": {
+    product_id: "prod_UFLBRkmrYptvDJ",
+    price_id: "price_1TGqUkKEOhx2BLuXJG24q0Fx",
+  },
+};
+
+function findCatalogEntry(name: string): { product_id: string; price_id: string } | null {
+  const lower = name.toLowerCase().trim();
+  for (const [key, val] of Object.entries(SUBSCRIPTION_CATALOG)) {
+    if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return val;
+  }
+  if (lower.includes("maintenance") || lower.includes("50%")) return SUBSCRIPTION_CATALOG["Website Maintenance (50% Off)"];
+  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Essential Blue"];
+  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold"];
+  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum"];
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -44,14 +76,11 @@ serve(async (req) => {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-
-      // Check permission
       const { data: userRole } = await supabaseAdmin
         .from('user_roles')
         .select('can_charge_cards')
         .eq('user_id', userData.user.id)
         .single();
-
       if (!userRole?.can_charge_cards) {
         return new Response(JSON.stringify({ error: "Insufficient permissions" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -59,7 +88,7 @@ serve(async (req) => {
       }
     }
 
-    // Find active recurring transactions that DON'T have a Stripe subscription
+    // Find active recurring transactions without a Stripe subscription
     const { data: unsyncedMemberships, error: fetchError } = await supabaseAdmin
       .from('transactions')
       .select(`
@@ -72,7 +101,6 @@ serve(async (req) => {
 
     if (fetchError) throw new Error(`Failed to fetch memberships: ${fetchError.message}`);
 
-    // Filter out ones that already have a Stripe subscription
     const needsSync = (unsyncedMemberships || []).filter(
       (tx: any) => !tx.notes?.includes('Stripe Subscription:')
     );
@@ -86,7 +114,7 @@ serve(async (req) => {
       try {
         logStep("Processing", { lead: lead.name, item: tx.item, amount: tx.debit });
 
-        // Ensure Stripe customer exists
+        // Get or create Stripe customer
         let customerId = lead.stripe_customer_id;
         if (!customerId) {
           const customers = await stripe.customers.list({ email: lead.email, limit: 1 });
@@ -103,12 +131,8 @@ serve(async (req) => {
           await supabaseAdmin.from('leads').update({ stripe_customer_id: customerId }).eq('id', lead.id);
         }
 
-        // Check if this customer already has an active subscription for a similar amount
-        const existingSubs = await stripe.subscriptions.list({
-          customer: customerId,
-          status: 'active',
-        });
-
+        // Check for existing active subscription at similar amount
+        const existingSubs = await stripe.subscriptions.list({ customer: customerId, status: 'active' });
         const alreadyHasSub = existingSubs.data.some(sub => {
           const subAmount = sub.items.data[0]?.price?.unit_amount;
           return subAmount === Math.round(Number(tx.debit) * 100);
@@ -120,54 +144,35 @@ serve(async (req) => {
           continue;
         }
 
-        // Convert interval
-        const intervalMap: Record<string, string> = {
-          daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year',
-        };
-        const stripeInterval = intervalMap[tx.recurring_interval?.toLowerCase() || 'monthly'] || 'month';
+        // Resolve canonical price or create ad-hoc
+        const catalogEntry = findCatalogEntry(tx.item);
+        let priceId: string;
 
-        // Create price for this membership
-        const productName = tx.item;
-        const existingProducts = await stripe.products.search({
-          query: `name:'${productName.replace(/'/g, "\\'")}' active:'true'`,
-        });
-
-        let productId: string;
-        if (existingProducts.data.length > 0) {
-          productId = existingProducts.data[0].id;
+        if (catalogEntry) {
+          priceId = catalogEntry.price_id;
+          logStep("Using canonical price", { priceId });
         } else {
-          const product = await stripe.products.create({
-            name: productName,
-            metadata: { membership_name: tx.item },
-          });
-          productId = product.id;
-        }
-
-        // Find or create a matching price
-        const existingPrices = await stripe.prices.list({ product: productId, limit: 10 });
-        const targetAmount = Math.round(Number(tx.debit) * 100);
-        let priceId = existingPrices.data.find(
-          p => p.unit_amount === targetAmount && p.currency === 'aud' && p.recurring?.interval === stripeInterval && p.active
-        )?.id;
-
-        if (!priceId) {
+          // Fallback: create product & price
+          const intervalMap: Record<string, string> = { daily: 'day', weekly: 'week', monthly: 'month', yearly: 'year' };
+          const stripeInterval = intervalMap[tx.recurring_interval?.toLowerCase() || 'monthly'] || 'month';
+          const product = await stripe.products.create({ name: tx.item, metadata: { membership_name: tx.item } });
           const price = await stripe.prices.create({
-            product: productId,
-            unit_amount: targetAmount,
+            product: product.id,
+            unit_amount: Math.round(Number(tx.debit) * 100),
             currency: 'aud',
             recurring: { interval: stripeInterval as any },
           });
           priceId = price.id;
         }
 
-        // If payment method exists, attach and set as default
+        // Attach payment method if exists
         const hasPaymentMethod = !!lead.stripe_payment_method_id;
         if (hasPaymentMethod) {
           try {
             await stripe.paymentMethods.attach(lead.stripe_payment_method_id, { customer: customerId });
           } catch (e: any) {
             if (!e.message?.includes('already been attached')) {
-              logStep("Payment method attachment note", { message: e.message });
+              logStep("Payment method note", { message: e.message });
             }
           }
           await stripe.customers.update(customerId, {
@@ -193,20 +198,16 @@ serve(async (req) => {
         const subscription = await stripe.subscriptions.create(subParams);
         logStep("Created subscription", { id: subscription.id, status: subscription.status });
 
-        // Update the local transaction record with the Stripe subscription reference
+        // Update transaction with subscription reference
         const existingNotes = tx.notes || '';
         const updatedNotes = existingNotes
           ? `${existingNotes}\nStripe Subscription: ${subscription.id}`
           : `Stripe Subscription: ${subscription.id}`;
 
-        await supabaseAdmin
-          .from('transactions')
-          .update({ notes: updatedNotes })
-          .eq('id', tx.id);
+        await supabaseAdmin.from('transactions').update({ notes: updatedNotes }).eq('id', tx.id);
 
         results.push({
           lead: lead.name,
-          email: lead.email,
           item: tx.item,
           amount: tx.debit,
           subscription_id: subscription.id,
@@ -214,7 +215,6 @@ serve(async (req) => {
           collection_method: hasPaymentMethod ? 'charge_automatically' : 'send_invoice',
           success: true,
         });
-
       } catch (err: any) {
         logStep("Error processing", { lead: lead.name, error: err.message });
         results.push({ lead: lead.name, item: tx.item, error: err.message, success: false });
@@ -232,7 +232,6 @@ serve(async (req) => {
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
-
   } catch (error: any) {
     logStep("ERROR", { message: error.message });
     return new Response(
