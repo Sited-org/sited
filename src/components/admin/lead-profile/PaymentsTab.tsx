@@ -515,8 +515,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setManualPaymentDate('');
       setSelectedManualPaymentItems([]);
       
-      // Refresh transactions
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error recording manual payment:', error);
       toast.error(error.message || 'Failed to record payment');
