@@ -1459,7 +1459,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
         <CardHeader>
           <CardTitle className="text-lg">Transaction History</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading transactions...</p>
           ) : transactions.length === 0 ? (
