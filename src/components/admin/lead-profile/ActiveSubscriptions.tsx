@@ -29,9 +29,19 @@ interface ActiveSubscriptionsProps {
   canEdit: boolean;
 }
 
+function safeFormatDate(timestamp: number | null | undefined, fallback = 'N/A'): string {
+  if (!timestamp || timestamp <= 0) return fallback;
+  try {
+    return format(new Date(timestamp * 1000), 'PP');
+  } catch {
+    return fallback;
+  }
+}
+
 export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProps) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [cancelOption, setCancelOption] = useState<'immediate' | 'period_end'>('period_end');
@@ -39,21 +49,19 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
 
   const fetchSubscriptions = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase.functions.invoke('get-lead-subscriptions', {
+      const { data, error: fnError } = await supabase.functions.invoke('get-lead-subscriptions', {
         body: { lead_id: leadId },
       });
 
-      if (error) throw error;
+      if (fnError) throw fnError;
 
-      if (data?.success) {
-        setSubscriptions(data.subscriptions || []);
-      } else {
-        throw new Error(data?.error || 'Failed to fetch subscriptions');
-      }
-    } catch (error: any) {
-      console.error('Error fetching subscriptions:', error);
-      // Silent fail - just show empty state
+      setSubscriptions(data?.subscriptions || []);
+    } catch (err: any) {
+      console.error('Error fetching subscriptions:', err);
+      setError('Could not load subscriptions');
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
@@ -148,8 +156,24 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
     );
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Active Memberships
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground py-4">{error}</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (activeSubscriptions.length === 0) {
-    return null; // Don't show the card if there are no active subscriptions
+    return null;
   }
 
   return (
@@ -175,15 +199,15 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
                   </div>
                   <div className="text-sm text-muted-foreground">
                     <span className="font-medium">
-                      ${subscription.amount.toLocaleString()}/{subscription.interval}
+                      ${(subscription.amount ?? 0).toLocaleString()}/{subscription.interval || 'month'}
                     </span>
                     {subscription.cancel_at_period_end ? (
                       <span className="ml-2 text-amber-600">
-                        • Ends {format(new Date(subscription.current_period_end * 1000), 'PP')}
+                        • Ends {safeFormatDate(subscription.current_period_end)}
                       </span>
                     ) : (
                       <span className="ml-2">
-                        • Renews {format(new Date(subscription.current_period_end * 1000), 'PP')}
+                        • Renews {safeFormatDate(subscription.current_period_end)}
                       </span>
                     )}
                   </div>
@@ -227,8 +251,7 @@ export function ActiveSubscriptions({ leadId, canEdit }: ActiveSubscriptionsProp
                   <div className="font-medium">Cancel at end of billing period</div>
                   <div className="text-sm text-muted-foreground">
                     Client keeps access until{' '}
-                    {selectedSubscription &&
-                      format(new Date(selectedSubscription.current_period_end * 1000), 'PP')}
+                    {safeFormatDate(selectedSubscription?.current_period_end)}
                   </div>
                 </Label>
               </div>

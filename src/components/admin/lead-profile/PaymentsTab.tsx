@@ -558,8 +558,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setCreditAmount('');
       setCreditDescription('');
       
-      // Refresh transactions
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error adding credit:', error);
       toast.error(error.message || 'Failed to add credit');
