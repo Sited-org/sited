@@ -18,15 +18,15 @@ const SUBSCRIPTION_CATALOG: Record<string, { product_id: string; price_id: strin
     product_id: "prod_TnRZxaGBaJrIr0",
     price_id: "price_1SpqgCKEOhx2BLuXsg4dudMG", // $60/mo
   },
-  "Essential Blue": {
+  "Blue Subscription": {
     product_id: "prod_UFLBBm0VRlSry9",
     price_id: "price_1TGqUjKEOhx2BLuXq1GvYlEF", // $120/mo
   },
-  "Gold": {
+  "Gold Subscription": {
     product_id: "prod_UFLB6tozCem5F8",
     price_id: "price_1TGqUkKEOhx2BLuXw4C6vcGG", // $139/mo
   },
-  "Platinum": {
+  "Platinum Subscription": {
     product_id: "prod_UFLBRkmrYptvDJ",
     price_id: "price_1TGqUkKEOhx2BLuXJG24q0Fx", // $180/mo
   },
@@ -42,9 +42,9 @@ function findCatalogEntry(name: string): { product_id: string; price_id: string 
   }
   // Try partial matches
   if (lower.includes("maintenance") || lower.includes("50%")) return SUBSCRIPTION_CATALOG["Website Maintenance (50% Off)"];
-  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Essential Blue"];
-  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold"];
-  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum"];
+  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Blue Subscription"];
+  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold Subscription"];
+  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum Subscription"];
   return null;
 }
 
