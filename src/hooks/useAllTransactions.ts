@@ -382,8 +382,10 @@ export function useAllTransactions() {
       toast({ title: 'Error updating voided transaction', description: updateError.message, variant: 'destructive' });
       return { error: updateError };
     }
-    
-    toast({ title: successMessage });
+    const successMsg = wasInvoiceSentButNotPaid 
+      ? 'Invoice voided - charge can now be re-invoiced' 
+      : 'Transaction voided successfully';
+    toast({ title: successMsg });
     return { error: null };
   };
 
