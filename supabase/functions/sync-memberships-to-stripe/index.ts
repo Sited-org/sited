@@ -38,9 +38,9 @@ function findCatalogEntry(name: string): { product_id: string; price_id: string 
     if (lower.includes(key.toLowerCase()) || key.toLowerCase().includes(lower)) return val;
   }
   if (lower.includes("maintenance") || lower.includes("50%")) return SUBSCRIPTION_CATALOG["Website Maintenance (50% Off)"];
-  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Essential Blue"];
-  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold"];
-  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum"];
+  if (lower.includes("blue") || lower.includes("essential")) return SUBSCRIPTION_CATALOG["Blue Subscription"];
+  if (lower.includes("gold")) return SUBSCRIPTION_CATALOG["Gold Subscription"];
+  if (lower.includes("platinum")) return SUBSCRIPTION_CATALOG["Platinum Subscription"];
   return null;
 }
 
