@@ -254,8 +254,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       setInvoiceNotes('');
       setInvoiceDueDate('');
       
-      // Refresh transactions to show updated status
-      window.location.reload();
+      // Refresh transactions data
+      refetch();
     } catch (error: any) {
       console.error('Error sending invoice:', error);
       toast.error(error.message || 'Failed to send invoice');
