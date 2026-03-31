@@ -415,6 +415,7 @@ export function useAllTransactions() {
 
     if (successCount > 0) {
       toast({ title: `${successCount} invoice(s) voided - charges can be re-invoiced` });
+      fetchTransactions();
     }
     return { error: null };
   };
