@@ -93,7 +93,7 @@ serve(async (req) => {
     const html = generateEmailHtml(firstName, businessName, depositAmount);
 
     const { error: emailErr } = await resend.emails.send({
-      from: "Sited <noreply@notify.sited.co>",
+      from: "Sited <hello@sited.co>",
       to: [lead.email],
       subject: `Deposit Payment — ${businessName}`,
       html,

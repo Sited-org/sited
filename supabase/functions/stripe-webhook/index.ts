@@ -534,6 +534,44 @@ serve(async (req) => {
               .in('id', transactionIds);
             console.log("[STRIPE-WEBHOOK] Updated direct payment transactions to 'paid'");
           }
+
+          // Save the payment method to the customer and lead for future charges
+          const leadId = paymentIntent.metadata?.lead_id;
+          if (leadId && paymentIntent.payment_method && paymentIntent.customer) {
+            try {
+              const paymentMethodId = typeof paymentIntent.payment_method === 'string'
+                ? paymentIntent.payment_method
+                : paymentIntent.payment_method.id;
+              const customerId = typeof paymentIntent.customer === 'string'
+                ? paymentIntent.customer
+                : paymentIntent.customer.id;
+
+              // Attach payment method to customer (if not already)
+              try {
+                await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+              } catch (_e: any) {
+                // Already attached
+              }
+
+              // Set as default for future invoices
+              await stripe.customers.update(customerId, {
+                invoice_settings: { default_payment_method: paymentMethodId },
+              });
+
+              // Save to lead record
+              await supabaseAdmin
+                .from('leads')
+                .update({
+                  stripe_payment_method_id: paymentMethodId,
+                  stripe_customer_id: customerId,
+                })
+                .eq('id', leadId);
+
+              console.log("[STRIPE-WEBHOOK] Saved payment method from direct PI to lead:", leadId);
+            } catch (pmErr: any) {
+              console.error("[STRIPE-WEBHOOK] Error saving PM from direct PI:", pmErr.message);
+            }
+          }
         }
         break;
       }
