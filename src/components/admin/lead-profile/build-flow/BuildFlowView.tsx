@@ -18,6 +18,7 @@ import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
 import { ProposalGenerator } from './ProposalGenerator';
 import { RestartFlowDialog } from './RestartFlowDialog';
+import { AdminPayNowDialog } from './AdminPayNowDialog';
 
 interface BuildFlowViewProps {
   buildFlow: BuildFlow;
@@ -50,6 +51,7 @@ export function BuildFlowView({
   const [showProposalGenerator, setShowProposalGenerator] = useState(false);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [sendingDepositLink, setSendingDepositLink] = useState(false);
+  const [showPayNowDialog, setShowPayNowDialog] = useState(false);
   const depositAutoChecked = useRef(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
@@ -106,45 +108,29 @@ export function BuildFlowView({
   const handleSendDepositLink = async () => {
     setSendingDepositLink(true);
     try {
-      const { data: lead } = await supabase
-        .from('leads')
-        .select('email, name, business_name')
-        .eq('id', buildFlow.lead_id)
-        .single();
-
-      if (!lead?.email) {
-        toast.error('No client email found');
-        return;
-      }
-
-      // Get deposit amount from settings
-      const { data: depositSetting } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'deposit_amount')
-        .maybeSingle();
-
-      const depositAmount = (depositSetting?.setting_value as any)?.amount ?? 49;
-
-      const { error } = await supabase.functions.invoke('create-offer-payment-intent', {
-        body: {
-          email: lead.email,
-          name: lead.name,
-          amount: depositAmount * 100, // cents
-          description: `Deposit — ${lead.business_name || businessName}`,
-        },
+      const { data, error } = await supabase.functions.invoke('send-deposit-link', {
+        body: { lead_id: buildFlow.lead_id },
       });
 
-      if (error) {
-        toast.error('Failed to create payment link');
+      if (error || !data?.success) {
+        toast.error('Failed to send deposit link');
       } else {
-        toast.success(`Deposit payment link sent to ${lead.email}`);
+        toast.success('Deposit payment link sent to client');
       }
     } catch (err) {
       console.error(err);
       toast.error('Failed to send deposit link');
     } finally {
       setSendingDepositLink(false);
+    }
+  };
+
+  const handleDepositPaymentComplete = async () => {
+    // Find and auto-complete the deposit step
+    const depositStep = phases.flatMap(p => p.steps).find(s => s.step_key === 'deposit_received');
+    if (depositStep && !depositStep.is_completed) {
+      await onMarkComplete(depositStep, 'Deposit processed via admin card payment', null, userId);
+      if (refetch) await refetch();
     }
   };
 
@@ -329,14 +315,14 @@ export function BuildFlowView({
                             </div>
                           )}
 
-                          {/* Special: Deposit step - show send payment link if not completed */}
+                          {/* Special: Deposit step - Pay Now or Send Payment Link */}
                           {isDepositStep(step) && !step.is_completed && !step.is_locked && canEdit && (
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={handleSendDepositLink} disabled={sendingDepositLink}>
-                                <CreditCard className="h-4 w-4 mr-1" /> {sendingDepositLink ? 'Sending…' : 'Send Deposit Payment Link'}
+                              <Button size="sm" onClick={() => setShowPayNowDialog(true)}>
+                                <CreditCard className="h-4 w-4 mr-1" /> Pay Now
                               </Button>
-                              <Button size="sm" onClick={() => setCompletingStep(step)}>
-                                <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
+                              <Button size="sm" variant="outline" onClick={handleSendDepositLink} disabled={sendingDepositLink}>
+                                <Send className="h-4 w-4 mr-1" /> {sendingDepositLink ? 'Sending…' : 'Send Payment Link'}
                               </Button>
                             </div>
                           )}
@@ -420,6 +406,15 @@ export function BuildFlowView({
         onOpenChange={setShowRestartDialog}
         businessName={businessName}
         onConfirm={onRestartFlow}
+      />
+
+      {/* Admin Pay Now Dialog */}
+      <AdminPayNowDialog
+        open={showPayNowDialog}
+        onOpenChange={setShowPayNowDialog}
+        leadId={buildFlow.lead_id}
+        businessName={businessName}
+        onPaymentComplete={handleDepositPaymentComplete}
       />
     </div>
   );
