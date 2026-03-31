@@ -49,8 +49,32 @@ export function BuildFlowView({
   const [showDiscoveryAnswers, setShowDiscoveryAnswers] = useState(false);
   const [showProposalGenerator, setShowProposalGenerator] = useState(false);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [sendingDepositLink, setSendingDepositLink] = useState(false);
+  const depositAutoChecked = useRef(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
+
+  // Auto-complete deposit_received step if deposit is already paid
+  useEffect(() => {
+    if (depositAutoChecked.current) return;
+    const depositStep = phases.flatMap(p => p.steps).find(s => s.step_key === 'deposit_received');
+    if (!depositStep || depositStep.is_completed || depositStep.is_locked) return;
+
+    depositAutoChecked.current = true;
+    supabase
+      .from('transactions')
+      .select('id, item, credit, status')
+      .eq('lead_id', buildFlow.lead_id)
+      .or('item.ilike.%Deposit%,item.ilike.%deposit%')
+      .then(({ data }) => {
+        const hasPaid = (data || []).some(
+          (tx: any) => tx.credit > 0 && (tx.status === 'completed' || tx.status === 'paid')
+        );
+        if (hasPaid) {
+          onMarkComplete(depositStep, 'Deposit automatically confirmed from payment records', null, userId);
+        }
+      });
+  }, [phases, buildFlow.lead_id]);
 
   const getPhaseProgress = (phase: BuildPhase) => {
     const total = phase.steps.filter(s => !s.is_skipped).length;
