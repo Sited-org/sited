@@ -18,6 +18,7 @@ import { StepCompleteModal } from './StepCompleteModal';
 import { DiscoveryAnswersDialog } from './DiscoveryAnswersDialog';
 import { ProposalGenerator } from './ProposalGenerator';
 import { RestartFlowDialog } from './RestartFlowDialog';
+import { AdminPayNowDialog } from './AdminPayNowDialog';
 
 interface BuildFlowViewProps {
   buildFlow: BuildFlow;
