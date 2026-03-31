@@ -12,6 +12,7 @@ const corsHeaders = {
 const LOGO_URL = "https://storage.googleapis.com/gpt-engineer-file-uploads/bK3lO63gVKgONGtqyEYfuGBiGzy1/uploads/1769959095793-S.png";
 
 function generateEmailHtml(businessName: string, clientName: string): string {
+  const firstName = clientName.split(' ')[0] || clientName;
   return `
 <!DOCTYPE html>
 <html>
@@ -24,19 +25,22 @@ function generateEmailHtml(businessName: string, clientName: string): string {
   </div>
 
   <div style="background: #ffffff; padding: 30px; border-radius: 0 0 12px 12px;">
-    <p style="font-size: 16px; color: #09090b;">Hey ${clientName},</p>
-    <p style="color: #52525b;">Please find your personalised <strong>Statement of Work</strong> for <strong>${businessName}</strong> attached to this email as a PDF.</p>
+    <p style="font-size: 16px; color: #09090b;">Hi ${firstName},</p>
+    <p style="color: #52525b;">Please find your personalised scope of work for <strong>${businessName}</strong> attached to this email as a PDF.</p>
     
-    <p style="color: #52525b;">This document outlines the full scope of your project — including every page, feature, and integration we'll build for you.</p>
+    <p style="color: #52525b;">This document outlines the full scope of works associated with your project based on the information you have given to us.</p>
 
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 24px 0;">
-      <p style="font-size: 14px; color: #09090b; font-weight: 700; margin: 0 0 4px;">📎 Attachment</p>
-      <p style="font-size: 13px; color: #64748b; margin: 0;">Statement of Work — ${businessName}.pdf</p>
+    <p style="color: #52525b;">Every page, feature, and integration we'll build for you.</p>
+
+    <div style="background: #09090b; border-radius: 8px; padding: 18px 24px; margin: 24px 0; text-align: center;">
+      <a style="color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; display: block;">📎 Attachment — Scope Of Work — ${businessName}</a>
     </div>
 
-    <p style="color: #52525b;">If you have any questions or adjustments, simply reply to this email or reach out to your project manager.</p>
+    <p style="color: #52525b;">If you have any questions, or would like to make any changes to this, please advise your project manager.</p>
 
-    <p style="color: #52525b; margin-top: 24px;">Looking forward to building with you,</p>
+    <p style="color: #52525b; margin-top: 24px;">Looking forward to building with you!</p>
+
+    <p style="color: #52525b; margin-top: 8px;">Kindly,</p>
     <p style="color: #09090b; font-weight: 700; margin: 4px 0 0;">The Sited Team</p>
   </div>
 

@@ -390,19 +390,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
     pdf.roundedRect(ML, y, CW, 48, 6, 6, 'F');
     pdf.rect(ML, y, CW, 6, 'F');
 
-    // Package badge — positioned to the left
-    if (selectedProduct) {
-      const productName = selectedProduct.name.replace(/\s*package\s*/i, '');
-      const badgeText = `${productName} Package`.toUpperCase();
-      pdf.setFontSize(7);
-      const bw = pdf.getTextWidth(badgeText) + 14;
-      const bx = ML + 120;
-      pdf.setFillColor(SLATE_700);
-      pdf.roundedRect(bx, y + 7, bw, 16, 3, 3, 'F');
-      pdf.setTextColor(SLATE_200);
-      pdf.text(badgeText, bx + 7, y + 18);
-    }
-
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(10);
     pdf.setTextColor(SLATE_400);
