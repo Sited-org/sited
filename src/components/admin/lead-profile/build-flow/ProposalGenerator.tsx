@@ -175,6 +175,8 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const allItems: { desc: string; price: string; isFree: boolean }[] = [];
+  // Order: Pages → Portals → Features → Integrations → Free Add-Ons
+  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
   if (selectedPortals.includes('admin_portal')) {
     allItems.push({ desc: 'Admin Portal', price: `$${pricing.portal_admin}`, isFree: false });
   }
@@ -184,7 +186,6 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
   if (selectedPortals.includes('staff_portal')) {
     allItems.push({ desc: 'Staff Portal', price: `$${pricing.portal_staff}`, isFree: false });
   }
-  pages.forEach(p => allItems.push({ desc: `Page — ${p}`, price: `$${pricing.page}`, isFree: false }));
   features.forEach(f => allItems.push({ desc: `Feature — ${f}`, price: `$${pricing.feature}`, isFree: false }));
   integrations.forEach(ig => allItems.push({ desc: `Integration — ${ig}`, price: `$${pricing.integration}`, isFree: false }));
   allItems.push({ desc: 'SEO Optimisation', price: 'FREE', isFree: true });
