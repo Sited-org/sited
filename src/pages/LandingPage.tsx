@@ -423,7 +423,7 @@ const LandingPage = () => {
                 {[
                   { value: "200+", label: "Websites Built" },
                   { value: "7", label: "Day Average Delivery" },
-                  { value: "$549", label: "All-In Package" },
+                  { value: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`, label: "All-In Package" },
                 ].map((stat) => (
                   <div key={stat.label}>
                     <p className="text-2xl xl:text-3xl font-black text-foreground">{stat.value}</p>
