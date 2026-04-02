@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
