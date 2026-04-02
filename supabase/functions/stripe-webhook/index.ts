@@ -356,6 +356,17 @@ serve(async (req) => {
               });
             console.log("[STRIPE-WEBHOOK] Created $0 payment transaction (credit covered)");
           }
+
+          // Auto-complete deposit step if this is a deposit invoice
+          if (invoice.metadata?.type === 'deposit' && actualLeadId) {
+            const paidAmount = invoice.amount_paid ? invoice.amount_paid / 100 : 0;
+            try {
+              console.log("[STRIPE-WEBHOOK] Deposit invoice paid for lead:", actualLeadId);
+              await autoCompleteDepositStep(actualLeadId, paidAmount, invoice.id);
+            } catch (bfErr: any) {
+              console.error("[STRIPE-WEBHOOK] Error auto-completing deposit from invoice.paid:", bfErr.message);
+            }
+          }
         }
         break;
       }
