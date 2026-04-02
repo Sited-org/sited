@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send
+  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +52,7 @@ export function BuildFlowView({
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [sendingDepositLink, setSendingDepositLink] = useState(false);
   const [showPayNowDialog, setShowPayNowDialog] = useState(false);
+  const [sendingPortalInvite, setSendingPortalInvite] = useState(false);
   const depositAutoChecked = useRef(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
@@ -105,6 +106,8 @@ export function BuildFlowView({
   const isProposalStep = (step: BuildStep) => step.step_key === 'proposal_sent';
   // Check if a step is the deposit step
   const isDepositStep = (step: BuildStep) => step.step_key === 'deposit_received';
+  // Check if a step is the portal invite step (P1S4)
+  const isPortalInviteStep = (step: BuildStep) => step.step_key === 'portal_invite_sent';
 
   const handleSendDepositLink = async () => {
     setSendingDepositLink(true);
@@ -135,7 +138,48 @@ export function BuildFlowView({
     }
   };
 
-  // Derive business name from staging URL
+  const handleSendPortalInvite = async () => {
+    setSendingPortalInvite(true);
+    try {
+      // Fetch lead details for the email
+      const { data: leadData } = await supabase
+        .from('leads')
+        .select('name, email')
+        .eq('id', buildFlow.lead_id)
+        .maybeSingle();
+
+      if (!leadData?.email) {
+        toast.error('No email found for this client');
+        return;
+      }
+
+      const portalUrl = 'https://sited.co/client-portal';
+      const { error: emailError } = await supabase.functions.invoke('send-client-credentials', {
+        body: {
+          clientName: leadData.name || '',
+          clientEmail: leadData.email,
+          portalUrl,
+        }
+      });
+
+      if (emailError) throw emailError;
+
+      // Auto-complete the portal invite step
+      const portalStep = phases.flatMap(p => p.steps).find(s => s.step_key === 'portal_invite_sent');
+      if (portalStep && !portalStep.is_completed) {
+        await onMarkComplete(portalStep, `Portal invite email sent to ${leadData.email}`, null, userId);
+      }
+
+      toast.success(`Portal invite sent to ${leadData.email}`);
+      if (refetch) await refetch();
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to send portal invite');
+    } finally {
+      setSendingPortalInvite(false);
+    }
+  };
+
   const businessName = buildFlow.staging_url
     ? buildFlow.staging_url.replace('.sited.co', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
     : 'Client';
@@ -328,8 +372,17 @@ export function BuildFlowView({
                             </div>
                           )}
 
+                          {/* Special: Portal invite step - Send Portal Login */}
+                          {isPortalInviteStep(step) && !step.is_completed && !step.is_locked && canEdit && (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleSendPortalInvite} disabled={sendingPortalInvite}>
+                                <Mail className="h-4 w-4 mr-1" /> {sendingPortalInvite ? 'Sending…' : 'Send Portal Login'}
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Normal actions for non-special steps */}
-                          {!isProposalStep(step) && !isDepositStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
+                          {!isProposalStep(step) && !isDepositStep(step) && !isPortalInviteStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
                             <div className="flex gap-2">
                               <Button size="sm" onClick={() => setCompletingStep(step)}>
                                 <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete

@@ -59,15 +59,13 @@ function generatePhases(ctx: BuildContext): PhaseConfig[] {
   phases.push({
     phase_number: 1, phase_key: "onboarding",
     title: "Onboarding & Discovery",
-    description: "Initial client onboarding, proposal, contract, and site map approval.",
+    description: "Initial client onboarding, proposal, deposit, and portal access.",
     is_locked: false, is_strictly_linear: false, unlocks_after_phase_key: null,
     steps: [
       { step_number: 1, step_key: "discovery_call", title: "Discovery call completed & notes saved", description: "Complete the discovery call with the client.", guidance: "Record key takeaways, goals, and any specific requests from the client.", is_required: true },
       { step_number: 2, step_key: "proposal_sent", title: "Proposal sent to client", description: "Send the project proposal.", guidance: "Include scope, timeline, pricing, and deliverables.", is_required: true },
       { step_number: 3, step_key: "deposit_received", title: "Deposit received — confirm amount", description: "Confirm the deposit payment has been received.", guidance: "Note the amount received and payment method.", is_required: true },
-      { step_number: 4, step_key: "client_profile_created", title: "Client profile fully created in Sited", description: "Create the client profile.", guidance: "Ensure all contact details, business info, and notes are saved.", is_required: true },
-      { step_number: 5, step_key: "sitemap_drafted", title: "Site map drafted and sent to client", description: "Draft and send the site map.", guidance: "List all pages, their hierarchy, and key sections.", is_required: true },
-      { step_number: 6, step_key: "sitemap_approved", title: "Site map approved by client in writing — attach approval", description: "Get written approval.", guidance: "Upload screenshot of client approval (email, message, or signed document).", is_required: true },
+      { step_number: 4, step_key: "portal_invite_sent", title: "Client portal login sent to client", description: "Send the client their portal login credentials via email.", guidance: "This sends an automated email with instructions on how to access the client portal.", is_required: true },
     ],
   });
 
