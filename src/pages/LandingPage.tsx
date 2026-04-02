@@ -139,7 +139,7 @@ const InvoiceBreakdown = ({
           <span className="text-xs font-bold text-green-600">SAVE ${discount.toLocaleString()}</span>
         </div>
         <div className="divide-y divide-gray-100">
-          {OFFER.lineItems.map((item, i) => (
+          {offer.lineItems.map((item, i) => (
             <div key={i} className="px-4 py-3 flex items-center justify-between">
               <span className="text-sm text-gray-700">{item.label}</span>
               <div className="flex items-center gap-3">
@@ -165,7 +165,7 @@ const InvoiceBreakdown = ({
           </div>
           <div className="flex justify-between text-lg pt-1 border-t border-gray-200">
             <span className="font-black text-gray-900">Total</span>
-            <span className="font-black text-gray-900">${OFFER.totalPrice.toLocaleString()}</span>
+            <span className="font-black text-gray-900">${offer.totalPrice.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm pt-1">
             <span className="font-bold" style={{ color: "hsl(202, 74%, 55%)" }}>Due Today (Refundable Deposit)</span>
@@ -173,7 +173,7 @@ const InvoiceBreakdown = ({
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">Remaining (after delivery)</span>
-            <span className="text-gray-400">${(OFFER.totalPrice - 49).toLocaleString()}</span>
+            <span className="text-gray-400">${(offer.totalPrice - 49).toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@ const InvoiceBreakdown = ({
           <div>
             <p className="text-xs font-black text-gray-900 uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Don't love the website? <span className="font-bold text-gray-900">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(OFFER.totalPrice - 49).toLocaleString()} within 7 days of delivery.
+              Don't love the website? <span className="font-bold text-gray-900">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(offer.totalPrice - 49).toLocaleString()} within 7 days of delivery.
             </p>
           </div>
         </div>
@@ -209,7 +209,7 @@ const InvoiceBreakdown = ({
           <motion.div key="payment" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.4 }}>
             <Elements stripe={stripePromise}>
               <OfferPaymentForm
-                tier={OFFER.id}
+                tier={offer.id}
                 tierName="Website Package"
                 onSuccess={onPaymentSuccess}
                 onCancel={() => setShowPaymentForm(false)}
