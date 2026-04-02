@@ -478,6 +478,7 @@ const LandingPage = () => {
                     <InvoiceBreakdown
                       leadInfo={customerInfo}
                       onPaymentSuccess={handlePaymentSuccess}
+                      offer={OFFER}
                     />
                   </div>
                 )}
