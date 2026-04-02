@@ -638,6 +638,7 @@ export type Database = {
       }
       client_requests: {
         Row: {
+          action_type: string | null
           admin_notes: string | null
           analysis_type: string | null
           assigned_to: string | null
@@ -651,11 +652,13 @@ export type Database = {
           lead_id: string
           priority: string
           request_source: string | null
+          requires_client_action: boolean | null
           status: string
           title: string
           updated_at: string
         }
         Insert: {
+          action_type?: string | null
           admin_notes?: string | null
           analysis_type?: string | null
           assigned_to?: string | null
@@ -669,11 +672,13 @@ export type Database = {
           lead_id: string
           priority?: string
           request_source?: string | null
+          requires_client_action?: boolean | null
           status?: string
           title: string
           updated_at?: string
         }
         Update: {
+          action_type?: string | null
           admin_notes?: string | null
           analysis_type?: string | null
           assigned_to?: string | null
@@ -687,6 +692,7 @@ export type Database = {
           lead_id?: string
           priority?: string
           request_source?: string | null
+          requires_client_action?: boolean | null
           status?: string
           title?: string
           updated_at?: string
