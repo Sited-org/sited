@@ -1,57 +1,45 @@
 
 
-# Plan: Dynamic Product Pricing + Deposit Email Audit
+# Deposit Collection: Critical Bug Found
 
-## Problem 1: Hardcoded Tier Prices
+## The Problem
 
-Project costs are hardcoded in multiple places instead of reading from the `products` table. The current products table has updated prices: Essential Blue = $499, Gold = $649, Platinum = $1,149. But several files still reference $549, $649, $1,199.
+The `send-deposit-link` function creates a **Stripe Checkout Session** (line 118). When a client pays through a Checkout Session, Stripe fires a `checkout.session.completed` event — **not** a direct `payment_intent.succeeded` event.
 
-### Affected files and changes
+The webhook (`stripe-webhook/index.ts`) has **no handler for `checkout.session.completed`**. It falls through to the `default` case at line 699, which just logs "Unhandled event type" and does nothing.
 
-**Backend (Edge Functions):**
+This means when a client pays via the emailed deposit link:
 
-1. **`supabase/functions/confirm-offer-payment/index.ts`** — Replace the hardcoded `TIER_CONFIG` (lines 10-15: $549/$649/$1199) with a DB lookup from the `products` table where `product_type = 'package'`. Map tier names to product names (basic-deposit → Essential Blue, gold → Gold Package, platinum → Platinum Package). Use the `price` column for `totalPrice`.
+1. **No transaction is recorded** in the database
+2. **No card is saved** to the lead record
+3. **The deposit build step is not auto-completed**
+4. The payment succeeds in Stripe but the system is completely unaware of it
 
-2. **`supabase/functions/create-offer-checkout/index.ts`** — Replace hardcoded `PRICE_MAP` (lines 10-27) with a DB lookup from `products` table to get `stripe_price_id` dynamically. This ensures if a product price is updated in admin settings, the Stripe checkout uses the correct price ID.
+### Why the `payment_intent.succeeded` handler doesn't fire
 
-**Frontend (Display only — prices shown to customers):**
+When a PaymentIntent is created *through* a Checkout Session, Stripe may fire `payment_intent.succeeded` as well — but critically, at line 528 the handler checks `if (!paymentIntent.invoice)`. Since Checkout Sessions can attach invoice-like behavior, the flow is unreliable. More importantly, the `payment_intent.succeeded` event from a Checkout Session may not always fire depending on the payment method and Stripe's event ordering.
 
-3. **`src/pages/Offer.tsx`** — Replace hardcoded $549/$649/$1199 tier prices with values fetched from the `products` table (via the existing `useProducts` hook or a new public query). The deposit amount ($49) is already dynamic from `system_settings`.
+### The `admin-charge-deposit` path works differently
 
-4. **`src/pages/LandingPage.tsx`** — Replace hardcoded `totalPrice: 549` and display strings with dynamic values from the products table.
+The "Pay Now" button in the admin UI uses `admin-charge-deposit`, which creates a **direct PaymentIntent** (not a Checkout Session). This PaymentIntent fires `payment_intent.succeeded` directly, which *does* hit the handler at line 522. So the admin card-entry path works; the emailed link path does not.
 
-### Technical approach
-- Edge functions will query `products` table at runtime using the service role client
-- Frontend pages will fetch active packages on mount
-- Tier-to-product mapping: `basic-deposit` → product named "Essential Blue", `gold` → "Gold Package", `platinum` → "Platinum Package"
+## The Fix
 
----
+Add a `checkout.session.completed` handler to the webhook that:
 
-## Problem 2: Deposit Email — Rogue Send to Libby Ireland
+1. Retrieves the session's `payment_intent` from Stripe
+2. Reads `lead_id` and `type` from the session metadata (already set at lines 138-141 of `send-deposit-link`)
+3. Creates a credit transaction in the database
+4. Saves the payment method to the lead
+5. If `type === 'deposit'`, auto-completes the `deposit_received` build step (reusing the same logic currently at lines 577-651)
 
-### Investigation findings
-
-The `send-deposit-link` edge function is **only** called from one place: the "Send Payment Link" button in `BuildFlowView.tsx` (line 111). There are **no automated triggers** — no webhook calls it, no cron job, no other edge function invokes it.
-
-The email log shows it was sent on March 31 at 00:41 UTC. This means an admin clicked the button in Libby Ireland's build flow. It was not a system-initiated email.
-
-### Confirmation: No code changes needed for deposit email isolation
-
-The three deposit paths are already correctly isolated:
-1. **Build flow button** → `send-deposit-link` (admin-initiated only)
-2. **Offer/Go page** → `create-offer-payment-intent` (client self-service via Stripe Elements)
-3. **Admin Pay Now** → `admin-charge-deposit` (admin enters card in build flow)
-
-No automated flow sends deposit emails without admin action. The Libby email was triggered by a human clicking the button.
-
----
-
-## Files to modify
+### Files to modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/confirm-offer-payment/index.ts` | Replace hardcoded TIER_CONFIG with products table lookup |
-| `supabase/functions/create-offer-checkout/index.ts` | Replace hardcoded PRICE_MAP with products table lookup |
-| `src/pages/Offer.tsx` | Fetch prices from products table instead of hardcoding |
-| `src/pages/LandingPage.tsx` | Fetch prices from products table instead of hardcoding |
+| `supabase/functions/stripe-webhook/index.ts` | Add `checkout.session.completed` case before the `default` case. Extract the deposit auto-complete logic into a shared helper to avoid duplication. |
+
+### No other files need changes
+
+The `send-deposit-link` function already sets the correct metadata on both the session and the `payment_intent_data`. The webhook just needs to read it.
 
