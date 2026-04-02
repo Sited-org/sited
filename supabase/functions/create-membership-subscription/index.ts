@@ -219,7 +219,6 @@ serve(async (req) => {
         subscription_status: subscription.status,
         customer_id: customerId,
         next_billing_date: new Date(subscription.current_period_end * 1000).toISOString(),
-        one_off_invoice_id: oneOffInvoiceId,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
