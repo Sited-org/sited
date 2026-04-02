@@ -19,10 +19,13 @@ import {
   Send,
   Trash2,
   FileEdit,
+  Bell,
+  Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ClientAssetUploadDialog } from './ClientAssetUploadDialog';
 
 interface ClientRequest {
   id: string;
@@ -34,6 +37,9 @@ interface ClientRequest {
   created_at: string;
   completed_at: string | null;
   estimated_completion: string | null;
+  request_source?: string | null;
+  requires_client_action?: boolean;
+  action_type?: string | null;
 }
 
 interface MyRequestsTabProps {
@@ -61,6 +67,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
+  const [assetUploadOpen, setAssetUploadOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,10 +227,55 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
     }
   };
 
-  const draftRequests = requests.filter(r => r.status === 'draft');
-  const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
-  const completedRequests = requests.filter(r => r.status === 'completed');
-  const cancelledRequests = requests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
+  // Split requests by source
+  const clientRequests = requests.filter(r => !r.request_source || r.request_source === 'manual');
+  const teamRequests = requests.filter(r => r.request_source === 'admin');
+
+  const draftRequests = clientRequests.filter(r => r.status === 'draft');
+  const activeClientRequests = clientRequests.filter(r => r.status === 'pending' || r.status === 'in_progress');
+  const completedClientRequests = clientRequests.filter(r => r.status === 'completed');
+  const cancelledClientRequests = clientRequests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
+
+  const activeTeamRequests = teamRequests.filter(r => r.status === 'pending' || r.status === 'in_progress');
+  const completedTeamRequests = teamRequests.filter(r => r.status === 'completed');
+
+  const renderRequestCard = (request: ClientRequest, showActions = false) => (
+    <Card key={request.id} className={request.status === 'completed' ? 'opacity-75' : ''}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm">{request.title}</p>
+            {request.description && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{request.description}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              {request.status === 'completed' && request.completed_at
+                ? `Completed ${format(new Date(request.completed_at), 'MMM d, yyyy')}`
+                : format(new Date(request.created_at), 'MMM d, yyyy')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {request.requires_client_action && request.status !== 'completed' && (
+              <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Action</Badge>
+            )}
+            {getStatusBadge(request.status)}
+          </div>
+        </div>
+        {request.admin_notes && (
+          <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-primary">
+            <p className="text-xs text-muted-foreground mb-1">Response:</p>
+            <p>{request.admin_notes}</p>
+          </div>
+        )}
+        {showActions && request.action_type === 'asset_upload' && request.requires_client_action && request.status !== 'completed' && (
+          <Button size="sm" className="mt-3 w-full" onClick={() => setAssetUploadOpen(true)}>
+            <Upload className="h-3 w-3 mr-1" />
+            Upload Assets
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-4">
@@ -328,6 +380,41 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         </Card>
       )}
 
+      {/* ===== FROM YOUR TEAM ===== */}
+      {teamRequests.length > 0 && (
+        <>
+          <div className="pt-2">
+            <p className="text-sm font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+              <Bell className="h-4 w-4" />
+              From Your Team
+            </p>
+          </div>
+
+          {activeTeamRequests.length > 0 && (
+            <div className="space-y-2">
+              {activeTeamRequests.map(r => renderRequestCard(r, true))}
+            </div>
+          )}
+
+          {completedTeamRequests.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Completed team requests</p>
+              {completedTeamRequests.slice(0, 3).map(r => renderRequestCard(r))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===== MY REQUESTS ===== */}
+      {(clientRequests.length > 0 || teamRequests.length > 0) && (
+        <div className="pt-2">
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <MessageSquarePlus className="h-4 w-4" />
+            My Requests
+          </p>
+        </div>
+      )}
+
       {/* Draft Requests */}
       {draftRequests.length > 0 && (
         <div className="space-y-2">
@@ -377,73 +464,36 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
         </div>
       )}
 
-      {/* Active Requests */}
-      {activeRequests.length > 0 && (
+      {/* Active Client Requests */}
+      {activeClientRequests.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            Active ({activeRequests.length})
+            Active ({activeClientRequests.length})
           </p>
-          {activeRequests.map((request) => (
-            <Card key={request.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{request.title}</p>
-                    {request.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{request.description}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {format(new Date(request.created_at), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  {getStatusBadge(request.status)}
-                </div>
-                {request.admin_notes && (
-                  <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-primary">
-                    <p className="text-xs text-muted-foreground mb-1">Response:</p>
-                    <p>{request.admin_notes}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+          {activeClientRequests.map(r => renderRequestCard(r))}
         </div>
       )}
 
-      {/* Completed Requests */}
-      {completedRequests.length > 0 && (
+      {/* Completed Client Requests */}
+      {completedClientRequests.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4" />
-            Completed ({completedRequests.length})
+            Completed ({completedClientRequests.length})
           </p>
-          {completedRequests.slice(0, 5).map((request) => (
-            <Card key={request.id} className="opacity-75">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{request.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Completed {request.completed_at && format(new Date(request.completed_at), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                  {getStatusBadge(request.status)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {completedClientRequests.slice(0, 5).map(r => renderRequestCard(r))}
         </div>
       )}
 
-      {/* Cancelled Requests */}
-      {cancelledRequests.length > 0 && (
+      {/* Cancelled Client Requests */}
+      {cancelledClientRequests.length > 0 && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             <X className="h-4 w-4" />
-            Cancelled ({cancelledRequests.length})
+            Cancelled ({cancelledClientRequests.length})
           </p>
-          {cancelledRequests.map((request) => (
+          {cancelledClientRequests.map((request) => (
             <Card key={request.id} className="opacity-60">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -471,6 +521,17 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Asset Upload Dialog */}
+      {sessionToken && (
+        <ClientAssetUploadDialog
+          open={assetUploadOpen}
+          onOpenChange={setAssetUploadOpen}
+          leadId={leadId}
+          sessionToken={sessionToken}
+          onUploaded={onRequestCreated}
+        />
       )}
     </div>
   );
