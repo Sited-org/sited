@@ -106,6 +106,8 @@ export function BuildFlowView({
   const isProposalStep = (step: BuildStep) => step.step_key === 'proposal_sent';
   // Check if a step is the deposit step
   const isDepositStep = (step: BuildStep) => step.step_key === 'deposit_received';
+  // Check if a step is the portal invite step (P1S4)
+  const isPortalInviteStep = (step: BuildStep) => step.step_key === 'portal_invite_sent';
 
   const handleSendDepositLink = async () => {
     setSendingDepositLink(true);
