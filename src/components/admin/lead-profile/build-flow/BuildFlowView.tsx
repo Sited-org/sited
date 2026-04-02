@@ -372,8 +372,17 @@ export function BuildFlowView({
                             </div>
                           )}
 
+                          {/* Special: Portal invite step - Send Portal Login */}
+                          {isPortalInviteStep(step) && !step.is_completed && !step.is_locked && canEdit && (
+                            <div className="flex gap-2">
+                              <Button size="sm" onClick={handleSendPortalInvite} disabled={sendingPortalInvite}>
+                                <Mail className="h-4 w-4 mr-1" /> {sendingPortalInvite ? 'Sending…' : 'Send Portal Login'}
+                              </Button>
+                            </div>
+                          )}
+
                           {/* Normal actions for non-special steps */}
-                          {!isProposalStep(step) && !isDepositStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
+                          {!isProposalStep(step) && !isDepositStep(step) && !isPortalInviteStep(step) && canEdit && !step.is_completed && !step.is_locked && !step.is_skipped && (
                             <div className="flex gap-2">
                               <Button size="sm" onClick={() => setCompletingStep(step)}>
                                 <CheckCircle2 className="h-4 w-4 mr-1" /> Mark Complete
