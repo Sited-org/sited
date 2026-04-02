@@ -112,7 +112,7 @@ export function ClientOverviewTab({
   const displayUrl = websiteUrl || previewUrl;
 
   // Find asset upload requests
-  const assetUploadRequest = adminRequests.find(r => r.action_type === 'asset_upload' && r.requires_client_action);
+  const assetUploadRequest = adminRequests.find(r => (r.action_type === 'asset_upload' || r.action_type === 'asset_collection') && r.requires_client_action);
 
   const handleSendDraft = async (requestId: string) => {
     setSendingDraftId(requestId);
@@ -260,14 +260,14 @@ export function ClientOverviewTab({
                       </Badge>
                     )}
                   </div>
-                  {r.action_type === 'asset_upload' && r.requires_client_action && (
+                  {(r.action_type === 'asset_upload' || r.action_type === 'asset_collection') && r.requires_client_action && (
                     <Button 
                       size="sm" 
                       className="mt-2 w-full" 
                       onClick={() => setAssetUploadOpen(true)}
                     >
                       <Upload className="h-3 w-3 mr-1" />
-                      Upload Assets
+                      Upload Brand Assets
                     </Button>
                   )}
                 </div>

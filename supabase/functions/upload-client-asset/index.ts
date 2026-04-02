@@ -11,7 +11,6 @@ const logStep = (step: string, details?: any) => {
   console.log(`[UPLOAD-CLIENT-ASSET] ${step}${detailsStr}`);
 };
 
-// HMAC-SHA256 verification
 async function verifyHmacSignature(data: string, signature: string, secret: string): Promise<boolean> {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -58,31 +57,119 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    const contentType = req.headers.get('content-type') || '';
+
+    // JSON body = save_brand_data action
+    if (contentType.includes('application/json')) {
+      const body = await req.json();
+      const { session_token, lead_id, action, colours, fonts } = body;
+
+      if (!session_token || !lead_id) {
+        return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+        });
+      }
+
+      const validation = await validateSessionToken(session_token, secret);
+      if (!validation.valid || validation.leadId !== lead_id) {
+        return new Response(JSON.stringify({ error: validation.error || 'Access denied' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
+        });
+      }
+
+      if (action === 'save_brand_data') {
+        logStep("Saving brand data", { colours, fonts });
+
+        // Find build flow
+        const { data: buildFlow } = await supabaseClient
+          .from("build_flows")
+          .select("id")
+          .eq("lead_id", lead_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!buildFlow) {
+          return new Response(JSON.stringify({ error: 'No build flow found' }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
+          });
+        }
+
+        // Save colours
+        if (colours && Array.isArray(colours)) {
+          // Delete existing client-submitted colours first
+          await supabaseClient.from('brand_colours').delete()
+            .eq('lead_id', lead_id)
+            .eq('build_flow_id', buildFlow.id);
+
+          const colourRows = colours.map((c: { role: string; hex: string }, i: number) => ({
+            lead_id: lead_id,
+            build_flow_id: buildFlow.id,
+            label: c.role.charAt(0).toUpperCase() + c.role.slice(1),
+            hex_value: c.hex,
+            order_index: i,
+          }));
+
+          if (colourRows.length > 0) {
+            const { error: colErr } = await supabaseClient.from('brand_colours').insert(colourRows);
+            if (colErr) logStep("Error saving colours", { error: colErr.message });
+          }
+        }
+
+        // Save fonts
+        if (fonts && Array.isArray(fonts)) {
+          await supabaseClient.from('brand_fonts').delete()
+            .eq('lead_id', lead_id)
+            .eq('build_flow_id', buildFlow.id);
+
+          const fontRows = fonts.filter((f: string) => f.trim()).map((f: string, i: number) => ({
+            lead_id: lead_id,
+            build_flow_id: buildFlow.id,
+            label: i === 0 ? 'Primary' : i === 1 ? 'Secondary' : 'Accent',
+            font_name: f,
+            order_index: i,
+          }));
+
+          if (fontRows.length > 0) {
+            const { error: fontErr } = await supabaseClient.from('brand_fonts').insert(fontRows);
+            if (fontErr) logStep("Error saving fonts", { error: fontErr.message });
+          }
+        }
+
+        logStep("Brand data saved successfully");
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+
+      return new Response(JSON.stringify({ error: 'Unknown action' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
+
+    // FormData body = file upload
     const formData = await req.formData();
     const sessionToken = formData.get('session_token') as string;
     const leadId = formData.get('lead_id') as string;
-    const slotKey = formData.get('slot_key') as string; // e.g., logo_512, og_image
+    const slotKey = formData.get('slot_key') as string;
     const file = formData.get('file') as File;
 
     if (!sessionToken || !leadId || !slotKey || !file) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
       });
     }
 
-    // Validate session
     const validation = await validateSessionToken(sessionToken, secret);
     if (!validation.valid || validation.leadId !== leadId) {
       return new Response(JSON.stringify({ error: validation.error || 'Access denied' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401,
       });
     }
 
     logStep("Session validated", { leadId, slotKey });
 
-    // Find build flow and client_assets for this lead
     const { data: buildFlow } = await supabaseClient
       .from("build_flows")
       .select("id")
@@ -93,12 +180,10 @@ serve(async (req) => {
 
     if (!buildFlow) {
       return new Response(JSON.stringify({ error: 'No build flow found' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
       });
     }
 
-    // Get or create client_assets record
     let { data: clientAssets } = await supabaseClient
       .from("client_assets")
       .select("id")
@@ -116,7 +201,6 @@ serve(async (req) => {
       clientAssets = newAssets;
     }
 
-    // Upload file to build-assets bucket
     const fileExt = file.name.split('.').pop();
     const path = `logos/${leadId}/${slotKey}-${Date.now()}.${fileExt}`;
     
@@ -132,12 +216,10 @@ serve(async (req) => {
 
     const { data: { publicUrl } } = supabaseClient.storage.from('build-assets').getPublicUrl(path);
 
-    // Update client_assets record
     const validSlots = ['logo_512', 'logo_192', 'logo_32', 'logo_16', 'logo_apple_touch', 'og_image'];
     if (!validSlots.includes(slotKey)) {
       return new Response(JSON.stringify({ error: 'Invalid slot key' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
       });
     }
 
@@ -149,17 +231,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, publicUrl }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
   }
 });
