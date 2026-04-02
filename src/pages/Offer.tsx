@@ -137,11 +137,14 @@ const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
+  const { prices } = usePackagePrices();
+  const TIERS = useMemo(() => makeTiers(prices), [prices]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+
 
   useEffect(() => {
     const complete = sessionStorage.getItem("questionnaire_complete");
