@@ -138,6 +138,9 @@ export function CreateRequestDialog({
         description: description.trim() || null,
         body: body.trim() || null,
         priority,
+        request_source: 'admin',
+        requires_client_action: requiresClientAction,
+        action_type: actionType || null,
       }).select().single();
 
       if (error) throw error;
