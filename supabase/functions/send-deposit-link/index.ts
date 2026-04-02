@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -10,9 +11,12 @@ const corsHeaders = {
 };
 
 const LOGO_URL = "https://storage.googleapis.com/gpt-engineer-file-uploads/bK3lO63gVKgONGtqyEYfuGBiGzy1/uploads/1769959095793-S.png";
-const PAYMENT_LINK = "https://buy.stripe.com/bJe7sMfmb9tH94P9HQ5wI09";
 
-function generateEmailHtml(firstName: string, businessName: string, depositAmount: number): string {
+// Canonical Stripe product & price for deposit
+const DEPOSIT_PRODUCT_ID = "prod_U0SzXJ49io3TW3";
+const DEPOSIT_PRICE_ID = "price_1T2S3HKEOhx2BLuXpqoFZGO2";
+
+function generateEmailHtml(firstName: string, businessName: string, depositAmount: number, paymentUrl: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -31,7 +35,7 @@ function generateEmailHtml(firstName: string, businessName: string, depositAmoun
     <p style="color: #52525b;">This deposit secures your spot in our build queue and is fully refundable if you're not 100% satisfied with the final product.</p>
 
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${PAYMENT_LINK}" target="_blank" style="background: #09090b; color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 40px; border-radius: 8px; display: inline-block;">Pay Deposit — $${depositAmount} AUD</a>
+      <a href="${paymentUrl}" target="_blank" style="background: #09090b; color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 40px; border-radius: 8px; display: inline-block;">Pay Deposit — $${depositAmount} AUD</a>
     </div>
 
     <p style="color: #52525b;">Once your deposit is received, we'll begin the build process right away.</p>
@@ -62,6 +66,10 @@ serve(async (req) => {
       });
     }
 
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -69,7 +77,7 @@ serve(async (req) => {
     // Fetch lead details
     const { data: lead, error: leadErr } = await supabase
       .from("leads")
-      .select("email, name, business_name")
+      .select("email, name, business_name, stripe_customer_id")
       .eq("id", lead_id)
       .single();
 
@@ -90,7 +98,54 @@ serve(async (req) => {
     const firstName = (lead.name || "").split(" ")[0] || "there";
     const businessName = lead.business_name || "your business";
 
-    const html = generateEmailHtml(firstName, businessName, depositAmount);
+    // Find or create Stripe customer
+    let customerId = lead.stripe_customer_id;
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: lead.email, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      } else {
+        const customer = await stripe.customers.create({
+          email: lead.email,
+          name: lead.name || undefined,
+        });
+        customerId = customer.id;
+      }
+      await supabase.from("leads").update({ stripe_customer_id: customerId }).eq("id", lead_id);
+    }
+
+    // Create a Stripe Checkout Session with lead_id metadata
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [
+        {
+          price: DEPOSIT_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      payment_intent_data: {
+        setup_future_usage: "off_session",
+        metadata: {
+          lead_id,
+          type: "deposit",
+          customer_name: lead.name || "",
+          customer_email: lead.email,
+          stripe_product_id: DEPOSIT_PRODUCT_ID,
+          stripe_price_id: DEPOSIT_PRICE_ID,
+        },
+      },
+      metadata: {
+        lead_id,
+        type: "deposit",
+      },
+      success_url: "https://sited.co/thank-you?deposit=success",
+      cancel_url: "https://sited.co/",
+    });
+
+    const paymentUrl = session.url!;
+
+    const html = generateEmailHtml(firstName, businessName, depositAmount, paymentUrl);
 
     const { error: emailErr } = await resend.emails.send({
       from: "Sited <hello@sited.co>",
