@@ -93,7 +93,7 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { lead_id, membership_name, membership_price, billing_interval, start_date, notes } = body;
+    const { lead_id, membership_name, membership_price, billing_interval, start_date, billing_start_month, notes } = body;
 
     if (!lead_id || !membership_name || !membership_price || !billing_interval) {
       throw new Error("Missing required fields: lead_id, membership_name, membership_price, billing_interval");
@@ -171,10 +171,25 @@ serve(async (req) => {
       logStep("Created ad-hoc price", { priceId, productId: product.id });
     }
 
-    // Always anchor to 1st of next month — no proration, no mid-month charges
+    // Determine billing anchor — admin can choose a specific start month
     const now = new Date();
-    const anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
-    logStep("Billing anchor (1st of next month)", { anchorDate: anchorDate.toISOString() });
+    let anchorDate: Date;
+    
+    if (billing_start_month) {
+      // billing_start_month format: "YYYY-MM" (e.g. "2026-05")
+      const [year, month] = billing_start_month.split('-').map(Number);
+      anchorDate = new Date(Date.UTC(year, month - 1, 1)); // month is 0-indexed
+      
+      // Ensure anchor is in the future
+      if (anchorDate.getTime() <= now.getTime()) {
+        // If selected month is current or past, push to next month
+        anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+      }
+    } else {
+      // Default: 1st of next month
+      anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+    }
+    logStep("Billing anchor", { anchorDate: anchorDate.toISOString(), billing_start_month });
 
     // Create subscription
     const subParams: any = {

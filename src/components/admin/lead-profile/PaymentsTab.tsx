@@ -49,7 +49,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   // Product/Membership selection state
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [selectedMembership, setSelectedMembership] = useState<string>('');
-  const [membershipStartDate, setMembershipStartDate] = useState<string>('');
+  const [membershipStartMonth, setMembershipStartMonth] = useState<string>('');
   const [transactionNotes, setTransactionNotes] = useState('');
 
   // Invoice state
@@ -118,10 +118,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     const membership = activeMemberships.find(m => m.id === selectedMembership);
     if (!membership) return;
 
-    // Use start date if provided, otherwise use today
-    const startDate = membershipStartDate 
-      ? new Date(membershipStartDate).toISOString() 
-      : new Date().toISOString();
+    // Use start month if provided for the billing_start_month param
+    const startDate = new Date().toISOString();
 
     // ALWAYS create a Stripe subscription — regardless of payment method status
     // The edge function handles both auto-charge (card on file) and send_invoice (no card) modes
@@ -134,6 +132,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           membership_price: membership.price,
           billing_interval: membership.billing_interval,
           start_date: startDate,
+          billing_start_month: membershipStartMonth || undefined,
           notes: transactionNotes || membership.description || null,
         },
       });
@@ -148,7 +147,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       toast.success(`Stripe subscription created for ${membership.name}. Customer will be ${billingMode} each ${membership.billing_interval}.`);
       
       setSelectedMembership('');
-      setMembershipStartDate('');
+      setMembershipStartMonth('');
       setTransactionNotes('');
       
       // Refresh transactions data
@@ -1370,11 +1369,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 
                 <div className="md:col-span-2">
                   <Input
-                    type="date"
-                    value={membershipStartDate}
-                    onChange={(e) => setMembershipStartDate(e.target.value)}
+                    type="month"
+                    value={membershipStartMonth}
+                    onChange={(e) => setMembershipStartMonth(e.target.value)}
                     className="w-full"
-                    title="Start date (leave empty for today)"
+                    title="Billing start month (leave empty for next month)"
+                    placeholder="Select billing start month"
                   />
                 </div>
                 
