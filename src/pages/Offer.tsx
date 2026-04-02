@@ -268,10 +268,10 @@ const Offer = () => {
                   <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-lg font-black text-foreground">Total: $549</span>
-                  <span className="text-sm text-muted-foreground line-through">$1,399</span>
+                  <span className="text-lg font-black text-foreground">Total: {TIERS["basic-deposit"].totalPrice}</span>
+                  <span className="text-sm text-muted-foreground line-through">{TIERS["basic-deposit"].usualPrice}</span>
                 </div>
-                <p className="text-xs font-black text-green-500 mt-1">SAVE $850</p>
+                <p className="text-xs font-black text-green-500 mt-1">SAVE {TIERS["basic-deposit"].savings}</p>
               </div>
 
               {/* Features */}
