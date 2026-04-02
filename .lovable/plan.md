@@ -1,67 +1,97 @@
 
 
-# Audit: Full Client Flow — Acquisition to Full Payment
+# Client Portal Overhaul: Build Flow Integration, Notifications & Asset Upload
 
-## Findings
+## Summary
 
-### Bug 1: Hardcoded "$549" on Offer.tsx (line 271)
-The Blue hero card on `/offer` shows `Total: $549` as static text, while `makeTiers` correctly derives `totalPrice` from `usePackagePrices` (which returns $499 from the products table). The dynamic value is used in the upgrade cards but **not** in the hero Blue card's display.
-
-**Impact**: Client sees $549 but actual charge will be $499.
-
-**Fix**: Replace `$549` with `TIERS["basic-deposit"].totalPrice` on line 271.
-
-### Bug 2: Hardcoded "$549" on LandingPage.tsx (lines 401, 426)
-The `/go` page hero says "JUST $549" and the stat badge says "$549 All-In Package". These are hardcoded strings, not derived from `usePackagePrices` (which is already imported and used for the invoice calculation).
-
-**Impact**: Same mismatch — displays $549 but charges $499.
-
-**Fix**: Replace both instances with the dynamic `prices["basic-deposit"]` value.
-
-### Bug 3: Hardcoded savings on Offer.tsx (line 274)
-`SAVE $850` is static. Should be computed from `usualPrice - totalPrice` ($1,399 − $499 = $900).
-
-**Fix**: Derive from `TIERS["basic-deposit"].savings`.
-
-### Bug 4: `confirm-offer-payment` uses hardcoded DEPOSIT_AMOUNT = 49
-Line 18 hardcodes `$49`. The `create-offer-payment-intent` and `send-deposit-link` functions correctly read deposit amount from `system_settings`. But `confirm-offer-payment` doesn't — it always uses $49 for the credit transaction.
-
-**Impact**: If the admin changes the deposit amount in settings, `confirm-offer-payment` would record the wrong credit amount.
-
-**Fix**: Read from `system_settings` table like the other functions do.
-
-### Bug 5: `create-offer-checkout` missing deposit metadata
-The checkout session created by `create-offer-checkout` (used on `/offer` when a tier redirect happens) does NOT set `type: "deposit"` in metadata, does NOT enable `invoice_creation`, and does NOT set `setup_future_usage`. This means:
-- No invoice is generated
-- Card is not saved for future charges  
-- `autoCompleteDepositStep` won't fire (no `type: "deposit"` metadata)
-
-**Impact**: Clients paying via the full checkout redirect path get no auto-P1S3 completion, no saved card, and no invoice.
-
-**Fix**: Add `invoice_creation: { enabled: true }`, `payment_intent_data: { setup_future_usage: "off_session", metadata: { type: "deposit", lead_id } }`, and `metadata: { type: "deposit" }` to the checkout session — matching the `send-deposit-link` pattern.
-
-### Bug 6: `create-offer-checkout` uses `stripe_price_id` from products table for full package price
-This creates a Stripe Checkout for the **full package price** (e.g. $499) — not a $49 deposit. But the `/offer` page presents it as a deposit flow ($49). This is a major disconnect if both `create-offer-checkout` and `create-offer-payment-intent` are available as paths.
-
-**Needs verification**: Which path does `/offer` actually use? Let me confirm.
-
-### No issues found:
-- **Products RLS**: Public can view active package products ✓
-- **`usePackagePrices`**: Correctly queries products table with fallbacks ✓
-- **`ProposalGenerator`**: Reads all pricing from products table dynamically ✓
-- **Webhook deposit auto-complete**: Works for `invoice.paid`, `payment_intent.succeeded`, and `checkout.session.completed` ✓
-- **`admin-charge-deposit`**: Reads deposit amount from settings ✓
-- **`send-deposit-link`**: Reads deposit amount from settings, creates invoice ✓
-- **Card saving**: All paths use `setup_future_usage: "off_session"` ✓
+The client portal currently tracks "Development Progress" via a separate `workflow_data` JSON blob on the leads table (frontend/backend/integrations/AI stages), which is disconnected from the actual build flow phases used in the admin. This plan links the portal to the real build flow, adds admin/developer-initiated request notifications, and enables in-portal asset uploads.
 
 ---
 
-## Plan: Files to Modify
+## Changes
 
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/pages/Offer.tsx` | Replace hardcoded `$549` (line 271) with dynamic `TIERS["basic-deposit"].totalPrice`; replace `SAVE $850` (line 274) with `TIERS["basic-deposit"].savings` |
-| 2 | `src/pages/LandingPage.tsx` | Replace hardcoded `$549` (lines 401, 426) with dynamic `prices["basic-deposit"]` |
-| 3 | `supabase/functions/confirm-offer-payment/index.ts` | Replace `const DEPOSIT_AMOUNT = 49` with a `system_settings` lookup |
-| 4 | `supabase/functions/create-offer-checkout/index.ts` | Add `invoice_creation`, `payment_intent_data` with `setup_future_usage` and `type: "deposit"` metadata, and `lead_id` lookup from email. This function also needs to charge the deposit price (not the full package price) — switch from using the package's `stripe_price_id` to using the canonical deposit `DEPOSIT_PRICE_ID` |
+### 1. Link Development Progress to Real Build Flow Phases
+
+**Current state**: `WebsiteTab.tsx` reads `workflow_data` from leads and renders hardcoded stage definitions (Frontend, Backend, Integrations, AI).
+
+**New behavior**: Replace the workflow tracker with a read-only view of the actual `build_phases` and `build_steps` tables. Show each phase with its steps, completion status, and progress percentage.
+
+**Backend (`get-client-data/index.ts`)**: Add queries for `build_flows`, `build_phases`, and `build_steps` for the lead. Return them in the response alongside existing data. Filter to only include `is_visible_to_client = true` step completions.
+
+**Frontend (`WebsiteTab.tsx`)**: Replace `STAGE_DEFINITIONS` and `WorkflowData` with the real phase/step data. Render each phase as a collapsible section with step completion indicators.
+
+### 2. Add "Admin Requests" Section to Dashboard + Requests Tab
+
+**Current state**: Dashboard shows "Active Requests" (client-submitted). No distinction between client-initiated and admin/developer-initiated requests.
+
+**New behavior**: Split requests into two categories using the existing `request_source` column:
+- **My Requests**: `request_source = 'manual'` or submitted by client
+- **Admin Requests**: `request_source = 'admin'` or requests created by admin/developer (via `CreateRequestDialog`)
+
+**Database change**: Add a `requires_client_action` boolean column to `client_requests` (default false). When an admin creates a request that needs client response (e.g., asset upload), they flag it. Also add `action_type` text column (nullable) for special actions like `'asset_upload'`.
+
+**Dashboard (`ClientOverviewTab.tsx`)**: Add an "Admin Requests" card alongside "Active Requests", showing requests where `request_source != 'manual'` and status is pending/in_progress. Show a notification badge count.
+
+**Requests tab (`MyRequestsTab.tsx`)**: Add a section header "From Your Team" above admin-originated requests, distinct from "My Requests".
+
+### 3. Notification System: Email Client on Admin/Developer Requests
+
+**Current state**: `notify-client-request` only emails admins when a client submits a request. No reverse notification exists.
+
+**New edge function (`notify-client-portal`)**: When an admin or developer creates a request targeting a client (via `CreateRequestDialog` with `created_by_admin: true`), send an email to the client with:
+- Request title and description
+- Direct link to client portal (`https://sited.co/client-portal`)
+- Call-to-action to log in and respond
+
+**Trigger**: Modify `CreateRequestDialog` to call this new function after successful request creation. The existing `notify-client-request` continues notifying admins for client-submitted requests.
+
+### 4. In-Portal Asset Upload (Client-Facing)
+
+**Current state**: Asset collection happens entirely within the admin `ClientAssetsPanel`. Clients have no way to upload assets through their portal.
+
+**New behavior**: When an admin request has `action_type = 'asset_upload'`, the client portal shows an "Upload Assets" button that opens a dialog for uploading logos, images, and brand files.
+
+**New component (`ClientAssetUploadDialog.tsx`)**: A simplified version of `ClientAssetsPanel` with:
+- Logo upload slots (matching the LOGO_SLOTS from admin)
+- General file upload for brand guidelines, media
+- Files uploaded to `build-assets` storage bucket under the client's lead path
+- On upload, update the `client_assets` record (same table the admin panel uses)
+- Auto-complete the relevant `build_steps` (e.g., `logo_512`) when the client uploads
+
+**Edge function (`upload-client-asset/index.ts`)**: New function to handle client-side uploads with session token auth. Validates the session, uploads to `build-assets` bucket, updates `client_assets` table, and optionally auto-completes the corresponding build step.
+
+### 5. Payment History Linking
+
+**Current state**: `get-client-data` already returns transactions, and `PaymentsTab` displays them. But the dashboard doesn't surface payment status relative to the build flow.
+
+**Enhancement**: The deposit status is already shown via P1S3 in the new build flow progress view (change #1). No additional linking needed beyond ensuring the progress tracker correctly reflects paid/unpaid deposit status.
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/components/client-portal/ClientAssetUploadDialog.tsx` | In-portal asset upload dialog for clients |
+| `supabase/functions/notify-client-portal/index.ts` | Email clients when admin/dev creates a request |
+| `supabase/functions/upload-client-asset/index.ts` | Handle client-side asset uploads with session auth |
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `supabase/functions/get-client-data/index.ts` | Add build_flows, build_phases, build_steps queries |
+| `src/components/client-portal/WebsiteTab.tsx` | Replace workflow_data tracker with real build flow phases |
+| `src/components/client-portal/ClientOverviewTab.tsx` | Add "Admin Requests" section, notification counts |
+| `src/components/client-portal/MyRequestsTab.tsx` | Split requests into "My Requests" and "From Your Team" sections |
+| `src/components/admin/lead-profile/CreateRequestDialog.tsx` | Add `requires_client_action` and `action_type` fields; call `notify-client-portal` |
+| `src/pages/ClientPortalDashboard.tsx` | Pass build flow data to WebsiteTab |
+
+## Database Migration
+
+```sql
+ALTER TABLE public.client_requests
+  ADD COLUMN IF NOT EXISTS requires_client_action boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS action_type text;
+```
 
