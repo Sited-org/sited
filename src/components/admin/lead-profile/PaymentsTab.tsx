@@ -118,10 +118,8 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
     const membership = activeMemberships.find(m => m.id === selectedMembership);
     if (!membership) return;
 
-    // Use start date if provided, otherwise use today
-    const startDate = membershipStartDate 
-      ? new Date(membershipStartDate).toISOString() 
-      : new Date().toISOString();
+    // Use start month if provided for the billing_start_month param
+    const startDate = new Date().toISOString();
 
     // ALWAYS create a Stripe subscription — regardless of payment method status
     // The edge function handles both auto-charge (card on file) and send_invoice (no card) modes
