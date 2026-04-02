@@ -48,6 +48,8 @@ export function CreateRequestDialog({
   const [description, setDescription] = useState('');
   const [body, setBody] = useState('');
   const [priority, setPriority] = useState<string>('normal');
+  const [requiresClientAction, setRequiresClientAction] = useState(false);
+  const [actionType, setActionType] = useState<string>('');
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
