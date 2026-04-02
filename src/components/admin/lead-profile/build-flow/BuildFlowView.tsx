@@ -138,7 +138,48 @@ export function BuildFlowView({
     }
   };
 
-  // Derive business name from staging URL
+  const handleSendPortalInvite = async () => {
+    setSendingPortalInvite(true);
+    try {
+      // Fetch lead details for the email
+      const { data: leadData } = await supabase
+        .from('leads')
+        .select('name, email')
+        .eq('id', buildFlow.lead_id)
+        .maybeSingle();
+
+      if (!leadData?.email) {
+        toast.error('No email found for this client');
+        return;
+      }
+
+      const portalUrl = 'https://sited.co/client-portal';
+      const { error: emailError } = await supabase.functions.invoke('send-client-credentials', {
+        body: {
+          clientName: leadData.name || '',
+          clientEmail: leadData.email,
+          portalUrl,
+        }
+      });
+
+      if (emailError) throw emailError;
+
+      // Auto-complete the portal invite step
+      const portalStep = phases.flatMap(p => p.steps).find(s => s.step_key === 'portal_invite_sent');
+      if (portalStep && !portalStep.is_completed) {
+        await onMarkComplete(portalStep, `Portal invite email sent to ${leadData.email}`, null, userId);
+      }
+
+      toast.success(`Portal invite sent to ${leadData.email}`);
+      if (refetch) await refetch();
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Failed to send portal invite');
+    } finally {
+      setSendingPortalInvite(false);
+    }
+  };
+
   const businessName = buildFlow.staging_url
     ? buildFlow.staging_url.replace('.sited.co', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
     : 'Client';
