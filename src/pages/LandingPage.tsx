@@ -11,6 +11,7 @@ import { useFeaturedTestimonials } from "@/hooks/useTestimonials";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
+import { usePackagePrices } from "@/hooks/usePackagePrices";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
 
