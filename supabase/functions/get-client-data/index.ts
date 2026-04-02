@@ -25,7 +25,6 @@ async function verifyHmacSignature(data: string, signature: string, secret: stri
   const expectedSignatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
   const expectedSignature = btoa(String.fromCharCode(...new Uint8Array(expectedSignatureBuffer)));
   
-  // Constant-time comparison to prevent timing attacks
   if (signature.length !== expectedSignature.length) return false;
   let result = 0;
   for (let i = 0; i < signature.length; i++) {
@@ -59,13 +58,11 @@ async function validateSessionToken(token: string, secret: string): Promise<Toke
     
     const [payloadBase64, signature] = parts;
     
-    // Verify signature
     const isValidSignature = await verifyHmacSignature(payloadBase64, signature, secret);
     if (!isValidSignature) {
       return { valid: false, error: 'Invalid token signature' };
     }
     
-    // Decode and parse payload
     let payload: SessionPayload;
     try {
       payload = JSON.parse(atob(payloadBase64));
@@ -73,12 +70,10 @@ async function validateSessionToken(token: string, secret: string): Promise<Toke
       return { valid: false, error: 'Invalid token payload' };
     }
     
-    // Validate payload structure
     if (!payload.lid || !payload.exp || !payload.rnd) {
       return { valid: false, error: 'Incomplete token payload' };
     }
     
-    // Check expiry
     if (Date.now() > payload.exp) {
       return { valid: false, error: 'Token has expired' };
     }
@@ -120,7 +115,6 @@ serve(async (req) => {
       throw new Error("Lead ID and email are required");
     }
 
-    // Validate session token (required for authenticated access)
     if (!session_token) {
       logStep("Missing session token");
       return new Response(
@@ -146,7 +140,6 @@ serve(async (req) => {
       );
     }
 
-    // Ensure the token's lead_id matches the requested lead_id
     if (tokenValidation.leadId !== lead_id) {
       logStep("Lead ID mismatch", { tokenLeadId: tokenValidation.leadId, requestedLeadId: lead_id });
       return new Response(
@@ -183,12 +176,8 @@ serve(async (req) => {
       logStep("Error fetching transactions", { error: txError.message });
     }
 
-    // Filter out voided transactions and void reversal entries for client view
-    // Clients should only see non-voided, real transactions
     const transactions = (allTransactions || []).filter(t => {
-      // Exclude void reversal entries (items starting with "VOID:")
       if (t.item.startsWith('VOID:')) return false;
-      // Exclude transactions that have been voided
       if (t.status === 'void') return false;
       if (t.notes?.includes('[VOIDED:')) return false;
       return true;
@@ -216,10 +205,10 @@ serve(async (req) => {
       logStep("Error fetching project updates", { error: updateError.message });
     }
 
-    // Fetch client requests
+    // Fetch client requests - include request_source, requires_client_action, action_type
     const { data: clientRequests, error: requestsError } = await supabaseClient
       .from("client_requests")
-      .select("id, title, description, priority, status, admin_notes, created_at, completed_at, estimated_completion")
+      .select("id, title, description, priority, status, admin_notes, created_at, completed_at, estimated_completion, request_source, requires_client_action, action_type")
       .eq("lead_id", lead_id)
       .order("created_at", { ascending: false });
 
@@ -248,6 +237,56 @@ serve(async (req) => {
 
     if (bookingsError) {
       logStep("Error fetching bookings", { error: bookingsError.message });
+    }
+
+    // Fetch build flow data (phases + steps)
+    let buildFlowData = null;
+    const { data: buildFlow, error: bfError } = await supabaseClient
+      .from("build_flows")
+      .select("id, status, is_live, staging_url, client_view_enabled")
+      .eq("lead_id", lead_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (bfError) {
+      logStep("Error fetching build flow", { error: bfError.message });
+    }
+
+    if (buildFlow) {
+      // Fetch phases
+      const { data: phases } = await supabaseClient
+        .from("build_phases")
+        .select("id, phase_key, phase_number, title, description, is_locked, is_completed, is_skipped, order_index")
+        .eq("build_flow_id", buildFlow.id)
+        .order("order_index", { ascending: true });
+
+      // Fetch steps
+      const { data: steps } = await supabaseClient
+        .from("build_steps")
+        .select("id, phase_id, step_key, step_number, title, description, is_completed, is_locked, is_skipped, completed_at, order_index")
+        .in("phase_id", (phases || []).map(p => p.id))
+        .order("order_index", { ascending: true });
+
+      // Fetch step completions (visible to client only)
+      const { data: completions } = await supabaseClient
+        .from("step_completions")
+        .select("id, step_id, description, completed_at, is_visible_to_client")
+        .eq("build_flow_id", buildFlow.id)
+        .eq("is_visible_to_client", true);
+
+      buildFlowData = {
+        id: buildFlow.id,
+        status: buildFlow.status,
+        is_live: buildFlow.is_live,
+        staging_url: buildFlow.staging_url,
+        client_view_enabled: buildFlow.client_view_enabled,
+        phases: (phases || []).map(phase => ({
+          ...phase,
+          steps: (steps || []).filter(s => s.phase_id === phase.id),
+        })),
+        completions: completions || [],
+      };
     }
 
     // Fetch saved payment method if exists
@@ -308,6 +347,7 @@ serve(async (req) => {
         clientRequests: clientRequests || [],
         projectMilestones: projectMilestones || [],
         bookings: bookings || [],
+        buildFlowData,
         savedPaymentMethod,
       }),
       {
