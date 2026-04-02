@@ -925,19 +925,19 @@ const Offer = () => {
                     <tr className="border-t-2 border-border bg-muted/30">
                       <td className="p-4 text-sm font-black text-foreground">Total Price</td>
                       <td className="p-4 text-center">
-                        <span className="text-sm font-black text-foreground">$549</span>
+                        <span className="text-sm font-black text-foreground">{TIERS["basic-deposit"].totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$1,399</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS["basic-deposit"].usualPrice}</span>
                       </td>
                       <td className="p-4 text-center">
-                        <span className="text-sm font-black text-foreground">$649</span>
+                        <span className="text-sm font-black text-foreground">{TIERS.gold.totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$1,699</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS.gold.usualPrice}</span>
                       </td>
                       <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
-                        <span className="text-sm font-black text-gray-600 dark:text-gray-200">$1,199</span>
+                        <span className="text-sm font-black text-gray-600 dark:text-gray-200">{TIERS.platinum.totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$2,559</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS.platinum.usualPrice}</span>
                       </td>
                     </tr>
                   </tbody>
