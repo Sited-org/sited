@@ -1369,11 +1369,12 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                 
                 <div className="md:col-span-2">
                   <Input
-                    type="date"
-                    value={membershipStartDate}
-                    onChange={(e) => setMembershipStartDate(e.target.value)}
+                    type="month"
+                    value={membershipStartMonth}
+                    onChange={(e) => setMembershipStartMonth(e.target.value)}
                     className="w-full"
-                    title="Start date (leave empty for today)"
+                    title="Billing start month (leave empty for next month)"
+                    placeholder="Select billing start month"
                   />
                 </div>
                 
