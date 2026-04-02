@@ -116,13 +116,15 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
 const InvoiceBreakdown = ({
   leadInfo,
   onPaymentSuccess,
+  offer,
 }: {
   leadInfo: { name: string; email: string; phone: string };
   onPaymentSuccess: (info: { name: string; email: string; phone: string }) => void;
+  offer: ReturnType<typeof makeOffer>;
 }) => {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const subtotal = OFFER.lineItems.reduce((sum, item) => sum + (item.strikethrough || item.value), 0);
-  const discount = subtotal - OFFER.totalPrice;
+  const subtotal = offer.lineItems.reduce((sum, item) => sum + (item.strikethrough || item.value), 0);
+  const discount = subtotal - offer.totalPrice;
 
   return (
     <motion.div
