@@ -31,6 +31,16 @@ interface ClientSession {
   expiresAt?: string;
 }
 
+interface BuildFlowData {
+  id: string;
+  status: string;
+  is_live: boolean;
+  staging_url: string | null;
+  client_view_enabled: boolean;
+  phases: any[];
+  completions: any[];
+}
+
 interface SavedPaymentMethod {
   type: 'card' | 'au_becs_debit';
   card?: { brand: string; last4: string; exp_month: number; exp_year: number };
