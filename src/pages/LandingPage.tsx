@@ -25,19 +25,19 @@ const leadSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
-/* ─── Single Offer Config ─── */
-const OFFER = {
+/* ─── Single Offer Config (price injected dynamically) ─── */
+const makeOffer = (totalPrice: number) => ({
   id: "basic-deposit",
-  totalPrice: 549,
+  totalPrice,
   lineItems: [
-    { label: "Custom Website Design & Development", value: 549, strikethrough: 1599 },
+    { label: "Custom Website Design & Development", value: totalPrice, strikethrough: 1599 },
     { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
     { label: "6 Local SEO Pages", value: 0, strikethrough: 600 },
     { label: "2 Revisions", value: 0, strikethrough: 400 },
     { label: "Calendar & Email Integration", value: 0, strikethrough: 399 },
     { label: "Lifetime Hosting", value: 0, strikethrough: 100, suffix: "/month" },
   ],
-};
+});
 
 /* ─── Fallback client sites ─── */
 const fallbackSites = [
