@@ -124,6 +124,15 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          metadata: {
+            lead_id,
+            type: "deposit",
+          },
+        },
+      },
       payment_intent_data: {
         setup_future_usage: "off_session",
         metadata: {

@@ -707,21 +707,10 @@ serve(async (req) => {
           leadId, paymentType, amountPaid, customerId, piId,
         });
 
-        // Record credit transaction
-        await supabaseAdmin.from('transactions').insert({
-          lead_id: leadId,
-          item: paymentType === 'deposit' ? 'Deposit Payment' : `Checkout Payment`,
-          credit: amountPaid,
-          debit: 0,
-          notes: `Stripe Checkout Session ${session.id}, PI: ${piId}`,
-          transaction_date: new Date().toISOString(),
-          is_recurring: false,
-          status: 'completed',
-          invoice_status: 'paid',
-        });
-        console.log("[STRIPE-WEBHOOK] Created transaction for checkout session:", amountPaid);
+        // Transaction recording is handled by the invoice.paid handler
+        // (invoice_creation is enabled on the checkout session)
 
-        // Save payment method to lead
+        // Save payment method to lead as fallback
         if (customerId && pi.payment_method) {
           const pmId = typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method.id;
           try {
