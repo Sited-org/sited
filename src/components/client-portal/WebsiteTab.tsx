@@ -3,87 +3,73 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Globe, CheckCircle2, ExternalLink, TrendingUp, Monitor, Server, Plug, Bot, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Globe, CheckCircle2, ExternalLink, TrendingUp, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-// Must match admin WorkflowTracker definitions
-const STAGE_DEFINITIONS = {
-  frontend: {
-    name: 'Front End',
-    icon: Monitor,
-    color: 'text-blue-500',
-    steps: ['Started', 'V1 Complete', 'Revision', 'Complete'],
-  },
-  backend: {
-    name: 'Back End',
-    icon: Server,
-    color: 'text-green-500',
-    steps: ['Started', 'V1 Complete', 'Shared', 'V2', 'Complete'],
-  },
-  integrations: {
-    name: 'Integrations',
-    icon: Plug,
-    color: 'text-purple-500',
-    stepsPerOption: ['Started', 'Integrated', 'Tested', 'Approved'],
-  },
-  ai: {
-    name: 'AI Automations',
-    icon: Bot,
-    color: 'text-orange-500',
-    stepsPerOption: ['Started', 'Built', 'Tested', 'V1', 'Shared', 'Confirmed', 'Complete'],
-  },
-};
+interface BuildStep {
+  id: string;
+  step_key: string;
+  step_number: number;
+  title: string;
+  description: string | null;
+  is_completed: boolean;
+  is_locked: boolean;
+  is_skipped: boolean;
+  completed_at: string | null;
+  order_index: number;
+}
 
-interface WorkflowData {
-  configured: boolean;
-  stages: {
-    frontend?: { enabled: boolean; currentStep: number };
-    backend?: { enabled: boolean; currentStep: number };
-    integrations?: { enabled: boolean; selectedOptions: string[]; progress: Record<string, number> };
-    ai?: { enabled: boolean; selectedOptions: string[]; progress: Record<string, number> };
-  };
+interface BuildPhase {
+  id: string;
+  phase_key: string;
+  phase_number: number;
+  title: string;
+  description: string | null;
+  is_locked: boolean;
+  is_completed: boolean;
+  is_skipped: boolean;
+  order_index: number;
+  steps: BuildStep[];
+}
+
+interface BuildFlowData {
+  id: string;
+  status: string;
+  is_live: boolean;
+  staging_url: string | null;
+  client_view_enabled: boolean;
+  phases: BuildPhase[];
+  completions: any[];
 }
 
 interface WebsiteTabProps {
   leadId: string;
   websiteUrl?: string;
   workflowData?: any;
+  buildFlowData?: BuildFlowData | null;
 }
 
-export function WebsiteTab({ leadId, websiteUrl, workflowData }: WebsiteTabProps) {
-  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
-
-  const parsedWorkflow = workflowData as WorkflowData | null;
+export function WebsiteTab({ leadId, websiteUrl, buildFlowData }: WebsiteTabProps) {
+  const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({});
 
   const progress = useMemo(() => {
-    if (!parsedWorkflow?.configured) return null;
-    const stages = parsedWorkflow.stages;
-    let total = 0, completed = 0;
-
-    if (stages.frontend?.enabled) {
-      total += STAGE_DEFINITIONS.frontend.steps.length;
-      completed += stages.frontend.currentStep;
-    }
-    if (stages.backend?.enabled) {
-      total += STAGE_DEFINITIONS.backend.steps.length;
-      completed += stages.backend.currentStep;
-    }
-    if (stages.integrations?.enabled) {
-      const opts = stages.integrations.selectedOptions;
-      total += opts.length * STAGE_DEFINITIONS.integrations.stepsPerOption.length;
-      opts.forEach(o => { completed += stages.integrations?.progress[o] || 0; });
-    }
-    if (stages.ai?.enabled) {
-      const opts = stages.ai.selectedOptions;
-      total += opts.length * STAGE_DEFINITIONS.ai.stepsPerOption.length;
-      opts.forEach(o => { completed += stages.ai?.progress[o] || 0; });
+    if (!buildFlowData?.phases?.length) return null;
+    let total = 0;
+    let completed = 0;
+    for (const phase of buildFlowData.phases) {
+      if (phase.is_skipped) continue;
+      for (const step of phase.steps) {
+        if (step.is_skipped) continue;
+        total++;
+        if (step.is_completed) completed++;
+      }
     }
     return total > 0 ? Math.round((completed / total) * 100) : 0;
-  }, [parsedWorkflow]);
+  }, [buildFlowData]);
 
-  const toggleExpand = (key: string) => {
-    setExpandedStages(prev => ({ ...prev, [key]: !prev[key] }));
+  const togglePhase = (key: string) => {
+    setExpandedPhases(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const getPreviewImageUrl = (url: string) => {
@@ -93,8 +79,8 @@ export function WebsiteTab({ leadId, websiteUrl, workflowData }: WebsiteTabProps
 
   return (
     <div className="space-y-6">
-      {/* Project Progress */}
-      {progress !== null && parsedWorkflow?.configured && (
+      {/* Build Flow Progress */}
+      {progress !== null && buildFlowData && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -120,89 +106,90 @@ export function WebsiteTab({ leadId, websiteUrl, workflowData }: WebsiteTabProps
               )}
             </div>
 
-            {/* Stage breakdown */}
+            {/* Phase breakdown */}
             <div className="space-y-2 pt-2">
-              {/* Frontend */}
-              {parsedWorkflow.stages.frontend?.enabled && (
-                <ReadOnlyStage
-                  title={STAGE_DEFINITIONS.frontend.name}
-                  icon={<Monitor className="h-4 w-4 text-blue-500" />}
-                  steps={STAGE_DEFINITIONS.frontend.steps}
-                  currentStep={parsedWorkflow.stages.frontend.currentStep}
-                  expanded={expandedStages.frontend}
-                  onToggle={() => toggleExpand('frontend')}
-                />
-              )}
+              {buildFlowData.phases
+                .filter(p => !p.is_skipped)
+                .map(phase => {
+                  const totalSteps = phase.steps.filter(s => !s.is_skipped).length;
+                  const completedSteps = phase.steps.filter(s => s.is_completed && !s.is_skipped).length;
+                  const isExpanded = expandedPhases[phase.phase_key];
 
-              {/* Backend */}
-              {parsedWorkflow.stages.backend?.enabled && (
-                <ReadOnlyStage
-                  title={STAGE_DEFINITIONS.backend.name}
-                  icon={<Server className="h-4 w-4 text-green-500" />}
-                  steps={STAGE_DEFINITIONS.backend.steps}
-                  currentStep={parsedWorkflow.stages.backend.currentStep}
-                  expanded={expandedStages.backend}
-                  onToggle={() => toggleExpand('backend')}
-                />
-              )}
+                  return (
+                    <Collapsible key={phase.id} open={isExpanded} onOpenChange={() => togglePhase(phase.phase_key)}>
+                      <CollapsibleTrigger className="w-full">
+                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <div className="flex items-center gap-2">
+                            {phase.is_locked ? (
+                              <Lock className="h-4 w-4 text-muted-foreground" />
+                            ) : phase.is_completed ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <div className="h-4 w-4 rounded-full border-2 border-primary" />
+                            )}
+                            <span className="font-medium text-sm">{phase.title}</span>
+                            <Badge 
+                              variant={completedSteps >= totalSteps ? "default" : "outline"} 
+                              className="text-xs"
+                            >
+                              {completedSteps}/{totalSteps}
+                            </Badge>
+                          </div>
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="space-y-1 pl-2">
+                          {phase.steps
+                            .filter(s => !s.is_skipped)
+                            .map(step => (
+                              <div
+                                key={step.id}
+                                className={`flex items-center gap-2 px-3 py-2 rounded text-sm ${
+                                  step.is_completed 
+                                    ? 'text-green-700 dark:text-green-400' 
+                                    : step.is_locked 
+                                      ? 'text-muted-foreground opacity-50' 
+                                      : 'text-foreground'
+                                }`}
+                              >
+                                {step.is_completed ? (
+                                  <Check className="h-4 w-4 text-green-500 shrink-0" />
+                                ) : step.is_locked ? (
+                                  <Lock className="h-3 w-3 shrink-0" />
+                                ) : (
+                                  <div className="h-3 w-3 rounded-full border border-muted-foreground shrink-0" />
+                                )}
+                                <span>{step.title}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-              {/* Integrations */}
-              {parsedWorkflow.stages.integrations?.enabled && parsedWorkflow.stages.integrations.selectedOptions.length > 0 && (
-                <Collapsible open={expandedStages.integrations} onOpenChange={() => toggleExpand('integrations')}>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Plug className="h-4 w-4 text-purple-500" />
-                        <span className="font-medium text-sm">Integrations</span>
-                        <Badge variant="outline" className="text-xs">
-                          {parsedWorkflow.stages.integrations.selectedOptions.length} items
-                        </Badge>
-                      </div>
-                      {expandedStages.integrations ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-2 mt-2">
-                    {parsedWorkflow.stages.integrations.selectedOptions.map(option => (
-                      <div key={option} className="ml-4">
-                        <p className="text-xs text-muted-foreground mb-1">{option}</p>
-                        <ReadOnlySteps
-                          steps={STAGE_DEFINITIONS.integrations.stepsPerOption}
-                          currentStep={parsedWorkflow.stages.integrations?.progress[option] || 0}
-                        />
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {/* AI */}
-              {parsedWorkflow.stages.ai?.enabled && parsedWorkflow.stages.ai.selectedOptions.length > 0 && (
-                <Collapsible open={expandedStages.ai} onOpenChange={() => toggleExpand('ai')}>
-                  <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 text-orange-500" />
-                        <span className="font-medium text-sm">AI Automations</span>
-                        <Badge variant="outline" className="text-xs">
-                          {parsedWorkflow.stages.ai.selectedOptions.length} items
-                        </Badge>
-                      </div>
-                      {expandedStages.ai ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-2 mt-2">
-                    {parsedWorkflow.stages.ai.selectedOptions.map(option => (
-                      <div key={option} className="ml-4">
-                        <p className="text-xs text-muted-foreground mb-1">{option}</p>
-                        <ReadOnlySteps
-                          steps={STAGE_DEFINITIONS.ai.stepsPerOption}
-                          currentStep={parsedWorkflow.stages.ai?.progress[option] || 0}
-                        />
-                      </div>
-                    ))}
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
+      {/* Staging URL */}
+      {buildFlowData?.staging_url && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-sm">Staging Preview</p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[200px]">{buildFlowData.staging_url}</p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <a href={buildFlowData.staging_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -259,60 +246,16 @@ export function WebsiteTab({ leadId, websiteUrl, workflowData }: WebsiteTabProps
           </CardContent>
         </Card>
       )}
-    </div>
-  );
-}
 
-function ReadOnlyStage({ title, icon, steps, currentStep, expanded, onToggle }: {
-  title: string;
-  icon: React.ReactNode;
-  steps: string[];
-  currentStep: number;
-  expanded?: boolean;
-  onToggle?: () => void;
-}) {
-  return (
-    <Collapsible open={expanded} onOpenChange={onToggle}>
-      <CollapsibleTrigger className="w-full">
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
-          <div className="flex items-center gap-2">
-            {icon}
-            <span className="font-medium text-sm">{title}</span>
-            <Badge variant={currentStep >= steps.length ? "default" : "outline"} className="text-xs">
-              {currentStep}/{steps.length}
-            </Badge>
-          </div>
-          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </div>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2">
-        <ReadOnlySteps steps={steps} currentStep={currentStep} />
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-function ReadOnlySteps({ steps, currentStep }: { steps: string[]; currentStep: number }) {
-  return (
-    <div className="flex flex-wrap gap-2 p-2">
-      {steps.map((step, idx) => {
-        const isComplete = idx < currentStep;
-        const isCurrent = idx === currentStep;
-        return (
-          <div
-            key={step}
-            className={`
-              flex items-center gap-1 px-2 py-1 rounded text-xs
-              ${isComplete ? 'bg-green-500/20 text-green-700 dark:text-green-400' : ''}
-              ${isCurrent ? 'bg-blue-500/20 text-blue-700 dark:text-blue-400 ring-1 ring-blue-500/50' : ''}
-              ${!isComplete && !isCurrent ? 'bg-muted text-muted-foreground' : ''}
-            `}
-          >
-            {isComplete && <Check className="h-3 w-3" />}
-            {step}
-          </div>
-        );
-      })}
+      {/* No build flow and no website */}
+      {!buildFlowData && !websiteUrl && (
+        <Card className="border-dashed">
+          <CardContent className="p-8 text-center">
+            <Globe className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">Your project hasn't started yet. We'll update your progress here once development begins.</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

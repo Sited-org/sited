@@ -31,6 +31,16 @@ interface ClientSession {
   expiresAt?: string;
 }
 
+interface BuildFlowData {
+  id: string;
+  status: string;
+  is_live: boolean;
+  staging_url: string | null;
+  client_view_enabled: boolean;
+  phases: any[];
+  completions: any[];
+}
+
 interface SavedPaymentMethod {
   type: 'card' | 'au_becs_debit';
   card?: { brand: string; last4: string; exp_month: number; exp_year: number };
@@ -67,6 +77,7 @@ export default function ClientPortalDashboard() {
   const [requests, setRequests] = useState<ClientRequest[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null);
+  const [buildFlowData, setBuildFlowData] = useState<BuildFlowData | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview';
   const setActiveTab = (tab: string) => setSearchParams({ tab }, { replace: true });
@@ -129,6 +140,7 @@ export default function ClientPortalDashboard() {
       setRequests(data.clientRequests || []);
       setBookings(data.bookings || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
+      setBuildFlowData(data.buildFlowData || null);
     } catch (err: any) {
       console.error('Error fetching client data:', err);
       // Check if it's an auth-related error
@@ -263,6 +275,7 @@ export default function ClientPortalDashboard() {
                 leadId={session.lead.id}
                 websiteUrl={session.lead.website_url}
                 workflowData={session.lead.workflow_data}
+                buildFlowData={buildFlowData}
               />
             </TabsContent>
 

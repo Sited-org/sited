@@ -16,10 +16,13 @@ import {
   Clock,
   Video,
   Phone,
+  Bell,
+  Upload,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isPast, parseISO } from 'date-fns';
+import { ClientAssetUploadDialog } from './ClientAssetUploadDialog';
 
 interface Transaction {
   id: string;
@@ -36,6 +39,9 @@ interface ClientRequest {
   status: string;
   priority: string;
   created_at: string;
+  request_source?: string | null;
+  requires_client_action?: boolean;
+  action_type?: string | null;
 }
 
 interface ClientBooking {
@@ -84,19 +90,29 @@ export function ClientOverviewTab({
 }: ClientOverviewTabProps) {
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
-  
+  const [assetUploadOpen, setAssetUploadOpen] = useState(false);
 
   const upcomingCalls = (bookings || []).filter(b => !isPast(parseISO(b.booking_date + 'T23:59:59')));
   const getCallLabel = (type: string) => type === 'discovery' ? 'Discovery Call' : type === 'checkin' ? 'Check-in Call' : 'Plan Call';
 
   const pendingTransactions = transactions.filter(t => t.status === 'pending' && t.debit > 0);
   const totalDue = pendingTransactions.reduce((sum, t) => sum + (t.debit || 0), 0);
-  const activeRequests = requests.filter(r => r.status === 'pending' || r.status === 'in_progress');
+  const activeRequests = requests.filter(r => 
+    (r.status === 'pending' || r.status === 'in_progress') && 
+    (!r.request_source || r.request_source === 'manual')
+  );
+  const adminRequests = requests.filter(r => 
+    r.request_source === 'admin' && 
+    (r.status === 'pending' || r.status === 'in_progress')
+  );
   const draftRequests = requests.filter(r => r.status === 'draft');
   
   const websiteUrl = lead.website_url;
   const previewUrl = lead.form_data?.preview_url || lead.form_data?.previewUrl;
   const displayUrl = websiteUrl || previewUrl;
+
+  // Find asset upload requests
+  const assetUploadRequest = adminRequests.find(r => r.action_type === 'asset_upload' && r.requires_client_action);
 
   const handleSendDraft = async (requestId: string) => {
     setSendingDraftId(requestId);
@@ -191,7 +207,7 @@ export function ClientOverviewTab({
               <MessageSquarePlus className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="text-lg font-semibold">{activeRequests.length}</p>
-                <p className="text-xs text-muted-foreground">Active Requests</p>
+                <p className="text-xs text-muted-foreground">My Requests</p>
               </div>
             </div>
           </CardContent>
@@ -214,6 +230,52 @@ export function ClientOverviewTab({
           </CardContent>
         </Card>
       </div>
+
+      {/* Admin / Team Requests requiring action */}
+      {adminRequests.length > 0 && (
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                <Bell className="h-4 w-4" />
+                From Your Team ({adminRequests.length})
+              </p>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('requests')}>
+                View All <ArrowRight className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {adminRequests.slice(0, 3).map((r) => (
+                <div key={r.id} className="p-3 bg-background rounded-lg border">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{r.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {format(new Date(r.created_at), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                    {r.requires_client_action && (
+                      <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">
+                        Action Required
+                      </Badge>
+                    )}
+                  </div>
+                  {r.action_type === 'asset_upload' && r.requires_client_action && (
+                    <Button 
+                      size="sm" 
+                      className="mt-2 w-full" 
+                      onClick={() => setAssetUploadOpen(true)}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Upload Assets
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Draft Requests */}
       {draftRequests.length > 0 && (
@@ -318,8 +380,7 @@ export function ClientOverviewTab({
         </Card>
       )}
 
-
-      {/* Upcoming Calls (read-only) */}
+      {/* Upcoming Calls */}
       <Card>
         <CardContent className="p-4">
           <p className="text-sm font-medium flex items-center gap-2 mb-3">
@@ -380,6 +441,17 @@ export function ClientOverviewTab({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Asset Upload Dialog */}
+      {sessionToken && (
+        <ClientAssetUploadDialog
+          open={assetUploadOpen}
+          onOpenChange={setAssetUploadOpen}
+          leadId={lead.id}
+          sessionToken={sessionToken}
+          onUploaded={onRequestCreated}
+        />
       )}
     </div>
   );

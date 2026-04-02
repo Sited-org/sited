@@ -48,6 +48,8 @@ export function CreateRequestDialog({
   const [description, setDescription] = useState('');
   const [body, setBody] = useState('');
   const [priority, setPriority] = useState<string>('normal');
+  const [requiresClientAction, setRequiresClientAction] = useState(false);
+  const [actionType, setActionType] = useState<string>('');
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -117,6 +119,8 @@ export function CreateRequestDialog({
     setDescription('');
     setBody('');
     setPriority('normal');
+    setRequiresClientAction(false);
+    setActionType('');
     selectedFiles.forEach(f => f.preview && URL.revokeObjectURL(f.preview));
     setSelectedFiles([]);
   };
@@ -136,6 +140,9 @@ export function CreateRequestDialog({
         description: description.trim() || null,
         body: body.trim() || null,
         priority,
+        request_source: 'admin',
+        requires_client_action: requiresClientAction,
+        action_type: actionType || null,
       }).select().single();
 
       if (error) throw error;
@@ -145,9 +152,9 @@ export function CreateRequestDialog({
         await uploadFiles(newRequest.id);
       }
 
-      // Send notification
+      // Send notification to client (not admin)
       try {
-        await supabase.functions.invoke('notify-client-request', {
+        await supabase.functions.invoke('notify-client-portal', {
           body: {
             request_id: newRequest.id,
             lead_id: leadId,
@@ -156,12 +163,11 @@ export function CreateRequestDialog({
             priority,
             client_name: leadName,
             client_email: leadEmail,
-            has_attachments: selectedFiles.length > 0,
-            created_by_admin: true,
+            action_type: actionType || null,
           },
         });
       } catch (notifyError) {
-        console.error('Failed to send notification:', notifyError);
+        console.error('Failed to send client notification:', notifyError);
       }
 
       toast.success('Request created on behalf of client');
@@ -243,6 +249,33 @@ export function CreateRequestDialog({
                 <SelectItem value="urgent">Urgent</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Client Action Required */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requiresClientAction"
+                checked={requiresClientAction}
+                onChange={(e) => setRequiresClientAction(e.target.checked)}
+                disabled={submitting}
+                className="rounded border-input"
+              />
+              <Label htmlFor="requiresClientAction" className="text-sm">Requires client action</Label>
+            </div>
+            {requiresClientAction && (
+              <Select value={actionType} onValueChange={setActionType} disabled={submitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select action type (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asset_upload">Asset Upload</SelectItem>
+                  <SelectItem value="review">Review & Approve</SelectItem>
+                  <SelectItem value="information">Provide Information</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* File Upload */}
