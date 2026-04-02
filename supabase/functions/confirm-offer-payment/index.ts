@@ -7,11 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Tier pricing
-const TIER_CONFIG: Record<string, { label: string; totalPrice: number }> = {
-  "basic-deposit": { label: "Basic Blue", totalPrice: 549 },
-  "gold": { label: "Gold Package", totalPrice: 649 },
-  "platinum": { label: "Platinum Package", totalPrice: 1199 },
+// Tier key → product name mapping
+const TIER_TO_PRODUCT: Record<string, string> = {
+  "basic-deposit": "Essential Blue",
+  "basic-full": "Essential Blue",
+  "gold": "Gold Package",
+  "platinum": "Platinum Package",
 };
 
 const DEPOSIT_AMOUNT = 49;
@@ -31,13 +32,37 @@ serve(async (req) => {
       );
     }
 
-    const config = TIER_CONFIG[tier];
-    if (!config) {
+    const productName = TIER_TO_PRODUCT[tier];
+    if (!productName) {
       return new Response(
         JSON.stringify({ error: `Invalid tier: ${tier}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Look up the product from the products table
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("name, price")
+      .eq("name", productName)
+      .eq("product_type", "package")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (productError || !product) {
+      console.error("[CONFIRM-OFFER-PAYMENT] Product lookup failed:", productError?.message || `No product found for "${productName}"`);
+      return new Response(
+        JSON.stringify({ error: `Product not found for tier: ${tier}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const totalPrice = product.price;
+    const label = product.name;
 
     // Verify payment succeeded with Stripe
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -52,10 +77,6 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const customerId = paymentIntent.customer as string;
 
@@ -88,10 +109,10 @@ serve(async (req) => {
       status: "new_lead",
       name,
       phone: phone || null,
-      membership_tier: config.label,
+      membership_tier: label,
       stripe_customer_id: customerId,
       stripe_payment_method_id: paymentMethodId,
-      deal_amount: config.totalPrice,
+      deal_amount: totalPrice,
       deal_closed_at: now.toISOString(),
     };
 
@@ -101,7 +122,7 @@ serve(async (req) => {
         ...existingFormData,
         partial: false,
         offer_tier: tier,
-        offer_tier_label: config.label,
+        offer_tier_label: label,
         payment_intent_id: paymentIntentId,
       };
 
@@ -122,7 +143,7 @@ serve(async (req) => {
           form_data: {
             source: "offer_page",
             offer_tier: tier,
-            offer_tier_label: config.label,
+            offer_tier_label: label,
             payment_intent_id: paymentIntentId,
           },
         })
@@ -137,20 +158,20 @@ serve(async (req) => {
     // 1. Full project charge (debit) — the total owed
     await supabase.from("transactions").insert({
       lead_id: leadId,
-      item: `${config.label} — Website Project`,
+      item: `${label} — Website Project`,
       credit: 0,
-      debit: config.totalPrice,
+      debit: totalPrice,
       status: "completed",
       invoice_status: "not_sent",
       payment_method: null,
-      notes: `Full project fee for ${config.label}`,
+      notes: `Full project fee for ${label}`,
       transaction_date: now.toISOString(),
     });
 
     // 2. Deposit payment received (credit) — $49 paid now
     await supabase.from("transactions").insert({
       lead_id: leadId,
-      item: `${config.label} — Deposit Payment`,
+      item: `${label} — Deposit Payment`,
       credit: DEPOSIT_AMOUNT,
       debit: 0,
       status: "completed",
@@ -161,15 +182,15 @@ serve(async (req) => {
     });
 
     // Log activity
-    const remainingAmount = config.totalPrice - DEPOSIT_AMOUNT;
+    const remainingAmount = totalPrice - DEPOSIT_AMOUNT;
     await supabase.from("lead_activities").insert({
       lead_id: leadId,
       action: "offer_payment_received",
       details: {
         tier,
-        tier_label: config.label,
+        tier_label: label,
         deposit_amount: DEPOSIT_AMOUNT,
-        total_price: config.totalPrice,
+        total_price: totalPrice,
         remaining_balance: remainingAmount,
         currency: "aud",
         payment_intent_id: paymentIntentId,
@@ -184,7 +205,7 @@ serve(async (req) => {
         body: {
           leadId,
           amount: DEPOSIT_AMOUNT * 100, // cents
-          description: `${config.label} — Deposit Payment`,
+          description: `${label} — Deposit Payment`,
           stripePaymentIntentId: paymentIntentId,
         },
       });
