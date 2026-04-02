@@ -15,8 +15,6 @@ const TIER_TO_PRODUCT: Record<string, string> = {
   "platinum": "Platinum Package",
 };
 
-const DEPOSIT_AMOUNT = 49;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
