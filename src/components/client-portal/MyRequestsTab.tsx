@@ -268,11 +268,23 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
             <p>{request.admin_notes}</p>
           </div>
         )}
-        {showActions && request.action_type === 'asset_upload' && request.requires_client_action && request.status !== 'completed' && (
-          <Button size="sm" className="mt-3 w-full" onClick={() => setAssetUploadOpen(true)}>
-            <Upload className="h-3 w-3 mr-1" />
-            Upload Assets
-          </Button>
+        {showActions && request.status !== 'completed' && (
+          <>
+            {(request.action_type === 'asset_upload' || request.action_type === 'asset_collection') && request.requires_client_action && (
+              <Button size="sm" className="mt-3 w-full" onClick={() => setAssetUploadOpen(true)}>
+                <Upload className="h-3 w-3 mr-1" />
+                Upload Brand Assets
+              </Button>
+            )}
+            {request.requires_client_action && sessionToken && (
+              <ClientFileUploadButton
+                requestId={request.id}
+                leadId={leadId}
+                sessionToken={sessionToken}
+                onUploaded={onRequestCreated}
+              />
+            )}
+          </>
         )}
       </CardContent>
     </Card>
