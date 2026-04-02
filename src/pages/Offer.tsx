@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, TrendingUp, Bot, Globe, BarChart3, Users, Lock, Sparkles } from "lucide-react";
@@ -7,6 +7,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePackagePrices } from "@/hooks/usePackagePrices";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import FeatureWithInfo from "@/components/offer/FeatureInfo";
 import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
