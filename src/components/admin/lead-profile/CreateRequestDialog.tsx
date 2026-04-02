@@ -251,6 +251,33 @@ export function CreateRequestDialog({
             </Select>
           </div>
 
+          {/* Client Action Required */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="requiresClientAction"
+                checked={requiresClientAction}
+                onChange={(e) => setRequiresClientAction(e.target.checked)}
+                disabled={submitting}
+                className="rounded border-input"
+              />
+              <Label htmlFor="requiresClientAction" className="text-sm">Requires client action</Label>
+            </div>
+            {requiresClientAction && (
+              <Select value={actionType} onValueChange={setActionType} disabled={submitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select action type (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="asset_upload">Asset Upload</SelectItem>
+                  <SelectItem value="review">Review & Approve</SelectItem>
+                  <SelectItem value="information">Provide Information</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
           {/* File Upload */}
           <div className="space-y-2">
             <Label className="text-sm">Attachments</Label>
