@@ -17,6 +17,83 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+// Helper: auto-complete the deposit_received build step
+async function autoCompleteDepositStep(leadId: string, amountPaid: number, stripeId: string) {
+  const { data: buildFlow } = await supabaseAdmin
+    .from('build_flows')
+    .select('id')
+    .eq('lead_id', leadId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!buildFlow) {
+    console.log("[STRIPE-WEBHOOK] No build flow found for lead:", leadId);
+    return;
+  }
+
+  const { data: phases } = await supabaseAdmin
+    .from('build_phases')
+    .select('id')
+    .eq('build_flow_id', buildFlow.id);
+
+  const { data: depositStep } = await supabaseAdmin
+    .from('build_steps')
+    .select('id, is_completed, phase_id')
+    .eq('step_key', 'deposit_received')
+    .in('phase_id', (phases || []).map((p: any) => p.id))
+    .maybeSingle();
+
+  if (!depositStep || depositStep.is_completed) {
+    console.log("[STRIPE-WEBHOOK] Deposit step not found or already completed");
+    return;
+  }
+
+  await supabaseAdmin.from('step_completions').insert({
+    step_id: depositStep.id,
+    build_flow_id: buildFlow.id,
+    completed_by: 'system',
+    description: `Deposit of $${amountPaid} AUD received via Stripe (${stripeId})`,
+  });
+
+  await supabaseAdmin.from('build_steps').update({
+    is_completed: true,
+    completed_at: new Date().toISOString(),
+    completed_by: 'system',
+  }).eq('id', depositStep.id);
+
+  const { data: nextStep } = await supabaseAdmin
+    .from('build_steps')
+    .select('id, is_locked')
+    .eq('phase_id', depositStep.phase_id)
+    .eq('step_number', 4)
+    .maybeSingle();
+
+  if (nextStep?.is_locked) {
+    await supabaseAdmin.from('build_steps').update({ is_locked: false }).eq('id', nextStep.id);
+  }
+
+  console.log("[STRIPE-WEBHOOK] Auto-completed deposit_received step for build flow:", buildFlow.id);
+}
+
+// Helper: save payment method to lead and Stripe customer
+async function savePaymentMethodToLead(leadId: string, paymentMethodId: string, customerId: string) {
+  try {
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+  } catch (_e: any) { /* already attached */ }
+
+  await stripe.customers.update(customerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+  });
+
+  await supabaseAdmin.from('leads').update({
+    stripe_payment_method_id: paymentMethodId,
+    stripe_customer_id: customerId,
+  }).eq('id', leadId);
+
+  console.log("[STRIPE-WEBHOOK] Saved payment method to lead:", leadId);
+}
+
 // Helper function to calculate available credit for a lead (credit pool minus already-paid debits)
 async function getAvailableCredit(leadId: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
