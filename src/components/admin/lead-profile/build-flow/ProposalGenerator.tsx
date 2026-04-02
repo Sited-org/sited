@@ -448,16 +448,29 @@ export function ProposalGenerator({ buildFlowId, leadId, businessName, open, onO
 
       // Auto-generate billing: deposit-aware split (with duplicate guard)
       if (selectedProduct && actualPrice > 0) {
-        // Check if billing entries already exist from a previous proposal send
-        const { data: existingProposalTxs } = await supabase
-          .from('transactions')
-          .select('id')
-          .eq('lead_id', leadId)
-          .ilike('notes', `%From proposal: ${fileName}%`)
-          .limit(1);
+        // Check if billing entries already exist from a previous proposal send OR from confirm-offer-payment
+        const [proposalTxRes, projectTxRes] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('id')
+            .eq('lead_id', leadId)
+            .ilike('notes', `%From proposal: ${fileName}%`)
+            .limit(1),
+          supabase
+            .from('transactions')
+            .select('id')
+            .eq('lead_id', leadId)
+            .gt('debit', 0)
+            .or('item.ilike.%Website Project%,item.ilike.%Package%')
+            .limit(1),
+        ]);
 
-        if (existingProposalTxs && existingProposalTxs.length > 0) {
-          toast.info('Billing entries already exist for this proposal — skipping duplicate charges.');
+        const hasExistingBilling = 
+          (proposalTxRes.data && proposalTxRes.data.length > 0) ||
+          (projectTxRes.data && projectTxRes.data.length > 0);
+
+        if (hasExistingBilling) {
+          toast.info('Billing entries already exist for this client — skipping duplicate charges.');
         } else {
           const transactions: any[] = [];
 
