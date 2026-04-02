@@ -132,6 +132,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           membership_price: membership.price,
           billing_interval: membership.billing_interval,
           start_date: startDate,
+          billing_start_month: membershipStartMonth || undefined,
           notes: transactionNotes || membership.description || null,
         },
       });
