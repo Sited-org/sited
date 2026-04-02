@@ -171,63 +171,10 @@ serve(async (req) => {
       logStep("Created ad-hoc price", { priceId, productId: product.id });
     }
 
-    // Determine billing anchor
+    // Always anchor to 1st of next month — no proration, no mid-month charges
     const now = new Date();
-    const startDateTime = start_date ? new Date(start_date) : null;
-    const isMidMonth = startDateTime && startDateTime.getUTCDate() !== 1;
-
-    let anchorDate: Date;
-    if (startDateTime) {
-      anchorDate = isMidMonth
-        ? new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth() + 1, 1))
-        : new Date(Date.UTC(startDateTime.getFullYear(), startDateTime.getMonth(), 1));
-    } else {
-      anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
-    }
-
-    logStep("Billing anchor", { isMidMonth, anchorDate: anchorDate.toISOString() });
-
-    // Mid-month: one-off invoice for the full amount
-    let oneOffInvoiceId: string | null = null;
-    if (isMidMonth) {
-      logStep("Mid-month start — creating one-off invoice");
-      await stripe.invoiceItems.create({
-        customer: customerId!,
-        amount: Math.round(membership_price * 100),
-        currency: 'aud',
-        description: `${membership_name} — initial charge (${start_date})`,
-        metadata: { lead_id: lead.id, membership_name },
-      });
-
-      const invoiceParams: any = {
-        customer: customerId!,
-        auto_advance: true,
-        metadata: { lead_id: lead.id, membership_name, type: 'mid_month_initial' },
-      };
-      if (hasPaymentMethod) {
-        invoiceParams.default_payment_method = lead.stripe_payment_method_id;
-      } else {
-        invoiceParams.collection_method = 'send_invoice';
-        invoiceParams.days_until_due = 7;
-      }
-
-      const oneOffInvoice = await stripe.invoices.create(invoiceParams);
-      const finalizedInvoice = await stripe.invoices.finalizeInvoice(oneOffInvoice.id);
-      oneOffInvoiceId = finalizedInvoice.id;
-
-      await supabaseAdmin.from('transactions').insert({
-        lead_id: lead.id,
-        item: `${membership_name} — Initial Charge`,
-        credit: 0,
-        debit: membership_price,
-        notes: notes ? `${notes}\nOne-off initial charge (${start_date})` : `One-off initial charge (${start_date})`,
-        transaction_date: start_date,
-        is_recurring: false,
-        status: 'completed',
-        invoice_status: hasPaymentMethod ? 'processing' : 'sent',
-        stripe_invoice_id: oneOffInvoiceId,
-      });
-    }
+    const anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+    logStep("Billing anchor (1st of next month)", { anchorDate: anchorDate.toISOString() });
 
     // Create subscription
     const subParams: any = {
