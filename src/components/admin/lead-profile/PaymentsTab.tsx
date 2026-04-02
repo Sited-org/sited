@@ -49,7 +49,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   // Product/Membership selection state
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [selectedMembership, setSelectedMembership] = useState<string>('');
-  const [membershipStartDate, setMembershipStartDate] = useState<string>('');
+  const [membershipStartMonth, setMembershipStartMonth] = useState<string>('');
   const [transactionNotes, setTransactionNotes] = useState('');
 
   // Invoice state
