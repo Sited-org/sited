@@ -62,6 +62,15 @@ serve(async (req) => {
     const totalPrice = product.price;
     const label = product.name;
 
+    // Get deposit amount from system settings
+    const { data: depositSetting } = await supabase
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "deposit_amount")
+      .maybeSingle();
+
+    const DEPOSIT_AMOUNT = (depositSetting?.setting_value as any)?.amount ?? 49;
+
     // Verify payment succeeded with Stripe
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
