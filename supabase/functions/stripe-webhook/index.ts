@@ -600,8 +600,6 @@ serve(async (req) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("[STRIPE-WEBHOOK] Payment succeeded:", paymentIntent.id);
         
-        // If this is linked to an invoice, it will be handled by invoice.paid
-        // This handles direct payment intents (not via invoice)
         if (!paymentIntent.invoice) {
           const transactionIds = paymentIntent.metadata?.transaction_ids?.split(',') || [];
           if (transactionIds.length > 0) {
@@ -612,117 +610,21 @@ serve(async (req) => {
             console.log("[STRIPE-WEBHOOK] Updated direct payment transactions to 'paid'");
           }
 
-          // Save the payment method to the customer and lead for future charges
           const leadId = paymentIntent.metadata?.lead_id;
           if (leadId && paymentIntent.payment_method && paymentIntent.customer) {
+            const pmId = typeof paymentIntent.payment_method === 'string' ? paymentIntent.payment_method : paymentIntent.payment_method.id;
+            const custId = typeof paymentIntent.customer === 'string' ? paymentIntent.customer : paymentIntent.customer.id;
             try {
-              const paymentMethodId = typeof paymentIntent.payment_method === 'string'
-                ? paymentIntent.payment_method
-                : paymentIntent.payment_method.id;
-              const customerId = typeof paymentIntent.customer === 'string'
-                ? paymentIntent.customer
-                : paymentIntent.customer.id;
-
-              // Attach payment method to customer (if not already)
-              try {
-                await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
-              } catch (_e: any) {
-                // Already attached
-              }
-
-              // Set as default for future invoices
-              await stripe.customers.update(customerId, {
-                invoice_settings: { default_payment_method: paymentMethodId },
-              });
-
-              // Save to lead record
-              await supabaseAdmin
-                .from('leads')
-                .update({
-                  stripe_payment_method_id: paymentMethodId,
-                  stripe_customer_id: customerId,
-                })
-                .eq('id', leadId);
-
-              console.log("[STRIPE-WEBHOOK] Saved payment method from direct PI to lead:", leadId);
+              await savePaymentMethodToLead(leadId, pmId, custId);
             } catch (pmErr: any) {
               console.error("[STRIPE-WEBHOOK] Error saving PM from direct PI:", pmErr.message);
             }
           }
 
-          // Auto-complete deposit build step if this is a deposit payment
           if (leadId && paymentIntent.metadata?.type === 'deposit') {
             try {
               console.log("[STRIPE-WEBHOOK] Deposit payment detected for lead:", leadId);
-              
-              // Find the active build flow for this lead
-              const { data: buildFlow } = await supabaseAdmin
-                .from('build_flows')
-                .select('id')
-                .eq('lead_id', leadId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-              if (buildFlow) {
-                // Find the deposit_received step
-                const { data: depositStep } = await supabaseAdmin
-                  .from('build_steps')
-                  .select('id, is_completed, phase_id')
-                  .eq('step_key', 'deposit_received')
-                  .in('phase_id', (
-                    await supabaseAdmin
-                      .from('build_phases')
-                      .select('id')
-                      .eq('build_flow_id', buildFlow.id)
-                  ).data?.map((p: any) => p.id) || [])
-                  .maybeSingle();
-
-                if (depositStep && !depositStep.is_completed) {
-                  const amountPaid = paymentIntent.amount / 100;
-                  
-                  // Insert step completion
-                  await supabaseAdmin
-                    .from('step_completions')
-                    .insert({
-                      step_id: depositStep.id,
-                      build_flow_id: buildFlow.id,
-                      completed_by: 'system',
-                      description: `Deposit of $${amountPaid} AUD received via Stripe (${paymentIntent.id})`,
-                    });
-
-                  // Mark step as completed
-                  await supabaseAdmin
-                    .from('build_steps')
-                    .update({
-                      is_completed: true,
-                      completed_at: new Date().toISOString(),
-                      completed_by: 'system',
-                    })
-                    .eq('id', depositStep.id);
-
-                  // Unlock the next step in the phase (step 4)
-                  const { data: nextStep } = await supabaseAdmin
-                    .from('build_steps')
-                    .select('id, is_locked')
-                    .eq('phase_id', depositStep.phase_id)
-                    .eq('step_number', 4)
-                    .maybeSingle();
-
-                  if (nextStep?.is_locked) {
-                    await supabaseAdmin
-                      .from('build_steps')
-                      .update({ is_locked: false })
-                      .eq('id', nextStep.id);
-                  }
-
-                  console.log("[STRIPE-WEBHOOK] Auto-completed deposit_received step for build flow:", buildFlow.id);
-                } else {
-                  console.log("[STRIPE-WEBHOOK] Deposit step not found or already completed");
-                }
-              } else {
-                console.log("[STRIPE-WEBHOOK] No build flow found for lead:", leadId);
-              }
+              await autoCompleteDepositStep(leadId, paymentIntent.amount / 100, paymentIntent.id);
             } catch (bfErr: any) {
               console.error("[STRIPE-WEBHOOK] Error auto-completing deposit step:", bfErr.message);
             }
