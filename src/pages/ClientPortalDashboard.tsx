@@ -274,6 +274,7 @@ export default function ClientPortalDashboard() {
                 leadId={session.lead.id}
                 websiteUrl={session.lead.website_url}
                 workflowData={session.lead.workflow_data}
+                buildFlowData={buildFlowData}
               />
             </TabsContent>
 
