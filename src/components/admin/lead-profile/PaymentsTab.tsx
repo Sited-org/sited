@@ -147,7 +147,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       toast.success(`Stripe subscription created for ${membership.name}. Customer will be ${billingMode} each ${membership.billing_interval}.`);
       
       setSelectedMembership('');
-      setMembershipStartDate('');
+      setMembershipStartMonth('');
       setTransactionNotes('');
       
       // Refresh transactions data
