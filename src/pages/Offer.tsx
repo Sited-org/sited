@@ -31,15 +31,15 @@ export type TierConfig = {
   popular?: boolean;
 };
 
-const TIERS: Record<string, TierConfig> = {
+const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> => ({
   "basic-deposit": {
     id: "basic-deposit",
     name: "Blue",
     tagline: "Built for the basics",
     price: "$49",
-    totalPrice: "$549",
+    totalPrice: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`,
     usualPrice: "$1,399",
-    savings: "$850",
+    savings: `$${(1399 - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
     icon: Zap,
     features: [
       "Professional website",
@@ -58,9 +58,9 @@ const TIERS: Record<string, TierConfig> = {
     name: "Gold",
     tagline: "Made for the everyday business",
     price: "$49",
-    totalPrice: "$649",
+    totalPrice: `$${prices["gold"]?.toLocaleString() ?? "649"}`,
     usualPrice: "$1,699",
-    savings: "$1,050",
+    savings: `$${(1699 - (prices["gold"] ?? 649)).toLocaleString()}`,
     icon: Star,
     features: [
       "Everything in Blue",
@@ -79,9 +79,9 @@ const TIERS: Record<string, TierConfig> = {
     name: "Platinum",
     tagline: "Built for those ready to dominate their market",
     price: "$49",
-    totalPrice: "$1,199",
+    totalPrice: `$${prices["platinum"]?.toLocaleString() ?? "1,149"}`,
     usualPrice: "$2,559",
-    savings: "$1,360",
+    savings: `$${(2559 - (prices["platinum"] ?? 1149)).toLocaleString()}`,
     icon: Crown,
     features: [
       "Everything in Gold",
@@ -95,7 +95,7 @@ const TIERS: Record<string, TierConfig> = {
     badgeClass: "bg-gradient-to-r from-gray-300 via-white to-gray-300 dark:from-gray-500 dark:via-gray-300 dark:to-gray-500 text-gray-900",
     popular: true,
   },
-};
+});
 
 const UPGRADE_BENEFITS = [
   {
