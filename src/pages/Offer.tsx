@@ -859,7 +859,7 @@ const Offer = () => {
                     className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg transition-all ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500 hover:shadow-xl`}
                   >
                     <Sparkles size={16} />
-                    Explore Platinum — Save $1,360
+                    Explore Platinum — Save {TIERS.platinum.savings}
                     <ChevronRight size={16} />
                   </motion.button>
                 </div>
