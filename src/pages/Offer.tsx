@@ -563,7 +563,7 @@ const Offer = () => {
           <>
             {/* Tier Selector Cards */}
             <div className="grid grid-cols-3 gap-5 mb-10">
-              {Object.values(TIERS).map((tier, idx) => {
+              {(Object.values(TIERS) as TierConfig[]).map((tier, idx) => {
                 const TIcon = tier.icon;
                 const isActive = selectedTier === tier.id;
                 const isTierPlatinum = tier.id === "platinum";
