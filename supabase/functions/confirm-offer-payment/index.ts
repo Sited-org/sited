@@ -15,8 +15,6 @@ const TIER_TO_PRODUCT: Record<string, string> = {
   "platinum": "Platinum Package",
 };
 
-const DEPOSIT_AMOUNT = 49;
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -63,6 +61,15 @@ serve(async (req) => {
 
     const totalPrice = product.price;
     const label = product.name;
+
+    // Get deposit amount from system settings
+    const { data: depositSetting } = await supabase
+      .from("system_settings")
+      .select("setting_value")
+      .eq("setting_key", "deposit_amount")
+      .maybeSingle();
+
+    const DEPOSIT_AMOUNT = (depositSetting?.setting_value as any)?.amount ?? 49;
 
     // Verify payment succeeded with Stripe
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");

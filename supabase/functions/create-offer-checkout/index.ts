@@ -15,13 +15,16 @@ const TIER_TO_PRODUCT: Record<string, string> = {
   "platinum": "Platinum Package",
 };
 
+// Canonical deposit product & price
+const DEPOSIT_PRICE_ID = "price_1T2S3HKEOhx2BLuXpqoFZGO2";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { tier, customer_email, customer_name } = await req.json();
+    const { tier, customer_email, customer_name, customer_phone } = await req.json();
 
     const productName = TIER_TO_PRODUCT[tier];
     if (!productName) {
@@ -35,21 +38,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Look up the product from the products table to get the Stripe price ID
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .select("name, stripe_price_id")
-      .eq("name", productName)
-      .eq("product_type", "package")
-      .eq("is_active", true)
-      .maybeSingle();
-
-    if (productError || !product || !product.stripe_price_id) {
-      console.error("[CREATE-OFFER-CHECKOUT] Product lookup failed:", productError?.message || `No product/price found for "${productName}"`);
-      return new Response(
-        JSON.stringify({ error: `Product not configured for tier: ${tier}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Look up lead_id from email for metadata
+    let leadId: string | null = null;
+    if (customer_email) {
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("email", customer_email)
+        .maybeSingle();
+      leadId = lead?.id ?? null;
     }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -71,14 +68,37 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : customer_email || undefined,
-      line_items: [{ price: product.stripe_price_id, quantity: 1 }],
+      line_items: [{ price: DEPOSIT_PRICE_ID, quantity: 1 }],
       mode: "payment",
-      success_url: `${origin}/offer?payment=success`,
-      cancel_url: `${origin}/offer?payment=cancelled`,
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          metadata: {
+            tier,
+            type: "deposit",
+            lead_id: leadId || "",
+          },
+        },
+      },
+      payment_intent_data: {
+        setup_future_usage: "off_session",
+        metadata: {
+          tier,
+          type: "deposit",
+          customer_name: customer_name || "",
+          customer_email: customer_email || "",
+          customer_phone: customer_phone || "",
+          lead_id: leadId || "",
+        },
+      },
       metadata: {
         tier,
+        type: "deposit",
         customer_name: customer_name || "",
+        lead_id: leadId || "",
       },
+      success_url: `${origin}/offer?payment=success`,
+      cancel_url: `${origin}/offer?payment=cancelled`,
     });
 
     return new Response(

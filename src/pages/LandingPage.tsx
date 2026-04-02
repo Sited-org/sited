@@ -398,7 +398,7 @@ const LandingPage = () => {
                 KILLER WEBSITE in<br />
                 <span className="text-sited-blue">7 days</span> or less
               </h1>
-              <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST $549</p>
+              <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST ${prices["basic-deposit"]?.toLocaleString() ?? "499"}</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
                 Start for just <span className="text-foreground font-bold">$49</span>. Your full website is built in 7 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
@@ -423,7 +423,7 @@ const LandingPage = () => {
                 {[
                   { value: "200+", label: "Websites Built" },
                   { value: "7", label: "Day Average Delivery" },
-                  { value: "$549", label: "All-In Package" },
+                  { value: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`, label: "All-In Package" },
                 ].map((stat) => (
                   <div key={stat.label}>
                     <p className="text-2xl xl:text-3xl font-black text-foreground">{stat.value}</p>
