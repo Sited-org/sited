@@ -675,6 +675,74 @@ serve(async (req) => {
         break;
       }
 
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log("[STRIPE-WEBHOOK] Checkout session completed:", session.id);
+
+        const leadId = session.metadata?.lead_id;
+        const paymentType = session.metadata?.type;
+
+        if (!leadId) {
+          console.log("[STRIPE-WEBHOOK] No lead_id in checkout session metadata, skipping");
+          break;
+        }
+
+        // Retrieve the PaymentIntent to get amount and payment method
+        const piId = typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id;
+
+        if (!piId) {
+          console.log("[STRIPE-WEBHOOK] No payment_intent on checkout session, skipping");
+          break;
+        }
+
+        const pi = await stripe.paymentIntents.retrieve(piId);
+        const amountPaid = pi.amount / 100;
+        const customerId = typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id;
+
+        console.log("[STRIPE-WEBHOOK] Checkout session details:", {
+          leadId, paymentType, amountPaid, customerId, piId,
+        });
+
+        // Record credit transaction
+        await supabaseAdmin.from('transactions').insert({
+          lead_id: leadId,
+          item: paymentType === 'deposit' ? 'Deposit Payment' : `Checkout Payment`,
+          credit: amountPaid,
+          debit: 0,
+          notes: `Stripe Checkout Session ${session.id}, PI: ${piId}`,
+          transaction_date: new Date().toISOString(),
+          is_recurring: false,
+          status: 'completed',
+          invoice_status: 'paid',
+        });
+        console.log("[STRIPE-WEBHOOK] Created transaction for checkout session:", amountPaid);
+
+        // Save payment method to lead
+        if (customerId && pi.payment_method) {
+          const pmId = typeof pi.payment_method === 'string' ? pi.payment_method : pi.payment_method.id;
+          try {
+            await savePaymentMethodToLead(leadId, pmId, customerId);
+          } catch (pmErr: any) {
+            console.error("[STRIPE-WEBHOOK] Error saving PM from checkout:", pmErr.message);
+          }
+        }
+
+        // Auto-complete deposit step if applicable
+        if (paymentType === 'deposit') {
+          try {
+            await autoCompleteDepositStep(leadId, amountPaid, piId);
+          } catch (bfErr: any) {
+            console.error("[STRIPE-WEBHOOK] Error auto-completing deposit from checkout:", bfErr.message);
+          }
+        }
+
+        break;
+      }
+
       default:
         console.log("[STRIPE-WEBHOOK] Unhandled event type:", event.type);
     }
