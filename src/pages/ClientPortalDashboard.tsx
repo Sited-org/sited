@@ -139,6 +139,7 @@ export default function ClientPortalDashboard() {
       setRequests(data.clientRequests || []);
       setBookings(data.bookings || []);
       setSavedPaymentMethod(data.savedPaymentMethod);
+      setBuildFlowData(data.buildFlowData || null);
     } catch (err: any) {
       console.error('Error fetching client data:', err);
       // Check if it's an auth-related error
