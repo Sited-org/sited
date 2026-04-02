@@ -119,6 +119,8 @@ export function CreateRequestDialog({
     setDescription('');
     setBody('');
     setPriority('normal');
+    setRequiresClientAction(false);
+    setActionType('');
     selectedFiles.forEach(f => f.preview && URL.revokeObjectURL(f.preview));
     setSelectedFiles([]);
   };
