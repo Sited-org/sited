@@ -52,6 +52,7 @@ export function BuildFlowView({
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [sendingDepositLink, setSendingDepositLink] = useState(false);
   const [showPayNowDialog, setShowPayNowDialog] = useState(false);
+  const [sendingPortalInvite, setSendingPortalInvite] = useState(false);
   const depositAutoChecked = useRef(false);
 
   const activePhase = phases.find(p => p.id === activePhaseId);
