@@ -49,18 +49,28 @@ async function autoCompleteDepositStep(leadId: string, amountPaid: number, strip
     return;
   }
 
-  await supabaseAdmin.from('step_completions').insert({
+  const SYSTEM_UUID = '00000000-0000-0000-0000-000000000000';
+
+  const { error: completionErr } = await supabaseAdmin.from('step_completions').insert({
     step_id: depositStep.id,
     build_flow_id: buildFlow.id,
-    completed_by: 'system',
+    completed_by: SYSTEM_UUID,
     description: `Deposit of $${amountPaid} AUD received via Stripe (${stripeId})`,
   });
+  if (completionErr) {
+    console.error("[STRIPE-WEBHOOK] Failed to insert step_completion:", completionErr.message);
+    return;
+  }
 
-  await supabaseAdmin.from('build_steps').update({
+  const { error: stepErr } = await supabaseAdmin.from('build_steps').update({
     is_completed: true,
     completed_at: new Date().toISOString(),
-    completed_by: 'system',
+    completed_by: SYSTEM_UUID,
   }).eq('id', depositStep.id);
+  if (stepErr) {
+    console.error("[STRIPE-WEBHOOK] Failed to update build_step:", stepErr.message);
+    return;
+  }
 
   const { data: nextStep } = await supabaseAdmin
     .from('build_steps')
