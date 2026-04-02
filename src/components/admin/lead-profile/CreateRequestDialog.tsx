@@ -150,9 +150,9 @@ export function CreateRequestDialog({
         await uploadFiles(newRequest.id);
       }
 
-      // Send notification
+      // Send notification to client (not admin)
       try {
-        await supabase.functions.invoke('notify-client-request', {
+        await supabase.functions.invoke('notify-client-portal', {
           body: {
             request_id: newRequest.id,
             lead_id: leadId,
@@ -161,12 +161,11 @@ export function CreateRequestDialog({
             priority,
             client_name: leadName,
             client_email: leadEmail,
-            has_attachments: selectedFiles.length > 0,
-            created_by_admin: true,
+            action_type: actionType || null,
           },
         });
       } catch (notifyError) {
-        console.error('Failed to send notification:', notifyError);
+        console.error('Failed to send client notification:', notifyError);
       }
 
       toast.success('Request created on behalf of client');
