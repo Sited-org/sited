@@ -112,7 +112,7 @@ export function ClientOverviewTab({
   const displayUrl = websiteUrl || previewUrl;
 
   // Find asset upload requests
-  const assetUploadRequest = adminRequests.find(r => r.action_type === 'asset_upload' && r.requires_client_action);
+  const assetUploadRequest = adminRequests.find(r => (r.action_type === 'asset_upload' || r.action_type === 'asset_collection') && r.requires_client_action);
 
   const handleSendDraft = async (requestId: string) => {
     setSendingDraftId(requestId);
