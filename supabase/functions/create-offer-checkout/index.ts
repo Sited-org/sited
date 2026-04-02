@@ -1,29 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Stripe price IDs for each tier
-const PRICE_MAP: Record<string, { price_id: string; label: string }> = {
-  "basic-deposit": {
-    price_id: "price_1T2OswKEOhx2BLuXhoR3UTVS",
-    label: "Basic Blue Deposit ($49)",
-  },
-  "basic-full": {
-    price_id: "price_1SxSpTKEOhx2BLuXRxnMsTiQ",
-    label: "Basic Blue ($549)",
-  },
-  "gold": {
-    price_id: "price_1SxSrJKEOhx2BLuXSoqEWFrJ",
-    label: "Gold Package ($649)",
-  },
-  "platinum": {
-    price_id: "price_1SxSsuKEOhx2BLuXuN6rgRDM",
-    label: "Platinum Package ($1,199)",
-  },
+// Tier key → product name mapping
+const TIER_TO_PRODUCT: Record<string, string> = {
+  "basic-deposit": "Essential Blue",
+  "basic-full": "Essential Blue",
+  "gold": "Gold Package",
+  "platinum": "Platinum Package",
 };
 
 serve(async (req) => {
@@ -34,10 +23,31 @@ serve(async (req) => {
   try {
     const { tier, customer_email, customer_name } = await req.json();
 
-    const tierConfig = PRICE_MAP[tier];
-    if (!tierConfig) {
+    const productName = TIER_TO_PRODUCT[tier];
+    if (!productName) {
       return new Response(
         JSON.stringify({ error: `Invalid tier: ${tier}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Look up the product from the products table to get the Stripe price ID
+    const { data: product, error: productError } = await supabase
+      .from("products")
+      .select("name, stripe_price_id")
+      .eq("name", productName)
+      .eq("product_type", "package")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (productError || !product || !product.stripe_price_id) {
+      console.error("[CREATE-OFFER-CHECKOUT] Product lookup failed:", productError?.message || `No product/price found for "${productName}"`);
+      return new Response(
+        JSON.stringify({ error: `Product not configured for tier: ${tier}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -61,7 +71,7 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : customer_email || undefined,
-      line_items: [{ price: tierConfig.price_id, quantity: 1 }],
+      line_items: [{ price: product.stripe_price_id, quantity: 1 }],
       mode: "payment",
       success_url: `${origin}/offer?payment=success`,
       cancel_url: `${origin}/offer?payment=cancelled`,

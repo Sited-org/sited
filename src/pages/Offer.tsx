@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, TrendingUp, Bot, Globe, BarChart3, Users, Lock, Sparkles } from "lucide-react";
@@ -7,6 +7,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePackagePrices } from "@/hooks/usePackagePrices";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import FeatureWithInfo from "@/components/offer/FeatureInfo";
 import OfferUpgradeCard from "@/components/offer/OfferUpgradeCard";
@@ -30,15 +31,15 @@ export type TierConfig = {
   popular?: boolean;
 };
 
-const TIERS: Record<string, TierConfig> = {
+const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> => ({
   "basic-deposit": {
     id: "basic-deposit",
     name: "Blue",
     tagline: "Built for the basics",
     price: "$49",
-    totalPrice: "$549",
+    totalPrice: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`,
     usualPrice: "$1,399",
-    savings: "$850",
+    savings: `$${(1399 - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
     icon: Zap,
     features: [
       "Professional website",
@@ -57,9 +58,9 @@ const TIERS: Record<string, TierConfig> = {
     name: "Gold",
     tagline: "Made for the everyday business",
     price: "$49",
-    totalPrice: "$649",
+    totalPrice: `$${prices["gold"]?.toLocaleString() ?? "649"}`,
     usualPrice: "$1,699",
-    savings: "$1,050",
+    savings: `$${(1699 - (prices["gold"] ?? 649)).toLocaleString()}`,
     icon: Star,
     features: [
       "Everything in Blue",
@@ -78,9 +79,9 @@ const TIERS: Record<string, TierConfig> = {
     name: "Platinum",
     tagline: "Built for those ready to dominate their market",
     price: "$49",
-    totalPrice: "$1,199",
+    totalPrice: `$${prices["platinum"]?.toLocaleString() ?? "1,149"}`,
     usualPrice: "$2,559",
-    savings: "$1,360",
+    savings: `$${(2559 - (prices["platinum"] ?? 1149)).toLocaleString()}`,
     icon: Crown,
     features: [
       "Everything in Gold",
@@ -94,7 +95,7 @@ const TIERS: Record<string, TierConfig> = {
     badgeClass: "bg-gradient-to-r from-gray-300 via-white to-gray-300 dark:from-gray-500 dark:via-gray-300 dark:to-gray-500 text-gray-900",
     popular: true,
   },
-};
+});
 
 const UPGRADE_BENEFITS = [
   {
@@ -136,11 +137,14 @@ const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
+  const { prices } = usePackagePrices();
+  const TIERS = useMemo(() => makeTiers(prices), [prices]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({ name: "", email: "", phone: "" });
+
 
   useEffect(() => {
     const complete = sessionStorage.getItem("questionnaire_complete");
@@ -559,7 +563,7 @@ const Offer = () => {
           <>
             {/* Tier Selector Cards */}
             <div className="grid grid-cols-3 gap-5 mb-10">
-              {Object.values(TIERS).map((tier, idx) => {
+              {(Object.values(TIERS) as TierConfig[]).map((tier, idx) => {
                 const TIcon = tier.icon;
                 const isActive = selectedTier === tier.id;
                 const isTierPlatinum = tier.id === "platinum";
@@ -855,7 +859,7 @@ const Offer = () => {
                     className={`inline-flex items-center gap-2 px-8 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg transition-all ${silverShimmer} text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-500 hover:shadow-xl`}
                   >
                     <Sparkles size={16} />
-                    Explore Platinum — Save $1,360
+                    Explore Platinum — Save {TIERS.platinum.savings}
                     <ChevronRight size={16} />
                   </motion.button>
                 </div>
@@ -921,19 +925,19 @@ const Offer = () => {
                     <tr className="border-t-2 border-border bg-muted/30">
                       <td className="p-4 text-sm font-black text-foreground">Total Price</td>
                       <td className="p-4 text-center">
-                        <span className="text-sm font-black text-foreground">$549</span>
+                        <span className="text-sm font-black text-foreground">{TIERS["basic-deposit"].totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$1,399</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS["basic-deposit"].usualPrice}</span>
                       </td>
                       <td className="p-4 text-center">
-                        <span className="text-sm font-black text-foreground">$649</span>
+                        <span className="text-sm font-black text-foreground">{TIERS.gold.totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$1,699</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS.gold.usualPrice}</span>
                       </td>
                       <td className="p-4 text-center bg-gray-100/50 dark:bg-gray-700/20">
-                        <span className="text-sm font-black text-gray-600 dark:text-gray-200">$1,199</span>
+                        <span className="text-sm font-black text-gray-600 dark:text-gray-200">{TIERS.platinum.totalPrice}</span>
                         <br />
-                        <span className="text-[10px] text-muted-foreground line-through">$2,559</span>
+                        <span className="text-[10px] text-muted-foreground line-through">{TIERS.platinum.usualPrice}</span>
                       </td>
                     </tr>
                   </tbody>
