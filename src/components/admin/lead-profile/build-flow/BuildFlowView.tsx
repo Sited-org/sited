@@ -65,12 +65,13 @@ export function BuildFlowView({
     depositAutoChecked.current = true;
     supabase
       .from('transactions')
-      .select('id, item, credit, status')
+      .select('id, item, credit, status, stripe_invoice_id')
       .eq('lead_id', buildFlow.lead_id)
-      .or('item.ilike.%Deposit%,item.ilike.%deposit%')
+      .gt('credit', 0)
+      .in('status', ['completed', 'paid'])
       .then(({ data }) => {
         const hasPaid = (data || []).some(
-          (tx: any) => tx.credit > 0 && (tx.status === 'completed' || tx.status === 'paid')
+          (tx: any) => tx.item?.toLowerCase().includes('deposit') || tx.item?.toLowerCase().includes('invoice')
         );
         if (hasPaid) {
           onMarkComplete(depositStep, 'Deposit automatically confirmed from payment records', null, userId);
