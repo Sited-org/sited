@@ -211,7 +211,7 @@ export default function AdminRequests() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
-  const [estimatedCompletion, setEstimatedCompletion] = useState('');
+  
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
 
   const { data: requests = [], isLoading } = useQuery({
