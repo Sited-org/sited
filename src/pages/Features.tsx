@@ -268,7 +268,7 @@ const Features = () => {
           description="Clean design, clear messaging, fast loading — built to turn visitors into enquiries. Custom-built for your brand, delivered in days."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><CalendarMockup /></div>
+          <CalendarMockup />
         </ShowcaseSection>
 
         <Divider />
