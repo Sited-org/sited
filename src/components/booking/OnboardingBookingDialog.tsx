@@ -194,7 +194,8 @@ const OnboardingBookingDialog = ({
 
   const isFormValid =
     form.firstName.trim() && form.lastName.trim() && form.email.trim() &&
-    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim();
+    form.phone.trim() && form.businessName.trim() && form.businessType && form.businessLocation.trim() &&
+    captchaAnswer.trim();
 
   const handleSubmit = async () => {
     if (!isFormValid || !selectedDay || !selectedTime) return;
