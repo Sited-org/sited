@@ -380,7 +380,7 @@ const OnboardingBookingDialog = ({
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {timeSlots.filter((s) => s.available).map((slot, index) => (
-                            <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot.time)}
+                            <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot)}
                               className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
                             >{slot.time}</motion.button>
                           ))}
