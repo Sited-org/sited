@@ -643,6 +643,7 @@ export type Database = {
           analysis_type: string | null
           assigned_to: string | null
           body: string | null
+          client_response: string | null
           completed_at: string | null
           created_at: string
           description: string | null
@@ -663,6 +664,7 @@ export type Database = {
           analysis_type?: string | null
           assigned_to?: string | null
           body?: string | null
+          client_response?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null
@@ -683,6 +685,7 @@ export type Database = {
           analysis_type?: string | null
           assigned_to?: string | null
           body?: string | null
+          client_response?: string | null
           completed_at?: string | null
           created_at?: string
           description?: string | null

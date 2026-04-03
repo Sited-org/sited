@@ -66,11 +66,15 @@ interface ClientRequest {
   status: string;
   priority: string;
   admin_notes: string | null;
+  client_response: string | null;
   assigned_to: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
   estimated_completion: string | null;
+  request_source: string | null;
+  requires_client_action: boolean | null;
+  action_type: string | null;
   leads?: {
     name: string | null;
     email: string;
@@ -133,6 +137,11 @@ function RequestCard({
             <Badge variant="outline" className={priorityInfo.color}>
               {priorityInfo.label}
             </Badge>
+            {request.request_source === 'admin' ? (
+              <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20" variant="outline">Team</Badge>
+            ) : (
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20" variant="outline">Client</Badge>
+            )}
           </div>
           
           {/* Company name and submission time */}
@@ -198,6 +207,7 @@ export default function AdminRequests() {
   const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
@@ -347,12 +357,15 @@ export default function AdminRequests() {
     .filter((request) => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
       const matchesClient = clientFilter === 'all' || request.lead_id === clientFilter;
+      const matchesSource = sourceFilter === 'all' || 
+        (sourceFilter === 'client' && (!request.request_source || request.request_source === 'manual')) ||
+        (sourceFilter === 'team' && request.request_source === 'admin');
       const matchesSearch = 
         request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesClient && matchesSearch;
+      return matchesStatus && matchesClient && matchesSource && matchesSearch;
     })
     .sort((a, b) => {
       // First sort by status
@@ -534,6 +547,16 @@ export default function AdminRequests() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="team">Team</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <User className="h-4 w-4 mr-2" />
@@ -548,14 +571,14 @@ export default function AdminRequests() {
             ))}
           </SelectContent>
         </Select>
-        {clientFilter !== 'all' && (
+        {(clientFilter !== 'all' || sourceFilter !== 'all') && (
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setClientFilter('all')}
+            onClick={() => { setClientFilter('all'); setSourceFilter('all'); }}
             className="shrink-0"
           >
-            Clear client filter
+            Clear filters
           </Button>
         )}
       </div>
@@ -861,6 +884,16 @@ export default function AdminRequests() {
                       <p className="text-xs text-muted-foreground mt-1">
                         This will be visible to the client
                       </p>
+                    </div>
+                  )}
+
+                  {/* Client Response */}
+                  {selectedRequest.client_response && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Client Response</Label>
+                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm whitespace-pre-wrap">{selectedRequest.client_response}</p>
+                      </div>
                     </div>
                   )}
 
