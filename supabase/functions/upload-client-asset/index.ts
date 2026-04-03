@@ -152,6 +152,18 @@ serve(async (req) => {
       if (action === 'confirm_assets') {
         logStep("Client confirming all assets");
         await autoCompleteStep(supabaseClient, lead_id, buildFlow.id, 'assets_confirmed');
+
+        // Mark any pending asset_collection requests as completed
+        await supabaseClient
+          .from('client_requests')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('lead_id', lead_id)
+          .in('action_type', ['asset_collection', 'asset_upload'])
+          .in('status', ['pending', 'in_progress']);
+
+        // Notify admins
+        await notifyAdmins(supabaseClient, lead_id, 'Brand assets confirmed by client');
+
         return new Response(
           JSON.stringify({ success: true }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
