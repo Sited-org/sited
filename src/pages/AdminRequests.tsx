@@ -373,11 +373,11 @@ export default function AdminRequests() {
     });
 
   const stats = {
-    pending: requests.filter((r) => r.status === 'pending').length,
-    in_progress: requests.filter((r) => r.status === 'in_progress').length,
-    completed: requests.filter((r) => r.status === 'completed').length,
-    cancelled: requests.filter((r) => r.status === 'cancelled').length,
-    total: requests.length,
+    pending: clientRequests.filter((r) => r.status === 'pending').length,
+    in_progress: clientRequests.filter((r) => r.status === 'in_progress').length,
+    completed: clientRequests.filter((r) => r.status === 'completed').length,
+    cancelled: clientRequests.filter((r) => r.status === 'cancelled').length,
+    total: clientRequests.length,
   };
 
   // Handler for "Filter this company" button - filters to non-completed requests from this company
