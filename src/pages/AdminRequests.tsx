@@ -103,13 +103,11 @@ function RequestCard({
   request, 
   onOpen, 
   onFilterCompany,
-  showETA = false, 
   showCompletion = false 
 }: { 
   request: ClientRequest; 
   onOpen: (request: ClientRequest) => void;
   onFilterCompany: (leadId: string) => void;
-  showETA?: boolean;
   showCompletion?: boolean;
 }) {
   const priorityInfo = priorityConfig[request.priority as RequestPriority] || priorityConfig.normal;
