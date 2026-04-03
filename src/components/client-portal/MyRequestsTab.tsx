@@ -38,7 +38,7 @@ interface ClientRequest {
   admin_notes: string | null;
   created_at: string;
   completed_at: string | null;
-  estimated_completion: string | null;
+  
   request_source?: string | null;
   requires_client_action?: boolean;
   action_type?: string | null;

@@ -103,13 +103,11 @@ function RequestCard({
   request, 
   onOpen, 
   onFilterCompany,
-  showETA = false, 
   showCompletion = false 
 }: { 
   request: ClientRequest; 
   onOpen: (request: ClientRequest) => void;
   onFilterCompany: (leadId: string) => void;
-  showETA?: boolean;
   showCompletion?: boolean;
 }) {
   const priorityInfo = priorityConfig[request.priority as RequestPriority] || priorityConfig.normal;
@@ -182,7 +180,7 @@ function RequestCard({
       
       {/* Additional Info */}
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-3 ml-13 pl-13">
-        {showETA && request.estimated_completion && (
+        {false && request.estimated_completion && (
           <span className="flex items-center gap-1 text-blue-600">
             <Calendar className="h-3 w-3" />
             ETA: {format(new Date(request.estimated_completion), 'MMM d')}
@@ -211,7 +209,7 @@ export default function AdminRequests() {
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
-  const [estimatedCompletion, setEstimatedCompletion] = useState('');
+  
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
 
   const { data: requests = [], isLoading } = useQuery({
@@ -264,16 +262,14 @@ export default function AdminRequests() {
   };
 
   const updateRequestMutation = useMutation({
-    mutationFn: async ({ id, status, admin_notes, estimated_completion }: { 
+    mutationFn: async ({ id, status, admin_notes }: { 
       id: string; 
       status: string; 
       admin_notes: string;
-      estimated_completion: string | null;
     }) => {
       const updates: any = { 
         status, 
         admin_notes,
-        estimated_completion: estimated_completion || null,
         updated_at: new Date().toISOString()
       };
       
@@ -394,7 +390,7 @@ export default function AdminRequests() {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
     setNewStatus(request.status as RequestStatus);
-    setEstimatedCompletion(request.estimated_completion ? request.estimated_completion.split('T')[0] : '');
+    
 
     // Fetch attachments
     const { data } = await supabase
@@ -412,7 +408,6 @@ export default function AdminRequests() {
         id: selectedRequest.id,
         status: newStatus,
         admin_notes: adminNotes,
-        estimated_completion: estimatedCompletion ? new Date(estimatedCompletion).toISOString() : null,
       });
     }
   };
@@ -639,7 +634,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {inProgress.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} showETA />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
@@ -866,26 +861,6 @@ export default function AdminRequests() {
                     </Select>
                   </div>
 
-                  {/* ETA - Show when in progress */}
-                  {newStatus === 'in_progress' && (
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Estimated Completion Date
-                      </Label>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="date"
-                          value={estimatedCompletion}
-                          onChange={(e) => setEstimatedCompletion(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This will be visible to the client
-                      </p>
-                    </div>
-                  )}
 
                   {/* Client Response */}
                   {selectedRequest.client_response && (
