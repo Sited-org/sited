@@ -97,6 +97,60 @@ async function autoCompleteStep(supabaseClient: any, leadId: string, buildFlowId
   }
 }
 
+// Notify admin team when client completes an action
+async function notifyAdmins(supabaseClient: any, leadId: string, subject: string) {
+  try {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) return;
+
+    const { data: lead } = await supabaseClient
+      .from('leads')
+      .select('name, email, business_name')
+      .eq('id', leadId)
+      .single();
+
+    const { data: adminProfiles } = await supabaseClient
+      .from('admin_profiles')
+      .select('email');
+
+    const adminEmails = adminProfiles?.map((p: any) => p.email) || [];
+    if (adminEmails.length === 0) return;
+
+    const clientName = lead?.name || lead?.business_name || lead?.email || 'Unknown Client';
+    const emailHtml = `
+      <!DOCTYPE html><html><body style="font-family: -apple-system, sans-serif; background:#f4f4f5; padding:20px;">
+      <div style="max-width:600px; margin:0 auto; background:white; border-radius:12px; overflow:hidden;">
+        <div style="background:#000; padding:30px; text-align:center;">
+          <h1 style="color:white; margin:0; font-size:22px;">Client Action Completed</h1>
+        </div>
+        <div style="padding:30px;">
+          <p style="color:#64748b; font-size:14px;">Client <strong>${clientName}</strong> has completed an action:</p>
+          <h2 style="margin:10px 0; font-size:18px;">${subject}</h2>
+          <div style="margin-top:20px; text-align:center;">
+            <a href="https://sited.lovable.app/admin/leads" style="background:#000; color:white; padding:12px 30px; border-radius:8px; text-decoration:none; font-weight:600;">View in Admin</a>
+          </div>
+        </div>
+      </div></body></html>`;
+
+    for (const email of adminEmails) {
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+        body: JSON.stringify({
+          from: "Sited <hello@sited.co>",
+          to: [email],
+          subject: `Client Update: ${subject}`,
+          html: emailHtml,
+        }),
+      }).catch(() => {});
+    }
+
+    logStep("Admin notification sent", { subject });
+  } catch (e) {
+    logStep("Admin notification error (non-fatal)", { error: e });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
