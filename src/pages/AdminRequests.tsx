@@ -861,26 +861,6 @@ export default function AdminRequests() {
                     </Select>
                   </div>
 
-                  {/* ETA - Show when in progress */}
-                  {newStatus === 'in_progress' && (
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Estimated Completion Date
-                      </Label>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="date"
-                          value={estimatedCompletion}
-                          onChange={(e) => setEstimatedCompletion(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        This will be visible to the client
-                      </p>
-                    </div>
-                  )}
 
                   {/* Client Response */}
                   {selectedRequest.client_response && (
