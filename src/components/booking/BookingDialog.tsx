@@ -280,6 +280,11 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
       setZoomJoinUrl(null);
       setLocationQuery("");
       setSelectedTimezone("Australia/Sydney");
+      setCaptchaToken(null);
+      setCaptchaQuestion(null);
+      setCaptchaAnswer("");
+      setCaptchaError(null);
+      setSelectedAdminTime(null);
       setForm({
         firstName: "",
         lastName: "",
