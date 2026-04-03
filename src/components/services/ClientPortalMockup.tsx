@@ -39,7 +39,7 @@ const ClientPortalMockup = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative"
+      className="relative force-light"
     >
       <div className="backdrop-blur-xl bg-card/80 border border-border/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto">
         {/* Portal Header */}

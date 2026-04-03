@@ -241,11 +241,11 @@ const Features = () => {
         {/* Mockup Showcases — always white so the genuine feature is visible */}
         <ShowcaseSection
           label="CRM Systems"
-          title="A CRM Built Around You"
+          title="Automated AI Lead Management"
           description="We build CRMs around your actual processes — your pipeline, your categories, your reporting. A system your team will actually use."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><CRMMockup /></div>
+          <CRMMockup />
         </ShowcaseSection>
 
         <Divider />
@@ -257,7 +257,7 @@ const Features = () => {
           onCta={() => setCtaOpen(true)}
           reversed
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><ClientProfileMockup /></div>
+          <ClientProfileMockup />
         </ShowcaseSection>
 
         <Divider />
@@ -268,7 +268,7 @@ const Features = () => {
           description="Clean design, clear messaging, fast loading — built to turn visitors into enquiries. Custom-built for your brand, delivered in days."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><CalendarMockup /></div>
+          <CalendarMockup />
         </ShowcaseSection>
 
         <Divider />
@@ -280,7 +280,7 @@ const Features = () => {
           onCta={() => setCtaOpen(true)}
           reversed
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><ClientPortalMockup /></div>
+          <ClientPortalMockup />
         </ShowcaseSection>
 
         <Divider />
@@ -291,7 +291,7 @@ const Features = () => {
           description="Automated invoicing, instant card payments, and bank transfers — all built into your system. No chasing, no delays."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><InvoiceMockup /></div>
+          <InvoiceMockup />
         </ShowcaseSection>
 
         {/* Final CTA */}
