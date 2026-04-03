@@ -273,6 +273,12 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
             <p>{request.admin_notes}</p>
           </div>
         )}
+        {request.client_response && (
+          <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-accent">
+            <p className="text-xs text-muted-foreground mb-1">Your reply:</p>
+            <p>{request.client_response}</p>
+          </div>
+        )}
         {showActions && request.status !== 'completed' && (
           <>
             {(request.action_type === 'asset_upload' || request.action_type === 'asset_collection') && request.requires_client_action && (
