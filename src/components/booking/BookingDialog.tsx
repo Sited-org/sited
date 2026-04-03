@@ -466,7 +466,7 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                               transition={{ delay: index * 0.03 }}
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              onClick={() => handleTimeSelect(slot.time)}
+                              onClick={() => handleTimeSelect(slot.time, slot.adminTime)}
                               className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
                             >
                               {slot.time}
