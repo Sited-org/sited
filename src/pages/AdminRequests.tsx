@@ -337,6 +337,9 @@ export default function AdminRequests() {
     low: 3,
   };
 
+  // Only show client-initiated requests (exclude admin/team-sourced requests)
+  const clientRequests = requests.filter(r => !r.request_source || r.request_source === 'manual');
+
   // Get unique clients for filter dropdown
   const uniqueClients = [...new Map(clientRequests.map(r => [
     r.lead_id, 
@@ -345,9 +348,6 @@ export default function AdminRequests() {
       name: r.leads?.business_name || r.leads?.name || r.leads?.email || 'Unknown' 
     }
   ])).values()];
-
-  // Only show client-initiated requests (exclude admin/team-sourced requests)
-  const clientRequests = requests.filter(r => !r.request_source || r.request_source === 'manual');
 
   const filteredRequests = clientRequests
     .filter((request) => {
