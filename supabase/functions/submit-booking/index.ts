@@ -87,7 +87,22 @@ serve(async (req) => {
       }
     }
 
-    // 4. Insert booking with service role
+    // 4. Double-booking check
+    const { data: existingBooking } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('booking_date', booking.booking_date)
+      .eq('booking_time', booking.booking_time)
+      .neq('status', 'cancelled')
+      .maybeSingle();
+
+    if (existingBooking) {
+      return new Response(JSON.stringify({ error: 'This time slot has just been taken. Please choose another time.' }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 5. Insert booking with service role
     const bookingId = crypto.randomUUID();
     const { error: insertErr } = await supabase.from('bookings').insert({
       id: bookingId,
