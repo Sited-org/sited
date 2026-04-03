@@ -1,75 +1,60 @@
 
 
-# Bug Audit: Full Flow — Client Portal, Build Flow & Request System
+# Fix: Client Request Restrictions & Cleanup
 
-## Bugs Found
+## Summary
 
-### Bug 1: `request_attachments` RLS INSERT Policy Always Rejects (CRITICAL)
-**Impact**: Every client file upload via `ClientFileUploadButton` fails silently.
+Four changes to enforce proper client request behavior: clients can only create new requests (not modify existing ones), remove ETA from client view, and stop email notifications on status changes.
 
-The RLS policy `Service role can insert attachments` has `with_check: false`, meaning **all inserts are rejected**. The `upload-request-attachment` edge function uses the service role key, but the `with_check: false` policy still blocks inserts because the policy applies to the `public` role and overrides the permissive check.
+## Changes
 
-The fix: The edge function already uses the service role key which bypasses RLS entirely. The real problem is the policy itself — `with_check: false` was likely meant to be `true` (allow all via service role). Since the service role bypasses RLS, this policy is actually a no-op for the edge function. However, if for any reason the insert is going through with the anon role, it would fail. The safest fix is to change this policy to `with_check: true` so it doesn't accidentally block anything.
+### 1. Remove file upload on existing client requests (Bug 1 & 4)
 
-**Fix**: Migration to drop and recreate the policy with `with_check = true`.
+In `MyRequestsTab.tsx`, the `showActions` flag on `renderRequestCard` controls whether file upload and reply buttons appear. Currently:
+- Team requests pass `showActions = true` (line 478) — correct, clients need to respond to team requests
+- Active client requests pass `showActions = false` (line 557) — already correct
 
-### Bug 2: `request-attachments` Storage Bucket Has No Upload Policy for Service Role
-**Impact**: The storage upload in `upload-request-attachment` may fail because the storage policies only allow `can_edit_leads(auth.uid())` for INSERT. The edge function uses the service role key which bypasses storage RLS, so this is not a blocking issue — but it means clients **cannot** download their own attachments since there's no client-facing SELECT policy.
+**No change needed for client requests** — they already don't show upload buttons on their own active requests. However, the `ClientFileUploadButton` on team requests is correct (clients should be able to upload files as a response to admin/team requests).
 
-Admin can download via `is_admin(auth.uid())` but the `request-attachments` bucket is private, meaning `getPublicUrl()` won't work. The admin download handler likely uses `createSignedUrl()` — need to verify.
+The real issue is the **Reply button** on team requests. Clients should still be able to reply to team requests (that's responding, not modifying). But they should NOT be able to modify their own submitted requests. Currently they can't — no edit mechanism exists on submitted client requests. This is already correct.
 
-**Fix**: This is non-blocking since admins use signed URLs. No change needed unless client download is required.
+**Verdict**: No code change needed for Bug 1/4 — the system already prevents clients from modifying existing requests. They can only create new ones and respond to team requests.
 
-### Bug 3: `get-client-data` Does Not Return `client_response` Field
-**Impact**: When a client submits a reply to a team request, the admin can see it (AdminRequests fetches `*`), but the **client portal** doesn't show their own response back to them because `get-client-data` doesn't include `client_response` in its SELECT.
+### 2. Remove email notifications on status changes (Bug 2)
 
-**Fix**: Add `client_response` to the SELECT in `get-client-data/index.ts` line 211.
+The `updateRequestMutation` in `AdminRequests.tsx` (lines 266-299) does **not** send any email — it only updates the database and shows a toast. No email notification is triggered on status change.
 
-### Bug 4: `submit-client-request` Missing `request_source` on New Requests
-**Impact**: When a client creates a new request, the insert (line 238) does not set `request_source`. It defaults to `null`. The client portal splits requests by `request_source === 'manual'` vs `'admin'` (MyRequestsTab line 236), but client-created requests have `null` — they fall into "My Requests" via the `!r.request_source` fallback, so this works by accident. However, it's fragile.
+**Verdict**: No code change needed — status changes already don't email clients. The previous plan mentioned adding this but it was **never implemented**.
 
-**Fix**: Add `request_source: 'manual'` to the insert in `submit-client-request/index.ts`.
+### 3. Remove ETA from client view (Bug 3)
 
-### Bug 5: Client Portal `MyRequestsTab` Missing `client_response` in Interface
-**Impact**: The `ClientRequest` interface (line 32-45) doesn't include `client_response`. If a client submits a reply, they can't see their own response displayed on the request card. The admin sees it, but the client doesn't get confirmation their reply was recorded.
+Two places to clean up:
 
-**Fix**: Add `client_response` to the interface and render it in `renderRequestCard`.
+**a) Client portal `MyRequestsTab.tsx`**: The `estimated_completion` field is in the interface (line 41) but is **never rendered** in `renderRequestCard`. No change needed here.
 
----
+**b) Admin portal `AdminRequests.tsx`**: The ETA date picker (lines 869-888) says "This will be visible to the client" — but the client portal never shows it. The ETA field on the admin side is an internal tool. Per the user's request, remove it entirely.
 
-## Plan
+**c) Admin `RequestsTab.tsx`** (lead profile): The `RequestCard` component (line 94-100) shows ETA when `showETA` is true. This is admin-only view so it could stay, but user wants ETA removed altogether.
 
-### Step 1: Fix `request_attachments` INSERT RLS policy
-Drop the broken `with_check: false` policy and recreate with `with_check: true`.
+**d) Database**: The `estimated_completion` column on `client_requests` can remain (no migration needed) — just remove it from all UI.
 
-```sql
-DROP POLICY IF EXISTS "Service role can insert attachments" ON public.request_attachments;
-CREATE POLICY "Service role can insert attachments" ON public.request_attachments FOR INSERT TO public WITH CHECK (true);
-```
+### Plan
 
-### Step 2: Add `client_response` to `get-client-data` SELECT
-In `get-client-data/index.ts` line 211, add `client_response` to the select string.
+| # | File | Change |
+|---|------|--------|
+| 1 | `src/pages/AdminRequests.tsx` | Remove the ETA date picker section (lines 869-888) and `estimatedCompletion` from the save mutation; remove `estimated_completion` from `updateRequestMutation` |
+| 2 | `src/pages/AdminRequests.tsx` | Remove `showETA` prop from in-progress `RequestCard` renders (line 642) |
+| 3 | `src/components/admin/lead-profile/RequestsTab.tsx` | Remove `showETA` usage from in-progress section and the ETA display in `RequestCard` |
+| 4 | `src/components/client-portal/MyRequestsTab.tsx` | Remove `estimated_completion` from the `ClientRequest` interface (cleanup) |
 
-### Step 3: Add `request_source: 'manual'` to client-created requests
-In `submit-client-request/index.ts` line 238, add `request_source: 'manual'` to the insert object.
+### Technical details
 
-### Step 4: Add `client_response` to `MyRequestsTab` interface and display
-Add the field to the interface and show it on request cards so clients can see their own replies.
+- `AdminRequests.tsx` line 267: Remove `estimated_completion` from the mutation parameters
+- `AdminRequests.tsx` line 276: Remove `estimated_completion` from the update object
+- `AdminRequests.tsx` lines 869-888: Delete the ETA input section
+- `AdminRequests.tsx` line 642: Remove `showETA` prop
+- `RequestsTab.tsx` lines 94-100: Remove ETA rendering from `RequestCard`
+- `MyRequestsTab.tsx` line 41: Remove `estimated_completion` from interface
 
----
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `supabase/functions/get-client-data/index.ts` | Add `client_response` to client_requests SELECT |
-| `supabase/functions/submit-client-request/index.ts` | Add `request_source: 'manual'` to insert |
-| `src/components/client-portal/MyRequestsTab.tsx` | Add `client_response` to interface + render |
-
-## Database Migration
-
-```sql
-DROP POLICY IF EXISTS "Service role can insert attachments" ON public.request_attachments;
-CREATE POLICY "Service role can insert attachments" ON public.request_attachments FOR INSERT TO public WITH CHECK (true);
-```
+No database migration needed. No edge function changes needed.
 
