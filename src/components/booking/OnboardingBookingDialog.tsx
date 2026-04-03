@@ -240,7 +240,8 @@ const OnboardingBookingDialog = ({
       const bookingId = result.booking_id;
 
       try {
-        const [timePart, ampm] = selectedTime!.split(' ');
+        const zoomTime = selectedAdminTime || selectedTime!;
+        const [timePart, ampm] = zoomTime.split(' ');
         const [hStr, mStr] = timePart.split(':');
         let hours = parseInt(hStr);
         if (ampm === 'PM' && hours !== 12) hours += 12;
