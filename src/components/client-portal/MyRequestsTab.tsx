@@ -276,7 +276,7 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                 Upload Brand Assets
               </Button>
             )}
-            {request.requires_client_action && sessionToken && (
+            {request.requires_client_action && sessionToken && request.action_type !== 'asset_upload' && request.action_type !== 'asset_collection' && (
               <ClientFileUploadButton
                 requestId={request.id}
                 leadId={leadId}
