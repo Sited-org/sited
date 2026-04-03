@@ -636,7 +636,7 @@ export default function AdminRequests() {
                 <CardContent>
                   <div className="space-y-3">
                     {inProgress.map((request) => (
-                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} showETA />
+                      <RequestCard key={request.id} request={request} onOpen={openRequestWithUrl} onFilterCompany={handleFilterCompany} />
                     ))}
                   </div>
                 </CardContent>
