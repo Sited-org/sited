@@ -37,7 +37,7 @@ export function BuildFlowView({
   userId,
   onMarkComplete,
   onSkipStep,
-  onToggleClientView,
+  
   onRestartFlow,
   refetch,
 }: BuildFlowViewProps) {
