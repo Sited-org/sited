@@ -167,6 +167,56 @@ serve(async (req) => {
       });
     }
 
+    // ---- Reply to a team request ----
+    if (action === 'reply_to_request' && request_id) {
+      const clientResponse = body.client_response;
+      if (!clientResponse || typeof clientResponse !== 'string' || clientResponse.trim().length === 0) {
+        throw new Error("Response text is required");
+      }
+
+      const { error: updateErr } = await supabaseClient
+        .from("client_requests")
+        .update({ client_response: clientResponse.trim().substring(0, 5000) })
+        .eq("id", request_id)
+        .eq("lead_id", lead_id);
+
+      if (updateErr) throw new Error("Failed to save response");
+
+      // Notify admins
+      try {
+        const clientName = body.client_name || 'Client';
+        const { data: adminProfiles } = await supabaseClient.from("admin_profiles").select("email");
+        const adminEmails = adminProfiles?.map(p => p.email) || [];
+        const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+        if (RESEND_API_KEY && adminEmails.length > 0) {
+          const { data: reqData } = await supabaseClient.from("client_requests").select("title").eq("id", request_id).single();
+          const emailHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+            <div style="background:#000;padding:24px;text-align:center;"><h1 style="color:#fff;margin:0;font-size:20px;">Client Response</h1></div>
+            <div style="padding:24px;">
+              <p style="color:#64748b;margin:0 0 8px;">From <strong>${clientName}</strong></p>
+              <p style="margin:0 0 16px;font-weight:600;">${reqData?.title || 'Request'}</p>
+              <div style="background:#f8fafc;border-radius:8px;padding:16px;border-left:3px solid #3b82f6;">
+                <p style="margin:0;white-space:pre-wrap;">${clientResponse.trim()}</p>
+              </div>
+              <div style="margin-top:24px;text-align:center;">
+                <a href="https://sited.lovable.app/admin/requests?open=${request_id}" style="background:#000;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">View Request</a>
+              </div>
+            </div></div>`;
+          for (const email of adminEmails) {
+            fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+              body: JSON.stringify({ from: "Sited <hello@sited.co>", to: [email], subject: `Client Response: ${reqData?.title || 'Request'}`, html: emailHtml }),
+            }).catch(() => {});
+          }
+        }
+      } catch (e) { logStep("Reply notification error (non-fatal)", { error: e }); }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ---- Normal create flow ----
     const { title, description, priority, status: requestedStatus, client_name, client_email } = body;
     const bodyContent = body.body;

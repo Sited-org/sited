@@ -887,6 +887,16 @@ export default function AdminRequests() {
                     </div>
                   )}
 
+                  {/* Client Response */}
+                  {selectedRequest.client_response && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Client Response</Label>
+                      <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm whitespace-pre-wrap">{selectedRequest.client_response}</p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Admin Notes */}
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Admin Notes</Label>

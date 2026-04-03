@@ -280,13 +280,72 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
                 Upload Brand Assets
               </Button>
             )}
-            {request.requires_client_action && sessionToken && request.action_type !== 'asset_upload' && request.action_type !== 'asset_collection' && (
+            {sessionToken && request.action_type !== 'asset_upload' && request.action_type !== 'asset_collection' && (
               <ClientFileUploadButton
                 requestId={request.id}
                 leadId={leadId}
                 sessionToken={sessionToken}
                 onUploaded={onRequestCreated}
               />
+            )}
+            {/* Inline reply for team requests */}
+            {sessionToken && request.request_source === 'admin' && (
+              <div className="mt-2">
+                {replyingToId === request.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder="Write your response..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={3}
+                      disabled={sendingReply}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        disabled={sendingReply || !replyText.trim()}
+                        onClick={async () => {
+                          setSendingReply(true);
+                          try {
+                            const { data, error } = await supabase.functions.invoke('submit-client-request', {
+                              body: {
+                                session_token: sessionToken,
+                                lead_id: leadId,
+                                action: 'reply_to_request',
+                                request_id: request.id,
+                                client_response: replyText.trim(),
+                                client_name: leadName,
+                              },
+                            });
+                            if (error) throw error;
+                            if (data?.error) throw new Error(data.error);
+                            toast.success('Response sent');
+                            setReplyingToId(null);
+                            setReplyText('');
+                            onRequestCreated();
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to send response');
+                          } finally {
+                            setSendingReply(false);
+                          }
+                        }}
+                      >
+                        {sendingReply ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                        Send
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setReplyingToId(null); setReplyText(''); }} disabled={sendingReply}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setReplyingToId(request.id)}>
+                    <Reply className="h-3 w-3 mr-1" />
+                    Reply
+                  </Button>
+                )}
+              </div>
             )}
           </>
         )}
