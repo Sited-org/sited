@@ -42,6 +42,7 @@ interface ClientRequest {
   request_source?: string | null;
   requires_client_action?: boolean;
   action_type?: string | null;
+  client_response?: string | null;
 }
 
 interface MyRequestsTabProps {
@@ -270,6 +271,12 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
           <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-primary">
             <p className="text-xs text-muted-foreground mb-1">Response:</p>
             <p>{request.admin_notes}</p>
+          </div>
+        )}
+        {request.client_response && (
+          <div className="mt-3 p-2 bg-muted/50 rounded text-sm border-l-2 border-accent">
+            <p className="text-xs text-muted-foreground mb-1">Your reply:</p>
+            <p>{request.client_response}</p>
           </div>
         )}
         {showActions && request.status !== 'completed' && (

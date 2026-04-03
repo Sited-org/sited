@@ -208,7 +208,7 @@ serve(async (req) => {
     // Fetch client requests - include request_source, requires_client_action, action_type
     const { data: clientRequests, error: requestsError } = await supabaseClient
       .from("client_requests")
-      .select("id, title, description, priority, status, admin_notes, created_at, completed_at, estimated_completion, request_source, requires_client_action, action_type")
+      .select("id, title, description, priority, status, admin_notes, created_at, completed_at, estimated_completion, request_source, requires_client_action, action_type, client_response")
       .eq("lead_id", lead_id)
       .order("created_at", { ascending: false });
 

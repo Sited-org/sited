@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Service role can insert attachments" ON public.request_attachments;
+CREATE POLICY "Service role can insert attachments" ON public.request_attachments FOR INSERT TO public WITH CHECK (true);
