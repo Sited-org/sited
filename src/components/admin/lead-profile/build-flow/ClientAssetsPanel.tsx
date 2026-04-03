@@ -20,12 +20,9 @@ interface ClientAssetsPanelProps {
 }
 
 const LOGO_SLOTS = [
-  { key: 'logo_512', label: 'Logo 512×512', desc: 'App Icon', dims: '512×512' },
-  { key: 'logo_192', label: 'Logo 192×192', desc: 'PWA Icon', dims: '192×192' },
-  { key: 'logo_32', label: 'Logo 32×32', desc: 'Favicon', dims: '32×32' },
-  { key: 'logo_16', label: 'Logo 16×16', desc: 'Small Favicon', dims: '16×16' },
-  { key: 'logo_apple_touch', label: 'Apple Touch Icon', desc: 'iOS Home Screen', dims: '180×180' },
-  { key: 'og_image', label: 'OG Image', desc: 'Social Share', dims: '1200×630' },
+  { key: 'logo_512', label: 'Logo', desc: 'Main Brand Logo', dims: 'PNG recommended' },
+  { key: 'logo_32', label: 'Favicon', desc: 'Browser Tab Icon', dims: '32×32' },
+  { key: 'og_image', label: 'Sharing Image', desc: 'Social Share', dims: '1200×630' },
 ] as const;
 
 // Colour role definitions
