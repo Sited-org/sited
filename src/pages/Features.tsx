@@ -291,7 +291,7 @@ const Features = () => {
           description="Automated invoicing, instant card payments, and bank transfers — all built into your system. No chasing, no delays."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><InvoiceMockup /></div>
+          <InvoiceMockup />
         </ShowcaseSection>
 
         {/* Final CTA */}
