@@ -109,12 +109,6 @@ export function RequestsTab({ leadId, leadName, leadEmail }: RequestsTabProps) {
               <Calendar className="h-3 w-3" />
               Submitted {format(new Date(request.created_at), 'MMM d, yyyy')}
             </span>
-            {showETA && request.estimated_completion && (
-              <span className="flex items-center gap-1 text-blue-600">
-                <Clock className="h-3 w-3" />
-                ETA: {format(new Date(request.estimated_completion), 'MMM d, yyyy')}
-              </span>
-            )}
             {showCompletion && request.completed_at && (
               <span className="flex items-center gap-1 text-green-600">
                 <CheckCircle2 className="h-3 w-3" />
