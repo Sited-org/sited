@@ -410,7 +410,6 @@ export default function AdminRequests() {
         id: selectedRequest.id,
         status: newStatus,
         admin_notes: adminNotes,
-        estimated_completion: estimatedCompletion ? new Date(estimatedCompletion).toISOString() : null,
       });
     }
   };
