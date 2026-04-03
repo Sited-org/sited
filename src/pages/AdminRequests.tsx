@@ -66,11 +66,15 @@ interface ClientRequest {
   status: string;
   priority: string;
   admin_notes: string | null;
+  client_response: string | null;
   assigned_to: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
   estimated_completion: string | null;
+  request_source: string | null;
+  requires_client_action: boolean | null;
+  action_type: string | null;
   leads?: {
     name: string | null;
     email: string;
