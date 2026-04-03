@@ -569,6 +569,35 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
                     )}
                   </div>
                 </div>
+                {/* Captcha */}
+                <div className="space-y-1.5 pt-2 border-t border-border/50">
+                  <Label className="text-xs">Quick verification *</Label>
+                  {captchaLoading ? (
+                    <div className="flex items-center gap-2 py-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Loading...</span>
+                    </div>
+                  ) : captchaQuestion ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium bg-muted px-3 py-2 rounded-lg whitespace-nowrap">
+                        {captchaQuestion} = ?
+                      </span>
+                      <Input
+                        type="number"
+                        value={captchaAnswer}
+                        onChange={(e) => setCaptchaAnswer(e.target.value)}
+                        placeholder="Answer"
+                        className="h-10 text-sm w-24"
+                      />
+                      <button type="button" onClick={fetchCaptcha} className="p-2 rounded-lg hover:bg-muted transition-colors" title="New question">
+                        <RefreshCw size={14} className="text-muted-foreground" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={fetchCaptcha} className="text-sm text-primary hover:underline">Load verification</button>
+                  )}
+                  {captchaError && <p className="text-xs text-destructive">{captchaError}</p>}
+                </div>
                 <Button onClick={handleSubmit} disabled={!isFormValid || isSubmitting} variant="hero" size="lg" className="w-full mt-2">
                   {isSubmitting ? "Booking..." : "Confirm Booking"}
                   <ArrowRight size={16} />
