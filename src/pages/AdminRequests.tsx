@@ -264,16 +264,14 @@ export default function AdminRequests() {
   };
 
   const updateRequestMutation = useMutation({
-    mutationFn: async ({ id, status, admin_notes, estimated_completion }: { 
+    mutationFn: async ({ id, status, admin_notes }: { 
       id: string; 
       status: string; 
       admin_notes: string;
-      estimated_completion: string | null;
     }) => {
       const updates: any = { 
         status, 
         admin_notes,
-        estimated_completion: estimated_completion || null,
         updated_at: new Date().toISOString()
       };
       
