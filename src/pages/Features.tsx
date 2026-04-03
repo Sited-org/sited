@@ -241,7 +241,7 @@ const Features = () => {
         {/* Mockup Showcases — always white so the genuine feature is visible */}
         <ShowcaseSection
           label="CRM Systems"
-          title="A CRM Built Around You"
+          title="Automated AI Lead Management"
           description="We build CRMs around your actual processes — your pipeline, your categories, your reporting. A system your team will actually use."
           onCta={() => setCtaOpen(true)}
         >
