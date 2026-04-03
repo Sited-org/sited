@@ -267,6 +267,20 @@ export function BuildFlowView({
                       variant="outline"
                       onClick={async () => {
                         try {
+                          // Check for existing active asset_collection request
+                          const { data: existing } = await supabase
+                            .from('client_requests')
+                            .select('id')
+                            .eq('lead_id', buildFlow.lead_id)
+                            .eq('action_type', 'asset_collection')
+                            .in('status', ['pending', 'in_progress'])
+                            .limit(1);
+
+                          if (existing && existing.length > 0) {
+                            toast.info('Asset collection form has already been sent to this client');
+                            return;
+                          }
+
                           const { data: leadData } = await supabase
                             .from('leads')
                             .select('name, email')

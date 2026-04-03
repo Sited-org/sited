@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, CheckCircle2, Loader2, X, Plus, Search, Palette, Type, Image as ImageIcon } from 'lucide-react';
+import { Upload, CheckCircle2, Loader2, X, Plus, Search, Palette, Type, Image as ImageIcon, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -39,10 +39,11 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
   const [fonts, setFonts] = useState<string[]>(['']);
   const [fontSearch, setFontSearch] = useState<Record<number, string>>({});
   const [fontResults, setFontResults] = useState<Record<number, FontResult[]>>({});
-  const [fontSearching, setFontSearching] = useState<Record<number, boolean>>({});
   const [allGoogleFonts, setAllGoogleFonts] = useState<FontResult[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [brandSubmitted, setBrandSubmitted] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   // Load Google Fonts list once
   useEffect(() => {
@@ -55,7 +56,6 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
         }
       })
       .catch(() => {
-        // Fallback: use common fonts
         setAllGoogleFonts([
           { family: 'Inter', category: 'sans-serif' },
           { family: 'Roboto', category: 'sans-serif' },
@@ -128,7 +128,6 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
   const handleSubmitBrandData = async () => {
     setSubmitting(true);
     try {
-      // Save colours and fonts via edge function
       const { data, error } = await supabase.functions.invoke('upload-client-asset', {
         body: JSON.stringify({
           session_token: sessionToken,
@@ -144,13 +143,37 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
       if (error) throw new Error(error.message || 'Failed to save');
       if (data?.error) throw new Error(data.error);
 
-      setSubmitted(true);
-      toast.success('Brand assets submitted successfully!');
+      setBrandSubmitted(true);
+      toast.success('Brand data saved! Please confirm all assets below.');
       onUploaded?.();
     } catch (err: any) {
       toast.error(err.message || 'Failed to submit brand data');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleConfirmAssets = async () => {
+    setConfirming(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('upload-client-asset', {
+        body: JSON.stringify({
+          session_token: sessionToken,
+          lead_id: leadId,
+          action: 'confirm_assets',
+        }),
+      });
+
+      if (error) throw new Error(error.message || 'Confirmation failed');
+      if (data?.error) throw new Error(data.error);
+
+      setConfirmed(true);
+      toast.success('All assets confirmed!');
+      onUploaded?.();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to confirm assets');
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -166,11 +189,11 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
           </DialogDescription>
         </DialogHeader>
 
-        {submitted ? (
+        {confirmed ? (
           <div className="py-8 text-center">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-            <p className="font-medium">Assets Submitted!</p>
-            <p className="text-sm text-muted-foreground mt-1">Your team has been notified.</p>
+            <ShieldCheck className="h-12 w-12 text-green-500 mx-auto mb-3" />
+            <p className="font-medium">All Assets Confirmed!</p>
+            <p className="text-sm text-muted-foreground mt-1">Your team will now use these to build your website.</p>
             <Button className="mt-4" onClick={() => onOpenChange(false)}>Done</Button>
           </div>
         ) : (
@@ -313,18 +336,44 @@ export function ClientAssetUploadDialog({ open, onOpenChange, leadId, sessionTok
               </div>
             </div>
 
-            {/* Submit */}
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button 
-                className="flex-1" 
-                onClick={handleSubmitBrandData}
-                disabled={submitting}
-              >
-                {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</> : 'Submit Assets'}
-              </Button>
+            {/* Submit / Confirm */}
+            <div className="space-y-3 pt-2">
+              {!brandSubmitted ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={handleSubmitBrandData}
+                    disabled={submitting}
+                  >
+                    {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</> : 'Save Brand Data'}
+                  </Button>
+                </div>
+              ) : (
+                <div className="border rounded-lg p-4 bg-muted/30 text-center space-y-3">
+                  <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto" />
+                  <p className="text-sm font-medium">Brand data saved successfully</p>
+                  <p className="text-xs text-muted-foreground">
+                    Review your uploads above. When you're happy, confirm all assets are final.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setBrandSubmitted(false)}>
+                      Edit
+                    </Button>
+                    <Button 
+                      className="flex-1"
+                      onClick={handleConfirmAssets}
+                      disabled={confirming}
+                    >
+                      {confirming ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Confirming...</> : (
+                        <><ShieldCheck className="h-4 w-4 mr-2" />Confirm All Assets</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

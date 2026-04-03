@@ -51,7 +51,7 @@ serve(async (req) => {
       urgent: '#EF4444',
     };
 
-    const actionLabel = action_type === 'asset_upload' 
+    const actionLabel = (action_type === 'asset_upload' || action_type === 'asset_collection')
       ? 'Your team needs you to upload brand assets.' 
       : 'Your team has a new update that needs your attention.';
 

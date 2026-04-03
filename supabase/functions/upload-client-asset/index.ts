@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const SYSTEM_UUID = '00000000-0000-0000-0000-000000000000';
+
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[UPLOAD-CLIENT-ASSET] ${step}${detailsStr}`);
@@ -40,6 +42,61 @@ async function validateSessionToken(token: string, secret: string) {
   return { valid: true, leadId: payload.lid };
 }
 
+// Auto-complete a P2 build step by step_key
+async function autoCompleteStep(supabaseClient: any, leadId: string, buildFlowId: string, stepKey: string) {
+  logStep("Auto-completing step", { stepKey, buildFlowId });
+
+  // Find the step by key within this build flow's phases
+  const { data: phases } = await supabaseClient
+    .from('build_phases')
+    .select('id')
+    .eq('build_flow_id', buildFlowId);
+
+  if (!phases || phases.length === 0) return;
+
+  const phaseIds = phases.map((p: any) => p.id);
+  const { data: step } = await supabaseClient
+    .from('build_steps')
+    .select('id, is_completed')
+    .in('phase_id', phaseIds)
+    .eq('step_key', stepKey)
+    .maybeSingle();
+
+  if (!step || step.is_completed) return;
+
+  // Mark step complete
+  const { error: stepErr } = await supabaseClient
+    .from('build_steps')
+    .update({
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      completed_by: SYSTEM_UUID,
+    })
+    .eq('id', step.id);
+
+  if (stepErr) {
+    logStep("Failed to update build_steps", { error: stepErr.message });
+    return;
+  }
+
+  // Insert step_completions record
+  const { error: compErr } = await supabaseClient
+    .from('step_completions')
+    .insert({
+      step_id: step.id,
+      build_flow_id: buildFlowId,
+      completed_by: SYSTEM_UUID,
+      description: `Auto-completed: Client uploaded ${stepKey}`,
+      is_visible_to_client: true,
+    });
+
+  if (compErr) {
+    logStep("Failed to insert step_completion", { error: compErr.message });
+  } else {
+    logStep("Step auto-completed", { stepKey });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -59,7 +116,7 @@ serve(async (req) => {
 
     const contentType = req.headers.get('content-type') || '';
 
-    // JSON body = save_brand_data action
+    // JSON body = save_brand_data or confirm_assets action
     if (contentType.includes('application/json')) {
       const body = await req.json();
       const { session_token, lead_id, action, colours, fonts } = body;
@@ -77,27 +134,35 @@ serve(async (req) => {
         });
       }
 
+      // Find build flow
+      const { data: buildFlow } = await supabaseClient
+        .from("build_flows")
+        .select("id")
+        .eq("lead_id", lead_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!buildFlow) {
+        return new Response(JSON.stringify({ error: 'No build flow found' }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
+        });
+      }
+
+      if (action === 'confirm_assets') {
+        logStep("Client confirming all assets");
+        await autoCompleteStep(supabaseClient, lead_id, buildFlow.id, 'assets_confirmed');
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+
       if (action === 'save_brand_data') {
         logStep("Saving brand data", { colours, fonts });
 
-        // Find build flow
-        const { data: buildFlow } = await supabaseClient
-          .from("build_flows")
-          .select("id")
-          .eq("lead_id", lead_id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (!buildFlow) {
-          return new Response(JSON.stringify({ error: 'No build flow found' }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
-          });
-        }
-
         // Save colours
         if (colours && Array.isArray(colours)) {
-          // Delete existing client-submitted colours first
           await supabaseClient.from('brand_colours').delete()
             .eq('lead_id', lead_id)
             .eq('build_flow_id', buildFlow.id);
@@ -113,6 +178,7 @@ serve(async (req) => {
           if (colourRows.length > 0) {
             const { error: colErr } = await supabaseClient.from('brand_colours').insert(colourRows);
             if (colErr) logStep("Error saving colours", { error: colErr.message });
+            else await autoCompleteStep(supabaseClient, lead_id, buildFlow.id, 'brand_colours');
           }
         }
 
@@ -133,6 +199,7 @@ serve(async (req) => {
           if (fontRows.length > 0) {
             const { error: fontErr } = await supabaseClient.from('brand_fonts').insert(fontRows);
             if (fontErr) logStep("Error saving fonts", { error: fontErr.message });
+            else await autoCompleteStep(supabaseClient, lead_id, buildFlow.id, 'brand_fonts');
           }
         }
 
@@ -157,6 +224,13 @@ serve(async (req) => {
 
     if (!sessionToken || !leadId || !slotKey || !file) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
+
+    const validSlots = ['logo_512', 'logo_32', 'og_image'];
+    if (!validSlots.includes(slotKey)) {
+      return new Response(JSON.stringify({ error: 'Invalid slot key' }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
       });
     }
@@ -216,16 +290,12 @@ serve(async (req) => {
 
     const { data: { publicUrl } } = supabaseClient.storage.from('build-assets').getPublicUrl(path);
 
-    const validSlots = ['logo_512', 'logo_32', 'og_image'];
-    if (!validSlots.includes(slotKey)) {
-      return new Response(JSON.stringify({ error: 'Invalid slot key' }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
-      });
-    }
-
     await supabaseClient.from('client_assets')
       .update({ [slotKey]: publicUrl, updated_at: new Date().toISOString() })
       .eq('id', clientAssets.id);
+
+    // Auto-complete the corresponding P2 step
+    await autoCompleteStep(supabaseClient, leadId, buildFlow.id, slotKey);
 
     logStep("Asset uploaded successfully", { slotKey, publicUrl });
 

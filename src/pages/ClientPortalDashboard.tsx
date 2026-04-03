@@ -68,6 +68,9 @@ interface ClientRequest {
   created_at: string;
   completed_at: string | null;
   estimated_completion: string | null;
+  request_source: string | null;
+  requires_client_action: boolean | null;
+  action_type: string | null;
 }
 
 export default function ClientPortalDashboard() {
