@@ -176,8 +176,9 @@ const OnboardingBookingDialog = ({
     setCaptchaLoading(false);
   }, []);
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (slot: TimeSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedAdminTime(slot.adminTime || slot.time);
     setStep("form");
     fetchCaptcha();
   };
