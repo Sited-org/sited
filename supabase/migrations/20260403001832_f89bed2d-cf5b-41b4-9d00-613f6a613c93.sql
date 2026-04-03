@@ -1,0 +1,1 @@
+ALTER TABLE public.client_requests ADD COLUMN IF NOT EXISTS client_response text;
