@@ -206,21 +206,6 @@ export function BuildFlowView({
             </a>
           )}
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-2">
-            <Label htmlFor="client-view" className="text-sm text-muted-foreground">Client View</Label>
-            <Switch
-              id="client-view"
-              checked={buildFlow.client_view_enabled}
-              onCheckedChange={onToggleClientView}
-            />
-            {buildFlow.client_view_enabled ? (
-              <Eye className="h-4 w-4 text-green-500" />
-            ) : (
-              <EyeOff className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
