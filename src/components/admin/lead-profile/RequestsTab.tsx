@@ -85,9 +85,8 @@ export function RequestsTab({ leadId, leadName, leadEmail }: RequestsTabProps) {
   const completedRequests = requests.filter(r => r.status === 'completed');
   const cancelledRequests = requests.filter(r => r.status === 'cancelled' || r.status === 'rejected');
 
-  const RequestCard = ({ request, showETA = false, showCompletion = false }: { 
+  const RequestCard = ({ request, showCompletion = false }: { 
     request: ClientRequest; 
-    showETA?: boolean;
     showCompletion?: boolean;
   }) => (
     <div 
