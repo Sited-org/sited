@@ -1,46 +1,64 @@
 
 
-# Booking System Audit: Bugs Found
+# Discovery Form Fixes: Branding, Notes, Requirements & Staff Roles
 
 ## Summary
 
-Traced the full booking flow across all 5 entry points, including slot fetching, booking insertion, Zoom meeting creation, and email notifications (client confirmation + admin notification). Found 1 bug.
+Four changes to the discovery form in `DiscoveryForm.tsx` plus minor updates to the View Answers dialog.
 
-## Bug 1: `BookingDialog` Drops `adminTime` When Selecting a Time Slot
+## Changes
 
-**Severity: Medium** (same class as the OnboardingBookingDialog bug just fixed)
+### 1. Replace branding acquisition button with informational text (lines 555-573)
 
-`BookingDialog` line 469 calls `handleTimeSelect(slot.time)` — passing only the display time string. The `handleTimeSelect` function (line 159) accepts `(time: string, adminTime?: string)`, but since `slot.adminTime` is never passed as the second argument, `adminTime` defaults to `time` (the client display time).
+Remove the `handleSendBrandingAcquisition` function and the Send button. Replace with:
 
-This means when a client in Perth (AWST, UTC+8) books a discovery call, the booking is stored with the Perth display time instead of the admin's Brisbane (AEST, UTC+10) canonical time. The Zoom meeting is also scheduled at the wrong hour.
+- **If "yes"**: Show info box with text: *"A branding acquisition form will need to be sent in phase 2 to the client portal."*
+- **If "partial"**: Show info box with text: *"Enter what parts of the branding you can acquire, a branding acquisition form will need to be sent in Phase 2 to collect the remaining assets."* — keep the colour/style inputs below as-is.
 
-`OnboardingBookingDialog` and `OnboardingBookingInline` both correctly pass the full `slot` object. Only `BookingDialog` is broken.
+Also remove the `Send` icon import if no longer used elsewhere.
 
-### Fix
+### 2. Fix notes losing focus after each keystroke
 
-Change line 469 from:
+**Root cause**: `StepNotesSection`, `CheckboxGroup`, `AddCustomField`, and `SectionLabel` are all defined as functions **inside** the component body. Every state change recreates these functions, causing React to treat them as new component types and unmount/remount — which destroys focus.
+
+**Fix**: Move `StepNotesSection` outside the component as a standalone component that receives `value` and `onChange` props instead of closing over `data` and `updateStepNote`. Same for `CheckboxGroup`, `AddCustomField`, and `SectionLabel` — extract them above the main component.
+
+This is the critical fix — it will also resolve any similar issues with other text inputs defined via these inner components.
+
+### 3. Ensure "Additional Requirements" visibility in View Answers
+
+The `customNeeds` fields and step notes already appear in the View Answers dialog. No changes needed for data — they're already in `LABEL_MAP` and the section key arrays. Verified working.
+
+### 4. Move "User Roles" from Admin Portal to Staff Portal when staff is selected
+
+When `staff_portal` is in `selectedPortals`:
+- **Admin Portal step**: Hide the "User Roles" section entirely (the `ADMIN_ROLES` checkboxes + custom roles). Admin portal keeps its other features (dashboard widgets, auth, notifications).
+- **Staff Portal step**: Replace current `STAFF_ROLE_TYPES` (`Developer`, `Designer`, etc.) with new role options: `Manager`, `Sales`, `Finance`, `Developer`, `Technician`, `Receptionist`, `Consultant`. Keep the existing "+ Add custom role" field for "Other" text entry.
+
+When staff portal is NOT selected, admin portal shows User Roles as before.
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/admin/lead-profile/build-flow/DiscoveryForm.tsx` | All 4 changes: extract inner components, replace branding button, conditional roles logic, update `STAFF_ROLE_TYPES` |
+
+## Technical Detail
+
+**Notes fix pattern** — extract `StepNotesSection` like:
+```tsx
+// Outside component
+function StepNotesSection({ stepId, value, onChange }: { stepId: string; value: string; onChange: (stepId: string, value: string) => void }) {
+  return (
+    <div className="mt-6 pt-4 border-t border-border">
+      ...
+      <Textarea value={value} onChange={e => onChange(stepId, e.target.value)} ... />
+    </div>
+  );
+}
 ```
-onClick={() => handleTimeSelect(slot.time)}
-```
-to:
-```
-onClick={() => handleTimeSelect(slot.time, slot.adminTime)}
-```
 
-This is a one-line fix. No edge function or database changes needed.
+Then in render: `<StepNotesSection stepId="basics" value={data.stepNotes?.basics || ''} onChange={updateStepNote} />`
 
-## Verified Working
-
-- All 3 public paths route through `submit-booking` edge function with captcha, rate limiting, and double-booking protection
-- Both admin paths (`AdminBookCallDialog`, `CalendarBookingDialog`) insert directly with admin auth + double-booking check
-- `create-zoom-meeting` correctly sends branded confirmation email to client AND admin notification email via Resend
-- `manage-booking` correctly sends cancellation and reschedule emails to client
-- `get-available-slots` correctly converts between client and admin timezones and returns `adminTime` on slots
-- `email_logs` is populated for confirmation emails
-
-## Plan
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/components/booking/BookingDialog.tsx` | Pass `slot.adminTime` to `handleTimeSelect` on line 469 |
+Same extraction pattern for `CheckboxGroup`, `AddCustomField`, and `SectionLabel`.
 
