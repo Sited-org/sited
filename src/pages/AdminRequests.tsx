@@ -357,12 +357,15 @@ export default function AdminRequests() {
     .filter((request) => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
       const matchesClient = clientFilter === 'all' || request.lead_id === clientFilter;
+      const matchesSource = sourceFilter === 'all' || 
+        (sourceFilter === 'client' && (!request.request_source || request.request_source === 'manual')) ||
+        (sourceFilter === 'team' && request.request_source === 'admin');
       const matchesSearch = 
         request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesClient && matchesSearch;
+      return matchesStatus && matchesClient && matchesSource && matchesSearch;
     })
     .sort((a, b) => {
       // First sort by status
