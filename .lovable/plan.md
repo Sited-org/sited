@@ -1,60 +1,70 @@
 
 
-# Fix: Client Request Restrictions & Cleanup
+# Booking System Audit: Bugs Found
 
-## Summary
+## Booking Avenues Identified
 
-Four changes to enforce proper client request behavior: clients can only create new requests (not modify existing ones), remove ETA from client view, and stop email notifications on status changes.
+There are **5 booking entry points**:
 
-## Changes
+1. **BookingDialog** — Public discovery call booking from the website (20 min)
+2. **OnboardingBookingDialog** — Post-payment plan call booking dialog (45 min)
+3. **OnboardingBookingInline** — Inline post-payment plan call booking (45 min, uses `submit-booking` edge function)
+4. **AdminBookCallDialog** — Admin books a call from a lead's profile (discovery/plan/checkin)
+5. **CalendarBookingDialog** — Admin books from the calendar view (discovery/plan/checkin)
 
-### 1. Remove file upload on existing client requests (Bug 1 & 4)
+## Critical Bug: RLS Blocks All Public Bookings (Avenues 1 & 2)
 
-In `MyRequestsTab.tsx`, the `showActions` flag on `renderRequestCard` controls whether file upload and reply buttons appear. Currently:
-- Team requests pass `showActions = true` (line 478) — correct, clients need to respond to team requests
-- Active client requests pass `showActions = false` (line 557) — already correct
+**Severity: CRITICAL — breaks the entire public booking flow**
 
-**No change needed for client requests** — they already don't show upload buttons on their own active requests. However, the `ClientFileUploadButton` on team requests is correct (clients should be able to upload files as a response to admin/team requests).
+The `bookings` table has only three RLS policies, all gated by `is_admin(auth.uid())`:
+- INSERT: `is_admin(auth.uid())`
+- UPDATE: `is_admin(auth.uid())`
+- SELECT: `is_admin(auth.uid())`
 
-The real issue is the **Reply button** on team requests. Clients should still be able to reply to team requests (that's responding, not modifying). But they should NOT be able to modify their own submitted requests. Currently they can't — no edit mechanism exists on submitted client requests. This is already correct.
+**BookingDialog** (avenue 1) and **OnboardingBookingDialog** (avenue 2) insert directly via the Supabase client using the anon key. Since the user is not an admin (they're a public visitor), the insert is **silently rejected by RLS**. The `.single()` call returns an error, and the user sees "Something went wrong."
 
-**Verdict**: No code change needed for Bug 1/4 — the system already prevents clients from modifying existing requests. They can only create new ones and respond to team requests.
+**OnboardingBookingInline** (avenue 3) is the only public booking path that works correctly — it uses the `submit-booking` edge function which inserts via the service role key, bypassing RLS.
 
-### 2. Remove email notifications on status changes (Bug 2)
+**Admin paths** (avenues 4 & 5) work because the admin is authenticated and passes `is_admin()`.
 
-The `updateRequestMutation` in `AdminRequests.tsx` (lines 266-299) does **not** send any email — it only updates the database and shows a toast. No email notification is triggered on status change.
+### Fix
 
-**Verdict**: No code change needed — status changes already don't email clients. The previous plan mentioned adding this but it was **never implemented**.
+Route `BookingDialog` and `OnboardingBookingDialog` through the `submit-booking` edge function instead of inserting directly via the client. This:
+- Bypasses RLS (service role)
+- Adds captcha validation (spam protection)
+- Adds rate limiting
+- Keeps the security model intact (no need to open RLS to anonymous users)
 
-### 3. Remove ETA from client view (Bug 3)
+Both components need:
+1. Add captcha fetch + display (same pattern as `OnboardingBookingInline`)
+2. Replace `supabase.from("bookings").insert(...)` with `supabase.functions.invoke("submit-booking", { body: { captcha_token, captcha_answer, booking } })`
+3. Use the returned `booking_id` for the subsequent Zoom meeting creation
 
-Two places to clean up:
+## Bug 2: No Double-Booking Protection on Public Paths
 
-**a) Client portal `MyRequestsTab.tsx`**: The `estimated_completion` field is in the interface (line 41) but is **never rendered** in `renderRequestCard`. No change needed here.
+**Severity: Medium**
 
-**b) Admin portal `AdminRequests.tsx`**: The ETA date picker (lines 869-888) says "This will be visible to the client" — but the client portal never shows it. The ETA field on the admin side is an internal tool. Per the user's request, remove it entirely.
+`AdminBookCallDialog` and `CalendarBookingDialog` both check for existing bookings before inserting (double-booking guard). However, `BookingDialog`, `OnboardingBookingDialog`, and `OnboardingBookingInline` do **not** check — they rely on slot availability from `get-available-slots`, but there's a race condition if two users pick the same slot simultaneously.
 
-**c) Admin `RequestsTab.tsx`** (lead profile): The `RequestCard` component (line 94-100) shows ETA when `showETA` is true. This is admin-only view so it could stay, but user wants ETA removed altogether.
+### Fix
 
-**d) Database**: The `estimated_completion` column on `client_requests` can remain (no migration needed) — just remove it from all UI.
+Add a double-booking check inside the `submit-booking` edge function. Before inserting, query for an existing non-cancelled booking at the same date+time. This protects all three public paths with a single server-side check.
 
-### Plan
+## Bug 3: `BookingDialog` Has No Captcha
+
+**Severity: Medium**
+
+`BookingDialog` (the main website discovery call form) inserts directly with no captcha or rate limiting. Even after fixing Bug 1 by routing through `submit-booking`, the component currently has no captcha UI. It needs the same captcha flow as `OnboardingBookingInline`.
+
+`OnboardingBookingDialog` also lacks captcha — same fix needed.
+
+## Summary of Changes
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/pages/AdminRequests.tsx` | Remove the ETA date picker section (lines 869-888) and `estimatedCompletion` from the save mutation; remove `estimated_completion` from `updateRequestMutation` |
-| 2 | `src/pages/AdminRequests.tsx` | Remove `showETA` prop from in-progress `RequestCard` renders (line 642) |
-| 3 | `src/components/admin/lead-profile/RequestsTab.tsx` | Remove `showETA` usage from in-progress section and the ETA display in `RequestCard` |
-| 4 | `src/components/client-portal/MyRequestsTab.tsx` | Remove `estimated_completion` from the `ClientRequest` interface (cleanup) |
+| 1 | `src/components/booking/BookingDialog.tsx` | Add captcha UI; replace direct insert with `submit-booking` edge function call |
+| 2 | `src/components/booking/OnboardingBookingDialog.tsx` | Add captcha UI; replace direct insert with `submit-booking` edge function call |
+| 3 | `supabase/functions/submit-booking/index.ts` | Add double-booking check before insert |
 
-### Technical details
-
-- `AdminRequests.tsx` line 267: Remove `estimated_completion` from the mutation parameters
-- `AdminRequests.tsx` line 276: Remove `estimated_completion` from the update object
-- `AdminRequests.tsx` lines 869-888: Delete the ETA input section
-- `AdminRequests.tsx` line 642: Remove `showETA` prop
-- `RequestsTab.tsx` lines 94-100: Remove ETA rendering from `RequestCard`
-- `MyRequestsTab.tsx` line 41: Remove `estimated_completion` from interface
-
-No database migration needed. No edge function changes needed.
+No database migrations needed. No new edge functions needed.
 
