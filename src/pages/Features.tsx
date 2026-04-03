@@ -245,7 +245,7 @@ const Features = () => {
           description="We build CRMs around your actual processes — your pipeline, your categories, your reporting. A system your team will actually use."
           onCta={() => setCtaOpen(true)}
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><CRMMockup /></div>
+          <CRMMockup />
         </ShowcaseSection>
 
         <Divider />
