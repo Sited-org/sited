@@ -47,6 +47,7 @@ function guessTimezoneFromLocation(location: string): string {
 interface TimeSlot {
   time: string;
   available: boolean;
+  adminTime?: string;
 }
 
 interface OnboardingBookingDialogProps {
@@ -175,8 +176,9 @@ const OnboardingBookingDialog = ({
     setCaptchaLoading(false);
   }, []);
 
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+  const handleTimeSelect = (slot: TimeSlot) => {
+    setSelectedTime(slot.time);
+    setSelectedAdminTime(slot.adminTime || slot.time);
     setStep("form");
     fetchCaptcha();
   };
@@ -219,7 +221,7 @@ const OnboardingBookingDialog = ({
             business_type: form.businessType,
             business_location: form.businessLocation.trim(),
             booking_date: dateStr,
-            booking_time: selectedTime,
+            booking_time: selectedAdminTime || selectedTime,
             booking_type: 'plan',
             duration_minutes: DURATION,
             notes: `Plan Call — ${tierName} (${DURATION} min)`,
@@ -238,7 +240,8 @@ const OnboardingBookingDialog = ({
       const bookingId = result.booking_id;
 
       try {
-        const [timePart, ampm] = selectedTime!.split(' ');
+        const zoomTime = selectedAdminTime || selectedTime!;
+        const [timePart, ampm] = zoomTime.split(' ');
         const [hStr, mStr] = timePart.split(':');
         let hours = parseInt(hStr);
         if (ampm === 'PM' && hours !== 12) hours += 12;
@@ -377,7 +380,7 @@ const OnboardingBookingDialog = ({
                       ) : (
                         <div className="grid grid-cols-2 gap-2">
                           {timeSlots.filter((s) => s.available).map((slot, index) => (
-                            <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot.time)}
+                            <motion.button key={slot.time} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTimeSelect(slot)}
                               className="py-2.5 px-3 rounded-lg border border-border/50 text-sm font-medium hover:border-foreground/20 hover:bg-muted/50 transition-colors"
                             >{slot.time}</motion.button>
                           ))}
