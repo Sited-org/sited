@@ -58,13 +58,19 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
   const [monthOffset, setMonthOffset] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
-  const [timeSlots, setTimeSlots] = useState<{ time: string; available: boolean }[]>([]);
+  const [timeSlots, setTimeSlots] = useState<{ time: string; available: boolean; adminTime?: string }[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [zoomJoinUrl, setZoomJoinUrl] = useState<string | null>(null);
   const [selectedTimezone, setSelectedTimezone] = useState("Australia/Sydney");
   const [locationQuery, setLocationQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaQuestion, setCaptchaQuestion] = useState<string | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  const [selectedAdminTime, setSelectedAdminTime] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
