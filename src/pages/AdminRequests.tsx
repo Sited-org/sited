@@ -135,11 +135,8 @@ function RequestCard({
             <Badge variant="outline" className={priorityInfo.color}>
               {priorityInfo.label}
             </Badge>
-            {request.request_source === 'admin' ? (
-              <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20" variant="outline">Team</Badge>
-            ) : (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20" variant="outline">Client</Badge>
-            )}
+
+
           </div>
           
           {/* Company name and submission time */}
@@ -205,7 +202,7 @@ export default function AdminRequests() {
   const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
@@ -340,8 +337,11 @@ export default function AdminRequests() {
     low: 3,
   };
 
+  // Only show client-initiated requests (exclude admin/team-sourced requests)
+  const clientRequests = requests.filter(r => !r.request_source || r.request_source === 'manual');
+
   // Get unique clients for filter dropdown
-  const uniqueClients = [...new Map(requests.map(r => [
+  const uniqueClients = [...new Map(clientRequests.map(r => [
     r.lead_id, 
     { 
       id: r.lead_id, 
@@ -349,19 +349,16 @@ export default function AdminRequests() {
     }
   ])).values()];
 
-  const filteredRequests = requests
+  const filteredRequests = clientRequests
     .filter((request) => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
       const matchesClient = clientFilter === 'all' || request.lead_id === clientFilter;
-      const matchesSource = sourceFilter === 'all' || 
-        (sourceFilter === 'client' && (!request.request_source || request.request_source === 'manual')) ||
-        (sourceFilter === 'team' && request.request_source === 'admin');
       const matchesSearch = 
         request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesClient && matchesSource && matchesSearch;
+      return matchesStatus && matchesClient && matchesSearch;
     })
     .sort((a, b) => {
       // First sort by status
@@ -373,11 +370,11 @@ export default function AdminRequests() {
     });
 
   const stats = {
-    pending: requests.filter((r) => r.status === 'pending').length,
-    in_progress: requests.filter((r) => r.status === 'in_progress').length,
-    completed: requests.filter((r) => r.status === 'completed').length,
-    cancelled: requests.filter((r) => r.status === 'cancelled').length,
-    total: requests.length,
+    pending: clientRequests.filter((r) => r.status === 'pending').length,
+    in_progress: clientRequests.filter((r) => r.status === 'in_progress').length,
+    completed: clientRequests.filter((r) => r.status === 'completed').length,
+    cancelled: clientRequests.filter((r) => r.status === 'cancelled').length,
+    total: clientRequests.length,
   };
 
   // Handler for "Filter this company" button - filters to non-completed requests from this company
@@ -542,16 +539,8 @@ export default function AdminRequests() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-full sm:w-[140px]">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
-            <SelectItem value="team">Team</SelectItem>
-          </SelectContent>
-        </Select>
+
+
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <User className="h-4 w-4 mr-2" />
@@ -566,11 +555,11 @@ export default function AdminRequests() {
             ))}
           </SelectContent>
         </Select>
-        {(clientFilter !== 'all' || sourceFilter !== 'all') && (
+        {clientFilter !== 'all' && (
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => { setClientFilter('all'); setSourceFilter('all'); }}
+            onClick={() => setClientFilter('all')}
             className="shrink-0"
           >
             Clear filters

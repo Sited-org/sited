@@ -48,6 +48,7 @@ export function RequestsTab({ leadId, leadName, leadEmail }: RequestsTabProps) {
       .from('client_requests')
       .select('*')
       .eq('lead_id', leadId)
+      .or('request_source.is.null,request_source.eq.manual')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
