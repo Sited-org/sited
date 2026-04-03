@@ -349,19 +349,19 @@ export default function AdminRequests() {
     }
   ])).values()];
 
-  const filteredRequests = requests
+  // Only show client-initiated requests (exclude admin/team-sourced requests)
+  const clientRequests = requests.filter(r => !r.request_source || r.request_source === 'manual');
+
+  const filteredRequests = clientRequests
     .filter((request) => {
       const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
       const matchesClient = clientFilter === 'all' || request.lead_id === clientFilter;
-      const matchesSource = sourceFilter === 'all' || 
-        (sourceFilter === 'client' && (!request.request_source || request.request_source === 'manual')) ||
-        (sourceFilter === 'team' && request.request_source === 'admin');
       const matchesSearch = 
         request.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         request.leads?.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesStatus && matchesClient && matchesSource && matchesSearch;
+      return matchesStatus && matchesClient && matchesSearch;
     })
     .sort((a, b) => {
       // First sort by status
