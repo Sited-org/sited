@@ -259,6 +259,55 @@ export function BuildFlowView({
                   </div>
                 </div>
                 <Progress value={getPhaseProgress(activePhase)} className="h-2 mt-3" />
+                {/* Send Asset Collection Form button - only in Phase 2 (assets) */}
+                {activePhase.phase_key === 'assets' && !activePhase.is_locked && canEdit && (
+                  <div className="mt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const { data: leadData } = await supabase
+                            .from('leads')
+                            .select('name, email')
+                            .eq('id', buildFlow.lead_id)
+                            .maybeSingle();
+                          if (!leadData?.email) {
+                            toast.error('No email found for this client');
+                            return;
+                          }
+                          // Create the asset collection request
+                          await supabase.from('client_requests').insert({
+                            lead_id: buildFlow.lead_id,
+                            title: 'Brand Asset Collection',
+                            description: 'Please upload your brand assets including logo, favicon, sharing image, fonts, and colour hex codes.',
+                            priority: 'high',
+                            request_source: 'admin',
+                            requires_client_action: true,
+                            action_type: 'asset_collection',
+                          });
+                          // Notify the client
+                          await supabase.functions.invoke('notify-client-portal', {
+                            body: {
+                              lead_id: buildFlow.lead_id,
+                              title: 'Brand Asset Collection',
+                              description: 'Please upload your brand assets including logo, favicon, sharing image, fonts, and colour hex codes.',
+                              priority: 'high',
+                              client_name: leadData.name,
+                              client_email: leadData.email,
+                              action_type: 'asset_collection',
+                            },
+                          });
+                          toast.success('Asset collection form sent to client');
+                        } catch (err) {
+                          toast.error('Failed to send asset collection form');
+                        }
+                      }}
+                    >
+                      <Package className="h-4 w-4 mr-1" /> Send Asset Collection Form to Client
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-2">
                 {activePhase.steps.map(step => (
