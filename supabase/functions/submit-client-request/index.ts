@@ -242,6 +242,7 @@ serve(async (req) => {
         body: bodyContent?.trim()?.substring(0, 10000) || null,
         priority: sanitizedPriority,
         status: finalStatus,
+        request_source: 'manual',
       })
       .select()
       .single();

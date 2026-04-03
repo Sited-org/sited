@@ -42,6 +42,7 @@ interface ClientRequest {
   request_source?: string | null;
   requires_client_action?: boolean;
   action_type?: string | null;
+  client_response?: string | null;
 }
 
 interface MyRequestsTabProps {
