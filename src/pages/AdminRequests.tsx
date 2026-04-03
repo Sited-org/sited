@@ -135,11 +135,8 @@ function RequestCard({
             <Badge variant="outline" className={priorityInfo.color}>
               {priorityInfo.label}
             </Badge>
-            {request.request_source === 'admin' ? (
-              <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20" variant="outline">Team</Badge>
-            ) : (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20" variant="outline">Client</Badge>
-            )}
+
+
           </div>
           
           {/* Company name and submission time */}
