@@ -22,9 +22,9 @@ const InvoiceMockup = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative force-light"
+      className="relative"
     >
-      <div className="backdrop-blur-xl bg-card/80 border border-border/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto">
+      <div className="force-light bg-card border border-border/50 rounded-3xl overflow-hidden shadow-2xl max-w-lg mx-auto">
         {/* Invoice Header */}
         <div className="p-8 border-b border-border/50">
           <div className="flex items-start justify-between mb-6">
