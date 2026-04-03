@@ -392,7 +392,7 @@ export default function AdminRequests() {
     setSelectedRequest(request);
     setAdminNotes(request.admin_notes || '');
     setNewStatus(request.status as RequestStatus);
-    setEstimatedCompletion(request.estimated_completion ? request.estimated_completion.split('T')[0] : '');
+    
 
     // Fetch attachments
     const { data } = await supabase
