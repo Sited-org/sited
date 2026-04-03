@@ -8,8 +8,10 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase, Send, StickyNote, Lock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Rocket, Calendar, Plus, X, Monitor, ShieldCheck, Users, Briefcase, StickyNote, Lock, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// ─── Interfaces ────────────────────────────────────────────────────────────────
 
 interface DiscoveryFormProps {
   leadId: string;
@@ -97,14 +99,12 @@ const PORTAL_OPTIONS = [
   { value: 'staff_portal', label: 'Staff Portal', icon: Briefcase, desc: 'Employee/team workspace', requiresAdmin: true },
 ];
 
-// Front End options
 const FE_CORE_PAGES = ['Home', 'Our Services', 'Our Products', 'Contact', 'Testimonials', 'Portfolio', 'Pricing', 'About'];
 const FE_MARKETING_PAGES = ['Landing Page (Campaign)', 'Offer', 'Book'];
 const FE_CTAS = ['Book a Call', 'Enquire', 'Free Quote', 'Get Quote', 'Contact', 'Buy Now'];
 const FE_DESIGN_STYLES = ['Professional / Minimalist', 'Bold / Maximalist', 'Artistic / Colourful'];
 const FE_LOGO_TYPES = ['Icon', 'Mascot', 'Text'];
 
-// Admin Portal options
 const ADMIN_FEATURES = [
   'Lead / CRM Management', 'Content Management', 'User Management', 'Analytics Dashboard',
   'Financial / Invoicing', 'Email Automation', 'Booking Management', 'File Management',
@@ -114,7 +114,6 @@ const ADMIN_AUTH_METHODS = ['Email + OTP', 'Email + Password', 'SSO / Google OAu
 const ADMIN_ROLES = ['Owner', 'Admin', 'Editor', 'Viewer'];
 const ADMIN_NOTIFICATIONS = ['Email Alerts', 'Slack Integration', 'SMS Alerts'];
 
-// Client Portal options
 const CLIENT_FEATURES = [
   'Project Progress Tracker', 'Invoice / Payment History', 'File Uploads', 'Request System',
   'Messaging / Chat', 'Document Signing', 'Subscription Management',
@@ -123,16 +122,14 @@ const CLIENT_LOGIN_METHODS = ['Email + OTP (Passwordless)', 'Email + Password', 
 const CLIENT_SELF_SERVICE = ['Update Profile', 'View Invoices', 'Make Payments', 'Submit Requests', 'Download Files', 'View Project Status'];
 const CLIENT_COMMS = ['In-Portal Messaging', 'Email Notifications', 'SMS Updates', 'File Sharing'];
 
-// Staff Portal options
 const STAFF_FEATURES = [
   'Task Management', 'Time Tracking', 'Client Project View', 'Internal Chat',
   'Schedule / Calendar', 'Knowledge Base', 'Performance Metrics',
 ];
-const STAFF_ROLE_TYPES = ['Developer', 'Designer', 'Project Manager', 'Sales Rep', 'Support'];
+const STAFF_ROLE_TYPES = ['Manager', 'Sales', 'Finance', 'Developer', 'Technician', 'Receptionist', 'Consultant'];
 const STAFF_PERMISSIONS = ['View All Projects', 'Edit Assigned Only', 'Manage Team', 'Access Financials', 'Admin Override'];
 const STAFF_MANAGEMENT = ['Kanban Board', 'Gantt Chart', 'Daily Standup Notes', 'Sprint Planning', 'Bug Tracker'];
 
-// Unified integrations list
 const ALL_INTEGRATIONS = [
   'Stripe', 'Slack', 'Resend', 'Zapier', 'Google Analytics', 'Blog / CMS',
   'Service M8', 'Xero', 'HubSpot', 'Mailchimp', 'Salesforce', 'GHL',
@@ -140,7 +137,68 @@ const ALL_INTEGRATIONS = [
   'Reviews Widget', 'GitHub', 'Figma', 'Jira', 'Notion', 'Linear',
 ];
 
-// ─── Component ─────────────────────────────────────────────────────────────────
+// ─── Extracted sub-components (outside main component to prevent remount) ──────
+
+function CheckboxGroup({ items, selected, onToggle, cols = 2 }: { items: string[]; selected: string[]; onToggle: (item: string) => void; cols?: number }) {
+  return (
+    <div className={`grid grid-cols-1 ${cols === 2 ? 'sm:grid-cols-2' : cols === 3 ? 'sm:grid-cols-3' : ''} gap-2`}>
+      {items.map(item => (
+        <label key={item} className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
+          <Checkbox checked={selected.includes(item)} onCheckedChange={() => onToggle(item)} />
+          <span className="text-sm">{item}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function AddCustomField({ items, onAdd, onRemove, placeholder }: { items: string[]; onAdd: (val: string) => void; onRemove: (val: string) => void; placeholder: string }) {
+  const [val, setVal] = useState('');
+  return (
+    <div className="space-y-2">
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {items.map(item => (
+            <Badge key={item} variant="secondary" className="gap-1 pr-1">
+              {item}
+              <button onClick={() => onRemove(item)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
+            </Badge>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} className="flex-1" onKeyDown={e => { if (e.key === 'Enter' && val.trim()) { e.preventDefault(); onAdd(val.trim()); setVal(''); } }} />
+        <Button type="button" size="sm" variant="outline" onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(''); } }}>
+          <Plus className="h-4 w-4 mr-1" /> Add
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <Label className="text-muted-foreground mb-2 block text-xs uppercase tracking-wider font-semibold">{children}</Label>;
+}
+
+function StepNotesSection({ stepId, value, onChange }: { stepId: string; value: string; onChange: (stepId: string, value: string) => void }) {
+  return (
+    <div className="mt-6 pt-4 border-t border-border">
+      <div className="flex items-center gap-2 mb-2">
+        <StickyNote className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium">Notes</Label>
+      </div>
+      <Textarea
+        value={value}
+        onChange={e => onChange(stepId, e.target.value)}
+        placeholder="Add any specific notes, client requests, or details discussed for this section..."
+        rows={3}
+        className="text-sm"
+      />
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 
 const STORAGE_KEY_PREFIX = 'discovery_draft_';
 
@@ -190,7 +248,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
   const storageKey = `${STORAGE_KEY_PREFIX}${leadId}`;
   const initialised = useRef(false);
 
-  // Restore draft from localStorage on mount
   const [data, setData] = useState<DiscoveryData>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -227,7 +284,6 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
       steps.push({ id: 'staff_features', label: 'Features & Roles', portalLabel: 'Staff Portal' });
     }
 
-    // Unified integrations step
     steps.push({ id: 'integrations', label: 'Integrations' });
     steps.push({ id: 'expectations', label: 'Client Expectations' });
     return steps;
@@ -345,74 +401,11 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
     setSubmitting(false);
   };
 
-  const handleSendBrandingAcquisition = () => {
-    toast({
-      title: 'Branding acquisition sent',
-      description: 'A branding collection form has been sent to the client portal.',
-    });
-    // TODO: Implement backend — create client portal task, send notification, log in comms
-  };
-
-  // ─── Reusable sub-components ─────────────────────────────────────────────
-
-  const CheckboxGroup = ({ items, selected, onToggle, cols = 2 }: { items: string[]; selected: string[]; onToggle: (item: string) => void; cols?: number }) => (
-    <div className={`grid grid-cols-1 ${cols === 2 ? 'sm:grid-cols-2' : cols === 3 ? 'sm:grid-cols-3' : ''} gap-2`}>
-      {items.map(item => (
-        <label key={item} className="flex items-center gap-2 p-2.5 rounded-lg border border-border hover:bg-muted/50 cursor-pointer transition-colors">
-          <Checkbox checked={selected.includes(item)} onCheckedChange={() => onToggle(item)} />
-          <span className="text-sm">{item}</span>
-        </label>
-      ))}
-    </div>
-  );
-
-  const AddCustomField = ({ items, onAdd, onRemove, placeholder }: { items: string[]; onAdd: (val: string) => void; onRemove: (val: string) => void; placeholder: string }) => {
-    const [val, setVal] = useState('');
-    return (
-      <div className="space-y-2">
-        {items.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {items.map(item => (
-              <Badge key={item} variant="secondary" className="gap-1 pr-1">
-                {item}
-                <button onClick={() => onRemove(item)} className="ml-1 hover:text-destructive"><X className="h-3 w-3" /></button>
-              </Badge>
-            ))}
-          </div>
-        )}
-        <div className="flex gap-2">
-          <Input value={val} onChange={e => setVal(e.target.value)} placeholder={placeholder} className="flex-1" onKeyDown={e => { if (e.key === 'Enter' && val.trim()) { e.preventDefault(); onAdd(val.trim()); setVal(''); } }} />
-          <Button type="button" size="sm" variant="outline" onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(''); } }}>
-            <Plus className="h-4 w-4 mr-1" /> Add
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-    <Label className="text-muted-foreground mb-2 block text-xs uppercase tracking-wider font-semibold">{children}</Label>
-  );
-
-  const StepNotesSection = ({ stepId }: { stepId: string }) => (
-    <div className="mt-6 pt-4 border-t border-border">
-      <div className="flex items-center gap-2 mb-2">
-        <StickyNote className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium">Notes</Label>
-      </div>
-      <Textarea
-        value={data.stepNotes?.[stepId] || ''}
-        onChange={e => updateStepNote(stepId, e.target.value)}
-        placeholder="Add any specific notes, client requests, or details discussed for this section..."
-        rows={3}
-        className="text-sm"
-      />
-    </div>
-  );
+  // ─── Derived state ──────────────────────────────────────────────────────
+  const hasAdmin = data.selectedPortals.includes('admin_portal');
+  const hasStaffPortal = data.selectedPortals.includes('staff_portal');
 
   // ─── Step content ────────────────────────────────────────────────────────
-
-  const hasAdmin = data.selectedPortals.includes('admin_portal');
 
   const renderStep = () => {
     switch (currentStep.id) {
@@ -437,7 +430,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label className="flex items-center gap-2"><Calendar className="h-4 w-4" /> Desired Launch Date</Label>
               <Input type="date" value={data.desiredLaunchDate} onChange={e => setData({ ...data, desiredLaunchDate: e.target.value })} className="mt-1" />
             </div>
-            <StepNotesSection stepId="basics" />
+            <StepNotesSection stepId="basics" value={data.stepNotes?.basics || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -484,7 +477,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 );
               })}
             </div>
-            <StepNotesSection stepId="portals" />
+            <StepNotesSection stepId="portals" value={data.stepNotes?.portals || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -510,7 +503,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 placeholder="Enter custom page name"
               />
             </div>
-            <StepNotesSection stepId="fe_pages" />
+            <StepNotesSection stepId="fe_pages" value={data.stepNotes?.fe_pages || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -532,7 +525,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 placeholder="Enter custom CTA text"
               />
             </div>
-            <StepNotesSection stepId="fe_marketing" />
+            <StepNotesSection stepId="fe_marketing" value={data.stepNotes?.fe_marketing || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -552,24 +545,22 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               </div>
             </div>
 
-            {/* Send Branding Acquisition button for Yes or Partial */}
-            {(data.frontEnd.hasExistingBranding === 'yes' || data.frontEnd.hasExistingBranding === 'partial') && (
-              <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium">
-                      {data.frontEnd.hasExistingBranding === 'yes'
-                        ? 'Collect existing branding assets from the client'
-                        : 'Collect partial branding & gather remaining preferences'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Sends a branding collection form to the client portal as a pending task.
-                    </p>
-                  </div>
-                  <Button type="button" size="sm" onClick={handleSendBrandingAcquisition} className="flex-shrink-0">
-                    <Send className="h-4 w-4 mr-2" /> Send Branding Acquisition
-                  </Button>
-                </div>
+            {/* Informational text for branding — no send button */}
+            {data.frontEnd.hasExistingBranding === 'yes' && (
+              <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 flex items-start gap-3">
+                <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground">
+                  A branding acquisition form will need to be sent in phase 2 to the client portal.
+                </p>
+              </div>
+            )}
+
+            {data.frontEnd.hasExistingBranding === 'partial' && (
+              <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 flex items-start gap-3">
+                <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-foreground">
+                  Enter what parts of the branding you can acquire. A branding acquisition form will need to be sent in Phase 2 to collect the remaining assets.
+                </p>
               </div>
             )}
 
@@ -632,7 +623,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 )}
               </>
             )}
-            <StepNotesSection stepId="fe_design" />
+            <StepNotesSection stepId="fe_design" value={data.stepNotes?.fe_design || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -661,7 +652,8 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 ))}
               </div>
             </div>
-            {data.adminPortal.features.includes('User Management') && (
+            {/* Only show User Roles in Admin Portal when Staff Portal is NOT selected */}
+            {data.adminPortal.features.includes('User Management') && !hasStaffPortal && (
               <div>
                 <SectionLabel>User Roles</SectionLabel>
                 <CheckboxGroup items={ADMIN_ROLES} selected={data.adminPortal.userRoles} onToggle={item => updateAdmin({ userRoles: toggleItem(data.adminPortal.userRoles, item) })} />
@@ -675,6 +667,14 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 </div>
               </div>
             )}
+            {data.adminPortal.features.includes('User Management') && hasStaffPortal && (
+              <div className="p-3 rounded-lg border border-muted bg-muted/30 flex items-start gap-3">
+                <Info className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  User roles will be configured in the Staff Portal step.
+                </p>
+              </div>
+            )}
             <div>
               <SectionLabel>Notifications</SectionLabel>
               <CheckboxGroup items={ADMIN_NOTIFICATIONS} selected={data.adminPortal.notifications} onToggle={item => updateAdmin({ notifications: toggleItem(data.adminPortal.notifications, item) })} />
@@ -683,7 +683,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.adminPortal.customNeeds} onChange={e => updateAdmin({ customNeeds: e.target.value })} placeholder="Any other admin portal needs..." className="mt-1" rows={2} />
             </div>
-            <StepNotesSection stepId="admin_features" />
+            <StepNotesSection stepId="admin_features" value={data.stepNotes?.admin_features || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -718,7 +718,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.clientPortal.customNeeds} onChange={e => updateClient({ customNeeds: e.target.value })} placeholder="Any other client portal needs..." className="mt-1" rows={2} />
             </div>
-            <StepNotesSection stepId="client_features" />
+            <StepNotesSection stepId="client_features" value={data.stepNotes?.client_features || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -739,7 +739,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                   items={data.staffPortal.customRoles}
                   onAdd={val => updateStaff({ customRoles: [...data.staffPortal.customRoles, val] })}
                   onRemove={val => updateStaff({ customRoles: data.staffPortal.customRoles.filter(r => r !== val) })}
-                  placeholder="Add custom role"
+                  placeholder="Add custom role (e.g. Other)"
                 />
               </div>
             </div>
@@ -757,7 +757,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Requirements</Label>
               <Textarea value={data.staffPortal.customNeeds} onChange={e => updateStaff({ customNeeds: e.target.value })} placeholder="Any other staff portal needs..." className="mt-1" rows={2} />
             </div>
-            <StepNotesSection stepId="staff_features" />
+            <StepNotesSection stepId="staff_features" value={data.stepNotes?.staff_features || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -782,7 +782,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
                 rows={2}
               />
             </div>
-            <StepNotesSection stepId="integrations" />
+            <StepNotesSection stepId="integrations" value={data.stepNotes?.integrations || ''} onChange={updateStepNote} />
           </div>
         );
 
@@ -828,7 +828,7 @@ export function DiscoveryForm({ leadId, leadName, leadBusinessName, onSubmit }: 
               <Label>Additional Notes</Label>
               <Textarea value={data.notes} onChange={e => setData({ ...data, notes: e.target.value })} placeholder="Any other notes or requests..." className="mt-1" rows={3} />
             </div>
-            <StepNotesSection stepId="expectations" />
+            <StepNotesSection stepId="expectations" value={data.stepNotes?.expectations || ''} onChange={updateStepNote} />
           </div>
         );
 
