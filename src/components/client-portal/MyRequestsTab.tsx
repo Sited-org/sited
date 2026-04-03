@@ -70,6 +70,9 @@ export function MyRequestsTab({ leadId, leadName, leadEmail, requests, onRequest
   const [sendingDraftId, setSendingDraftId] = useState<string | null>(null);
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
   const [assetUploadOpen, setAssetUploadOpen] = useState(false);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
