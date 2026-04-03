@@ -221,7 +221,7 @@ const OnboardingBookingDialog = ({
             business_type: form.businessType,
             business_location: form.businessLocation.trim(),
             booking_date: dateStr,
-            booking_time: selectedTime,
+            booking_time: selectedAdminTime || selectedTime,
             booking_type: 'plan',
             duration_minutes: DURATION,
             notes: `Plan Call — ${tierName} (${DURATION} min)`,
