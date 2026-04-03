@@ -539,16 +539,8 @@ export default function AdminRequests() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-full sm:w-[140px]">
-            <SelectValue placeholder="Source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
-            <SelectItem value="client">Client</SelectItem>
-            <SelectItem value="team">Team</SelectItem>
-          </SelectContent>
-        </Select>
+
+
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <User className="h-4 w-4 mr-2" />
