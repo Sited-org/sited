@@ -341,7 +341,7 @@ export default function AdminRequests() {
   };
 
   // Get unique clients for filter dropdown
-  const uniqueClients = [...new Map(requests.map(r => [
+  const uniqueClients = [...new Map(clientRequests.map(r => [
     r.lead_id, 
     { 
       id: r.lead_id, 
