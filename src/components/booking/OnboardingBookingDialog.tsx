@@ -160,9 +160,25 @@ const OnboardingBookingDialog = ({
     fetchSlots();
   }, [selectedDay, year, monthOffset, selectedTimezone]);
 
+  const fetchCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(null);
+    setCaptchaAnswer("");
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-captcha");
+      if (error || !data) throw new Error("Failed to load captcha");
+      setCaptchaToken(data.token);
+      setCaptchaQuestion(data.question);
+    } catch {
+      setCaptchaError("Could not load verification. Please try again.");
+    }
+    setCaptchaLoading(false);
+  }, []);
+
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     setStep("form");
+    fetchCaptcha();
   };
 
   const handleInputChange = (field: string, value: string) => {
