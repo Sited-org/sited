@@ -207,6 +207,7 @@ export default function AdminRequests() {
   const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [clientFilter, setClientFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState<RequestStatus>('pending');
