@@ -280,7 +280,7 @@ const Features = () => {
           onCta={() => setCtaOpen(true)}
           reversed
         >
-          <div className="force-light rounded-xl overflow-hidden border border-border"><ClientPortalMockup /></div>
+          <ClientPortalMockup />
         </ShowcaseSection>
 
         <Divider />
