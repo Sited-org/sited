@@ -1,33 +1,46 @@
 
 
-# Booking System Audit: Bug Found
+# Booking System Audit: Bugs Found
 
-## Current State
+## Summary
 
-All 3 public booking components (`BookingDialog`, `OnboardingBookingDialog`, `OnboardingBookingInline`) correctly route through the `submit-booking` edge function with captcha, rate limiting, and double-booking protection. The edge function inserts via service role, bypassing RLS. Admin paths work via direct insert with admin auth.
+Traced the full booking flow across all 5 entry points, including slot fetching, booking insertion, Zoom meeting creation, and email notifications (client confirmation + admin notification). Found 1 bug.
 
-## Bug: `OnboardingBookingDialog` Ignores `adminTime` — Wrong Time Stored
+## Bug 1: `BookingDialog` Drops `adminTime` When Selecting a Time Slot
 
-**Severity: Medium**
+**Severity: Medium** (same class as the OnboardingBookingDialog bug just fixed)
 
-`OnboardingBookingDialog` has `selectedAdminTime` state (line 83) but **never sets it**. The `handleTimeSelect` (line 178) only captures `slot.time` (the client-timezone display time), not `slot.adminTime`. The `TimeSlot` interface (line 47) also lacks `adminTime`.
+`BookingDialog` line 469 calls `handleTimeSelect(slot.time)` — passing only the display time string. The `handleTimeSelect` function (line 159) accepts `(time: string, adminTime?: string)`, but since `slot.adminTime` is never passed as the second argument, `adminTime` defaults to `time` (the client display time).
 
-When the client is in a different timezone than the admin (e.g. Perth vs Brisbane), the booking is stored with the **client's display time** instead of the admin's canonical time, causing a mismatch between what the admin sees on their calendar and when the Zoom meeting is actually scheduled.
+This means when a client in Perth (AWST, UTC+8) books a discovery call, the booking is stored with the Perth display time instead of the admin's Brisbane (AEST, UTC+10) canonical time. The Zoom meeting is also scheduled at the wrong hour.
 
-`BookingDialog` and `OnboardingBookingInline` both correctly capture and use `adminTime`. Only `OnboardingBookingDialog` is broken.
+`OnboardingBookingDialog` and `OnboardingBookingInline` both correctly pass the full `slot` object. Only `BookingDialog` is broken.
 
 ### Fix
 
-1. Add `adminTime?: string` to the `TimeSlot` interface
-2. Update `handleTimeSelect` to accept the full slot object and set `selectedAdminTime`
-3. Use `selectedAdminTime || selectedTime` for `booking_time` in the submit body (line 222) — matching the pattern in `BookingDialog` (line 210)
-4. Use `selectedAdminTime` for the Zoom `localStartTime` calculation (line 241)
+Change line 469 from:
+```
+onClick={() => handleTimeSelect(slot.time)}
+```
+to:
+```
+onClick={() => handleTimeSelect(slot.time, slot.adminTime)}
+```
+
+This is a one-line fix. No edge function or database changes needed.
+
+## Verified Working
+
+- All 3 public paths route through `submit-booking` edge function with captcha, rate limiting, and double-booking protection
+- Both admin paths (`AdminBookCallDialog`, `CalendarBookingDialog`) insert directly with admin auth + double-booking check
+- `create-zoom-meeting` correctly sends branded confirmation email to client AND admin notification email via Resend
+- `manage-booking` correctly sends cancellation and reschedule emails to client
+- `get-available-slots` correctly converts between client and admin timezones and returns `adminTime` on slots
+- `email_logs` is populated for confirmation emails
 
 ## Plan
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/booking/OnboardingBookingDialog.tsx` | Add `adminTime` to `TimeSlot`, update `handleTimeSelect` to capture it, use `selectedAdminTime` in submit and Zoom creation |
-
-No edge function or database changes needed.
+| 1 | `src/components/booking/BookingDialog.tsx` | Pass `slot.adminTime` to `handleTimeSelect` on line 469 |
 
