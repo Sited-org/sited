@@ -547,6 +547,16 @@ export default function AdminRequests() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue placeholder="Source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            <SelectItem value="client">Client</SelectItem>
+            <SelectItem value="team">Team</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={clientFilter} onValueChange={setClientFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <User className="h-4 w-4 mr-2" />
@@ -561,14 +571,14 @@ export default function AdminRequests() {
             ))}
           </SelectContent>
         </Select>
-        {clientFilter !== 'all' && (
+        {(clientFilter !== 'all' || sourceFilter !== 'all') && (
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setClientFilter('all')}
+            onClick={() => { setClientFilter('all'); setSourceFilter('all'); }}
             className="shrink-0"
           >
-            Clear client filter
+            Clear filters
           </Button>
         )}
       </div>
