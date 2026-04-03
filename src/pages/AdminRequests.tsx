@@ -180,7 +180,7 @@ function RequestCard({
       
       {/* Additional Info */}
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-3 ml-13 pl-13">
-        {showETA && request.estimated_completion && (
+        {false && request.estimated_completion && (
           <span className="flex items-center gap-1 text-blue-600">
             <Calendar className="h-3 w-3" />
             ETA: {format(new Date(request.estimated_completion), 'MMM d')}

@@ -235,7 +235,7 @@ export function RequestsTab({ leadId, leadName, leadEmail }: RequestsTabProps) {
           <CardContent>
             <div className="space-y-3">
               {inProgressRequests.map((request) => (
-                <RequestCard key={request.id} request={request} showETA />
+                <RequestCard key={request.id} request={request} />
               ))}
             </div>
           </CardContent>
