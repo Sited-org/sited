@@ -186,68 +186,86 @@ const BookingDialog = ({ open, onOpenChange }: BookingDialogProps) => {
     captchaAnswer.trim();
 
   const handleSubmit = async () => {
-    if (!isFormValid || !selectedDay || !selectedTime) return;
+    if (!isFormValid || !selectedDay || !selectedTime || !captchaToken) return;
     setIsSubmitting(true);
+    setCaptchaError(null);
 
     const bookingDate = new Date(year, currentMonth.getMonth(), selectedDay);
     const dateStr = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}-${String(bookingDate.getDate()).padStart(2, '0')}`;
 
-    const { data: insertData, error } = await supabase.from("bookings").insert({
-      first_name: form.firstName.trim(),
-      last_name: form.lastName.trim(),
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      business_name: form.businessName.trim(),
-      business_type: form.businessType,
-      business_location: form.businessLocation.trim(),
-      booking_date: dateStr,
-      booking_time: selectedTime,
-      booking_type: 'discovery',
-      duration_minutes: DURATION,
-    }).select('id').single();
-
-    if (error) {
-      setIsSubmitting(false);
-      toast.error("Something went wrong. Please try again.");
-      return;
-    }
-
     try {
-      const [timePart, ampm] = selectedTime!.split(' ');
-      const [hStr, mStr] = timePart.split(':');
-      let hours = parseInt(hStr);
-      if (ampm === 'PM' && hours !== 12) hours += 12;
-      if (ampm === 'AM' && hours === 12) hours = 0;
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const localStartTime = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
-
-      const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
+      const { data: result, error } = await supabase.functions.invoke("submit-booking", {
         body: {
-          booking_id: insertData.id,
-          topic: `Discovery Call – ${form.businessName.trim()}`,
-          start_time: localStartTime,
-          duration: DURATION,
-          attendee_email: form.email.trim(),
-          attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
-          booking_type: 'discovery',
-          business_name: form.businessName.trim(),
-          attendee_phone: form.phone.trim(),
-          attendee_timezone: selectedTimezone,
-          create_lead: true,
-          business_type: form.businessType,
-          business_location: form.businessLocation.trim(),
+          captcha_token: captchaToken,
+          captcha_answer: Number(captchaAnswer),
+          booking: {
+            first_name: form.firstName.trim(),
+            last_name: form.lastName.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            business_name: form.businessName.trim(),
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+            booking_date: dateStr,
+            booking_time: selectedAdminTime || selectedTime,
+            booking_type: 'discovery',
+            duration_minutes: DURATION,
+          },
         },
       });
 
-      if (zoomData?.zoom_join_url) {
-        setZoomJoinUrl(zoomData.zoom_join_url);
+      if (error || !result?.booking_id) {
+        const errMsg = result?.error || "Something went wrong. Please try again.";
+        setCaptchaError(errMsg);
+        await fetchCaptcha();
+        setIsSubmitting(false);
+        return;
       }
-    } catch (e) {
-      console.error('Zoom meeting creation failed:', e);
-    }
 
-    setIsSubmitting(false);
-    setIsBooked(true);
+      const bookingId = result.booking_id;
+
+      try {
+        const adminTime = selectedAdminTime || selectedTime!;
+        const [timePart, ampm] = adminTime.split(' ');
+        const [hStr, mStr] = timePart.split(':');
+        let hours = parseInt(hStr);
+        if (ampm === 'PM' && hours !== 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const localStartTime = `${year}-${pad(currentMonth.getMonth() + 1)}-${pad(selectedDay)}T${pad(hours)}:${pad(parseInt(mStr))}:00`;
+
+        const { data: zoomData } = await supabase.functions.invoke('create-zoom-meeting', {
+          body: {
+            booking_id: bookingId,
+            topic: `Discovery Call – ${form.businessName.trim()}`,
+            start_time: localStartTime,
+            duration: DURATION,
+            attendee_email: form.email.trim(),
+            attendee_name: `${form.firstName.trim()} ${form.lastName.trim()}`,
+            booking_type: 'discovery',
+            business_name: form.businessName.trim(),
+            attendee_phone: form.phone.trim(),
+            attendee_timezone: selectedTimezone,
+            create_lead: true,
+            business_type: form.businessType,
+            business_location: form.businessLocation.trim(),
+          },
+        });
+
+        if (zoomData?.zoom_join_url) {
+          setZoomJoinUrl(zoomData.zoom_join_url);
+        }
+      } catch (e) {
+        console.error('Zoom meeting creation failed:', e);
+      }
+
+      setIsSubmitting(false);
+      setIsBooked(true);
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+      await fetchCaptcha();
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
