@@ -216,7 +216,7 @@ serve(async (req) => {
 
     const { data: { publicUrl } } = supabaseClient.storage.from('build-assets').getPublicUrl(path);
 
-    const validSlots = ['logo_512', 'logo_192', 'logo_32', 'logo_16', 'logo_apple_touch', 'og_image'];
+    const validSlots = ['logo_512', 'logo_32', 'og_image'];
     if (!validSlots.includes(slotKey)) {
       return new Response(JSON.stringify({ error: 'Invalid slot key' }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
