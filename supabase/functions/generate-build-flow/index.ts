@@ -73,19 +73,15 @@ function generatePhases(ctx: BuildContext): PhaseConfig[] {
   phases.push({
     phase_number: 2, phase_key: "assets",
     title: "Asset Collection",
-    description: "Collect all brand assets, logos, colours, fonts, and media.",
+    description: "Collect all brand assets, logo, favicon, sharing image, fonts, and colours.",
     is_locked: true, is_strictly_linear: false, unlocks_after_phase_key: "onboarding",
     steps: [
-      { step_number: 1, step_key: "logo_512", title: "Logo 512x512 uploaded", description: "Upload the main app icon.", guidance: "PNG format, transparent background preferred.", is_required: true },
-      { step_number: 2, step_key: "logo_192", title: "Logo 192x192 uploaded", description: "Upload the PWA icon.", guidance: "PNG format, 192x192 pixels.", is_required: true },
-      { step_number: 3, step_key: "logo_32", title: "Logo 32x32 uploaded", description: "Upload the favicon.", guidance: "PNG format, 32x32 pixels. Used in browser tabs.", is_required: true },
-      { step_number: 4, step_key: "logo_16", title: "Logo 16x16 uploaded", description: "Upload the small favicon.", guidance: "PNG format, 16x16 pixels.", is_required: true },
-      { step_number: 5, step_key: "logo_apple_touch", title: "Apple Touch Icon 180x180 uploaded", description: "Upload the Apple touch icon.", guidance: "PNG format, 180x180 pixels. Used when saving to iOS home screen.", is_required: true },
-      { step_number: 6, step_key: "og_image", title: "OG Image 1200x630 uploaded", description: "Upload the social sharing image.", guidance: "Used when the website is shared on social media. 1200x630 pixels.", is_required: true },
-      { step_number: 7, step_key: "brand_colours", title: "Brand colours added (minimum 1 colour entry)", description: "Add brand colours.", guidance: "Add at least the primary brand colour. Hex values required.", is_required: true },
-      { step_number: 8, step_key: "brand_fonts", title: "Brand fonts added (minimum 1 font entry)", description: "Add brand fonts.", guidance: "Specify heading and body fonts. Use Google Fonts names.", is_required: true },
-      { step_number: 9, step_key: "gdrive_link", title: "Google Drive media folder link saved", description: "Save the media folder link.", guidance: "Paste the shared Google Drive link containing all client media.", is_required: true },
-      { step_number: 10, step_key: "assets_confirmed", title: "Client confirms all assets are final", description: "Get client confirmation.", guidance: "Confirm the client has provided all final assets and no changes are expected.", is_required: true },
+      { step_number: 1, step_key: "logo_512", title: "Logo uploaded", description: "Upload the main brand logo.", guidance: "PNG format, transparent background preferred. Will be used as the primary logo across the site.", is_required: true },
+      { step_number: 2, step_key: "logo_32", title: "Favicon uploaded", description: "Upload the browser favicon.", guidance: "PNG format, 32×32 pixels. Used in browser tabs.", is_required: true },
+      { step_number: 3, step_key: "og_image", title: "Sharing image uploaded", description: "Upload the social sharing image.", guidance: "Used when the website is shared on social media. 1200×630 pixels.", is_required: true },
+      { step_number: 4, step_key: "brand_fonts", title: "Brand fonts selected (up to 3)", description: "Select brand fonts.", guidance: "Choose up to 3 Google Fonts for headings, body, and accent text.", is_required: true },
+      { step_number: 5, step_key: "brand_colours", title: "Colour hex codes provided (Primary / Secondary / Accent)", description: "Provide brand colour hex codes.", guidance: "Primary (required), Secondary, and Accent colour hex values.", is_required: true },
+      { step_number: 6, step_key: "assets_confirmed", title: "Client confirms all assets are final", description: "Get client confirmation of all assets.", guidance: "Confirm the client has reviewed and approved all brand assets.", is_required: true },
     ],
   });
 

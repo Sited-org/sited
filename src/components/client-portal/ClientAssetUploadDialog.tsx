@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const IMAGE_SLOTS = [
-  { key: 'logo_512', label: 'Logo', desc: 'Main brand logo', dims: '512×512 recommended' },
+  { key: 'logo_512', label: 'Logo', desc: 'Main brand logo', dims: 'PNG recommended' },
   { key: 'logo_32', label: 'Favicon', desc: 'Browser tab icon', dims: '32×32' },
   { key: 'og_image', label: 'Sharing Image', desc: 'Social media preview', dims: '1200×630' },
 ] as const;

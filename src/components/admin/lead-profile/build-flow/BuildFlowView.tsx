@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   CheckCircle2, Lock, Circle, ChevronRight, ChevronDown,
-  Eye, EyeOff, Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send, Mail
+  Globe, SkipForward, ExternalLink, FileText, FileDown, AlertTriangle, CreditCard, Send, Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';

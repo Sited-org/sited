@@ -271,7 +271,6 @@ export function CreateRequestDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="asset_upload">Asset Upload</SelectItem>
-                  <SelectItem value="asset_collection">Brand Asset Collection</SelectItem>
                   <SelectItem value="review">Review & Approve</SelectItem>
                   <SelectItem value="information">Provide Information</SelectItem>
                 </SelectContent>
