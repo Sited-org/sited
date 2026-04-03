@@ -47,6 +47,7 @@ function guessTimezoneFromLocation(location: string): string {
 interface TimeSlot {
   time: string;
   available: boolean;
+  adminTime?: string;
 }
 
 interface OnboardingBookingDialogProps {
