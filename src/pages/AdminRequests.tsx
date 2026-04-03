@@ -566,11 +566,11 @@ export default function AdminRequests() {
             ))}
           </SelectContent>
         </Select>
-        {(clientFilter !== 'all' || sourceFilter !== 'all') && (
+        {clientFilter !== 'all' && (
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => { setClientFilter('all'); setSourceFilter('all'); }}
+            onClick={() => setClientFilter('all')}
             className="shrink-0"
           >
             Clear filters
