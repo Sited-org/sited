@@ -1,97 +1,91 @@
 
 
-# Client Portal Overhaul: Build Flow Integration, Notifications & Asset Upload
+# Build Flow & Client Portal Integration: Bug Audit
 
-## Summary
+## Bugs Found
 
-The client portal currently tracks "Development Progress" via a separate `workflow_data` JSON blob on the leads table (frontend/backend/integrations/AI stages), which is disconnected from the actual build flow phases used in the admin. This plan links the portal to the real build flow, adds admin/developer-initiated request notifications, and enables in-portal asset uploads.
+### Bug 1: `build-assets` Bucket is Private — Public URLs Won't Work
+**Severity: Critical**
 
----
+The `build-assets` storage bucket is set to `public: false`. Both the admin `ClientAssetsPanel` (line 87) and the client `upload-client-asset` edge function (line 216) call `getPublicUrl()` and store the returned URL in `client_assets`. These URLs are inaccessible without authentication — images will return 403 errors when rendered in `<img>` tags in both the admin panel and the client portal.
 
-## Changes
+**Fix**: Make the `build-assets` bucket public via migration. Brand assets (logos, favicons, OG images) are inherently public resources used on client websites. Alternatively, use signed URLs, but since these are meant for website deployment, public is correct.
 
-### 1. Link Development Progress to Real Build Flow Phases
+### Bug 2: Client Asset Upload Doesn't Auto-Complete P2 Steps
+**Severity: High**
 
-**Current state**: `WebsiteTab.tsx` reads `workflow_data` from leads and renders hardcoded stage definitions (Frontend, Backend, Integrations, AI).
+When a client uploads a logo via `ClientAssetUploadDialog`, the `upload-client-asset` edge function saves the file and updates `client_assets`, but it does **not** mark the corresponding P2 build step (`logo_512`, `logo_32`, `og_image`) as complete. Similarly, when brand data (colours/fonts) is submitted via the `save_brand_data` action, steps `brand_colours` and `brand_fonts` are not auto-completed.
 
-**New behavior**: Replace the workflow tracker with a read-only view of the actual `build_phases` and `build_steps` tables. Show each phase with its steps, completion status, and progress percentage.
+The admin `ClientAssetsPanel` has auto-complete logic (`checkAndAutoCompleteBrandColoursStep`) but the client portal flow bypasses this entirely.
 
-**Backend (`get-client-data/index.ts`)**: Add queries for `build_flows`, `build_phases`, and `build_steps` for the lead. Return them in the response alongside existing data. Filter to only include `is_visible_to_client = true` step completions.
+**Fix**: In the `upload-client-asset` edge function, after a successful file upload or brand data save, look up the matching `build_steps` record by `step_key` and mark it complete (using the system UUID `00000000-...`). This mirrors the deposit auto-complete pattern.
 
-**Frontend (`WebsiteTab.tsx`)**: Replace `STAGE_DEFINITIONS` and `WorkflowData` with the real phase/step data. Render each phase as a collapsible section with step completion indicators.
+### Bug 3: `notify-client-portal` Email Doesn't Recognize `asset_collection` Action Type
+**Severity: Medium**
 
-### 2. Add "Admin Requests" Section to Dashboard + Requests Tab
+The `BuildFlowView` (line 287) creates requests with `action_type: 'asset_collection'`. The `notify-client-portal` email template (line 54) only checks for `action_type === 'asset_upload'` to customize the message. When `asset_collection` is sent, the client gets a generic "Your team has a new update" message instead of "Your team needs you to upload brand assets."
 
-**Current state**: Dashboard shows "Active Requests" (client-submitted). No distinction between client-initiated and admin/developer-initiated requests.
+**Fix**: Update `notify-client-portal` to also check for `'asset_collection'` in the `actionLabel` conditional.
 
-**New behavior**: Split requests into two categories using the existing `request_source` column:
-- **My Requests**: `request_source = 'manual'` or submitted by client
-- **Admin Requests**: `request_source = 'admin'` or requests created by admin/developer (via `CreateRequestDialog`)
+### Bug 4: `ClientRequest` Interface in `ClientPortalDashboard` Missing New Fields
+**Severity: Medium**
 
-**Database change**: Add a `requires_client_action` boolean column to `client_requests` (default false). When an admin creates a request that needs client response (e.g., asset upload), they flag it. Also add `action_type` text column (nullable) for special actions like `'asset_upload'`.
+The `ClientRequest` interface (line 61-71) in `ClientPortalDashboard.tsx` does not include `request_source`, `requires_client_action`, or `action_type`. These fields are returned by `get-client-data` and used by `ClientOverviewTab` and `MyRequestsTab`, but TypeScript won't enforce their presence since the data is cast to this interface.
 
-**Dashboard (`ClientOverviewTab.tsx`)**: Add an "Admin Requests" card alongside "Active Requests", showing requests where `request_source != 'manual'` and status is pending/in_progress. Show a notification badge count.
+While this works at runtime (the fields still exist on the object), it's a type-safety gap that could cause silent failures during refactoring.
 
-**Requests tab (`MyRequestsTab.tsx`)**: Add a section header "From Your Team" above admin-originated requests, distinct from "My Requests".
+**Fix**: Add the missing fields to the `ClientRequest` interface in `ClientPortalDashboard.tsx`.
 
-### 3. Notification System: Email Client on Admin/Developer Requests
+### Bug 5: P2S6 "Client Confirmation" Has No Mechanism
+**Severity: Medium**
 
-**Current state**: `notify-client-request` only emails admins when a client submits a request. No reverse notification exists.
+Step `assets_confirmed` (P2S6) is defined in the build flow but there is no client-facing button or confirmation flow. The client can upload assets and submit brand data, but there's no way for them to signal "I confirm all assets are final." Currently only an admin can mark this step complete manually.
 
-**New edge function (`notify-client-portal`)**: When an admin or developer creates a request targeting a client (via `CreateRequestDialog` with `created_by_admin: true`), send an email to the client with:
-- Request title and description
-- Direct link to client portal (`https://sited.co/client-portal`)
-- Call-to-action to log in and respond
+**Fix**: After the client submits brand data in `ClientAssetUploadDialog`, add a confirmation step or auto-create a client request with `action_type: 'confirm_assets'` that the client can approve from their requests tab.
 
-**Trigger**: Modify `CreateRequestDialog` to call this new function after successful request creation. The existing `notify-client-request` continues notifying admins for client-submitted requests.
+### Bug 6: Duplicate Asset Collection Requests
+**Severity: Low**
 
-### 4. In-Portal Asset Upload (Client-Facing)
+The "Send Asset Collection Form to Client" button in `BuildFlowView` (line 263-309) has no guard against duplicate sends. An admin can click it multiple times, creating multiple `client_requests` records with `action_type: 'asset_collection'` and sending duplicate emails.
 
-**Current state**: Asset collection happens entirely within the admin `ClientAssetsPanel`. Clients have no way to upload assets through their portal.
-
-**New behavior**: When an admin request has `action_type = 'asset_upload'`, the client portal shows an "Upload Assets" button that opens a dialog for uploading logos, images, and brand files.
-
-**New component (`ClientAssetUploadDialog.tsx`)**: A simplified version of `ClientAssetsPanel` with:
-- Logo upload slots (matching the LOGO_SLOTS from admin)
-- General file upload for brand guidelines, media
-- Files uploaded to `build-assets` storage bucket under the client's lead path
-- On upload, update the `client_assets` record (same table the admin panel uses)
-- Auto-complete the relevant `build_steps` (e.g., `logo_512`) when the client uploads
-
-**Edge function (`upload-client-asset/index.ts`)**: New function to handle client-side uploads with session token auth. Validates the session, uploads to `build-assets` bucket, updates `client_assets` table, and optionally auto-completes the corresponding build step.
-
-### 5. Payment History Linking
-
-**Current state**: `get-client-data` already returns transactions, and `PaymentsTab` displays them. But the dashboard doesn't surface payment status relative to the build flow.
-
-**Enhancement**: The deposit status is already shown via P1S3 in the new build flow progress view (change #1). No additional linking needed beyond ensuring the progress tracker correctly reflects paid/unpaid deposit status.
+**Fix**: Before inserting, check if an active (pending/in_progress) `asset_collection` request already exists for this lead.
 
 ---
 
-## Files to Create
+## Plan
 
-| File | Purpose |
-|------|---------|
-| `src/components/client-portal/ClientAssetUploadDialog.tsx` | In-portal asset upload dialog for clients |
-| `supabase/functions/notify-client-portal/index.ts` | Email clients when admin/dev creates a request |
-| `supabase/functions/upload-client-asset/index.ts` | Handle client-side asset uploads with session auth |
+### Step 1: Make `build-assets` bucket public
+Database migration to update the bucket's `public` flag.
 
-## Files to Modify
+### Step 2: Auto-complete P2 steps from client uploads
+Modify `upload-client-asset/index.ts` to mark the corresponding build step complete after a successful file upload (`logo_512`, `logo_32`, `og_image`) or brand data save (`brand_fonts`, `brand_colours`).
+
+### Step 3: Fix `notify-client-portal` action type check
+Update the `actionLabel` conditional to include `'asset_collection'`.
+
+### Step 4: Fix TypeScript interface in `ClientPortalDashboard`
+Add `request_source`, `requires_client_action`, and `action_type` to the `ClientRequest` interface.
+
+### Step 5: Add duplicate guard for asset collection button
+Check for existing active asset collection request before creating a new one.
+
+### Step 6: Add client confirmation mechanism for P2S6
+After brand data submission, show a "Confirm All Assets" button in the dialog that creates/updates a confirmation request and auto-completes P2S6.
+
+---
+
+## Files to modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/get-client-data/index.ts` | Add build_flows, build_phases, build_steps queries |
-| `src/components/client-portal/WebsiteTab.tsx` | Replace workflow_data tracker with real build flow phases |
-| `src/components/client-portal/ClientOverviewTab.tsx` | Add "Admin Requests" section, notification counts |
-| `src/components/client-portal/MyRequestsTab.tsx` | Split requests into "My Requests" and "From Your Team" sections |
-| `src/components/admin/lead-profile/CreateRequestDialog.tsx` | Add `requires_client_action` and `action_type` fields; call `notify-client-portal` |
-| `src/pages/ClientPortalDashboard.tsx` | Pass build flow data to WebsiteTab |
+| `supabase/functions/upload-client-asset/index.ts` | Auto-complete P2 build steps on upload/save |
+| `supabase/functions/notify-client-portal/index.ts` | Add `asset_collection` to action label check |
+| `src/pages/ClientPortalDashboard.tsx` | Add missing fields to ClientRequest interface |
+| `src/components/admin/lead-profile/build-flow/BuildFlowView.tsx` | Add duplicate guard for asset collection button |
+| `src/components/client-portal/ClientAssetUploadDialog.tsx` | Add "Confirm All Assets" final step |
 
-## Database Migration
-
+## Database migration
 ```sql
-ALTER TABLE public.client_requests
-  ADD COLUMN IF NOT EXISTS requires_client_action boolean DEFAULT false,
-  ADD COLUMN IF NOT EXISTS action_type text;
+UPDATE storage.buckets SET public = true WHERE id = 'build-assets';
 ```
 
