@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard } from "lucide-react";
+import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useFeaturedTestimonials } from "@/hooks/useTestimonials";
+import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
