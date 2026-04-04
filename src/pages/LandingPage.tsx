@@ -410,7 +410,7 @@ const LandingPage = () => {
               <div className="hidden lg:flex items-center gap-6 mt-10">
                 {[
                   { icon: Shield, text: "Money-Back Guarantee" },
-                  { icon: Clock, text: "7 Day Delivery" },
+                  { icon: Clock, text: "3 Day Delivery" },
                   { icon: Zap, text: "95+ Speed Score" },
                 ].map((badge) => (
                   <div key={badge.text} className="flex items-center gap-2 text-sm text-muted-foreground">
