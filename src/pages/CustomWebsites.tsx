@@ -7,6 +7,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { format } from "date-fns";
