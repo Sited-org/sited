@@ -232,8 +232,8 @@ const LandingPage = () => {
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
-  const { prices } = usePackagePrices();
-  const OFFER = makeOffer(prices["basic-deposit"] ?? 499);
+  const { prices, depositAmount } = usePackagePrices();
+  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
 
   // Form state
   const [name, setName] = useState("");
