@@ -39,7 +39,9 @@ const reviews = [
   },
 ];
 
-const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index: number }) => {
+interface SiteData { name: string; url: string; screenshot: string; }
+
+const MiniMacBookCard = ({ site, index }: { site: SiteData; index: number }) => {
   const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
