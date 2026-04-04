@@ -33,9 +33,9 @@ const CRMMockup = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full force-light"
+      className="relative w-full"
     >
-      <div className="backdrop-blur-xl bg-card/80 border border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+      <div className="force-light bg-card border border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-border/50">
           <div className="flex items-center justify-between mb-3 sm:mb-4">

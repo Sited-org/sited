@@ -20,9 +20,9 @@ const ClientProfileMockup = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full force-light"
+      className="relative w-full"
     >
-      <div className="backdrop-blur-xl bg-card/80 border border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
+      <div className="force-light bg-card border border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
         {/* Profile Header */}
         <div className="p-5 sm:p-8 border-b border-border/50">
           <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
