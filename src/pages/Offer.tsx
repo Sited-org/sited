@@ -514,7 +514,7 @@ const Offer = () => {
                               onClick={() => setShowPayment(true)}
                               className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
                             >
-                              Secure Your Website — $49
+                              Secure Your Website — ${depositAmount}
                               <ArrowRight size={16} />
                             </motion.button>
                           )}
