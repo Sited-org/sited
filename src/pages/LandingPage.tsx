@@ -424,7 +424,7 @@ const LandingPage = () => {
               <div className="hidden lg:flex items-center gap-8 mt-10 pt-8 border-t border-border">
                 {[
                   { value: "200+", label: "Websites Built" },
-                  { value: "7", label: "Day Average Delivery" },
+                  { value: "3", label: "Day Average Delivery" },
                   { value: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`, label: "All-In Package" },
                 ].map((stat) => (
                   <div key={stat.label}>
