@@ -35,7 +35,7 @@ const elementStyle = {
   invalid: { color: "#ef4444" },
 };
 
-const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone }: OfferPaymentFormProps) => {
+const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone, depositAmount = 49 }: OfferPaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [cardName, setCardName] = useState(prefillName || "");
