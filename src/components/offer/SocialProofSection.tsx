@@ -180,24 +180,25 @@ const SocialProofSection = () => {
         })}
       </div>
 
-      {/* Website Showcase — 2 side-by-side */}
-      <div className="space-y-4">
-        <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Live Client Websites
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:gap-5">
-          {showcaseSites.map((site, i) => (
-            <motion.div
-              key={site.name}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 + i * 0.15 }}
-            >
-              <MiniMacBookCard site={site} index={i} />
-            </motion.div>
-          ))}
+      {dynamicSites.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Live Client Websites
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
+            {dynamicSites.slice(0, 2).map((site, i) => (
+              <motion.div
+                key={site.url}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 + i * 0.15 }}
+              >
+                <MiniMacBookCard site={site} index={i} />
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Trusted By Logos */}
       <div className="space-y-4">
