@@ -5,15 +5,6 @@ const clientSites = [
   { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
   { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
   { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
-  { name: "Bloom Floristry", url: "https://bloomfloristry.com" },
-  { name: "Urban Fitness", url: "https://urbanfitness.com" },
-  { name: "Coastal Realty", url: "https://coastalrealty.com" },
-  { name: "Summit Builders", url: "https://summitbuilders.com.au" },
-  { name: "Paws & Claws", url: "https://pawsandclaws.com.au" },
-  { name: "Horizon Travel", url: "https://horizontravel.com.au" },
-  { name: "Brew Culture", url: "https://brewculture.com.au" },
-  { name: "Peak Performance", url: "https://peakperformance.com.au" },
-  { name: "Silver Lining Co", url: "https://silverliningco.com.au" },
 ];
 
 
@@ -145,16 +136,8 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   );
 };
 
-const INITIAL_VISIBLE = 4;
-const LOAD_MORE_STEP = 4;
-const MAX_LOADS = 3;
 
 export const WebsiteShowcaseGrid = () => {
-  const [extraLoads, setExtraLoads] = useState(0);
-  const visibleCount = INITIAL_VISIBLE + extraLoads * LOAD_MORE_STEP;
-  const visibleSites = clientSites.slice(0, visibleCount);
-  const canLoadMore = extraLoads < MAX_LOADS && visibleCount < clientSites.length;
-
   return (
     <section className="py-16 sm:py-24 bg-background">
       <div className="w-[92%] max-w-[1400px] mx-auto">
@@ -177,7 +160,7 @@ export const WebsiteShowcaseGrid = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {visibleSites.map((site, i) => (
+          {clientSites.map((site, i) => (
             <motion.div
               key={site.name}
               initial={{ opacity: 0, y: 20 }}
@@ -189,21 +172,6 @@ export const WebsiteShowcaseGrid = () => {
             </motion.div>
           ))}
         </div>
-
-        {canLoadMore && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mt-10"
-          >
-            <button
-              onClick={() => setExtraLoads((prev) => prev + 1)}
-              className="px-8 py-3 rounded-lg border-2 border-border text-foreground font-bold text-sm uppercase tracking-wider hover:bg-muted transition-colors"
-            >
-              See More
-            </button>
-          </motion.div>
-        )}
       </div>
     </section>
   );

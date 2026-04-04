@@ -4,9 +4,6 @@ const SITES = [
   { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
   { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
   { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
-  { name: "Bloom Floristry", url: "https://bloomfloristry.com" },
-  { name: "Urban Fitness", url: "https://urbanfitness.com" },
-  { name: "Coastal Realty", url: "https://coastalrealty.com" },
 ];
 
 const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: number }) => {
