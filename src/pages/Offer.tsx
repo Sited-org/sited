@@ -153,8 +153,8 @@ const Offer = () => {
   }, [navigate]);
 
   usePageSEO({
-    title: "Secure Your Website | Sited — $49 Deposit",
-    description: "Get a fully custom website with just a $49 refundable deposit. Choose Blue, Gold, or Platinum.",
+    title: `Secure Your Website | Sited — $${depositAmount} Deposit`,
+    description: `Get a fully custom website with just a $${depositAmount} refundable deposit. Choose Blue, Gold, or Platinum.`,
   });
 
   if (loading) {
