@@ -738,7 +738,7 @@ const Offer = () => {
                     </h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       If you <span className="font-black text-foreground">don't love</span> the website we build — you get a{" "}
-                      <span className="font-black text-sited-blue">full refund of your $49 deposit</span>. No questions asked.
+                      <span className="font-black text-sited-blue">full refund of your ${depositAmount} deposit</span>. No questions asked.
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                       If you <span className="font-black text-foreground">love it</span> and want to work with us — we deliver your completed project within{" "}
