@@ -104,7 +104,7 @@ const fadeUp = {
   }),
 };
 
-const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testTestimonials[0]; index: number }) => {
+const TestimonialCard = ({ testimonial, index }: { testimonial: { name: string; business: string; text: string; role: string }; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
