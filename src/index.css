@@ -205,10 +205,10 @@
 /* Iframe scroll — uses CSS custom property for exact pixel distance */
 @keyframes scrollIframe {
   0%   { transform: translateY(0); }
-  5%   { transform: translateY(0); }
-  45%  { transform: translateY(var(--scroll-distance, -2000px)); }
-  55%  { transform: translateY(var(--scroll-distance, -2000px)); }
-  95%  { transform: translateY(0); }
+  8%   { transform: translateY(0); }
+  42%  { transform: translateY(var(--scroll-distance, -2000px)); }
+  58%  { transform: translateY(var(--scroll-distance, -2000px)); }
+  92%  { transform: translateY(0); }
   100% { transform: translateY(0); }
 }
 
