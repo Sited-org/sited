@@ -76,7 +76,7 @@ const makeTiers = (prices: Record<string, number>, deposit: number): Record<stri
     id: "platinum",
     name: "Platinum",
     tagline: "Built for those ready to dominate their market",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["platinum"]?.toLocaleString() ?? "1,149"}`,
     usualPrice: "$3,359",
     savings: `$${(3359 - (prices["platinum"] ?? 1149)).toLocaleString()}`,
