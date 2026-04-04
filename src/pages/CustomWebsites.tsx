@@ -430,7 +430,7 @@ const CustomWebsites = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testTestimonials.map((testimonial, i) => (
+            {displayTestimonials.map((testimonial, i) => (
               <ScrollReveal key={i} delay={i * 0.1} direction="up">
                 <TestimonialCard testimonial={testimonial} index={i} />
               </ScrollReveal>
