@@ -236,6 +236,13 @@ const LandingPage = () => {
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
   const { prices, depositAmount } = usePackagePrices();
+  
+  // Dynamic testimonials from DB, with fallback
+  const testimonials = featuredTestimonials && featuredTestimonials.length > 0
+    ? featuredTestimonials.map(t => ({ text: t.testimonial_text, author: t.testimonial_author, role: t.testimonial_role, video_url: t.video_url }))
+    : fallbackTestimonials.map(t => ({ ...t, video_url: null as string | null }));
+  
+  const videoTestimonials = testimonials.filter(t => t.video_url);
   const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
 
   // Form state
