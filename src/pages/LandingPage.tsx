@@ -599,15 +599,10 @@ const LandingPage = () => {
               Don't Take Our <span className="text-sited-blue">Word</span> For It
             </h2>
           </motion.div>
-          <div className="space-y-0">
-            {testimonials.map((t, i) => (
-              <TestimonialBlock key={t.author} testimonial={t} index={i} />
-            ))}
-          </div>
 
-          {/* Video Testimonials */}
+          {/* Video Testimonials — above text */}
           {videoTestimonials.length > 0 && (
-            <div className="mt-12">
+            <div className="mb-10">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {videoTestimonials.slice(0, 2).map((t, i) => (
                   <motion.div
@@ -623,6 +618,12 @@ const LandingPage = () => {
               </div>
             </div>
           )}
+
+          <div className="space-y-0">
+            {testimonials.map((t, i) => (
+              <TestimonialBlock key={t.author} testimonial={t} index={i} />
+            ))}
+          </div>
         </div>
       </ThemeSwitchSection>
 
