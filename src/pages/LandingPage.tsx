@@ -352,7 +352,7 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative">
+    <div className="min-h-screen bg-background text-foreground relative overscroll-none">
       {/* ── Scroll progress bar ── */}
       <motion.div className="fixed top-0 left-0 h-1 bg-sited-blue z-50" style={{ width: progressWidth }} />
 
