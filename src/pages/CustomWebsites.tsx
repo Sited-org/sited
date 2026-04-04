@@ -89,25 +89,10 @@ const tiers: Tier[] = [
   },
 ];
 
-const testTestimonials = [
-  {
-    name: "Sarah Mitchell",
-    business: "Bloom & Co Floristry",
-    text: "We went from barely getting found on Google to fully booked within three months. The website Sited built us doesn't just look good — it actually brings in business.",
-    role: "Owner",
-  },
-  {
-    name: "James Thornton",
-    business: "Thornton Plumbing",
-    text: "I was skeptical about paying for a website, but the ROI has been unreal. More calls, more bookings, and I don't have to chase leads anymore — they come to me.",
-    role: "Director",
-  },
-  {
-    name: "Priya Kapoor",
-    business: "Kapoor Legal",
-    text: "Our old site was embarrassing. Sited gave us something we're actually proud of — and our enquiry rate tripled in the first month. No exaggeration.",
-    role: "Principal Solicitor",
-  },
+const fallbackTestimonials = [
+  { name: "Sarah Mitchell", business: "Bloom & Co Floristry", text: "We went from barely getting found on Google to fully booked within three months. The website Sited built us doesn't just look good — it actually brings in business.", role: "Owner" },
+  { name: "James Thornton", business: "Thornton Plumbing", text: "I was skeptical about paying for a website, but the ROI has been unreal. More calls, more bookings, and I don't have to chase leads anymore — they come to me.", role: "Director" },
+  { name: "Priya Kapoor", business: "Kapoor Legal", text: "Our old site was embarrassing. Sited gave us something we're actually proud of — and our enquiry rate tripled in the first month. No exaggeration.", role: "Principal Solicitor" },
 ];
 
 const fadeUp = {
