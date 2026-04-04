@@ -201,7 +201,7 @@ const InvoiceBreakdown = ({
               style={{ backgroundColor: "hsl(202, 74%, 69%)" }}
             >
               <Lock size={14} />
-              Secure My Website — Pay $49
+              Secure My Website — Pay ${offer.depositAmount}
               <ChevronRight size={16} />
             </button>
           </motion.div>
