@@ -99,7 +99,7 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
               loading="lazy"
               onLoad={(e) => {
                 const img = e.currentTarget;
-                const dist = img.offsetHeight - viewportH;
+                const dist = img.offsetHeight - viewportH - 4;
                 setScrollDistance(dist > 0 ? dist : 0);
                 setLoaded(true);
               }}

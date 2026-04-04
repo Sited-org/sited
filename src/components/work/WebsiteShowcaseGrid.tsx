@@ -101,7 +101,7 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
                 loading="lazy"
                 onLoad={(e) => {
                   const img = e.currentTarget;
-                  const dist = img.offsetHeight - viewportH;
+                  const dist = img.offsetHeight - viewportH - 4;
                   setScrollDistance(dist > 0 ? dist : 0);
                   setLoaded(true);
                 }}
