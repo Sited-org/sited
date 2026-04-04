@@ -136,9 +136,6 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   );
 };
 
-const INITIAL_VISIBLE = 4;
-const LOAD_MORE_STEP = 4;
-const MAX_LOADS = 3;
 
 export const WebsiteShowcaseGrid = () => {
   const [extraLoads, setExtraLoads] = useState(0);
