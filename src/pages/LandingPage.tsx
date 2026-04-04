@@ -185,7 +185,7 @@ const InvoiceBreakdown = ({
           <div>
             <p className="text-xs font-black text-gray-900 uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Don't love the website? <span className="font-bold text-gray-900">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(offer.totalPrice - 49).toLocaleString()} within 7 days of delivery.
+              Don't love the website? <span className="font-bold text-gray-900">Full ${offer.depositAmount} refund</span> — no questions asked. Love it? Pay the remaining ${(offer.totalPrice - offer.depositAmount).toLocaleString()} within 7 days of delivery.
             </p>
           </div>
         </div>
