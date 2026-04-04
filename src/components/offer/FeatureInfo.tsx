@@ -85,6 +85,11 @@ export const FEATURE_INFO: Record<string, FeatureDetail> = {
     description: "Full-featured client portal with real-time project tracker, file uploads, request management, payment history, and direct messaging.",
     benefit: "Professional client experience that builds trust and retention.",
   },
+  "Staff portal": {
+    title: "Staff Portal",
+    description: "A dedicated workspace for your team with role-based access, task management, and internal tools — built for managers, sales, finance, developers, and more.",
+    benefit: "Streamline operations and empower your team with the right tools for their role.",
+  },
   "Built-in AI chatbot": {
     title: "Built-in AI Chatbot",
     description: "An intelligent chatbot trained on your business that answers questions, captures leads, and books appointments — even while you sleep. 24/7 automated sales.",

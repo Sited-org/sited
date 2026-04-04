@@ -117,7 +117,6 @@ const ShowcaseSection = ({
         </ScrollSlideIn>
         <div className={`relative ${reversed ? "lg:col-start-1" : ""}`}>
           {children}
-          <InteractiveHint />
         </div>
       </div>
     </div>
@@ -264,8 +263,8 @@ const Features = () => {
 
         <ShowcaseSection
           label="Website Design & Development"
-          title="Websites That Convert"
-          description="Clean design, clear messaging, fast loading — built to turn visitors into enquiries. Custom-built for your brand, delivered in days."
+  title="Clean & Simple Booking Systems"
+          description="Let clients book directly from your website with real-time availability, timezone support, and automatic reminders — no back-and-forth needed."
           onCta={() => setCtaOpen(true)}
         >
           <CalendarMockup />
