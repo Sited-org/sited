@@ -142,7 +142,12 @@ const CustomWebsites = () => {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const { data: blogPosts } = usePublicBlogPosts();
+  const { data: dbTestimonials } = useHomepageTestimonials();
   const recentPosts = (blogPosts || []).slice(0, 3);
+  
+  const displayTestimonials = dbTestimonials && dbTestimonials.length > 0
+    ? dbTestimonials.map(t => ({ name: t.testimonial_author, business: t.business_name, text: t.testimonial_text, role: t.testimonial_role }))
+    : fallbackTestimonials;
 
   usePageSEO({
     title: "Custom Websites | Sited — Built to Convert",
