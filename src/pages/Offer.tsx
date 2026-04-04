@@ -323,6 +323,7 @@ const Offer = () => {
                       <OfferPaymentForm
                         tier={selectedTier}
                         tierName="Blue"
+                        depositAmount={depositAmount}
                         onSuccess={(info) => {
                           setCustomerInfo(info);
                           setPaymentComplete(true);
