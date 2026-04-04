@@ -900,6 +900,7 @@ const Offer = () => {
                       { feature: "Admin Dashboard", blue: false, gold: true, plat: true },
                       { feature: "Lead Management CRM", blue: false, gold: true, plat: true },
                       { feature: "Client Portal", blue: false, gold: false, plat: true },
+                      { feature: "Staff Portal", blue: false, gold: false, plat: true },
                       { feature: "AI Chatbot", blue: false, gold: false, plat: true },
                       { feature: "Custom Integrations", blue: false, gold: false, plat: true },
                       { feature: "Priority Support", blue: false, gold: false, plat: true },
