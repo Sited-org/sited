@@ -56,7 +56,7 @@ const testimonials = [
 
 /* ─── Process Steps ─── */
 const processSteps = [
-  { step: 1, title: "Secure Your Spot", desc: "Lock in your price with a $49 refundable deposit.", icon: Lock },
+  { step: 1, title: "Secure Your Spot", desc: "Lock in your price with a refundable deposit.", icon: Lock },
   { step: 2, title: "Book Discovery Call", desc: "We learn about your business, goals & vision.", icon: Users },
   { step: 3, title: "Receive Site in 7 Days", desc: "Your custom website, designed & built start to finish.", icon: Clock },
   { step: 4, title: "Love It / Make Changes", desc: "Request revisions until you're 100% satisfied.", icon: CheckCircle2 },
