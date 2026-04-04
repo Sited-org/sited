@@ -405,7 +405,7 @@ const Offer = () => {
                             <div className="flex items-start gap-2">
                               <Shield size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
                               <p className="text-xs text-muted-foreground">
-                                <span className="font-black text-foreground">Don't love it?</span> Full $49 refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
+                                <span className="font-black text-foreground">Don't love it?</span> Full ${depositAmount} refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
                               </p>
                             </div>
                           </div>
