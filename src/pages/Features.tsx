@@ -117,7 +117,6 @@ const ShowcaseSection = ({
         </ScrollSlideIn>
         <div className={`relative ${reversed ? "lg:col-start-1" : ""}`}>
           {children}
-          <InteractiveHint />
         </div>
       </div>
     </div>
