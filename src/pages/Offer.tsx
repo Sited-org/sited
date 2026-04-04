@@ -549,7 +549,7 @@ const Offer = () => {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield size={16} className="text-sited-blue" />
-                <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
+                <span className="font-bold">Don't love it?</span> Full ${depositAmount} refund — no questions asked.
               </div>
             </div>
 
