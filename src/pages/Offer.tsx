@@ -953,7 +953,7 @@ const Offer = () => {
                   onClick={() => { setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-sited-blue/30 transition-all"
                 >
-                  Secure Your Website — $49
+                  Secure Your Website — ${depositAmount}
                   <ArrowRight size={16} />
                 </motion.button>
                 <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
