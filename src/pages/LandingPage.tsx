@@ -70,6 +70,7 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
   const [viewportH, setViewportH] = useState(0);
+  const [imageHeight, setImageHeight] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,6 +86,11 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
     const t = setTimeout(() => setScrollActive(true), index * 600 + 1000);
     return () => clearTimeout(t);
   }, [loaded, index]);
+
+  useEffect(() => {
+    if (!imageHeight || !viewportH) return;
+    setScrollDistance(Math.max(0, imageHeight - viewportH));
+  }, [imageHeight, viewportH]);
 
   return (
     <div className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden">
@@ -102,7 +108,7 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
           ["--scroll-distance" as string]: `-${scrollDistance}px`,
         }}>
           <img src={site.screenshot} alt={`${site.name} website`} className="w-full h-auto block" loading="lazy"
-            onLoad={(e) => { const img = e.currentTarget; setScrollDistance(Math.max(0, img.offsetHeight - viewportH * 2)); setLoaded(true); }} />
+            onLoad={(e) => { const img = e.currentTarget; setImageHeight(img.offsetHeight); setLoaded(true); }} />
         </div>
         {!loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
       </div>
