@@ -7,6 +7,7 @@ import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { usePageSEO } from "@/hooks/usePageSEO";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { format } from "date-fns";
@@ -88,25 +89,10 @@ const tiers: Tier[] = [
   },
 ];
 
-const testTestimonials = [
-  {
-    name: "Sarah Mitchell",
-    business: "Bloom & Co Floristry",
-    text: "We went from barely getting found on Google to fully booked within three months. The website Sited built us doesn't just look good — it actually brings in business.",
-    role: "Owner",
-  },
-  {
-    name: "James Thornton",
-    business: "Thornton Plumbing",
-    text: "I was skeptical about paying for a website, but the ROI has been unreal. More calls, more bookings, and I don't have to chase leads anymore — they come to me.",
-    role: "Director",
-  },
-  {
-    name: "Priya Kapoor",
-    business: "Kapoor Legal",
-    text: "Our old site was embarrassing. Sited gave us something we're actually proud of — and our enquiry rate tripled in the first month. No exaggeration.",
-    role: "Principal Solicitor",
-  },
+const fallbackTestimonials = [
+  { name: "Sarah Mitchell", business: "Bloom & Co Floristry", text: "We went from barely getting found on Google to fully booked within three months. The website Sited built us doesn't just look good — it actually brings in business.", role: "Owner" },
+  { name: "James Thornton", business: "Thornton Plumbing", text: "I was skeptical about paying for a website, but the ROI has been unreal. More calls, more bookings, and I don't have to chase leads anymore — they come to me.", role: "Director" },
+  { name: "Priya Kapoor", business: "Kapoor Legal", text: "Our old site was embarrassing. Sited gave us something we're actually proud of — and our enquiry rate tripled in the first month. No exaggeration.", role: "Principal Solicitor" },
 ];
 
 const fadeUp = {
@@ -118,7 +104,7 @@ const fadeUp = {
   }),
 };
 
-const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testTestimonials[0]; index: number }) => {
+const TestimonialCard = ({ testimonial, index }: { testimonial: { name: string; business: string; text: string; role: string }; index: number }) => {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -156,7 +142,12 @@ const CustomWebsites = () => {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [expandedTier, setExpandedTier] = useState<string | null>(null);
   const { data: blogPosts } = usePublicBlogPosts();
+  const { data: dbTestimonials } = useHomepageTestimonials();
   const recentPosts = (blogPosts || []).slice(0, 3);
+  
+  const displayTestimonials = dbTestimonials && dbTestimonials.length > 0
+    ? dbTestimonials.map(t => ({ name: t.testimonial_author, business: t.business_name, text: t.testimonial_text, role: t.testimonial_role }))
+    : fallbackTestimonials;
 
   usePageSEO({
     title: "Custom Websites | Sited — Built to Convert",
@@ -439,7 +430,7 @@ const CustomWebsites = () => {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testTestimonials.map((testimonial, i) => (
+            {displayTestimonials.map((testimonial, i) => (
               <ScrollReveal key={i} delay={i * 0.1} direction="up">
                 <TestimonialCard testimonial={testimonial} index={i} />
               </ScrollReveal>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard } from "lucide-react";
+import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useFeaturedTestimonials } from "@/hooks/useTestimonials";
+import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -47,8 +48,8 @@ const fallbackSites = [
   { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
 ];
 
-/* ─── Testimonials ─── */
-const testimonials = [
+/* ─── Fallback Testimonials (used if DB is empty) ─── */
+const fallbackTestimonials = [
   { text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.", author: "Ben Brown", role: "Owner, Ingle & Brown Conveyancing" },
   { text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.", author: "Beata Fuller", role: "CEO, Wisdom Education" },
   { text: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.", author: "Sarah Mitchell", role: "Founder, Bloom Floristry" },
@@ -59,7 +60,7 @@ const testimonials = [
 const processSteps = [
   { step: 1, title: "Secure Your Spot", desc: "Lock in your price with a refundable deposit.", icon: Lock },
   { step: 2, title: "Book Discovery Call", desc: "We learn about your business, goals & vision.", icon: Users },
-  { step: 3, title: "Receive Site in 7 Days", desc: "Your custom website, designed & built start to finish.", icon: Clock },
+  { step: 3, title: "Receive Site in 3 Days", desc: "Your custom website, designed & built start to finish.", icon: Clock },
   { step: 4, title: "Love It / Make Changes", desc: "Request revisions until you're 100% satisfied.", icon: CheckCircle2 },
   { step: 5, title: "FEEL The Difference", desc: "Launch your site & watch your business grow.", icon: Zap },
 ];
@@ -235,6 +236,13 @@ const LandingPage = () => {
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
   const { prices, depositAmount } = usePackagePrices();
+  
+  // Dynamic testimonials from DB, with fallback
+  const testimonials = featuredTestimonials && featuredTestimonials.length > 0
+    ? featuredTestimonials.map(t => ({ text: t.testimonial_text, author: t.testimonial_author, role: t.testimonial_role, video_url: t.video_url }))
+    : fallbackTestimonials.map(t => ({ ...t, video_url: null as string | null }));
+  
+  const videoTestimonials = testimonials.filter(t => t.video_url);
   const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
 
   // Form state
@@ -397,12 +405,12 @@ const LandingPage = () => {
             {/* Left — Copy (wider on desktop) */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 lg:pt-8">
               <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[0.92]">
-                KILLER WEBSITE in<br />
-                <span className="text-sited-blue">7 days</span> or less
+                Custom Website in<br />
+                <span className="text-sited-blue">3 days</span> or less
               </h1>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST ${prices["basic-deposit"]?.toLocaleString() ?? "499"}</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
-                Start for just <span className="text-foreground font-bold">${depositAmount}</span>. Your full website is built in 7 days.
+                Start for just <span className="text-foreground font-bold">${depositAmount}</span>. Your full website is built in 3 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
               </p>
 
@@ -410,7 +418,7 @@ const LandingPage = () => {
               <div className="hidden lg:flex items-center gap-6 mt-10">
                 {[
                   { icon: Shield, text: "Money-Back Guarantee" },
-                  { icon: Clock, text: "7 Day Delivery" },
+                  { icon: Clock, text: "3 Day Delivery" },
                   { icon: Zap, text: "95+ Speed Score" },
                 ].map((badge) => (
                   <div key={badge.text} className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -424,7 +432,7 @@ const LandingPage = () => {
               <div className="hidden lg:flex items-center gap-8 mt-10 pt-8 border-t border-border">
                 {[
                   { value: "200+", label: "Websites Built" },
-                  { value: "7", label: "Day Average Delivery" },
+                  { value: "3", label: "Day Average Delivery" },
                   { value: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`, label: "All-In Package" },
                 ].map((stat) => (
                   <div key={stat.label}>
@@ -591,6 +599,25 @@ const LandingPage = () => {
               <TestimonialBlock key={t.author} testimonial={t} index={i} />
             ))}
           </div>
+
+          {/* Video Testimonials */}
+          {videoTestimonials.length > 0 && (
+            <div className="mt-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {videoTestimonials.slice(0, 2).map((t, i) => (
+                  <motion.div
+                    key={t.author + i}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                  >
+                    <VideoTestimonialCard testimonial={{ video_url: t.video_url!, author: t.author, role: t.role }} />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </ThemeSwitchSection>
 
@@ -604,7 +631,7 @@ const LandingPage = () => {
         <div className="w-[96%] max-w-5xl mx-auto py-3 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-background/70">March Intake</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-background/70">April Intake</span>
               <span className="text-xs font-black text-destructive">4 Left</span>
             </div>
             <div className="w-full bg-background/20 rounded-full h-2 overflow-hidden">
@@ -624,7 +651,7 @@ const LandingPage = () => {
 };
 
 /* ─── Testimonial Block (scroll-driven) ─── */
-const TestimonialBlock = ({ testimonial, index }: { testimonial: typeof testimonials[0]; index: number }) => {
+const TestimonialBlock = ({ testimonial, index }: { testimonial: { text: string; author: string; role: string }; index: number }) => {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [60, 0, 0, -60]);
@@ -645,6 +672,51 @@ const TestimonialBlock = ({ testimonial, index }: { testimonial: typeof testimon
         </div>
       </div>
     </motion.div>
+  );
+};
+
+/* ─── Video Testimonial Card ─── */
+const VideoTestimonialCard = ({ testimonial }: { testimonial: { video_url: string; author: string; role: string } }) => {
+  const [playing, setPlaying] = useState(false);
+  const vimeoId = extractVimeoId(testimonial.video_url) || "";
+  const thumbnail = getVimeoThumbnail(vimeoId);
+
+  return (
+    <div className="rounded-2xl overflow-hidden border border-border bg-card shadow-soft hover:shadow-elevated transition-shadow duration-500">
+      <div className="relative aspect-video overflow-hidden bg-muted">
+        {playing ? (
+          <iframe
+            src={`https://player.vimeo.com/video/${vimeoId}?autoplay=1&title=0&byline=0&portrait=0`}
+            className="w-full h-full"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          <div className="w-full h-full relative cursor-pointer group" onClick={() => setPlaying(true)}>
+            <img
+              src={thumbnail}
+              alt={`${testimonial.author} testimonial`}
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/10 to-transparent" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-elevated"
+              >
+                <Play size={28} className="ml-1 text-foreground" fill="currentColor" />
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="p-4 sm:p-5">
+        <p className="font-black text-foreground uppercase tracking-tight">{testimonial.author}</p>
+        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+      </div>
+    </div>
   );
 };
 
