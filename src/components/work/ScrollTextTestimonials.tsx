@@ -1,51 +1,22 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { Quote, Star } from "lucide-react";
+import { usePortfolioTestimonials } from "@/hooks/useTestimonials";
 
-const testimonials = [
-  {
-    text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.",
-    author: "Ben Brown",
-    role: "Owner, Ingle & Brown Conveyancing",
-    stars: 5,
-  },
-  {
-    text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.",
-    author: "Beata Fuller",
-    role: "CEO, Wisdom Education",
-    stars: 5,
-  },
-  {
-    text: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.",
-    author: "Sarah Mitchell",
-    role: "Founder, Bloom Floristry",
-    stars: 5,
-  },
-  {
-    text: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and exceeded every expectation.",
-    author: "Marcus Chen",
-    role: "CEO, Urban Fitness",
-    stars: 5,
-  },
-  {
-    text: "The website they built isn't just beautiful — it's become our most effective sales tool. Inquiries have quadrupled since launch.",
-    author: "Elena Rodriguez",
-    role: "Director, Coastal Realty",
-    stars: 5,
-  },
-  {
-    text: "From day one, Sited treated our project like it was their own. The attention to detail and speed of delivery was beyond what we expected.",
-    author: "Daniel Verwoert",
-    role: "Owner, Hunter Insight",
-    stars: 5,
-  },
+const fallbackTestimonials = [
+  { text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.", author: "Ben Brown", role: "Owner, Ingle & Brown Conveyancing", stars: 5 },
+  { text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.", author: "Beata Fuller", role: "CEO, Wisdom Education", stars: 5 },
+  { text: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.", author: "Sarah Mitchell", role: "Founder, Bloom Floristry", stars: 5 },
+  { text: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and exceeded every expectation.", author: "Marcus Chen", role: "CEO, Urban Fitness", stars: 5 },
+  { text: "The website they built isn't just beautiful — it's become our most effective sales tool. Inquiries have quadrupled since launch.", author: "Elena Rodriguez", role: "Director, Coastal Realty", stars: 5 },
+  { text: "From day one, Sited treated our project like it was their own. The attention to detail and speed of delivery was beyond what we expected.", author: "Daniel Verwoert", role: "Owner, Hunter Insight", stars: 5 },
 ];
 
 const TestimonialBlock = ({
   testimonial,
   index,
 }: {
-  testimonial: (typeof testimonials)[0];
+  testimonial: { text: string; author: string; role: string; stars: number };
   index: number;
 }) => {
   const ref = useRef(null);
@@ -53,7 +24,6 @@ const TestimonialBlock = ({
     target: ref,
     offset: ["start end", "end start"],
   });
-  // Sticky-release effect: testimonial lags behind scroll then catches up
   const y = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [60, 0, 0, -60]);
   const opacity = useTransform(scrollYProgress, [0, 0.15, 0.4, 0.6, 0.85, 1], [0, 0.6, 1, 1, 0.6, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0.97, 1, 1, 0.97]);
@@ -81,29 +51,42 @@ const TestimonialBlock = ({
   );
 };
 
-export const ScrollTextTestimonials = () => (
-  <section className="py-16 sm:py-24 bg-card border-y border-border">
-    <div className="w-[92%] max-w-[900px] mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7 }}
-        className="text-center mb-10"
-      >
-        <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">
-          In Their Own Words
-        </p>
-        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase">
-          What Our <span className="text-sited-blue">Clients</span> Say
-        </h2>
-      </motion.div>
+export const ScrollTextTestimonials = () => {
+  const { data: dbTestimonials } = usePortfolioTestimonials();
+  
+  const testimonials = dbTestimonials && dbTestimonials.length > 0
+    ? dbTestimonials.map(t => ({
+        text: t.testimonial_text,
+        author: t.testimonial_author,
+        role: t.testimonial_role,
+        stars: 5,
+      }))
+    : fallbackTestimonials;
 
-      <div>
-        {testimonials.map((t, i) => (
-          <TestimonialBlock key={t.author} testimonial={t} index={i} />
-        ))}
+  return (
+    <section className="py-16 sm:py-24 bg-card border-y border-border">
+      <div className="w-[92%] max-w-[900px] mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="text-center mb-10"
+        >
+          <p className="text-xs uppercase tracking-[0.25em] text-sited-blue font-bold mb-3">
+            In Their Own Words
+          </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground uppercase">
+            What Our <span className="text-sited-blue">Clients</span> Say
+          </h2>
+        </motion.div>
+
+        <div>
+          {testimonials.map((t, i) => (
+            <TestimonialBlock key={t.author + i} testimonial={t} index={i} />
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};

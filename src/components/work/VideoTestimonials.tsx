@@ -1,34 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Play } from "lucide-react";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
+import { usePortfolioTestimonials } from "@/hooks/useTestimonials";
 
-const videoTestimonials = [
-  { name: "Ben Brown", business: "Ingle & Brown Conveyancing", vimeoUrl: "https://vimeo.com/1162967169" },
-  { name: "Client Showcase", business: "Sited Portfolio Reel", vimeoUrl: "https://vimeo.com/1162967169" },
-  { name: "Beata Fuller", business: "Wisdom Education", vimeoUrl: "https://vimeo.com/1162967169" },
-  { name: "Daniel Verwoert", business: "Hunter Insight", vimeoUrl: "https://vimeo.com/1162967169" },
-  { name: "Sarah Mitchell", business: "Bloom Floristry", vimeoUrl: "https://vimeo.com/1162967169" },
-  { name: "Marcus Chen", business: "Urban Fitness", vimeoUrl: "https://vimeo.com/1162967169" },
-];
-
-function useVideoCount() {
-  const [count, setCount] = useState(4);
-  useEffect(() => {
-    const check = () => {
-      const w = window.innerWidth;
-      if (w < 640) setCount(3);
-      else if (w < 1024) setCount(4);
-      else setCount(4);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-  return count;
-}
-
-const VideoCard = ({ video }: { video: (typeof videoTestimonials)[0] }) => {
+const VideoCard = ({ video }: { video: { name: string; business: string; vimeoUrl: string } }) => {
   const [playing, setPlaying] = useState(false);
   const vimeoId = extractVimeoId(video.vimeoUrl) || "";
   const thumbnail = getVimeoThumbnail(vimeoId);
@@ -73,8 +49,20 @@ const VideoCard = ({ video }: { video: (typeof videoTestimonials)[0] }) => {
 };
 
 export const VideoTestimonials = () => {
-  const count = useVideoCount();
-  const visible = videoTestimonials.slice(0, count);
+  const { data: dbTestimonials } = usePortfolioTestimonials();
+
+  // Use DB testimonials with video_url, fall back to empty (hide section)
+  const videoTestimonials = (dbTestimonials || [])
+    .filter(t => t.video_url)
+    .map(t => ({
+      name: t.testimonial_author,
+      business: t.business_name,
+      vimeoUrl: t.video_url!,
+    }));
+
+  if (videoTestimonials.length === 0) return null;
+
+  const visible = videoTestimonials.slice(0, 4);
 
   return (
     <section className="py-16 sm:py-24 bg-background">
