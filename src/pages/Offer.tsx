@@ -532,6 +532,7 @@ const Offer = () => {
                                   <OfferPaymentForm
                                     tier="platinum"
                                     tierName="Platinum"
+                                    depositAmount={depositAmount}
                                     onSuccess={(info) => { setCustomerInfo(info); setPaymentComplete(true); setShowBookingDialog(true); }}
                                     onCancel={() => setShowPayment(false)}
                                   />
