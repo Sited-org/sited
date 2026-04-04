@@ -133,6 +133,16 @@ const MiniMacBookCard = ({ site, index }: { site: SiteData; index: number }) => 
 };
 
 const SocialProofSection = () => {
+  const { data: testimonials } = useHomepageTestimonials();
+
+  const dynamicSites: SiteData[] = testimonials
+    ?.filter((t) => t.website_url)
+    .map((t) => ({
+      name: t.business_name,
+      url: t.website_url!,
+      screenshot: getScreenshotUrl(t.website_url!),
+    })) ?? [];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
