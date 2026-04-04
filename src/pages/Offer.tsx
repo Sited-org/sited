@@ -136,8 +136,8 @@ const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
-  const { prices } = usePackagePrices();
-  const TIERS = useMemo(() => makeTiers(prices), [prices]);
+  const { prices, depositAmount } = usePackagePrices();
+  const TIERS = useMemo(() => makeTiers(prices, depositAmount), [prices, depositAmount]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
