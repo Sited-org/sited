@@ -47,6 +47,7 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
   const [viewportH, setViewportH] = useState(0);
+  const [imageHeight, setImageHeight] = useState(0);
   const [hovered, setHovered] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +64,11 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
     const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
     return () => clearTimeout(timer);
   }, [loaded, index]);
+
+  useEffect(() => {
+    if (!imageHeight || !viewportH) return;
+    setScrollDistance(Math.max(0, imageHeight - viewportH));
+  }, [imageHeight, viewportH]);
 
   return (
     <div className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -99,8 +105,7 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
               loading="lazy"
               onLoad={(e) => {
                 const img = e.currentTarget;
-                const dist = img.offsetHeight - viewportH * 2;
-                setScrollDistance(dist > 0 ? dist : 0);
+                setImageHeight(img.offsetHeight);
                 setLoaded(true);
               }}
             />
