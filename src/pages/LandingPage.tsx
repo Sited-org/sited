@@ -599,6 +599,25 @@ const LandingPage = () => {
               <TestimonialBlock key={t.author} testimonial={t} index={i} />
             ))}
           </div>
+
+          {/* Video Testimonials */}
+          {videoTestimonials.length > 0 && (
+            <div className="mt-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {videoTestimonials.slice(0, 2).map((t, i) => (
+                  <motion.div
+                    key={t.author + i}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                  >
+                    <VideoTestimonialCard testimonial={{ video_url: t.video_url!, author: t.author, role: t.role }} />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </ThemeSwitchSection>
 
