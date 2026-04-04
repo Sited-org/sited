@@ -620,8 +620,8 @@ const LandingPage = () => {
         </div>
       </ThemeSwitchSection>
 
-      {/* Spacer for sticky footer */}
-      <div className="h-20" />
+      {/* Spacer for sticky footer — matches last section bg */}
+      <div className="h-20 bg-background" />
 
       {/* ════════════════════════════════════ */}
       {/* STICKY FOOTER */}
