@@ -313,8 +313,8 @@ const LandingPage = () => {
             <Check size={32} className="text-green-500" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-foreground">Payment Received!</h1>
-          <p className="text-muted-foreground">
-            Your $49 deposit is secured. Now let's book your discovery call to kick off your project.
+           <p className="text-muted-foreground">
+            Your ${depositAmount} deposit is secured. Now let's book your discovery call to kick off your project.
           </p>
         </motion.div>
 
