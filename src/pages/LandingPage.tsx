@@ -402,7 +402,7 @@ const LandingPage = () => {
               </h1>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST ${prices["basic-deposit"]?.toLocaleString() ?? "499"}</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
-                Start for just <span className="text-foreground font-bold">${depositAmount}</span>. Your full website is built in 7 days.
+                Start for just <span className="text-foreground font-bold">${depositAmount}</span>. Your full website is built in 3 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
               </p>
 
