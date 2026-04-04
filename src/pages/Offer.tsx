@@ -956,7 +956,7 @@ const Offer = () => {
                   Secure Your Website — ${depositAmount}
                   <ArrowRight size={16} />
                 </motion.button>
-                <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
+                <p className="text-xs text-muted-foreground mt-3">${depositAmount} deposit • 100% refundable • 7-day delivery</p>
               </div>
             </motion.div>
 
