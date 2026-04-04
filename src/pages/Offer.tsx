@@ -31,12 +31,12 @@ export type TierConfig = {
   popular?: boolean;
 };
 
-const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> => ({
+const makeTiers = (prices: Record<string, number>, deposit: number): Record<string, TierConfig> => ({
   "basic-deposit": {
     id: "basic-deposit",
     name: "Blue",
     tagline: "Built for the basics",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`,
     usualPrice: "$1,399",
     savings: `$${(1399 - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
@@ -57,7 +57,7 @@ const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> =
     id: "gold",
     name: "Gold",
     tagline: "Made for the everyday business",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["gold"]?.toLocaleString() ?? "649"}`,
     usualPrice: "$1,699",
     savings: `$${(1699 - (prices["gold"] ?? 649)).toLocaleString()}`,
@@ -68,8 +68,6 @@ const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> =
       "Lead management CRM",
       "Extra SEO infrastructure",
       "Payment integration",
-      "Calendar integration",
-      "Email integration",
     ],
     accentClass: "border-gold/40 bg-gold/5",
     badgeClass: "bg-gold text-foreground",
