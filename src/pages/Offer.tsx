@@ -696,7 +696,7 @@ const Offer = () => {
                 </div>
                 <div className="text-right">
                   <div className="flex items-baseline gap-2 justify-end">
-                    <span className="text-5xl font-black text-foreground">$49</span>
+                    <span className="text-5xl font-black text-foreground">${depositAmount}</span>
                     <span className="text-sm font-bold text-muted-foreground uppercase">Deposit</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-2 justify-end">
