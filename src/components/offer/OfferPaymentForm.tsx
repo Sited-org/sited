@@ -284,7 +284,7 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, pr
         ) : (
           <>
             <Lock size={14} />
-            Secure My Website — Pay $49
+            Secure My Website — Pay ${depositAmount}
           </>
         )}
       </button>

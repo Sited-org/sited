@@ -472,7 +472,7 @@ const LandingPage = () => {
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Lock In My Price <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                    <p className="text-center text-xs text-gray-500">$49 refundable deposit · Delivered in 7 days · No obligation</p>
+                    <p className="text-center text-xs text-gray-500">${depositAmount} refundable deposit · Delivered in 7 days · No obligation</p>
                   </div>
                 ) : (
                   <div ref={invoiceRef}>
