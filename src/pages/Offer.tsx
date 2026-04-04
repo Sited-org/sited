@@ -382,7 +382,7 @@ const Offer = () => {
                         <div className="p-4 space-y-4">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-black text-foreground">$49</span>
+                              <span className="text-3xl font-black text-foreground">${depositAmount}</span>
                               <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
                             </div>
                             <div className="mt-1 flex items-baseline gap-2">
