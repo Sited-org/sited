@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star, Globe, Users, Award, ShieldCheck } from "lucide-react";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
+import { getScreenshotUrl } from "@/lib/screenshot-url";
 
 const stats = [
   { value: "500+", label: "Websites Delivered", icon: Globe },
@@ -37,12 +39,9 @@ const reviews = [
   },
 ];
 
-const showcaseSites = [
-  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
-  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
-];
+interface SiteData { name: string; url: string; screenshot: string; }
 
-const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index: number }) => {
+const MiniMacBookCard = ({ site, index }: { site: SiteData; index: number }) => {
   const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
@@ -134,6 +133,16 @@ const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index
 };
 
 const SocialProofSection = () => {
+  const { data: testimonials } = useHomepageTestimonials();
+
+  const dynamicSites: SiteData[] = testimonials
+    ?.filter((t) => t.website_url)
+    .map((t) => ({
+      name: t.business_name,
+      url: t.website_url!,
+      screenshot: getScreenshotUrl(t.website_url!),
+    })) ?? [];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -171,24 +180,25 @@ const SocialProofSection = () => {
         })}
       </div>
 
-      {/* Website Showcase — 2 side-by-side */}
-      <div className="space-y-4">
-        <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Live Client Websites
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:gap-5">
-          {showcaseSites.map((site, i) => (
-            <motion.div
-              key={site.name}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 + i * 0.15 }}
-            >
-              <MiniMacBookCard site={site} index={i} />
-            </motion.div>
-          ))}
+      {dynamicSites.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Live Client Websites
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-5">
+            {dynamicSites.slice(0, 2).map((site, i) => (
+              <motion.div
+                key={site.url}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 + i * 0.15 }}
+              >
+                <MiniMacBookCard site={site} index={i} />
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Trusted By Logos */}
       <div className="space-y-4">

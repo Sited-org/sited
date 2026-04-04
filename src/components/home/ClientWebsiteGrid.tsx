@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
+import { getScreenshotUrl } from "@/lib/screenshot-url";
 
-const SITES = [
-  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
-  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
-  { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
-];
+interface SiteData {
+  name: string;
+  url: string;
+  screenshot: string;
+}
 
-const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: number }) => {
+const HomeMacBookCard = ({ site, index }: { site: SiteData; index: number }) => {
   const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
@@ -16,7 +18,6 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
   const cardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
-  // Measure viewport height
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -25,7 +26,6 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
     return () => ro.disconnect();
   }, []);
 
-  // Lazy load when near viewport
   const [shouldLoad, setShouldLoad] = useState(false);
   useEffect(() => {
     const el = cardRef.current;
@@ -38,7 +38,6 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
     return () => obs.disconnect();
   }, []);
 
-  // Stagger scroll start after image loads
   useEffect(() => {
     if (!loaded) return;
     const timer = setTimeout(() => setScrollActive(true), index * 800 + 1200);
@@ -50,19 +49,9 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
     setScrollDistance(Math.max(0, imageHeight - viewportH));
   }, [imageHeight, viewportH]);
 
-  const screenshotUrl = site.screenshot
-    ? site.screenshot
-    : `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
-
   return (
-    <div
-      ref={cardRef}
-      className="group"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="relative bg-card border border-border rounded-xl overflow-hidden shadow-soft hover:shadow-elevated transition-shadow duration-500">
-        {/* MacBook chrome */}
         <div className="flex items-center gap-1 px-3 py-1.5 bg-muted/40 border-b border-border">
           <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
           <div className="w-1.5 h-1.5 rounded-full bg-gold/60" />
@@ -72,44 +61,28 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
           </div>
         </div>
 
-        {/* 4:3 viewport with scroll animation */}
-        <div
-          ref={viewportRef}
-          className="relative w-full overflow-hidden bg-background"
-          style={{ aspectRatio: "4 / 3" }}
-        >
+        <div ref={viewportRef} className="relative w-full overflow-hidden bg-background" style={{ aspectRatio: "4 / 3" }}>
           {shouldLoad ? (
             <div
               className="absolute top-0 left-0 w-full will-change-transform"
               style={{
                 animation: scrollActive && !hovered && scrollDistance > 0
-                  ? `scrollIframe 20s ease-in-out infinite`
-                  : "none",
+                  ? `scrollIframe 20s ease-in-out infinite` : "none",
                 ["--scroll-distance" as string]: `-${scrollDistance}px`,
               }}
             >
               <img
-                src={screenshotUrl}
+                src={site.screenshot}
                 alt={`${site.name} website`}
                 className="w-full h-auto block"
                 loading="lazy"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  setImageHeight(img.offsetHeight);
-                  setLoaded(true);
-                }}
+                onLoad={(e) => { setImageHeight(e.currentTarget.offsetHeight); setLoaded(true); }}
               />
             </div>
           ) : (
             <div className="w-full h-full bg-muted animate-pulse" />
           )}
-
-          {/* Loading skeleton */}
-          {shouldLoad && !loaded && (
-            <div className="absolute inset-0 bg-muted animate-pulse" />
-          )}
-
-          {/* Hover overlay - name only, no link */}
+          {shouldLoad && !loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
           <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/50 transition-all duration-300 flex items-center justify-center z-10">
             <p className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white font-black text-xs sm:text-sm uppercase tracking-tight">
               {site.name}
@@ -122,10 +95,22 @@ const HomeMacBookCard = ({ site, index }: { site: (typeof SITES)[0]; index: numb
 };
 
 export function ClientWebsiteGrid() {
+  const { data: testimonials } = useHomepageTestimonials();
+
+  const sites: SiteData[] = testimonials
+    ?.filter((t) => t.website_url)
+    .map((t) => ({
+      name: t.business_name,
+      url: t.website_url!,
+      screenshot: getScreenshotUrl(t.website_url!),
+    })) ?? [];
+
+  if (!sites.length) return null;
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-      {SITES.map((site, i) => (
-        <HomeMacBookCard key={site.name + i} site={site} index={i} />
+      {sites.map((site, i) => (
+        <HomeMacBookCard key={site.url} site={site} index={i} />
       ))}
     </div>
   );

@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { usePortfolioTestimonials } from "@/hooks/useTestimonials";
+import { getScreenshotUrl } from "@/lib/screenshot-url";
 
-const clientSites = [
-  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
-  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
-  { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
-];
+interface SiteData {
+  name: string;
+  url: string;
+  screenshot: string;
+}
 
-
-
-const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: number }) => {
+const MacBookCard = ({ site, index }: { site: SiteData; index: number }) => {
   const [loaded, setLoaded] = useState(false);
   const [scrollActive, setScrollActive] = useState(false);
   const [scrollDistance, setScrollDistance] = useState(0);
@@ -18,8 +18,8 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   const [hovered, setHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const [tapped, setTapped] = useState(false);
 
-  // Measure viewport height
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -28,7 +28,6 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     return () => ro.disconnect();
   }, []);
 
-  // Lazy load when near viewport
   const [shouldLoad, setShouldLoad] = useState(false);
   useEffect(() => {
     const el = cardRef.current;
@@ -41,7 +40,6 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     return () => obs.disconnect();
   }, []);
 
-  // Stagger scroll start after image loads
   useEffect(() => {
     if (!loaded) return;
     const timer = setTimeout(() => setScrollActive(true), index * 500 + 750);
@@ -53,28 +51,14 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
     setScrollDistance(Math.max(0, imageHeight - viewportH));
   }, [imageHeight, viewportH]);
 
-  const screenshotUrl = site.screenshot
-    ? site.screenshot
-    : `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
-
-  const [tapped, setTapped] = useState(false);
-
-  const handleCardClick = () => {
-    // On mobile/touch: toggle overlay on tap
-    if (window.matchMedia("(hover: none)").matches) {
-      setTapped((prev) => !prev);
-    }
-  };
-
   const showOverlay = hovered || tapped;
 
   return (
     <div ref={cardRef} className="group" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div
         className="relative bg-card border border-border rounded-2xl shadow-elevated overflow-hidden transition-shadow duration-500 hover:shadow-[0_20px_60px_-15px_hsl(var(--foreground)/0.15)]"
-        onClick={handleCardClick}
+        onClick={() => { if (window.matchMedia("(hover: none)").matches) setTapped((p) => !p); }}
       >
-        {/* MacBook chrome */}
         <div className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-muted/60 border-b border-border">
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-destructive/50" />
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gold" />
@@ -84,54 +68,30 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
           </div>
         </div>
 
-        {/* 16:10 viewport */}
-        <div
-          ref={viewportRef}
-          className="relative w-full overflow-hidden bg-background"
-          style={{ aspectRatio: "16 / 10" }}
-        >
+        <div ref={viewportRef} className="relative w-full overflow-hidden bg-background" style={{ aspectRatio: "16 / 10" }}>
           {shouldLoad ? (
             <div
               className="absolute top-0 left-0 w-full will-change-transform"
               style={{
                 animation: scrollActive && !hovered && !tapped && scrollDistance > 0
-                  ? `scrollIframe 20s ease-in-out infinite`
-                  : "none",
+                  ? `scrollIframe 20s ease-in-out infinite` : "none",
                 ["--scroll-distance" as string]: `-${scrollDistance}px`,
               }}
             >
               <img
-                src={screenshotUrl}
+                src={site.screenshot}
                 alt={`${site.name} website screenshot`}
                 className="w-full h-auto block"
                 loading="lazy"
-                onLoad={(e) => {
-                  const img = e.currentTarget;
-                  setImageHeight(img.offsetHeight);
-                  setLoaded(true);
-                }}
+                onLoad={(e) => { setImageHeight(e.currentTarget.offsetHeight); setLoaded(true); }}
               />
             </div>
           ) : (
             <div className="w-full h-full bg-muted animate-pulse" />
           )}
-
-          {/* Loading skeleton until image ready */}
-          {shouldLoad && !loaded && (
-            <div className="absolute inset-0 bg-muted animate-pulse" />
-          )}
-
-          {/* Overlay — desktop: hover, mobile: tap */}
-          <div
-            className={`absolute inset-0 transition-all duration-300 flex items-center justify-center z-10 ${
-              showOverlay ? "bg-foreground/60" : "bg-foreground/0"
-            }`}
-          >
-            <div
-              className={`transition-opacity duration-300 text-center ${
-                showOverlay ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
-            >
+          {shouldLoad && !loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
+          <div className={`absolute inset-0 transition-all duration-300 flex items-center justify-center z-10 ${showOverlay ? "bg-foreground/60" : "bg-foreground/0"}`}>
+            <div className={`transition-opacity duration-300 text-center ${showOverlay ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
               <p className="text-white font-black text-sm sm:text-lg uppercase tracking-tight">{site.name}</p>
             </div>
           </div>
@@ -141,8 +101,20 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
   );
 };
 
-
 export const WebsiteShowcaseGrid = () => {
+  const { data: testimonials, isLoading } = usePortfolioTestimonials();
+
+  const sites: SiteData[] = testimonials
+    ?.filter((t) => t.website_url)
+    .map((t) => ({
+      name: t.business_name,
+      url: t.website_url!,
+      screenshot: getScreenshotUrl(t.website_url!),
+    })) ?? [];
+
+  if (isLoading) return <div className="py-24 text-center text-muted-foreground">Loading...</div>;
+  if (!sites.length) return null;
+
   return (
     <section className="py-16 sm:py-24 bg-background">
       <div className="w-[92%] max-w-[1400px] mx-auto">
@@ -165,9 +137,9 @@ export const WebsiteShowcaseGrid = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {clientSites.map((site, i) => (
+          {sites.map((site, i) => (
             <motion.div
-              key={site.name}
+              key={site.url}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "100px" }}
