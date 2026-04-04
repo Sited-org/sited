@@ -102,7 +102,7 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
           ["--scroll-distance" as string]: `-${scrollDistance}px`,
         }}>
           <img src={site.screenshot} alt={`${site.name} website`} className="w-full h-auto block" loading="lazy"
-            onLoad={(e) => { const img = e.currentTarget; setScrollDistance(Math.max(0, img.offsetHeight - viewportH - 4)); setLoaded(true); }} />
+            onLoad={(e) => { const img = e.currentTarget; setScrollDistance(Math.max(0, img.offsetHeight - viewportH * 2)); setLoaded(true); }} />
         </div>
         {!loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
       </div>
