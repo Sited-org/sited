@@ -14,39 +14,8 @@ import { VideoTestimonials } from "@/components/work/VideoTestimonials";
 import { ScrollParallax, ScrollSlideIn, ScrollStaggerItem } from "@/components/common/ScrollAnimations";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
-/* ── Fallback data ── */
-const fallbackProjects: ProjectDisplay[] = [
-  {
-    company: "Bloom Floristry",
-    category: "Website Design",
-    description: "A complete digital transformation that elevated their brand and drove real business growth.",
-    testimonial: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.",
-    author: "Sarah Mitchell",
-    role: "Founder",
-    videoThumbnail: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=800&fit=crop&fm=webp&q=75",
-    websiteUrl: "https://bloomfloristry.com",
-  },
-  {
-    company: "Urban Fitness",
-    category: "Website Design",
-    description: "A modern fitness studio website that captures the energy of the brand and drives memberships.",
-    testimonial: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately.",
-    author: "Marcus Chen",
-    role: "CEO",
-    videoThumbnail: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop&fm=webp&q=75",
-    websiteUrl: "https://urbanfitness.com",
-  },
-  {
-    company: "Coastal Realty",
-    category: "Website Design",
-    description: "A premium real estate platform that showcases properties beautifully and generates qualified leads.",
-    testimonial: "The website they built isn't just beautiful — it's become our most effective sales tool. Inquiries have quadrupled.",
-    author: "Elena Rodriguez",
-    role: "Director",
-    videoThumbnail: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=800&fit=crop&fm=webp&q=75",
-    websiteUrl: "https://coastalrealty.com",
-  },
-];
+/* ── Fallback data (real clients only) ── */
+const fallbackProjects: ProjectDisplay[] = [];
 
 type ProjectDisplay = {
   company: string;

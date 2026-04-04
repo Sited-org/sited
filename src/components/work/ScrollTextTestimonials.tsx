@@ -6,9 +6,6 @@ import { usePortfolioTestimonials } from "@/hooks/useTestimonials";
 const fallbackTestimonials = [
   { text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.", author: "Ben Brown", role: "Owner, Ingle & Brown Conveyancing", stars: 5 },
   { text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.", author: "Beata Fuller", role: "CEO, Wisdom Education", stars: 5 },
-  { text: "Sited transformed our entire digital presence. The website they built doesn't just look incredible — it's become our most effective sales tool.", author: "Sarah Mitchell", role: "Founder, Bloom Floristry", stars: 5 },
-  { text: "Working with Sited felt like having a world-class design team in-house. They understood our vision immediately and exceeded every expectation.", author: "Marcus Chen", role: "CEO, Urban Fitness", stars: 5 },
-  { text: "The website they built isn't just beautiful — it's become our most effective sales tool. Inquiries have quadrupled since launch.", author: "Elena Rodriguez", role: "Director, Coastal Realty", stars: 5 },
   { text: "From day one, Sited treated our project like it was their own. The attention to detail and speed of delivery was beyond what we expected.", author: "Daniel Verwoert", role: "Owner, Hunter Insight", stars: 5 },
 ];
 

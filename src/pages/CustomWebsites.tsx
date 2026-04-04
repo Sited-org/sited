@@ -90,9 +90,9 @@ const tiers: Tier[] = [
 ];
 
 const fallbackTestimonials = [
-  { name: "Sarah Mitchell", business: "Bloom & Co Floristry", text: "We went from barely getting found on Google to fully booked within three months. The website Sited built us doesn't just look good — it actually brings in business.", role: "Owner" },
-  { name: "James Thornton", business: "Thornton Plumbing", text: "I was skeptical about paying for a website, but the ROI has been unreal. More calls, more bookings, and I don't have to chase leads anymore — they come to me.", role: "Director" },
-  { name: "Priya Kapoor", business: "Kapoor Legal", text: "Our old site was embarrassing. Sited gave us something we're actually proud of — and our enquiry rate tripled in the first month. No exaggeration.", role: "Principal Solicitor" },
+  { name: "Ben Brown", business: "Ingle & Brown Conveyancing", text: "Andy & the team at Sited were great in their professionalism & customer service. If you are looking for a website I would definitely recommend reaching out to Andy.", role: "Owner" },
+  { name: "Beata Fuller", business: "Wisdom Education", text: "Sited was incredible in their delivery, even with very specific instructions for how I wanted the website to look. All changes were looked at & implemented within days.", role: "CEO" },
+  { name: "Daniel Verwoert", business: "Hunter Insight", text: "From day one, Sited treated our project like it was their own. The attention to detail and speed of delivery was beyond what we expected.", role: "Owner" },
 ];
 
 const fadeUp = {

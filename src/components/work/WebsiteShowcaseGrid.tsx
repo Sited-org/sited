@@ -5,15 +5,6 @@ const clientSites = [
   { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
   { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
   { name: "Wisdom Education", url: "https://wisdomeducation.org", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/wisdomeducation-full.png" },
-  { name: "Bloom Floristry", url: "https://bloomfloristry.com" },
-  { name: "Urban Fitness", url: "https://urbanfitness.com" },
-  { name: "Coastal Realty", url: "https://coastalrealty.com" },
-  { name: "Summit Builders", url: "https://summitbuilders.com.au" },
-  { name: "Paws & Claws", url: "https://pawsandclaws.com.au" },
-  { name: "Horizon Travel", url: "https://horizontravel.com.au" },
-  { name: "Brew Culture", url: "https://brewculture.com.au" },
-  { name: "Peak Performance", url: "https://peakperformance.com.au" },
-  { name: "Silver Lining Co", url: "https://silverliningco.com.au" },
 ];
 
 
