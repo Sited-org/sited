@@ -26,9 +26,10 @@ const leadSchema = z.object({
 });
 
 /* ─── Single Offer Config (price injected dynamically) ─── */
-const makeOffer = (totalPrice: number) => ({
+const makeOffer = (totalPrice: number, depositAmount: number) => ({
   id: "basic-deposit",
   totalPrice,
+  depositAmount,
   lineItems: [
     { label: "Custom Website Design & Development", value: totalPrice, strikethrough: 1599 },
     { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
