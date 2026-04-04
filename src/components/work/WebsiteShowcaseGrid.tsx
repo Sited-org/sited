@@ -138,11 +138,6 @@ const MacBookCard = ({ site, index }: { site: (typeof clientSites)[0]; index: nu
 
 
 export const WebsiteShowcaseGrid = () => {
-  const [extraLoads, setExtraLoads] = useState(0);
-  const visibleCount = INITIAL_VISIBLE + extraLoads * LOAD_MORE_STEP;
-  const visibleSites = clientSites.slice(0, visibleCount);
-  const canLoadMore = extraLoads < MAX_LOADS && visibleCount < clientSites.length;
-
   return (
     <section className="py-16 sm:py-24 bg-background">
       <div className="w-[92%] max-w-[1400px] mx-auto">
@@ -165,7 +160,7 @@ export const WebsiteShowcaseGrid = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {visibleSites.map((site, i) => (
+          {clientSites.map((site, i) => (
             <motion.div
               key={site.name}
               initial={{ opacity: 0, y: 20 }}
@@ -177,21 +172,6 @@ export const WebsiteShowcaseGrid = () => {
             </motion.div>
           ))}
         </div>
-
-        {canLoadMore && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center mt-10"
-          >
-            <button
-              onClick={() => setExtraLoads((prev) => prev + 1)}
-              className="px-8 py-3 rounded-lg border-2 border-border text-foreground font-bold text-sm uppercase tracking-wider hover:bg-muted transition-colors"
-            >
-              See More
-            </button>
-          </motion.div>
-        )}
       </div>
     </section>
   );
