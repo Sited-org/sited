@@ -169,7 +169,7 @@ const InvoiceBreakdown = ({
           </div>
           <div className="flex justify-between text-sm pt-1">
             <span className="font-bold" style={{ color: "hsl(202, 74%, 55%)" }}>Due Today (Refundable Deposit)</span>
-            <span className="font-black text-lg" style={{ color: "hsl(202, 74%, 55%)" }}>$49</span>
+            <span className="font-black text-lg" style={{ color: "hsl(202, 74%, 55%)" }}>${offer.depositAmount}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">Remaining (after delivery)</span>
