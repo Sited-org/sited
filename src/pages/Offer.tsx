@@ -290,7 +290,7 @@ const Offer = () => {
                   <div>
                     <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-black text-foreground">Don't love it?</span> Full $49 refund — no questions asked.{" "}
+                      <span className="font-black text-foreground">Don't love it?</span> Full ${depositAmount} refund — no questions asked.{" "}
                       <span className="font-black text-foreground">Love it?</span> Pay the remaining within 7 days of delivery.
                     </p>
                   </div>
