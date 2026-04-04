@@ -173,7 +173,7 @@ const InvoiceBreakdown = ({
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">Remaining (after delivery)</span>
-            <span className="text-gray-400">${(offer.totalPrice - 49).toLocaleString()}</span>
+            <span className="text-gray-400">${(offer.totalPrice - offer.depositAmount).toLocaleString()}</span>
           </div>
         </div>
       </div>
