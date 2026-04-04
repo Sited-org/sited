@@ -22,6 +22,7 @@ interface OfferPaymentFormProps {
   prefillName?: string;
   prefillEmail?: string;
   prefillPhone?: string;
+  depositAmount?: number;
 }
 
 const elementStyle = {
