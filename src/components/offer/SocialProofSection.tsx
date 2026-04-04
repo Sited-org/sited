@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Star, Globe, Users, Award, ShieldCheck } from "lucide-react";
+import { useHomepageTestimonials } from "@/hooks/useTestimonials";
+import { getScreenshotUrl } from "@/lib/screenshot-url";
 
 const stats = [
   { value: "500+", label: "Websites Delivered", icon: Globe },
@@ -35,11 +37,6 @@ const reviews = [
     role: "Director, Bright Dental",
     stars: 5,
   },
-];
-
-const showcaseSites = [
-  { name: "Hunter Insight", url: "https://hunterinsight.com.au", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/hunterinsight-full.png" },
-  { name: "Ingle & Brown", url: "https://inglebrown.sited.co", screenshot: "https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/inglebrown-full.png" },
 ];
 
 const MiniMacBookCard = ({ site, index }: { site: typeof showcaseSites[0]; index: number }) => {
