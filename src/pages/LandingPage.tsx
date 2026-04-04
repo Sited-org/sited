@@ -397,8 +397,8 @@ const LandingPage = () => {
             {/* Left — Copy (wider on desktop) */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 lg:pt-8">
               <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tight leading-[0.92]">
-                KILLER WEBSITE in<br />
-                <span className="text-sited-blue">7 days</span> or less
+                Custom Website in<br />
+                <span className="text-sited-blue">3 days</span> or less
               </h1>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST ${prices["basic-deposit"]?.toLocaleString() ?? "499"}</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
