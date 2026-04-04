@@ -14,12 +14,8 @@ const TIER_TO_PRODUCT: Record<string, string> = {
 };
 
 /**
- * Fetches active package products from the products table.
- * Returns a map of tier key → price for use on public-facing pages.
- * Uses service-role via edge function not needed — products table
- * is queryable if we add a public RLS policy, but to avoid that
- * we just query with the anon key and rely on existing policies.
- * 
+ * Fetches active package products and deposit amount from the database.
+ * Returns a map of tier key → price and the dynamic deposit amount.
  * Fallback: if query fails, returns hardcoded defaults so page still renders.
  */
 export function usePackagePrices() {
@@ -28,20 +24,29 @@ export function usePackagePrices() {
     "gold": 649,
     "platinum": 1149,
   });
+  const [depositAmount, setDepositAmount] = useState(49);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('name, price')
-        .eq('product_type', 'package')
-        .eq('is_active', true);
+    const fetchAll = async () => {
+      // Fetch products and deposit amount in parallel
+      const [productsRes, depositRes] = await Promise.all([
+        supabase
+          .from('products')
+          .select('name, price')
+          .eq('product_type', 'package')
+          .eq('is_active', true),
+        supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'deposit_amount')
+          .maybeSingle(),
+      ]);
 
-      if (!error && data && data.length > 0) {
+      if (!productsRes.error && productsRes.data && productsRes.data.length > 0) {
         const map: Record<string, number> = {};
         for (const [tierKey, productName] of Object.entries(TIER_TO_PRODUCT)) {
-          const product = data.find((p: any) => p.name === productName);
+          const product = productsRes.data.find((p: any) => p.name === productName);
           if (product) {
             map[tierKey] = product.price;
           }
@@ -50,10 +55,19 @@ export function usePackagePrices() {
           setPrices(prev => ({ ...prev, ...map }));
         }
       }
+
+      if (!depositRes.error && depositRes.data?.setting_value != null) {
+        const val = depositRes.data.setting_value;
+        const amount = typeof val === 'number' ? val : Number(val);
+        if (!isNaN(amount) && amount > 0) {
+          setDepositAmount(amount);
+        }
+      }
+
       setLoading(false);
     };
-    fetch();
+    fetchAll();
   }, []);
 
-  return { prices, loading };
+  return { prices, depositAmount, loading };
 }

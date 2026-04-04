@@ -22,6 +22,7 @@ interface OfferPaymentFormProps {
   prefillName?: string;
   prefillEmail?: string;
   prefillPhone?: string;
+  depositAmount?: number;
 }
 
 const elementStyle = {
@@ -34,7 +35,7 @@ const elementStyle = {
   invalid: { color: "#ef4444" },
 };
 
-const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone }: OfferPaymentFormProps) => {
+const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, prefillEmail, prefillPhone, depositAmount = 49 }: OfferPaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [cardName, setCardName] = useState(prefillName || "");
@@ -283,7 +284,7 @@ const OfferPaymentForm = ({ tier, tierName, onSuccess, onCancel, prefillName, pr
         ) : (
           <>
             <Lock size={14} />
-            Secure My Website — Pay $49
+            Secure My Website — Pay ${depositAmount}
           </>
         )}
       </button>

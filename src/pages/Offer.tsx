@@ -31,12 +31,12 @@ export type TierConfig = {
   popular?: boolean;
 };
 
-const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> => ({
+const makeTiers = (prices: Record<string, number>, deposit: number): Record<string, TierConfig> => ({
   "basic-deposit": {
     id: "basic-deposit",
     name: "Blue",
     tagline: "Built for the basics",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`,
     usualPrice: "$1,399",
     savings: `$${(1399 - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
@@ -57,7 +57,7 @@ const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> =
     id: "gold",
     name: "Gold",
     tagline: "Made for the everyday business",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["gold"]?.toLocaleString() ?? "649"}`,
     usualPrice: "$1,699",
     savings: `$${(1699 - (prices["gold"] ?? 649)).toLocaleString()}`,
@@ -68,8 +68,6 @@ const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> =
       "Lead management CRM",
       "Extra SEO infrastructure",
       "Payment integration",
-      "Calendar integration",
-      "Email integration",
     ],
     accentClass: "border-gold/40 bg-gold/5",
     badgeClass: "bg-gold text-foreground",
@@ -78,7 +76,7 @@ const makeTiers = (prices: Record<string, number>): Record<string, TierConfig> =
     id: "platinum",
     name: "Platinum",
     tagline: "Built for those ready to dominate their market",
-    price: "$49",
+    price: `$${deposit}`,
     totalPrice: `$${prices["platinum"]?.toLocaleString() ?? "1,149"}`,
     usualPrice: "$3,359",
     savings: `$${(3359 - (prices["platinum"] ?? 1149)).toLocaleString()}`,
@@ -138,8 +136,8 @@ const Offer = () => {
   const navigate = useNavigate();
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
-  const { prices } = usePackagePrices();
-  const TIERS = useMemo(() => makeTiers(prices), [prices]);
+  const { prices, depositAmount } = usePackagePrices();
+  const TIERS = useMemo(() => makeTiers(prices, depositAmount), [prices, depositAmount]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
@@ -155,8 +153,8 @@ const Offer = () => {
   }, [navigate]);
 
   usePageSEO({
-    title: "Secure Your Website | Sited — $49 Deposit",
-    description: "Get a fully custom website with just a $49 refundable deposit. Choose Blue, Gold, or Platinum.",
+    title: `Secure Your Website | Sited — $${depositAmount} Deposit`,
+    description: `Get a fully custom website with just a $${depositAmount} refundable deposit. Choose Blue, Gold, or Platinum.`,
   });
 
   if (loading) {
@@ -265,7 +263,7 @@ const Offer = () => {
 
               <div className="mb-4">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-foreground">$49</span>
+                  <span className="text-4xl font-black text-foreground">${depositAmount}</span>
                   <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
@@ -292,7 +290,7 @@ const Offer = () => {
                   <div>
                     <p className="text-xs font-black text-foreground uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-black text-foreground">Don't love it?</span> Full $49 refund — no questions asked.{" "}
+                      <span className="font-black text-foreground">Don't love it?</span> Full ${depositAmount} refund — no questions asked.{" "}
                       <span className="font-black text-foreground">Love it?</span> Pay the remaining within 7 days of delivery.
                     </p>
                   </div>
@@ -308,7 +306,7 @@ const Offer = () => {
                   onClick={() => { setSelectedTier("basic-deposit"); setShowPayment(true); }}
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
                 >
-                  Secure Your Website — $49
+                  Secure Your Website — ${depositAmount}
                   <ArrowRight size={16} />
                 </motion.button>
               )}
@@ -325,6 +323,7 @@ const Offer = () => {
                       <OfferPaymentForm
                         tier={selectedTier}
                         tierName="Blue"
+                        depositAmount={depositAmount}
                         onSuccess={(info) => {
                           setCustomerInfo(info);
                           setPaymentComplete(true);
@@ -384,7 +383,7 @@ const Offer = () => {
                         <div className="p-4 space-y-4">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-black text-foreground">$49</span>
+                              <span className="text-3xl font-black text-foreground">${depositAmount}</span>
                               <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
                             </div>
                             <div className="mt-1 flex items-baseline gap-2">
@@ -407,7 +406,7 @@ const Offer = () => {
                             <div className="flex items-start gap-2">
                               <Shield size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
                               <p className="text-xs text-muted-foreground">
-                                <span className="font-black text-foreground">Don't love it?</span> Full $49 refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
+                                <span className="font-black text-foreground">Don't love it?</span> Full ${depositAmount} refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
                               </p>
                             </div>
                           </div>
@@ -420,7 +419,7 @@ const Offer = () => {
                               onClick={() => setShowPayment(true)}
                               className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
                             >
-                              Secure Your Website — $49
+                              Secure Your Website — ${depositAmount}
                               <ArrowRight size={16} />
                             </motion.button>
                           )}
@@ -436,6 +435,7 @@ const Offer = () => {
                                   <OfferPaymentForm
                                     tier="gold"
                                     tierName="Gold"
+                                    depositAmount={depositAmount}
                                     onSuccess={(info) => { setCustomerInfo(info); setPaymentComplete(true); setShowBookingDialog(true); }}
                                     onCancel={() => setShowPayment(false)}
                                   />
@@ -480,7 +480,7 @@ const Offer = () => {
                         <div className="p-4 space-y-4">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-black text-foreground">$49</span>
+                              <span className="text-3xl font-black text-foreground">${depositAmount}</span>
                               <span className="text-xs font-bold text-muted-foreground uppercase">Refundable Deposit</span>
                             </div>
                             <div className="mt-1 flex items-baseline gap-2">
@@ -503,7 +503,7 @@ const Offer = () => {
                             <div className="flex items-start gap-2">
                               <Shield size={16} className="text-sited-blue flex-shrink-0 mt-0.5" />
                               <p className="text-xs text-muted-foreground">
-                                <span className="font-black text-foreground">Don't love it?</span> Full $49 refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
+                                <span className="font-black text-foreground">Don't love it?</span> Full ${depositAmount} refund. <span className="font-black text-foreground">Love it?</span> Pay the rest within 7 days.
                               </p>
                             </div>
                           </div>
@@ -516,7 +516,7 @@ const Offer = () => {
                               onClick={() => setShowPayment(true)}
                               className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
                             >
-                              Secure Your Website — $49
+                              Secure Your Website — ${depositAmount}
                               <ArrowRight size={16} />
                             </motion.button>
                           )}
@@ -532,6 +532,7 @@ const Offer = () => {
                                   <OfferPaymentForm
                                     tier="platinum"
                                     tierName="Platinum"
+                                    depositAmount={depositAmount}
                                     onSuccess={(info) => { setCustomerInfo(info); setPaymentComplete(true); setShowBookingDialog(true); }}
                                     onCancel={() => setShowPayment(false)}
                                   />
@@ -551,7 +552,7 @@ const Offer = () => {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield size={16} className="text-sited-blue" />
-                <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
+                <span className="font-bold">Don't love it?</span> Full ${depositAmount} refund — no questions asked.
               </div>
             </div>
 
@@ -613,7 +614,7 @@ const Offer = () => {
                     {isActive ? (
                       <div className="mb-4">
                         <div className="flex items-baseline gap-2">
-                          <span className="text-3xl sm:text-4xl font-black text-foreground">$49</span>
+                          <span className="text-3xl sm:text-4xl font-black text-foreground">${depositAmount}</span>
                           <span className="text-xs font-bold text-muted-foreground uppercase">Deposit</span>
                         </div>
                         <div className="mt-1 flex items-baseline gap-2">
@@ -698,7 +699,7 @@ const Offer = () => {
                 </div>
                 <div className="text-right">
                   <div className="flex items-baseline gap-2 justify-end">
-                    <span className="text-5xl font-black text-foreground">$49</span>
+                    <span className="text-5xl font-black text-foreground">${depositAmount}</span>
                     <span className="text-sm font-bold text-muted-foreground uppercase">Deposit</span>
                   </div>
                   <div className="mt-1 flex items-baseline gap-2 justify-end">
@@ -740,7 +741,7 @@ const Offer = () => {
                     </h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       If you <span className="font-black text-foreground">don't love</span> the website we build — you get a{" "}
-                      <span className="font-black text-sited-blue">full refund of your $49 deposit</span>. No questions asked.
+                      <span className="font-black text-sited-blue">full refund of your ${depositAmount} deposit</span>. No questions asked.
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed mt-2">
                       If you <span className="font-black text-foreground">love it</span> and want to work with us — we deliver your completed project within{" "}
@@ -760,7 +761,7 @@ const Offer = () => {
                   onClick={() => setShowPayment(true)}
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-5 rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg bg-sited-blue hover:bg-sited-blue-hover text-white shadow-sited-blue/30"
                 >
-                  Secure Your Website — $49 Deposit
+                  Secure Your Website — ${depositAmount} Deposit
                   <ArrowRight size={16} />
                 </motion.button>
               )}
@@ -777,6 +778,7 @@ const Offer = () => {
                       <OfferPaymentForm
                         tier={selectedTier}
                         tierName={activeTier.name}
+                        depositAmount={depositAmount}
                         onSuccess={(info) => {
                           setCustomerInfo(info);
                           setPaymentComplete(true);
@@ -794,7 +796,7 @@ const Offer = () => {
             <div className="mt-6 text-center">
               <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield size={16} className="text-sited-blue" />
-                <span className="font-bold">Don't love it?</span> Full $49 refund — no questions asked.
+                <span className="font-bold">Don't love it?</span> Full ${depositAmount} refund — no questions asked.
               </div>
             </div>
 
@@ -955,10 +957,10 @@ const Offer = () => {
                   onClick={() => { setShowPayment(false); window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-sited-blue hover:bg-sited-blue-hover text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-sited-blue/30 transition-all"
                 >
-                  Secure Your Website — $49
+                  Secure Your Website — ${depositAmount}
                   <ArrowRight size={16} />
                 </motion.button>
-                <p className="text-xs text-muted-foreground mt-3">$49 deposit • 100% refundable • 7-day delivery</p>
+                <p className="text-xs text-muted-foreground mt-3">${depositAmount} deposit • 100% refundable • 7-day delivery</p>
               </div>
             </motion.div>
 

@@ -26,9 +26,10 @@ const leadSchema = z.object({
 });
 
 /* ─── Single Offer Config (price injected dynamically) ─── */
-const makeOffer = (totalPrice: number) => ({
+const makeOffer = (totalPrice: number, depositAmount: number) => ({
   id: "basic-deposit",
   totalPrice,
+  depositAmount,
   lineItems: [
     { label: "Custom Website Design & Development", value: totalPrice, strikethrough: 1599 },
     { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
@@ -56,7 +57,7 @@ const testimonials = [
 
 /* ─── Process Steps ─── */
 const processSteps = [
-  { step: 1, title: "Secure Your Spot", desc: "Lock in your price with a $49 refundable deposit.", icon: Lock },
+  { step: 1, title: "Secure Your Spot", desc: "Lock in your price with a refundable deposit.", icon: Lock },
   { step: 2, title: "Book Discovery Call", desc: "We learn about your business, goals & vision.", icon: Users },
   { step: 3, title: "Receive Site in 7 Days", desc: "Your custom website, designed & built start to finish.", icon: Clock },
   { step: 4, title: "Love It / Make Changes", desc: "Request revisions until you're 100% satisfied.", icon: CheckCircle2 },
@@ -169,11 +170,11 @@ const InvoiceBreakdown = ({
           </div>
           <div className="flex justify-between text-sm pt-1">
             <span className="font-bold" style={{ color: "hsl(202, 74%, 55%)" }}>Due Today (Refundable Deposit)</span>
-            <span className="font-black text-lg" style={{ color: "hsl(202, 74%, 55%)" }}>$49</span>
+            <span className="font-black text-lg" style={{ color: "hsl(202, 74%, 55%)" }}>${offer.depositAmount}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">Remaining (after delivery)</span>
-            <span className="text-gray-400">${(offer.totalPrice - 49).toLocaleString()}</span>
+            <span className="text-gray-400">${(offer.totalPrice - offer.depositAmount).toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -185,7 +186,7 @@ const InvoiceBreakdown = ({
           <div>
             <p className="text-xs font-black text-gray-900 uppercase tracking-wide mb-1">100% Money-Back Guarantee</p>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Don't love the website? <span className="font-bold text-gray-900">Full $49 refund</span> — no questions asked. Love it? Pay the remaining ${(offer.totalPrice - 49).toLocaleString()} within 7 days of delivery.
+              Don't love the website? <span className="font-bold text-gray-900">Full ${offer.depositAmount} refund</span> — no questions asked. Love it? Pay the remaining ${(offer.totalPrice - offer.depositAmount).toLocaleString()} within 7 days of delivery.
             </p>
           </div>
         </div>
@@ -201,7 +202,7 @@ const InvoiceBreakdown = ({
               style={{ backgroundColor: "hsl(202, 74%, 69%)" }}
             >
               <Lock size={14} />
-              Secure My Website — Pay $49
+              Secure My Website — Pay ${offer.depositAmount}
               <ChevronRight size={16} />
             </button>
           </motion.div>
@@ -211,6 +212,7 @@ const InvoiceBreakdown = ({
               <OfferPaymentForm
                 tier={offer.id}
                 tierName="Website Package"
+                depositAmount={offer.depositAmount}
                 onSuccess={onPaymentSuccess}
                 onCancel={() => setShowPaymentForm(false)}
                 prefillName={leadInfo.name}
@@ -232,8 +234,8 @@ const LandingPage = () => {
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
-  const { prices } = usePackagePrices();
-  const OFFER = makeOffer(prices["basic-deposit"] ?? 499);
+  const { prices, depositAmount } = usePackagePrices();
+  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
 
   // Form state
   const [name, setName] = useState("");
@@ -312,8 +314,8 @@ const LandingPage = () => {
             <Check size={32} className="text-green-500" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-foreground">Payment Received!</h1>
-          <p className="text-muted-foreground">
-            Your $49 deposit is secured. Now let's book your discovery call to kick off your project.
+           <p className="text-muted-foreground">
+            Your ${depositAmount} deposit is secured. Now let's book your discovery call to kick off your project.
           </p>
         </motion.div>
 
@@ -400,7 +402,7 @@ const LandingPage = () => {
               </h1>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-green-500 font-semibold">JUST ${prices["basic-deposit"]?.toLocaleString() ?? "499"}</p>
               <p className="mt-3 text-base sm:text-lg lg:text-xl text-muted-foreground max-w-lg">
-                Start for just <span className="text-foreground font-bold">$49</span>. Your full website is built in 7 days.
+                Start for just <span className="text-foreground font-bold">${depositAmount}</span>. Your full website is built in 7 days.
                 Love it? Pay the balance and launch. Not satisfied? We'll revise it or <span className="text-foreground font-bold">refund you in full</span>.
               </p>
 
@@ -471,7 +473,7 @@ const LandingPage = () => {
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Lock In My Price <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
-                    <p className="text-center text-xs text-gray-500">$49 refundable deposit · Delivered in 7 days · No obligation</p>
+                    <p className="text-center text-xs text-gray-500">${depositAmount} refundable deposit · Delivered in 7 days · No obligation</p>
                   </div>
                 ) : (
                   <div ref={invoiceRef}>
