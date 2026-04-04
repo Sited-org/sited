@@ -212,6 +212,7 @@ const InvoiceBreakdown = ({
               <OfferPaymentForm
                 tier={offer.id}
                 tierName="Website Package"
+                depositAmount={offer.depositAmount}
                 onSuccess={onPaymentSuccess}
                 onCancel={() => setShowPaymentForm(false)}
                 prefillName={leadInfo.name}
