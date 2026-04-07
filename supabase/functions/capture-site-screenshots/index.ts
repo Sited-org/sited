@@ -148,8 +148,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process all in parallel
-    const outcomes = await Promise.all(sites.map(site => captureSite(supabase, site)));
+    // Process sequentially to avoid rate limits on free screenshot APIs
+    const outcomes: Awaited<ReturnType<typeof captureSite>>[] = [];
+    for (const site of sites) {
+      outcomes.push(await captureSite(supabase, site));
+    }
 
     const results = outcomes.filter(o => o.success).map(o => ({ name: o.name, url: o.url, publicUrl: o.publicUrl }));
     const errors = outcomes.filter(o => !o.success).map(o => ({ name: o.name, error: o.error }));
