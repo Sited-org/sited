@@ -63,6 +63,23 @@ async function captureSite(
       return { success: false, name: site.name, url: site.url, error: `Upload: ${uploadError.message}` };
     }
 
+    const testimonialUpdate: Record<string, string> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (site.needsSlugUpdate) {
+      testimonialUpdate.screenshot_slug = site.name;
+    }
+
+    const { error: updateError } = await supabase
+      .from("testimonials")
+      .update(testimonialUpdate)
+      .eq("id", site.id);
+
+    if (updateError) {
+      return { success: false, name: site.name, url: site.url, error: `Refresh: ${updateError.message}` };
+    }
+
     const { data: publicUrlData } = supabase.storage.from("site-screenshots").getPublicUrl(fileName);
     console.log(`Done: ${site.name}`);
     return { success: true, name: site.name, url: site.url, publicUrl: publicUrlData.publicUrl };
