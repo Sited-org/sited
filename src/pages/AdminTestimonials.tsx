@@ -296,15 +296,29 @@ export default function AdminTestimonials() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="website_url">Website URL</Label>
-                <Input
-                  id="website_url"
-                  type="url"
-                  placeholder="https://..."
-                  value={form.website_url || ''}
-                  onChange={(e) => updateField('website_url', e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="website_url">Website URL</Label>
+                  <Input
+                    id="website_url"
+                    type="url"
+                    placeholder="https://..."
+                    value={form.website_url || ''}
+                    onChange={(e) => updateField('website_url', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="screenshot_slug">Screenshot Slug</Label>
+                  <Input
+                    id="screenshot_slug"
+                    placeholder="e.g. hunterinsight"
+                    value={(form as any).screenshot_slug || ''}
+                    onChange={(e) => updateField('screenshot_slug' as any, e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for the scrolling website preview. Filename in storage: <code>{(form as any).screenshot_slug || '...'}-full.png</code>
+                  </p>
+                </div>
               </div>
 
               {/* ─── Page Placement Sections ─── */}
