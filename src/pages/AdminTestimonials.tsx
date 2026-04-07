@@ -323,10 +323,25 @@ export default function AdminTestimonials() {
                 </div>
               </div>
 
+              {/* ─── Screenshot info ─── */}
+              {(form as any).screenshot_slug && (
+                <div className="rounded-lg border border-sited-blue/20 bg-sited-blue/5 p-3 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground mb-1">📸 Scrolling Website Preview</p>
+                  <p>A scrolling screenshot will appear on any page this testimonial is assigned to (Portfolio, Homepage, Landing). The screenshot file must exist in storage as <code className="bg-muted px-1 rounded">{(form as any).screenshot_slug}-full.png</code>.</p>
+                </div>
+              )}
+
+              {form.website_url && !(form as any).screenshot_slug && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                  <p className="font-semibold mb-1">⚠️ No screenshot slug set</p>
+                  <p>This testimonial has a website URL but no screenshot slug. Add a slug and run the screenshot capture to show a scrolling preview.</p>
+                </div>
+              )}
+
               {/* ─── Page Placement Sections ─── */}
               <div className="space-y-3 pt-2">
                 <Label className="text-base font-semibold">Page Placements</Label>
-                <p className="text-xs text-muted-foreground -mt-1">Assign this testimonial to specific pages and choose its display position.</p>
+                <p className="text-xs text-muted-foreground -mt-1">Choose where this testimonial (and its scrolling website screenshot) will appear.</p>
 
                 <PlacementSection
                   title="Portfolio"
