@@ -32,8 +32,8 @@ async function captureSite(
         .eq("id", site.id);
     }
 
-    // Use thum.io — free, no API key, reliable for full-page screenshots
-    const thumbUrl = `https://image.thum.io/get/width/1440/crop/10000/noanimate/${site.url}`;
+    // Use thum.io full-page capture with a tall crop cap so showcase cards always get scrollable screenshots
+    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/crop/10000/noanimate/${site.url}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
