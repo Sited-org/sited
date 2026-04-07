@@ -25,13 +25,6 @@ async function captureSite(
   try {
     console.log(`Capturing ${site.name}...`);
 
-    if (site.needsSlugUpdate) {
-      await supabase
-        .from("testimonials")
-        .update({ screenshot_slug: site.name })
-        .eq("id", site.id);
-    }
-
     // Use thum.io — free, no API key, reliable for full-page screenshots
     const thumbUrl = `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
     const controller = new AbortController();
@@ -64,6 +57,14 @@ async function captureSite(
     if (uploadError) {
       return { success: false, name: site.name, url: site.url, error: `Upload: ${uploadError.message}` };
     }
+
+    await supabase
+      .from("testimonials")
+      .update({
+        screenshot_slug: site.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", site.id);
 
     const { data: publicUrlData } = supabase.storage.from("site-screenshots").getPublicUrl(fileName);
     console.log(`Done: ${site.name}`);
