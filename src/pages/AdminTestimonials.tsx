@@ -18,7 +18,7 @@ import { PlacementSection } from '@/components/admin/testimonials/PlacementSecti
 
 const PROJECT_TYPES = ['Website Design'];
 
-const emptyForm: TestimonialInsert = {
+const emptyForm: TestimonialInsert & { screenshot_slug?: string } = {
   project_type: 'Website Design',
   business_name: '',
   short_description: '',
@@ -41,6 +41,7 @@ const emptyForm: TestimonialInsert = {
   featured_position: null,
   portfolio_position: null,
   created_by: null,
+  screenshot_slug: '',
 };
 
 export default function AdminTestimonials() {
