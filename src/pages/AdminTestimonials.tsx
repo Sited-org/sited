@@ -330,7 +330,7 @@ export default function AdminTestimonials() {
 
                 <PlacementSection
                   title="Portfolio"
-                  description="Work / Portfolio page showcase"
+                  description="Shows text testimonial & scrolling website screenshot on the Portfolio (/work) page"
                   icon={<Briefcase className="h-4 w-4" />}
                   enabled={form.portfolio_position != null}
                   onToggle={(v) => {
