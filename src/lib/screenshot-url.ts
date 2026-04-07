@@ -24,10 +24,13 @@ export function deriveScreenshotSlug(websiteUrl: string | null | undefined): str
  * Accepts either a pre-set slug or derives one from the website URL.
  * Returns null when no slug can be determined.
  */
-export function getScreenshotUrl(slugOrUrl: string | null | undefined): string | null {
+export function getScreenshotUrl(
+  slugOrUrl: string | null | undefined,
+  version?: string | number | null,
+): string | null {
   if (!slugOrUrl) return null;
-  // If it looks like a URL, derive the slug
   const slug = slugOrUrl.startsWith('http') ? deriveScreenshotSlug(slugOrUrl) : slugOrUrl;
   if (!slug) return null;
-  return `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${slug}-full.png`;
+  const versionParam = version ? `?v=${encodeURIComponent(String(version))}` : '';
+  return `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${slug}-full.png${versionParam}`;
 }
