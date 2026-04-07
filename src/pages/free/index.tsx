@@ -11,6 +11,7 @@ import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
 import { useNavigate } from "react-router-dom";
+import { usePackageSavings } from "@/hooks/usePackageSavings";
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -20,20 +21,7 @@ const leadSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
-/* ─── Offer Config ─── */
-const OFFER = {
-  id: "free-build",
-  totalPrice: 0,
-  monthlyPrice: 120,
-  lineItems: [
-    { label: "Custom Website Design & Development", value: 0, strikethrough: 1599 },
-    { label: "7 Core Pages", value: 0, strikethrough: 700 },
-    { label: "3 Local SEO Pages", value: 0, strikethrough: 450 },
-    { label: "Mobile-First Responsive Build", value: 0, strikethrough: 300 },
-    { label: "Credentials & Access Vault", value: 0, strikethrough: 150 },
-    { label: "7-Day Delivery", value: 0, strikethrough: 249 },
-  ],
-};
+/* ─── (Offer value calculated dynamically in component via usePackageSavings) ─── */
 
 /* ─── Testimonials ─── */
 const testimonials = [
@@ -92,6 +80,7 @@ const FreeLandingPage = () => {
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const { savings: pkgSavings } = usePackageSavings();
 
   // Form state
   const [name, setName] = useState("");
@@ -429,7 +418,7 @@ const FreeLandingPage = () => {
           <ScrollReveal>
             <div className="rounded-xl border border-gold/30 bg-card p-8 text-center shadow-elevated">
               <p className="text-lg text-foreground mb-2">💡 Total value of everything above:</p>
-              <p className="text-2xl line-through text-muted-foreground mb-1">$3,448+</p>
+              <p className="text-2xl line-through text-muted-foreground mb-1">${pkgSavings.blue.wasPrice.toLocaleString()}+</p>
               <p className="text-5xl font-black text-green-500">$0</p>
             </div>
           </ScrollReveal>

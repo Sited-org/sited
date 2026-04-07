@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { usePackageSavings } from "@/hooks/usePackageSavings";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, TrendingUp, Bot, Globe, BarChart3, Users, Lock, Sparkles } from "lucide-react";
@@ -31,15 +32,15 @@ export type TierConfig = {
   popular?: boolean;
 };
 
-const makeTiers = (prices: Record<string, number>, deposit: number): Record<string, TierConfig> => ({
+const makeTiers = (prices: Record<string, number>, deposit: number, wasPrices: { blue: number; gold: number; platinum: number }): Record<string, TierConfig> => ({
   "basic-deposit": {
     id: "basic-deposit",
     name: "Blue",
     tagline: "Built for the basics",
     price: `$${deposit}`,
     totalPrice: `$${prices["basic-deposit"]?.toLocaleString() ?? "499"}`,
-    usualPrice: "$1,399",
-    savings: `$${(1399 - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
+    usualPrice: `$${wasPrices.blue.toLocaleString()}`,
+    savings: `$${(wasPrices.blue - (prices["basic-deposit"] ?? 499)).toLocaleString()}`,
     icon: Zap,
     features: [
       "Professional website",
@@ -58,8 +59,8 @@ const makeTiers = (prices: Record<string, number>, deposit: number): Record<stri
     tagline: "Made for the everyday business",
     price: `$${deposit}`,
     totalPrice: `$${prices["gold"]?.toLocaleString() ?? "649"}`,
-    usualPrice: "$1,699",
-    savings: `$${(1699 - (prices["gold"] ?? 649)).toLocaleString()}`,
+    usualPrice: `$${wasPrices.gold.toLocaleString()}`,
+    savings: `$${(wasPrices.gold - (prices["gold"] ?? 649)).toLocaleString()}`,
     icon: Star,
     features: [
       "Everything in Blue",
@@ -78,8 +79,8 @@ const makeTiers = (prices: Record<string, number>, deposit: number): Record<stri
     tagline: "Built for those ready to dominate their market",
     price: `$${deposit}`,
     totalPrice: `$${prices["platinum"]?.toLocaleString() ?? "1,149"}`,
-    usualPrice: "$3,359",
-    savings: `$${(3359 - (prices["platinum"] ?? 1149)).toLocaleString()}`,
+    usualPrice: `$${wasPrices.platinum.toLocaleString()}`,
+    savings: `$${(wasPrices.platinum - (prices["platinum"] ?? 1149)).toLocaleString()}`,
     icon: Crown,
     features: [
       "Everything in Gold",
@@ -137,7 +138,12 @@ const Offer = () => {
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
   const { prices, depositAmount } = usePackagePrices();
-  const TIERS = useMemo(() => makeTiers(prices, depositAmount), [prices, depositAmount]);
+  const { savings: pkgSavings } = usePackageSavings();
+  const TIERS = useMemo(() => makeTiers(prices, depositAmount, {
+    blue: pkgSavings.blue.wasPrice,
+    gold: pkgSavings.gold.wasPrice,
+    platinum: pkgSavings.platinum.wasPrice,
+  }), [prices, depositAmount, pkgSavings]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);

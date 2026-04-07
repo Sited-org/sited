@@ -13,6 +13,7 @@ import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { usePackagePrices } from "@/hooks/usePackagePrices";
+import { usePackageSavings } from "@/hooks/usePackageSavings";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
 import { getScreenshotUrl } from "@/lib/screenshot-url";
@@ -28,19 +29,27 @@ const leadSchema = z.object({
 });
 
 /* ─── Single Offer Config (price injected dynamically) ─── */
-const makeOffer = (totalPrice: number, depositAmount: number) => ({
-  id: "basic-deposit",
-  totalPrice,
-  depositAmount,
-  lineItems: [
-    { label: "Custom Website Design & Development", value: totalPrice, strikethrough: 1599 },
-    { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
-    { label: "6 Local SEO Pages", value: 0, strikethrough: 600 },
-    { label: "2 Revisions", value: 0, strikethrough: 400 },
-    { label: "Email Integration", value: 0, strikethrough: 399 },
-    { label: "Lifetime Hosting", value: 0, strikethrough: 100, suffix: "/month" },
-  ],
-});
+const makeOffer = (totalPrice: number, depositAmount: number, wasPrice: number) => {
+  // Distribute the "was" total proportionally across line items for display
+  const ratios = [0.46, 0.13, 0.17, 0.12, 0.06, 0.06];
+  const strikes = ratios.map(r => Math.round(wasPrice * r));
+  // Adjust last item to absorb rounding
+  strikes[strikes.length - 1] = wasPrice - strikes.slice(0, -1).reduce((a, b) => a + b, 0);
+
+  return {
+    id: "basic-deposit",
+    totalPrice,
+    depositAmount,
+    lineItems: [
+      { label: "Custom Website Design & Development", value: totalPrice, strikethrough: strikes[0] },
+      { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: strikes[1] },
+      { label: "6 Local SEO Pages", value: 0, strikethrough: strikes[2] },
+      { label: "2 Revisions", value: 0, strikethrough: strikes[3] },
+      { label: "Email Integration", value: 0, strikethrough: strikes[4] },
+      { label: "Lifetime Hosting", value: 0, strikethrough: strikes[5], suffix: "/month" },
+    ],
+  };
+};
 
 /* ─── Fallback client sites ─── */
 const fallbackSites = [
@@ -242,6 +251,7 @@ const LandingPage = () => {
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
   const { prices, depositAmount } = usePackagePrices();
+  const { savings: pkgSavings } = usePackageSavings();
   
   // Dynamic testimonials from DB, with fallback
   const testimonials = featuredTestimonials && featuredTestimonials.length > 0
@@ -249,7 +259,7 @@ const LandingPage = () => {
     : fallbackTestimonials.map(t => ({ ...t, video_url: null as string | null }));
   
   const videoTestimonials = testimonials.filter(t => t.video_url);
-  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
+  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount, pkgSavings.blue.wasPrice);
 
   // Form state
   const [name, setName] = useState("");
