@@ -44,7 +44,6 @@ const tiers: Tier[] = [
       { text: "Contact & enquiry forms", description: "Capture leads directly from your site, straight to your inbox." },
       { text: "SEO foundations", description: "Built with search engines in mind so your customers can actually find you." },
       { text: "Email integration", description: "Connect your business email so nothing falls through the cracks." },
-      { text: "Calendar booking", description: "Let clients book time with you directly — no back-and-forth." },
     ],
   },
   {
@@ -64,7 +63,8 @@ const tiers: Tier[] = [
       { text: "Admin dashboard", description: "See every lead, every client, every metric — all in one place." },
       { text: "Lead management CRM", description: "Track, tag, and follow up with leads without missing a beat." },
       { text: "Client portal access", description: "Give your clients a branded login to view progress, files, and updates." },
-      { text: "Full integrations suite", description: "Connect payments, calendars, email, and more — seamlessly." },
+      { text: "Calendar integration", description: "Let clients book time with you directly — no back-and-forth." },
+      { text: "Full integrations suite", description: "Connect payments, email, and more — seamlessly." },
     ],
   },
   {

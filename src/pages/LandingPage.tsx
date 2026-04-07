@@ -37,7 +37,7 @@ const makeOffer = (totalPrice: number, depositAmount: number) => ({
     { label: "SEO Optimisation (Industry-Specific)", value: 0, strikethrough: 450 },
     { label: "6 Local SEO Pages", value: 0, strikethrough: 600 },
     { label: "2 Revisions", value: 0, strikethrough: 400 },
-    { label: "Calendar & Email Integration", value: 0, strikethrough: 399 },
+    { label: "Email Integration", value: 0, strikethrough: 399 },
     { label: "Lifetime Hosting", value: 0, strikethrough: 100, suffix: "/month" },
   ],
 });
