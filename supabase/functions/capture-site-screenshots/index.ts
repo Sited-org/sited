@@ -101,6 +101,7 @@ async function captureSite(
     console.log(`Screenshot captured for ${site.name} (${(imageBuffer.byteLength / 1024).toFixed(0)} KB)`);
 
     const fileName = `${site.name}-full.png`;
+    await supabase.storage.from("site-screenshots").remove([fileName]);
     const { error: uploadError } = await supabase.storage
       .from("site-screenshots")
       .upload(fileName, imageBuffer, { contentType: "image/png", upsert: true });
