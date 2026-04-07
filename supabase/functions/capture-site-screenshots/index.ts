@@ -32,53 +32,26 @@ async function captureSite(
         .eq("id", site.id);
     }
 
-    // Try Microlink first, fall back to thum.io
-    let imageBuffer: ArrayBuffer | null = null;
+    // Use thum.io — free, no API key, reliable for full-page screenshots
+    const thumbUrl = `https://image.thum.io/get/width/1440/crop/3000/noanimate/${site.url}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
-    // Attempt 1: Microlink
+    let imageBuffer: ArrayBuffer;
     try {
-      const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=4000&waitUntil=networkidle0`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
-      try {
-        const response = await fetch(microlinkUrl, { signal: controller.signal });
-        const data = await response.json();
-        if (data.status === "success" && data.data?.screenshot?.url) {
-          const imgResp = await fetch(data.data.screenshot.url);
-          if (imgResp.ok) {
-            imageBuffer = await imgResp.arrayBuffer();
-            console.log(`Microlink OK for ${site.name}`);
-          }
-        }
-      } finally {
-        clearTimeout(timeout);
+      const imgResp = await fetch(thumbUrl, { signal: controller.signal });
+      if (!imgResp.ok) {
+        return { success: false, name: site.name, url: site.url, error: `Screenshot service returned ${imgResp.status}` };
       }
-    } catch (e) {
-      console.log(`Microlink failed for ${site.name}: ${e}`);
+      imageBuffer = await imgResp.arrayBuffer();
+      console.log(`Screenshot captured for ${site.name} (${(imageBuffer.byteLength / 1024).toFixed(0)} KB)`);
+    } finally {
+      clearTimeout(timeout);
     }
 
-    // Attempt 2: thum.io (free, no API key)
-    if (!imageBuffer) {
-      try {
-        const thumbUrl = `https://image.thum.io/get/width/1440/crop/3000/noanimate/${site.url}`;
-        const controller2 = new AbortController();
-        const timeout2 = setTimeout(() => controller2.abort(), 20000);
-        try {
-          const imgResp = await fetch(thumbUrl, { signal: controller2.signal });
-          if (imgResp.ok) {
-            imageBuffer = await imgResp.arrayBuffer();
-            console.log(`thum.io OK for ${site.name}`);
-          }
-        } finally {
-          clearTimeout(timeout2);
-        }
-      } catch (e) {
-        console.log(`thum.io failed for ${site.name}: ${e}`);
-      }
-    }
-
-    if (!imageBuffer) {
-      return { success: false, name: site.name, url: site.url, error: "All capture methods failed" };
+    // Minimum size check — reject tiny/empty responses
+    if (imageBuffer.byteLength < 5000) {
+      return { success: false, name: site.name, url: site.url, error: "Screenshot too small, likely failed" };
     }
 
     const fileName = `${site.name}-full.png`;
@@ -94,7 +67,11 @@ async function captureSite(
     console.log(`Done: ${site.name}`);
     return { success: true, name: site.name, url: site.url, publicUrl: publicUrlData.publicUrl };
   } catch (err) {
-    return { success: false, name: site.name, url: site.url, error: String(err) };
+    const msg = String(err);
+    if (msg.includes("abort")) {
+      return { success: false, name: site.name, url: site.url, error: "Timed out waiting for screenshot" };
+    }
+    return { success: false, name: site.name, url: site.url, error: msg };
   }
 }
 
@@ -109,12 +86,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Optional: capture a single site by slug
     let filterSlug: string | null = null;
     try {
       const body = await req.json();
       filterSlug = body?.slug || null;
-    } catch { /* no body is fine */ }
+    } catch { /* no body */ }
 
     const { data: testimonials, error: fetchError } = await supabase
       .from("testimonials")
@@ -148,7 +124,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process sequentially to avoid rate limits on free screenshot APIs
+    // Process sequentially to avoid rate limits
     const outcomes: Awaited<ReturnType<typeof captureSite>>[] = [];
     for (const site of sites) {
       outcomes.push(await captureSite(supabase, site));
