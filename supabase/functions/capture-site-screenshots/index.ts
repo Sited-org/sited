@@ -33,7 +33,12 @@ async function captureSite(
 
     let imageBuffer: ArrayBuffer;
     try {
-      const imgResp = await fetch(thumbUrl, { signal: controller.signal });
+      const imgResp = await fetch(thumbUrl, {
+        signal: controller.signal,
+        headers: {
+          "user-agent": "Python-urllib/3.11",
+        },
+      });
       if (!imgResp.ok) {
         return { success: false, name: site.name, url: site.url, error: `Screenshot service returned ${imgResp.status}` };
       }
