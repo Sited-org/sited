@@ -18,93 +18,84 @@ function deriveSlug(url: string): string {
   }
 }
 
-function readPngDimensions(buffer: Uint8Array): { width: number; height: number } | null {
-  if (buffer.length < 24) return null;
-  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
-  for (let i = 0; i < pngSignature.length; i++) {
-    if (buffer[i] !== pngSignature[i]) return null;
+async function captureWithFirecrawl(siteUrl: string): Promise<Uint8Array> {
+  const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!apiKey) {
+    throw new Error("FIRECRAWL_API_KEY not configured");
   }
 
-  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-  const width = view.getUint32(16);
-  const height = view.getUint32(20);
-  return { width, height };
-}
-
-function isValidFullPageScreenshot(buffer: Uint8Array): { valid: boolean; reason?: string } {
-  if (buffer.byteLength < 25000) {
-    return { valid: false, reason: "Screenshot too small, likely placeholder image" };
+  let formattedUrl = siteUrl.trim();
+  if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+    formattedUrl = `https://${formattedUrl}`;
   }
 
-  const dimensions = readPngDimensions(buffer);
-  if (!dimensions) {
-    return { valid: false, reason: "Invalid PNG returned by screenshot service" };
+  console.log(`Requesting Firecrawl screenshot for: ${formattedUrl}`);
+
+  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: formattedUrl,
+      formats: ["screenshot@fullPage"],
+      waitFor: 3000,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(`Firecrawl API error ${response.status}: ${JSON.stringify(data)}`);
   }
 
-  if (dimensions.height <= 1200) {
-    return { valid: false, reason: `Screenshot height ${dimensions.height}px is too short to be a full homepage capture` };
+  // screenshot is base64 encoded in the response
+  const screenshotBase64 = data?.data?.screenshot || data?.screenshot;
+  if (!screenshotBase64) {
+    throw new Error("No screenshot returned by Firecrawl");
   }
 
-  if (dimensions.height <= dimensions.width) {
-    return { valid: false, reason: `Screenshot ratio ${dimensions.width}x${dimensions.height} does not look like a full-page capture` };
+  // Remove data:image/...;base64, prefix if present
+  const base64Clean = screenshotBase64.replace(/^data:image\/[^;]+;base64,/, "");
+
+  // Decode base64 to Uint8Array
+  const binaryStr = atob(base64Clean);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
   }
 
-  return { valid: true };
-}
+  console.log(`Firecrawl screenshot received: ${(bytes.byteLength / 1024).toFixed(0)} KB`);
 
-async function fetchFullPageScreenshot(siteUrl: string): Promise<Uint8Array> {
-  const candidateUrls = [
-    `https://image.thum.io/get/width/1440/fullpage/noanimate/${siteUrl}`,
-    `https://image.thum.io/get/fullpage/noanimate/${siteUrl}`,
-    `https://image.thum.io/get/fullpage/${siteUrl}`,
-  ];
-
-  let lastError = "Unknown screenshot failure";
-
-  for (const thumbUrl of candidateUrls) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
-
-    try {
-      const imgResp = await fetch(thumbUrl, { signal: controller.signal });
-      if (!imgResp.ok) {
-        lastError = `Screenshot service returned ${imgResp.status}`;
-        continue;
-      }
-
-      const imageBuffer = new Uint8Array(await imgResp.arrayBuffer());
-      const validation = isValidFullPageScreenshot(imageBuffer);
-      if (validation.valid) {
-        return imageBuffer;
-      }
-
-      lastError = validation.reason || "Screenshot validation failed";
-      console.log(`Rejected screenshot for ${siteUrl}: ${lastError}`);
-    } catch (error) {
-      lastError = String(error);
-    } finally {
-      clearTimeout(timeout);
-    }
+  if (bytes.byteLength < 10000) {
+    throw new Error("Screenshot too small, likely a failed capture");
   }
 
-  throw new Error(lastError);
+  return bytes;
 }
 
 async function captureSite(
   supabase: any,
-  site: { id: string; name: string; url: string; needsSlugUpdate: boolean }
+  site: { id: string; name: string; url: string }
 ): Promise<{ success: boolean; name: string; url: string; publicUrl?: string; error?: string }> {
   try {
-    console.log(`Capturing ${site.name}...`);
+    console.log(`Capturing ${site.name} (${site.url})...`);
 
-    const imageBuffer = await fetchFullPageScreenshot(site.url);
-    console.log(`Screenshot captured for ${site.name} (${(imageBuffer.byteLength / 1024).toFixed(0)} KB)`);
+    const imageBuffer = await captureWithFirecrawl(site.url);
 
-    const fileName = `${site.name}-full.png`;
-    await supabase.storage.from("site-screenshots").remove([fileName]);
+    // Determine content type from first bytes
+    const isPng = imageBuffer[0] === 137 && imageBuffer[1] === 80;
+    const contentType = isPng ? "image/png" : "image/jpeg";
+    const ext = isPng ? "png" : "jpg";
+    const fileName = `${site.name}-full.${ext}`;
+
+    // Remove old files (both extensions)
+    await supabase.storage.from("site-screenshots").remove([`${site.name}-full.png`, `${site.name}-full.jpg`]);
+
     const { error: uploadError } = await supabase.storage
       .from("site-screenshots")
-      .upload(fileName, imageBuffer, { contentType: "image/png", upsert: true });
+      .upload(fileName, imageBuffer, { contentType, upsert: true });
 
     if (uploadError) {
       return { success: false, name: site.name, url: site.url, error: `Upload: ${uploadError.message}` };
@@ -119,14 +110,10 @@ async function captureSite(
       .eq("id", site.id);
 
     const { data: publicUrlData } = supabase.storage.from("site-screenshots").getPublicUrl(fileName);
-    console.log(`Done: ${site.name}`);
+    console.log(`Done: ${site.name} → ${publicUrlData.publicUrl}`);
     return { success: true, name: site.name, url: site.url, publicUrl: publicUrlData.publicUrl };
   } catch (err) {
-    const msg = String(err);
-    if (msg.includes("abort")) {
-      return { success: false, name: site.name, url: site.url, error: "Timed out waiting for full-page screenshot" };
-    }
-    return { success: false, name: site.name, url: site.url, error: msg };
+    return { success: false, name: site.name, url: site.url, error: String(err) };
   }
 }
 
@@ -164,7 +151,7 @@ Deno.serve(async (req) => {
       .filter((t: any) => t.website_url)
       .map((t: any) => {
         const slug = t.screenshot_slug || deriveSlug(t.website_url);
-        return { id: t.id, name: slug, url: t.website_url, needsSlugUpdate: !t.screenshot_slug };
+        return { id: t.id, name: slug, url: t.website_url };
       })
       .filter((s) => s.name);
 
@@ -179,6 +166,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Process sequentially to avoid rate limits
     const outcomes: Awaited<ReturnType<typeof captureSite>>[] = [];
     for (const site of sites) {
       outcomes.push(await captureSite(supabase, site));
