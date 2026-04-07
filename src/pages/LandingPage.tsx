@@ -251,6 +251,7 @@ const LandingPage = () => {
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   const { data: featuredTestimonials } = useFeaturedTestimonials();
   const { prices, depositAmount } = usePackagePrices();
+  const { savings: pkgSavings } = usePackageSavings();
   
   // Dynamic testimonials from DB, with fallback
   const testimonials = featuredTestimonials && featuredTestimonials.length > 0
@@ -258,7 +259,7 @@ const LandingPage = () => {
     : fallbackTestimonials.map(t => ({ ...t, video_url: null as string | null }));
   
   const videoTestimonials = testimonials.filter(t => t.video_url);
-  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount);
+  const OFFER = makeOffer(prices["basic-deposit"] ?? 499, depositAmount, pkgSavings.blue.wasPrice);
 
   // Form state
   const [name, setName] = useState("");
