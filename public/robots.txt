@@ -1,8 +1,14 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /admin
+Disallow: /dev
+Disallow: /client-portal
 
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /dev
+Disallow: /client-portal
 
 User-agent: Twitterbot
 Allow: /
@@ -12,5 +18,8 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dev
+Disallow: /client-portal
 
 Sitemap: https://sited.lovable.app/sitemap.xml

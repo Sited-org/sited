@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Eagerly load critical above-the-fold page
 import Index from "./pages/Index";
@@ -76,7 +76,7 @@ const App = () => (
             <Route path="/features" element={<Features />} />
             <Route path="/custom-websites" element={<CustomWebsites />} />
             <Route path="/portfolio" element={<Work />} />
-            <Route path="/work" element={<Work />} /> {/* Redirect compatibility */}
+            <Route path="/work" element={<Navigate to="/portfolio" replace />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/contact/offers" element={<ContactOffers />} />
             <Route path="/offer" element={<Offer />} />
