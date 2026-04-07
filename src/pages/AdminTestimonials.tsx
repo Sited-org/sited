@@ -123,9 +123,22 @@ export default function AdminTestimonials() {
   const handleCaptureScreenshot = async () => {
     setIsCapturing(true);
     try {
+      const captureVersion = new Date().toISOString();
       const { data, error } = await supabase.functions.invoke('capture-site-screenshots');
       if (error) throw error;
+
       const result = data as any;
+      const capturedSlugs = (result.results ?? []).map((item: any) => item.name).filter(Boolean);
+
+      if (capturedSlugs.length) {
+        const { error: refreshError } = await supabase
+          .from('testimonials')
+          .update({ updated_at: captureVersion })
+          .in('screenshot_slug', capturedSlugs);
+
+        if (refreshError) throw refreshError;
+      }
+
       if (result.results?.length) {
         toast.success(`Captured ${result.results.length} screenshot(s)`);
       }
@@ -181,7 +194,7 @@ export default function AdminTestimonials() {
 
   const vimeoPreviewId = extractVimeoId(form.video_url || '');
   const screenshotSlug = deriveScreenshotSlug(form.website_url);
-  const screenshotUrl = getScreenshotUrl(screenshotSlug);
+  const screenshotUrl = getScreenshotUrl(screenshotSlug, form.screenshot_slug === screenshotSlug ? undefined : undefined);
 
   return (
     <div className="space-y-6">
@@ -515,7 +528,7 @@ export default function AdminTestimonials() {
         <div className="space-y-3">
           {testimonials.map((testimonial, index) => {
             const slug = (testimonial as any).screenshot_slug || deriveScreenshotSlug(testimonial.website_url);
-            const thumbUrl = slug ? getScreenshotUrl(slug) : null;
+            const thumbUrl = slug ? getScreenshotUrl(slug, testimonial.updated_at) : null;
 
             return (
               <Card key={testimonial.id} className={`transition-opacity ${!testimonial.is_active ? 'opacity-50' : ''}`}>
