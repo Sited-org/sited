@@ -140,7 +140,7 @@ const SocialProofSection = () => {
     .map((t) => ({
       name: t.business_name,
       url: t.website_url!,
-      screenshot: getScreenshotUrl(t.website_url!),
+      screenshot: getScreenshotUrl(t.website_url!, 600),
     })) ?? [];
 
   return (

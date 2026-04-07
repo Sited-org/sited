@@ -109,7 +109,7 @@ export const WebsiteShowcaseGrid = () => {
     .map((t) => ({
       name: t.business_name,
       url: t.website_url!,
-      screenshot: getScreenshotUrl(t.website_url!),
+      screenshot: getScreenshotUrl(t.website_url!, 900),
     })) ?? [];
 
   if (isLoading) return <div className="py-24 text-center text-muted-foreground">Loading...</div>;
