@@ -271,7 +271,7 @@ const LandingPage = () => {
     ? featuredTestimonials.flatMap((t) => {
         if (!t.website_url) return [];
 
-        const screenshot = getScreenshotUrl((t as any).screenshot_slug);
+        const screenshot = getScreenshotUrl((t as any).screenshot_slug, t.updated_at);
         if (!screenshot) return [];
 
         return [{
