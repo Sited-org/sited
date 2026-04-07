@@ -5,17 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Star, Briefcase } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Pencil, Trash2, ExternalLink, Video, GripVertical, Home, Star, Briefcase, Camera, Globe, FileText, Play, LayoutGrid } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { extractVimeoId } from '@/lib/vimeo';
 import { PlacementSection } from '@/components/admin/testimonials/PlacementSection';
-import { deriveScreenshotSlug } from '@/lib/screenshot-url';
+import { deriveScreenshotSlug, getScreenshotUrl } from '@/lib/screenshot-url';
+import { supabase } from '@/integrations/supabase/client';
 
 const PROJECT_TYPES = ['Website Design'];
 
@@ -55,12 +56,13 @@ export default function AdminTestimonials() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TestimonialInsert & { screenshot_slug?: string }>(emptyForm);
+  const [activeTab, setActiveTab] = useState('information');
+  const [isCapturing, setIsCapturing] = useState(false);
 
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
     return <Navigate to="/admin" replace />;
   }
 
-  // Compute taken positions for each page (excluding the currently edited testimonial)
   const otherTestimonials = testimonials?.filter(t => t.id !== editingId) || [];
   const takenPortfolioPositions = otherTestimonials.filter(t => t.portfolio_position != null).map(t => t.portfolio_position!);
   const takenHomepagePositions = otherTestimonials.filter(t => t.homepage_position != null).map(t => t.homepage_position!);
@@ -73,6 +75,7 @@ export default function AdminTestimonials() {
   const handleOpenCreate = () => {
     setEditingId(null);
     setForm({ ...emptyForm, display_order: (testimonials?.length || 0) + 1, created_by: user?.id || null });
+    setActiveTab('information');
     setIsDialogOpen(true);
   };
 
@@ -103,6 +106,7 @@ export default function AdminTestimonials() {
       created_by: testimonial.created_by,
       screenshot_slug: (testimonial as any).screenshot_slug || '',
     });
+    setActiveTab('information');
     setIsDialogOpen(true);
   };
 
@@ -116,13 +120,30 @@ export default function AdminTestimonials() {
     }
   };
 
+  const handleCaptureScreenshot = async () => {
+    setIsCapturing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('capture-site-screenshots');
+      if (error) throw error;
+      const result = data as any;
+      if (result.results?.length) {
+        toast.success(`Captured ${result.results.length} screenshot(s)`);
+      }
+      if (result.errors?.length) {
+        toast.error(`${result.errors.length} capture(s) failed`);
+      }
+    } catch (err: any) {
+      toast.error('Screenshot capture failed: ' + err.message);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Auto-derive screenshot slug from website URL
     const autoSlug = deriveScreenshotSlug(form.website_url);
 
-    // Sync toggle flags from position fields
     const payload = {
       ...form,
       is_active: form.portfolio_position != null || form.is_active,
@@ -159,6 +180,8 @@ export default function AdminTestimonials() {
   }
 
   const vimeoPreviewId = extractVimeoId(form.video_url || '');
+  const screenshotSlug = deriveScreenshotSlug(form.website_url);
+  const screenshotUrl = getScreenshotUrl(screenshotSlug);
 
   return (
     <div className="space-y-6">
@@ -166,331 +189,424 @@ export default function AdminTestimonials() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Testimonials</h1>
-          <p className="text-muted-foreground">Manage website mockup placements across pages</p>
-          <div className="flex items-center gap-4 mt-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 text-primary">
-              <Briefcase className="h-3.5 w-3.5" />
+          <p className="text-sm text-muted-foreground mt-1">Manage client testimonials, video reviews & website showcases</p>
+          <div className="flex items-center gap-4 mt-3 text-sm">
+            <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2.5 py-1 rounded-full text-xs font-medium">
+              <Briefcase className="h-3 w-3" />
               Portfolio: {portfolioCount}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-accent-foreground">
-              <Home className="h-3.5 w-3.5" />
+            <span className="inline-flex items-center gap-1.5 bg-accent text-accent-foreground px-2.5 py-1 rounded-full text-xs font-medium">
+              <Home className="h-3 w-3" />
               Homepage: {homepageCount}/3
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sited-blue">
-              <Star className="h-3.5 w-3.5" />
+            <span className="inline-flex items-center gap-1.5 bg-sited-blue/10 text-sited-blue px-2.5 py-1 rounded-full text-xs font-medium">
+              <Star className="h-3 w-3" />
               Landing: {featuredCount}/4
             </span>
           </div>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Testimonial
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Testimonial' : 'Add New Testimonial'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="project_type">Project Type *</Label>
-                  <Select value={form.project_type} onValueChange={(v) => updateField('project_type', v)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="business_name">Business Name *</Label>
-                  <Input
-                    id="business_name"
-                    value={form.business_name}
-                    onChange={(e) => updateField('business_name', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleCaptureScreenshot} disabled={isCapturing}>
+            <Camera className="h-4 w-4 mr-2" />
+            {isCapturing ? 'Capturing...' : 'Capture Screenshots'}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Testimonial
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background text-foreground border-border [&]:bg-white dark:[&]:bg-zinc-900">
+              <DialogHeader>
+                <DialogTitle className="text-lg">{editingId ? 'Edit Testimonial' : 'New Testimonial'}</DialogTitle>
+              </DialogHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="short_description">Short Description *</Label>
-                <Textarea
-                  id="short_description"
-                  value={form.short_description}
-                  onChange={(e) => updateField('short_description', e.target.value)}
-                  rows={2}
-                  required
-                />
-              </div>
+              <form onSubmit={handleSubmit}>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+                  <TabsList className="grid grid-cols-5 w-full">
+                    <TabsTrigger value="information" className="text-xs gap-1">
+                      <FileText className="h-3.5 w-3.5" />
+                      Info
+                    </TabsTrigger>
+                    <TabsTrigger value="website" className="text-xs gap-1">
+                      <Globe className="h-3.5 w-3.5" />
+                      Website
+                    </TabsTrigger>
+                    <TabsTrigger value="text" className="text-xs gap-1">
+                      <FileText className="h-3.5 w-3.5" />
+                      Text
+                    </TabsTrigger>
+                    <TabsTrigger value="video" className="text-xs gap-1">
+                      <Play className="h-3.5 w-3.5" />
+                      Video
+                    </TabsTrigger>
+                    <TabsTrigger value="placement" className="text-xs gap-1">
+                      <LayoutGrid className="h-3.5 w-3.5" />
+                      Order
+                    </TabsTrigger>
+                  </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="delivery_time">Delivery Time</Label>
-                <Input
-                  id="delivery_time"
-                  placeholder="e.g., 2 weeks"
-                  value={form.delivery_time || ''}
-                  onChange={(e) => updateField('delivery_time', e.target.value)}
-                />
-              </div>
+                  {/* ── Information Tab ── */}
+                  <TabsContent value="information" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Project Type *</Label>
+                        <Select value={form.project_type} onValueChange={(v) => updateField('project_type', v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PROJECT_TYPES.map(type => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Business Name *</Label>
+                        <Input
+                          value={form.business_name}
+                          onChange={(e) => updateField('business_name', e.target.value)}
+                          placeholder="e.g., Hunter Insight"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Short Description *</Label>
+                      <Textarea
+                        value={form.short_description}
+                        onChange={(e) => updateField('short_description', e.target.value)}
+                        rows={2}
+                        placeholder="Brief summary of the project"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Delivery Time</Label>
+                      <Input
+                        placeholder="e.g., 3 days"
+                        value={form.delivery_time || ''}
+                        onChange={(e) => updateField('delivery_time', e.target.value)}
+                      />
+                    </div>
+                  </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="testimonial_text">Testimonial Text *</Label>
-                <Textarea
-                  id="testimonial_text"
-                  value={form.testimonial_text}
-                  onChange={(e) => updateField('testimonial_text', e.target.value)}
-                  rows={3}
-                  required
-                />
-              </div>
+                  {/* ── Website Tab ── */}
+                  <TabsContent value="website" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Website URL</Label>
+                      <Input
+                        type="url"
+                        placeholder="https://example.com"
+                        value={form.website_url || ''}
+                        onChange={(e) => updateField('website_url', e.target.value)}
+                      />
+                      {form.website_url && (
+                        <p className="text-xs text-muted-foreground">
+                          Screenshot file: <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">{screenshotSlug || '...'}-full.png</code>
+                        </p>
+                      )}
+                    </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="testimonial_author">Author Name *</Label>
-                  <Input
-                    id="testimonial_author"
-                    value={form.testimonial_author}
-                    onChange={(e) => updateField('testimonial_author', e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="testimonial_role">Author Role *</Label>
-                  <Input
-                    id="testimonial_role"
-                    placeholder="e.g., CEO, Founder"
-                    value={form.testimonial_role}
-                    onChange={(e) => updateField('testimonial_role', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+                    {/* Screenshot Preview */}
+                    {screenshotUrl ? (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Screenshot Preview</Label>
+                        <div className="relative rounded-lg border border-border overflow-hidden bg-muted" style={{ height: 300 }}>
+                          <div className="absolute inset-0 overflow-y-auto">
+                            <img
+                              src={screenshotUrl}
+                              alt={`${form.business_name || 'Website'} screenshot`}
+                              className="w-full"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                const parent = (e.target as HTMLImageElement).parentElement;
+                                if (parent) {
+                                  const msg = document.createElement('div');
+                                  msg.className = 'flex items-center justify-center h-full text-sm text-muted-foreground';
+                                  msg.textContent = 'Screenshot not captured yet. Click "Capture Screenshots" above.';
+                                  parent.appendChild(msg);
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This scrolling preview shows what visitors will see on the homepage & portfolio pages.
+                        </p>
+                      </div>
+                    ) : form.website_url ? (
+                      <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                        <Camera className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No screenshot captured yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Save this testimonial, then click "Capture Screenshots" to generate the preview.</p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                        <Globe className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Enter a website URL above to enable the scrolling website showcase</p>
+                      </div>
+                    )}
+                  </TabsContent>
 
-              {/* Vimeo URL Input */}
-              <div className="space-y-2">
-                <Label htmlFor="video_url">Vimeo Video URL</Label>
-                <Input
-                  id="video_url"
-                  type="url"
-                  placeholder="https://vimeo.com/123456789"
-                  value={form.video_url || ''}
-                  onChange={(e) => handleVimeoUrlChange(e.target.value)}
-                />
-                {vimeoPreviewId && (
-                  <div className="rounded-lg overflow-hidden border border-border aspect-video">
-                    <iframe
-                      src={`https://player.vimeo.com/video/${vimeoPreviewId}`}
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
+                  {/* ── Text Tab ── */}
+                  <TabsContent value="text" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Testimonial Text *</Label>
+                      <Textarea
+                        value={form.testimonial_text}
+                        onChange={(e) => updateField('testimonial_text', e.target.value)}
+                        rows={4}
+                        placeholder="What the client said about your work..."
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Author Name *</Label>
+                        <Input
+                          value={form.testimonial_author}
+                          onChange={(e) => updateField('testimonial_author', e.target.value)}
+                          placeholder="John Smith"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Author Role *</Label>
+                        <Input
+                          value={form.testimonial_role}
+                          onChange={(e) => updateField('testimonial_role', e.target.value)}
+                          placeholder="CEO, Founder"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preview */}
+                    {form.testimonial_text && (
+                      <div className="rounded-lg border border-border p-4 bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-2 font-medium">Preview</p>
+                        <blockquote className="border-l-2 border-primary pl-3 italic text-sm">
+                          "{form.testimonial_text}"
+                          {form.testimonial_author && (
+                            <cite className="block mt-2 not-italic font-medium text-xs">
+                              — {form.testimonial_author}{form.testimonial_role ? `, ${form.testimonial_role}` : ''}
+                            </cite>
+                          )}
+                        </blockquote>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* ── Video Tab ── */}
+                  <TabsContent value="video" className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Vimeo Video URL</Label>
+                      <Input
+                        type="url"
+                        placeholder="https://vimeo.com/123456789"
+                        value={form.video_url || ''}
+                        onChange={(e) => handleVimeoUrlChange(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Paste a Vimeo link. The thumbnail will be auto-fetched.
+                      </p>
+                    </div>
+                    {vimeoPreviewId ? (
+                      <div className="rounded-lg overflow-hidden border border-border aspect-video">
+                        <iframe
+                          src={`https://player.vimeo.com/video/${vimeoPreviewId}`}
+                          className="w-full h-full"
+                          allow="autoplay; fullscreen"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                        <Play className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No video added yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Add a Vimeo URL above to embed a video testimonial</p>
+                      </div>
+                    )}
+                    {form.video_url && !vimeoPreviewId && (
+                      <p className="text-xs text-destructive">
+                        Please enter a valid Vimeo URL (e.g., https://vimeo.com/123456789)
+                      </p>
+                    )}
+                  </TabsContent>
+
+                  {/* ── Order / Placement Tab ── */}
+                  <TabsContent value="placement" className="space-y-4 mt-4">
+                    <p className="text-xs text-muted-foreground">Choose where this testimonial and its website screenshot will appear across your site.</p>
+                    
+                    <PlacementSection
+                      title="Portfolio"
+                      description="Scrolling screenshot & text review on /work"
+                      icon={<Briefcase className="h-4 w-4" />}
+                      enabled={form.portfolio_position != null}
+                      onToggle={(v) => { if (!v) updateField('portfolio_position', null); }}
+                      position={form.portfolio_position}
+                      onPositionChange={(pos) => updateField('portfolio_position', pos)}
+                      maxPositions={10}
+                      takenPositions={takenPortfolioPositions}
+                      accentClass="text-primary"
                     />
-                  </div>
-                )}
-                {form.video_url && !vimeoPreviewId && (
-                  <p className="text-xs text-destructive">
-                    Please enter a valid Vimeo URL (e.g., https://vimeo.com/123456789)
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Paste a Vimeo link. The thumbnail will be fetched automatically.
-                </p>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="website_url">Website URL</Label>
-                  <Input
-                    id="website_url"
-                    type="url"
-                    placeholder="https://..."
-                    value={form.website_url || ''}
-                    onChange={(e) => updateField('website_url', e.target.value)}
-                  />
+                    <PlacementSection
+                      title="Homepage"
+                      description="Scrolling website showcase (max 3)"
+                      icon={<Home className="h-4 w-4" />}
+                      enabled={form.homepage_position != null}
+                      onToggle={(v) => {
+                        if (!v) {
+                          updateField('homepage_position', null);
+                          updateField('show_on_homepage', false);
+                        }
+                      }}
+                      position={form.homepage_position}
+                      onPositionChange={(pos) => {
+                        updateField('homepage_position', pos);
+                        updateField('show_on_homepage', true);
+                      }}
+                      maxPositions={3}
+                      takenPositions={takenHomepagePositions}
+                      accentClass="text-accent-foreground"
+                    />
+
+                    <PlacementSection
+                      title="Landing Page"
+                      description="Scrolling screenshot & text review on /go (max 4)"
+                      icon={<Star className="h-4 w-4" />}
+                      enabled={form.featured_position != null}
+                      onToggle={(v) => {
+                        if (!v) {
+                          updateField('featured_position', null);
+                          updateField('show_featured', false);
+                        }
+                      }}
+                      position={form.featured_position}
+                      onPositionChange={(pos) => {
+                        updateField('featured_position', pos);
+                        updateField('show_featured', true);
+                      }}
+                      maxPositions={4}
+                      takenPositions={takenFeaturedPositions}
+                      accentClass="text-sited-blue"
+                    />
+                  </TabsContent>
+                </Tabs>
+
+                <div className="flex justify-end gap-3 pt-6 mt-4 border-t border-border">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {editingId ? 'Update' : 'Create'} Testimonial
+                  </Button>
                 </div>
-              </div>
-
-              {/* ─── Screenshot info ─── */}
-              {form.website_url && (
-                <div className="rounded-lg border border-sited-blue/20 bg-sited-blue/5 p-3 text-xs text-muted-foreground">
-                  <p className="font-semibold text-foreground mb-1">📸 Scrolling Website Preview</p>
-                  <p>A screenshot slug will be auto-generated from the website URL: <code className="bg-muted px-1 rounded">{deriveScreenshotSlug(form.website_url) || '...'}-full.png</code>. Run the screenshot capture function to generate the image.</p>
-                </div>
-              )}
-
-              {/* ─── Page Placement Sections ─── */}
-              <div className="space-y-3 pt-2">
-                <Label className="text-base font-semibold">Page Placements</Label>
-                <p className="text-xs text-muted-foreground -mt-1">Choose where this testimonial (and its scrolling website screenshot) will appear.</p>
-
-                <PlacementSection
-                  title="Portfolio"
-                  description="Shows text testimonial & scrolling website screenshot on the Portfolio (/work) page"
-                  icon={<Briefcase className="h-4 w-4" />}
-                  enabled={form.portfolio_position != null}
-                  onToggle={(v) => {
-                    if (!v) {
-                      updateField('portfolio_position', null);
-                    }
-                  }}
-                  position={form.portfolio_position}
-                  onPositionChange={(pos) => updateField('portfolio_position', pos)}
-                  maxPositions={10}
-                  takenPositions={takenPortfolioPositions}
-                  accentClass="text-primary"
-                />
-
-                <PlacementSection
-                  title="Homepage"
-                  description="Shows scrolling website screenshot on Homepage (max 3)"
-                  icon={<Home className="h-4 w-4" />}
-                  enabled={form.homepage_position != null}
-                  onToggle={(v) => {
-                    if (!v) {
-                      updateField('homepage_position', null);
-                      updateField('show_on_homepage', false);
-                    }
-                  }}
-                  position={form.homepage_position}
-                  onPositionChange={(pos) => {
-                    updateField('homepage_position', pos);
-                    updateField('show_on_homepage', true);
-                  }}
-                  maxPositions={3}
-                  takenPositions={takenHomepagePositions}
-                  accentClass="text-accent-foreground"
-                />
-
-                <PlacementSection
-                  title="Landing Page"
-                  description="Shows scrolling website screenshot & text review on /go landing page (max 4)"
-                  icon={<Star className="h-4 w-4" />}
-                  enabled={form.featured_position != null}
-                  onToggle={(v) => {
-                    if (!v) {
-                      updateField('featured_position', null);
-                      updateField('show_featured', false);
-                    }
-                  }}
-                  position={form.featured_position}
-                  onPositionChange={(pos) => {
-                    updateField('featured_position', pos);
-                    updateField('show_featured', true);
-                  }}
-                  maxPositions={4}
-                  takenPositions={takenFeaturedPositions}
-                  accentClass="text-sited-blue"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingId ? 'Update' : 'Create'} Testimonial
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      {/* Testimonials Grid */}
+      {/* Testimonials List */}
       {testimonials && testimonials.length > 0 ? (
-        <div className="grid gap-4">
-          {testimonials.map((testimonial) => (
-            <Card key={testimonial.id} className={!testimonial.is_active ? 'opacity-60' : ''}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
-                        {testimonial.business_name}
+        <div className="space-y-3">
+          {testimonials.map((testimonial, index) => {
+            const slug = (testimonial as any).screenshot_slug || deriveScreenshotSlug(testimonial.website_url);
+            const thumbUrl = slug ? getScreenshotUrl(slug) : null;
+
+            return (
+              <Card key={testimonial.id} className={`transition-opacity ${!testimonial.is_active ? 'opacity-50' : ''}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Drag handle + order number */}
+                    <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                      <GripVertical className="h-4 w-4 cursor-grab" />
+                      <span className="text-xs font-mono">{index + 1}</span>
+                    </div>
+
+                    {/* Screenshot thumbnail */}
+                    <div className="w-16 h-12 rounded border border-border overflow-hidden bg-muted flex-shrink-0">
+                      {thumbUrl ? (
+                        <img
+                          src={thumbUrl}
+                          alt={testimonial.business_name}
+                          className="w-full h-full object-cover object-top"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Globe className="h-4 w-4 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-sm">{testimonial.business_name}</h3>
                         {testimonial.portfolio_position != null && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Portfolio #{testimonial.portfolio_position}</span>
+                          <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Portfolio #{testimonial.portfolio_position}</span>
                         )}
                         {testimonial.homepage_position != null && (
-                          <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded">Homepage #{testimonial.homepage_position}</span>
+                          <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full font-medium">Home #{testimonial.homepage_position}</span>
                         )}
                         {testimonial.featured_position != null && (
-                          <span className="text-xs bg-sited-blue/20 text-sited-blue px-2 py-0.5 rounded">Landing #{testimonial.featured_position}</span>
+                          <span className="text-[10px] bg-sited-blue/10 text-sited-blue px-1.5 py-0.5 rounded-full font-medium">Landing #{testimonial.featured_position}</span>
                         )}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">{testimonial.project_type}</p>
+                        {testimonial.video_url && (
+                          <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full font-medium">Video</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {testimonial.short_description}
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {testimonial.website_url && (
-                      <Button variant="ghost" size="icon" asChild>
-                        <a href={testimonial.website_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {testimonial.video_url && (
-                      <Button variant="ghost" size="icon" asChild>
-                        <a href={testimonial.video_url} target="_blank" rel="noopener noreferrer">
-                          <Video className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(testimonial)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {testimonial.website_url && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                          <a href={testimonial.website_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Testimonial</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete the testimonial from {testimonial.business_name}? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(testimonial.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-3">{testimonial.short_description}</p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  {testimonial.delivery_time && (
-                    <div className="bg-muted px-3 py-1.5 rounded">
-                      <span className="font-semibold">{testimonial.delivery_time}</span>{' '}
-                      <span className="text-muted-foreground">Delivery</span>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEdit(testimonial)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Testimonial</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Delete the testimonial from {testimonial.business_name}? This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(testimonial.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  )}
-                </div>
-                <blockquote className="mt-4 border-l-2 border-accent pl-4 italic text-sm text-muted-foreground">
-                  "{testimonial.testimonial_text}"
-                  <cite className="block mt-2 not-italic font-medium text-foreground">
-                    — {testimonial.testimonial_author}, {testimonial.testimonial_role}
-                  </cite>
-                </blockquote>
-              </CardContent>
-            </Card>
-          ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card>
