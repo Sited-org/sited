@@ -1654,6 +1654,7 @@ export type Database = {
           metric_2_value: string | null
           portfolio_position: number | null
           project_type: string
+          screenshot_slug: string | null
           short_description: string
           show_featured: boolean
           show_on_homepage: boolean
@@ -1681,6 +1682,7 @@ export type Database = {
           metric_2_value?: string | null
           portfolio_position?: number | null
           project_type: string
+          screenshot_slug?: string | null
           short_description: string
           show_featured?: boolean
           show_on_homepage?: boolean
@@ -1708,6 +1710,7 @@ export type Database = {
           metric_2_value?: string | null
           portfolio_position?: number | null
           project_type?: string
+          screenshot_slug?: string | null
           short_description?: string
           show_featured?: boolean
           show_on_homepage?: boolean

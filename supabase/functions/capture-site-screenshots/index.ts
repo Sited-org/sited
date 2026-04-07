@@ -5,12 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITES_TO_CAPTURE = [
-  { name: "hunterinsight", url: "https://hunterinsight.com.au" },
-  { name: "inglebrown", url: "https://inglebrown.sited.co" },
-  { name: "wisdomeducation", url: "https://wisdomeducation.org" },
-];
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,14 +16,32 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Fetch all active testimonials with a website_url and screenshot_slug
+    const { data: testimonials, error: fetchError } = await supabase
+      .from("testimonials")
+      .select("business_name, website_url, screenshot_slug")
+      .eq("is_active", true)
+      .not("website_url", "is", null)
+      .not("screenshot_slug", "is", null);
+
+    if (fetchError) {
+      return new Response(
+        JSON.stringify({ success: false, error: fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sites = (testimonials || [])
+      .filter((t: any) => t.website_url && t.screenshot_slug)
+      .map((t: any) => ({ name: t.screenshot_slug, url: t.website_url }));
+
     const results: { name: string; url: string; publicUrl: string }[] = [];
     const errors: { name: string; error: string }[] = [];
 
-    for (const site of SITES_TO_CAPTURE) {
+    for (const site of sites) {
       try {
         console.log(`Capturing screenshot for ${site.name}...`);
 
-        // Use microlink.io to capture full-page screenshot with JS execution
         const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=8000&waitUntil=networkidle0`;
 
         const response = await fetch(microlinkUrl);
@@ -43,7 +55,6 @@ Deno.serve(async (req) => {
         const screenshotUrl = data.data.screenshot.url;
         console.log(`Got screenshot URL for ${site.name}: ${screenshotUrl}`);
 
-        // Download the screenshot image
         const imageResponse = await fetch(screenshotUrl);
         if (!imageResponse.ok) {
           errors.push({ name: site.name, error: `Failed to download image: ${imageResponse.status}` });
@@ -53,7 +64,6 @@ Deno.serve(async (req) => {
         const imageBuffer = await imageResponse.arrayBuffer();
         const fileName = `${site.name}-full.png`;
 
-        // Upload to Supabase storage
         const { error: uploadError } = await supabase.storage
           .from("site-screenshots")
           .upload(fileName, imageBuffer, {
@@ -66,7 +76,6 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Get public URL
         const { data: publicUrlData } = supabase.storage
           .from("site-screenshots")
           .getPublicUrl(fileName);

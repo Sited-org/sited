@@ -138,7 +138,7 @@ const SocialProofSection = () => {
   const dynamicSites: SiteData[] = testimonials?.flatMap((t) => {
     if (!t.website_url) return [];
 
-    const screenshot = getScreenshotUrl(t.website_url);
+    const screenshot = getScreenshotUrl((t as any).screenshot_slug);
     if (!screenshot) return [];
 
     return [{

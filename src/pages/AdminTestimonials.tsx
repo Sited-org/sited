@@ -18,7 +18,7 @@ import { PlacementSection } from '@/components/admin/testimonials/PlacementSecti
 
 const PROJECT_TYPES = ['Website Design'];
 
-const emptyForm: TestimonialInsert = {
+const emptyForm: TestimonialInsert & { screenshot_slug?: string } = {
   project_type: 'Website Design',
   business_name: '',
   short_description: '',
@@ -41,6 +41,7 @@ const emptyForm: TestimonialInsert = {
   featured_position: null,
   portfolio_position: null,
   created_by: null,
+  screenshot_slug: '',
 };
 
 export default function AdminTestimonials() {
@@ -52,7 +53,7 @@ export default function AdminTestimonials() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TestimonialInsert>(emptyForm);
+  const [form, setForm] = useState<TestimonialInsert & { screenshot_slug?: string }>(emptyForm);
 
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
     return <Navigate to="/admin" replace />;
@@ -99,6 +100,7 @@ export default function AdminTestimonials() {
       featured_position: testimonial.featured_position,
       portfolio_position: testimonial.portfolio_position,
       created_by: testimonial.created_by,
+      screenshot_slug: (testimonial as any).screenshot_slug || '',
     });
     setIsDialogOpen(true);
   };
@@ -139,7 +141,7 @@ export default function AdminTestimonials() {
     await deleteMutation.mutateAsync(id);
   };
 
-  const updateField = (field: keyof TestimonialInsert, value: string | number | boolean | null) => {
+  const updateField = (field: string, value: string | number | boolean | null) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -296,25 +298,54 @@ export default function AdminTestimonials() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="website_url">Website URL</Label>
-                <Input
-                  id="website_url"
-                  type="url"
-                  placeholder="https://..."
-                  value={form.website_url || ''}
-                  onChange={(e) => updateField('website_url', e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="website_url">Website URL</Label>
+                  <Input
+                    id="website_url"
+                    type="url"
+                    placeholder="https://..."
+                    value={form.website_url || ''}
+                    onChange={(e) => updateField('website_url', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="screenshot_slug">Screenshot Slug</Label>
+                  <Input
+                    id="screenshot_slug"
+                    placeholder="e.g. hunterinsight"
+                    value={(form as any).screenshot_slug || ''}
+                    onChange={(e) => updateField('screenshot_slug' as any, e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for the scrolling website preview. Filename in storage: <code>{(form as any).screenshot_slug || '...'}-full.png</code>
+                  </p>
+                </div>
               </div>
+
+              {/* ─── Screenshot info ─── */}
+              {(form as any).screenshot_slug && (
+                <div className="rounded-lg border border-sited-blue/20 bg-sited-blue/5 p-3 text-xs text-muted-foreground">
+                  <p className="font-semibold text-foreground mb-1">📸 Scrolling Website Preview</p>
+                  <p>A scrolling screenshot will appear on any page this testimonial is assigned to (Portfolio, Homepage, Landing). The screenshot file must exist in storage as <code className="bg-muted px-1 rounded">{(form as any).screenshot_slug}-full.png</code>.</p>
+                </div>
+              )}
+
+              {form.website_url && !(form as any).screenshot_slug && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+                  <p className="font-semibold mb-1">⚠️ No screenshot slug set</p>
+                  <p>This testimonial has a website URL but no screenshot slug. Add a slug and run the screenshot capture to show a scrolling preview.</p>
+                </div>
+              )}
 
               {/* ─── Page Placement Sections ─── */}
               <div className="space-y-3 pt-2">
                 <Label className="text-base font-semibold">Page Placements</Label>
-                <p className="text-xs text-muted-foreground -mt-1">Assign this testimonial to specific pages and choose its display position.</p>
+                <p className="text-xs text-muted-foreground -mt-1">Choose where this testimonial (and its scrolling website screenshot) will appear.</p>
 
                 <PlacementSection
                   title="Portfolio"
-                  description="Work / Portfolio page showcase"
+                  description="Shows text testimonial & scrolling website screenshot on the Portfolio (/work) page"
                   icon={<Briefcase className="h-4 w-4" />}
                   enabled={form.portfolio_position != null}
                   onToggle={(v) => {
@@ -331,7 +362,7 @@ export default function AdminTestimonials() {
 
                 <PlacementSection
                   title="Homepage"
-                  description="Homepage website mockup section (max 3)"
+                  description="Shows scrolling website screenshot on Homepage (max 3)"
                   icon={<Home className="h-4 w-4" />}
                   enabled={form.homepage_position != null}
                   onToggle={(v) => {
@@ -352,7 +383,7 @@ export default function AdminTestimonials() {
 
                 <PlacementSection
                   title="Landing Page"
-                  description="Featured on /go landing page (max 4)"
+                  description="Shows scrolling website screenshot & text review on /go landing page (max 4)"
                   icon={<Star className="h-4 w-4" />}
                   enabled={form.featured_position != null}
                   onToggle={(v) => {
