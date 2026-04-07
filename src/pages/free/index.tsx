@@ -80,6 +80,7 @@ const FreeLandingPage = () => {
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const { savings: pkgSavings } = usePackageSavings();
 
   // Form state
   const [name, setName] = useState("");
@@ -417,7 +418,7 @@ const FreeLandingPage = () => {
           <ScrollReveal>
             <div className="rounded-xl border border-gold/30 bg-card p-8 text-center shadow-elevated">
               <p className="text-lg text-foreground mb-2">💡 Total value of everything above:</p>
-              <p className="text-2xl line-through text-muted-foreground mb-1">$3,448+</p>
+              <p className="text-2xl line-through text-muted-foreground mb-1">${pkgSavings.blue.wasPrice.toLocaleString()}+</p>
               <p className="text-5xl font-black text-green-500">$0</p>
             </div>
           </ScrollReveal>
