@@ -141,7 +141,7 @@ export default function AdminTestimonials() {
     await deleteMutation.mutateAsync(id);
   };
 
-  const updateField = (field: keyof TestimonialInsert, value: string | number | boolean | null) => {
+  const updateField = (field: string, value: string | number | boolean | null) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
