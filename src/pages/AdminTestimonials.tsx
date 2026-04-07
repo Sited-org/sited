@@ -158,6 +158,22 @@ export default function AdminTestimonials() {
       await createMutation.mutateAsync(payload);
     }
     
+    // Auto-capture screenshot if website URL is set
+    if (autoSlug && form.website_url) {
+      supabase.functions.invoke('capture-site-screenshots', {
+        body: { slug: autoSlug },
+      }).then(({ data, error }) => {
+        if (error) {
+          toast.error('Screenshot capture failed');
+        } else if ((data as any)?.results?.length) {
+          toast.success('Screenshot captured successfully');
+        } else if ((data as any)?.errors?.length) {
+          toast.error('Screenshot capture failed: ' + (data as any).errors[0]?.error);
+        }
+      });
+      toast.info('Capturing website screenshot in background...');
+    }
+
     setIsDialogOpen(false);
     setEditingId(null);
     setForm(emptyForm);
