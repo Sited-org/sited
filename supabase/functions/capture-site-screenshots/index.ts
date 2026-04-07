@@ -25,12 +25,6 @@ async function captureSite(
   try {
     console.log(`Capturing ${site.name}...`);
 
-    if (site.needsSlugUpdate) {
-      await supabase
-        .from("testimonials")
-        .update({ screenshot_slug: site.name })
-        .eq("id", site.id);
-    }
 
     // Use thum.io full-page capture with a tall crop cap so showcase cards always get scrollable screenshots
     const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/crop/10000/noanimate/${site.url}`;
