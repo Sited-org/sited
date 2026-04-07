@@ -25,7 +25,7 @@ export function deriveScreenshotSlug(websiteUrl: string | null | undefined): str
  * Optionally appends a version token so refreshed screenshots bypass CDN/browser cache.
  * Returns null when no slug can be determined.
  */
-const SCREENSHOT_CACHE_VERSION = '2026-04-07-fullpage-refresh';
+const SCREENSHOT_CACHE_VERSION = '2026-04-07-fullpage-restore-v2';
 
 export function getScreenshotUrl(
   slugOrUrl: string | null | undefined,
