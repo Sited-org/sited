@@ -11,6 +11,7 @@ import { ScrollReveal } from "@/components/common/ScrollReveal";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
 import { useNavigate } from "react-router-dom";
+import { usePackageSavings } from "@/hooks/usePackageSavings";
 
 /* ─── Schema ─── */
 const leadSchema = z.object({
@@ -20,19 +21,24 @@ const leadSchema = z.object({
   phone: z.string().trim().min(1, "Phone number is required").max(30),
 });
 
-/* ─── Offer Config ─── */
-const OFFER = {
-  id: "free-build",
-  totalPrice: 0,
-  monthlyPrice: 120,
-  lineItems: [
-    { label: "Custom Website Design & Development", value: 0, strikethrough: 1599 },
-    { label: "7 Core Pages", value: 0, strikethrough: 700 },
-    { label: "3 Local SEO Pages", value: 0, strikethrough: 450 },
-    { label: "Mobile-First Responsive Build", value: 0, strikethrough: 300 },
-    { label: "Credentials & Access Vault", value: 0, strikethrough: 150 },
-    { label: "7-Day Delivery", value: 0, strikethrough: 249 },
-  ],
+/* ─── Offer Config (was-prices derived dynamically in component) ─── */
+const makeOffer = (wasPrice: number) => {
+  const ratios = [0.46, 0.20, 0.13, 0.09, 0.04, 0.08];
+  const strikes = ratios.map(r => Math.round(wasPrice * r));
+  strikes[strikes.length - 1] = wasPrice - strikes.slice(0, -1).reduce((a, b) => a + b, 0);
+  return {
+    id: "free-build",
+    totalPrice: 0,
+    monthlyPrice: 120,
+    lineItems: [
+      { label: "Custom Website Design & Development", value: 0, strikethrough: strikes[0] },
+      { label: "7 Core Pages", value: 0, strikethrough: strikes[1] },
+      { label: "3 Local SEO Pages", value: 0, strikethrough: strikes[2] },
+      { label: "Mobile-First Responsive Build", value: 0, strikethrough: strikes[3] },
+      { label: "Credentials & Access Vault", value: 0, strikethrough: strikes[4] },
+      { label: "7-Day Delivery", value: 0, strikethrough: strikes[5] },
+    ],
+  };
 };
 
 /* ─── Testimonials ─── */
