@@ -346,7 +346,7 @@ export default function AdminTestimonials() {
 
                 <PlacementSection
                   title="Homepage"
-                  description="Homepage website mockup section (max 3)"
+                  description="Shows scrolling website screenshot on Homepage (max 3)"
                   icon={<Home className="h-4 w-4" />}
                   enabled={form.homepage_position != null}
                   onToggle={(v) => {
@@ -367,7 +367,7 @@ export default function AdminTestimonials() {
 
                 <PlacementSection
                   title="Landing Page"
-                  description="Featured on /go landing page (max 4)"
+                  description="Shows scrolling website screenshot & text review on /go landing page (max 4)"
                   icon={<Star className="h-4 w-4" />}
                   enabled={form.featured_position != null}
                   onToggle={(v) => {
