@@ -26,8 +26,8 @@ async function captureSite(
     console.log(`Capturing ${site.name}...`);
 
 
-    // Use thum.io full-page capture with a tall crop cap so showcase cards always get scrollable screenshots
-    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/crop/10000/noanimate/${site.url}`;
+    // Use the original thum.io full-page capture flow so stored PNGs keep the website's real proportions
+    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/noanimate/${site.url}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
@@ -46,6 +46,12 @@ async function captureSite(
     // Minimum size check — reject tiny/empty responses
     if (imageBuffer.byteLength < 5000) {
       return { success: false, name: site.name, url: site.url, error: "Screenshot too small, likely failed" };
+    }
+
+    const image = new Uint8Array(imageBuffer);
+    const isPng = image[0] === 0x89 && image[1] === 0x50 && image[2] === 0x4e && image[3] === 0x47;
+    if (!isPng) {
+      return { success: false, name: site.name, url: site.url, error: "Screenshot service returned an invalid image" };
     }
 
     const fileName = `${site.name}-full.png`;
