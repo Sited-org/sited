@@ -102,7 +102,7 @@ export function ClientWebsiteGrid() {
     .map((t) => ({
       name: t.business_name,
       url: t.website_url!,
-      screenshot: getScreenshotUrl(t.website_url!, 700),
+      screenshot: getScreenshotUrl(t.website_url!),
     })) ?? [];
 
   if (!sites.length) return null;
