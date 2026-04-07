@@ -100,6 +100,7 @@ export default function AdminTestimonials() {
       featured_position: testimonial.featured_position,
       portfolio_position: testimonial.portfolio_position,
       created_by: testimonial.created_by,
+      screenshot_slug: (testimonial as any).screenshot_slug || '',
     });
     setIsDialogOpen(true);
   };
