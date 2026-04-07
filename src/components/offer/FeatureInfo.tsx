@@ -51,7 +51,7 @@ export const FEATURE_INFO: Record<string, FeatureDetail> = {
   // Gold
   "Everything in Blue": {
     title: "Everything in Blue, Plus More",
-    description: "Gold includes every feature from the Blue package — professional website, funnel, lead capture, hosting, SEO, and all integrations — plus powerful business tools.",
+    description: "Gold includes every feature from the Blue package — professional website, funnel, lead capture, hosting, SEO, and email integration — plus powerful business tools.",
     benefit: "The foundation of Blue, supercharged with tools to grow your business.",
   },
   "Admin dashboard": {
