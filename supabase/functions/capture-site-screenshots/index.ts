@@ -32,32 +32,56 @@ async function captureSite(
         .eq("id", site.id);
     }
 
-    const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=5000&waitUntil=networkidle0`;
+    // Try Microlink first, fall back to thum.io
+    let imageBuffer: ArrayBuffer | null = null;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
-
-    let response: Response;
+    // Attempt 1: Microlink
     try {
-      response = await fetch(microlinkUrl, { signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
+      const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=4000&waitUntil=networkidle0`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      try {
+        const response = await fetch(microlinkUrl, { signal: controller.signal });
+        const data = await response.json();
+        if (data.status === "success" && data.data?.screenshot?.url) {
+          const imgResp = await fetch(data.data.screenshot.url);
+          if (imgResp.ok) {
+            imageBuffer = await imgResp.arrayBuffer();
+            console.log(`Microlink OK for ${site.name}`);
+          }
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (e) {
+      console.log(`Microlink failed for ${site.name}: ${e}`);
     }
 
-    const data = await response.json();
-
-    if (data.status !== "success" || !data.data?.screenshot?.url) {
-      return { success: false, name: site.name, url: site.url, error: `Microlink: ${data.status}` };
+    // Attempt 2: thum.io (free, no API key)
+    if (!imageBuffer) {
+      try {
+        const thumbUrl = `https://image.thum.io/get/width/1440/crop/3000/noanimate/${site.url}`;
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 20000);
+        try {
+          const imgResp = await fetch(thumbUrl, { signal: controller2.signal });
+          if (imgResp.ok) {
+            imageBuffer = await imgResp.arrayBuffer();
+            console.log(`thum.io OK for ${site.name}`);
+          }
+        } finally {
+          clearTimeout(timeout2);
+        }
+      } catch (e) {
+        console.log(`thum.io failed for ${site.name}: ${e}`);
+      }
     }
 
-    const imageResponse = await fetch(data.data.screenshot.url);
-    if (!imageResponse.ok) {
-      return { success: false, name: site.name, url: site.url, error: `Download failed: ${imageResponse.status}` };
+    if (!imageBuffer) {
+      return { success: false, name: site.name, url: site.url, error: "All capture methods failed" };
     }
 
-    const imageBuffer = await imageResponse.arrayBuffer();
     const fileName = `${site.name}-full.png`;
-
     const { error: uploadError } = await supabase.storage
       .from("site-screenshots")
       .upload(fileName, imageBuffer, { contentType: "image/png", upsert: true });
@@ -92,13 +116,11 @@ Deno.serve(async (req) => {
       filterSlug = body?.slug || null;
     } catch { /* no body is fine */ }
 
-    const query = supabase
+    const { data: testimonials, error: fetchError } = await supabase
       .from("testimonials")
       .select("id, business_name, website_url, screenshot_slug")
       .eq("is_active", true)
       .not("website_url", "is", null);
-
-    const { data: testimonials, error: fetchError } = await query;
 
     if (fetchError) {
       return new Response(
@@ -126,7 +148,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Process all sites in parallel
+    // Process all in parallel
     const outcomes = await Promise.all(sites.map(site => captureSite(supabase, site)));
 
     const results = outcomes.filter(o => o.success).map(o => ({ name: o.name, url: o.url, publicUrl: o.publicUrl }));
