@@ -50,23 +50,34 @@ async function captureWithFirecrawl(siteUrl: string): Promise<Uint8Array> {
     throw new Error(`Firecrawl API error ${response.status}: ${JSON.stringify(data)}`);
   }
 
-  // screenshot is base64 encoded in the response
-  const screenshotBase64 = data?.data?.screenshot || data?.screenshot;
-  if (!screenshotBase64) {
-    throw new Error("No screenshot returned by Firecrawl");
+  // screenshot can be a URL or base64
+  const screenshotValue = data?.data?.screenshot || data?.screenshot;
+  if (!screenshotValue) {
+    throw new Error("No screenshot returned by Firecrawl. Response: " + JSON.stringify(data).slice(0, 500));
   }
 
-  // Remove data:image/...;base64, prefix if present
-  const base64Clean = screenshotBase64.replace(/^data:image\/[^;]+;base64,/, "");
+  console.log(`Screenshot value type: ${screenshotValue.startsWith("http") ? "URL" : screenshotValue.startsWith("data:") ? "data-uri" : "base64"}, length: ${screenshotValue.length}`);
 
-  // Decode base64 to Uint8Array
-  const binaryStr = atob(base64Clean);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
+  let bytes: Uint8Array;
+
+  if (screenshotValue.startsWith("http")) {
+    // It's a URL - download the image
+    const imgResp = await fetch(screenshotValue);
+    if (!imgResp.ok) {
+      throw new Error(`Failed to download screenshot image: ${imgResp.status}`);
+    }
+    bytes = new Uint8Array(await imgResp.arrayBuffer());
+  } else {
+    // It's base64 (with or without data: prefix)
+    const base64Clean = screenshotValue.replace(/^data:image\/[^;]+;base64,/, "");
+    const binaryStr = atob(base64Clean);
+    bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
   }
 
-  console.log(`Firecrawl screenshot received: ${(bytes.byteLength / 1024).toFixed(0)} KB`);
+  console.log(`Screenshot downloaded: ${(bytes.byteLength / 1024).toFixed(0)} KB`);
 
   if (bytes.byteLength < 10000) {
     throw new Error("Screenshot too small, likely a failed capture");
