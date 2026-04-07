@@ -107,7 +107,7 @@ export const WebsiteShowcaseGrid = () => {
   const sites: SiteData[] = testimonials?.flatMap((t) => {
     if (!t.website_url) return [];
 
-    const screenshot = getScreenshotUrl((t as any).screenshot_slug, t.updated_at);
+    const screenshot = getScreenshotUrl((t as any).screenshot_slug);
     if (!screenshot) return [];
 
     return [{

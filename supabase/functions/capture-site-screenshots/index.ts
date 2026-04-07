@@ -25,20 +25,21 @@ async function captureSite(
   try {
     console.log(`Capturing ${site.name}...`);
 
+    if (site.needsSlugUpdate) {
+      await supabase
+        .from("testimonials")
+        .update({ screenshot_slug: site.name })
+        .eq("id", site.id);
+    }
 
-    // Use the original thum.io full-page capture flow so stored PNGs keep the website's real proportions
-    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/noanimate/${site.url}`;
+    // Use thum.io — free, no API key, reliable for full-page screenshots
+    const thumbUrl = `https://image.thum.io/get/width/1440/crop/3000/noanimate/${site.url}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
     let imageBuffer: ArrayBuffer;
     try {
-      const imgResp = await fetch(thumbUrl, {
-        signal: controller.signal,
-        headers: {
-          "user-agent": "Python-urllib/3.11",
-        },
-      });
+      const imgResp = await fetch(thumbUrl, { signal: controller.signal });
       if (!imgResp.ok) {
         return { success: false, name: site.name, url: site.url, error: `Screenshot service returned ${imgResp.status}` };
       }
@@ -53,12 +54,6 @@ async function captureSite(
       return { success: false, name: site.name, url: site.url, error: "Screenshot too small, likely failed" };
     }
 
-    const image = new Uint8Array(imageBuffer);
-    const isPng = image[0] === 0x89 && image[1] === 0x50 && image[2] === 0x4e && image[3] === 0x47;
-    if (!isPng) {
-      return { success: false, name: site.name, url: site.url, error: "Screenshot service returned an invalid image" };
-    }
-
     const fileName = `${site.name}-full.png`;
     const { error: uploadError } = await supabase.storage
       .from("site-screenshots")
@@ -66,23 +61,6 @@ async function captureSite(
 
     if (uploadError) {
       return { success: false, name: site.name, url: site.url, error: `Upload: ${uploadError.message}` };
-    }
-
-    const testimonialUpdate: Record<string, string> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (site.needsSlugUpdate) {
-      testimonialUpdate.screenshot_slug = site.name;
-    }
-
-    const { error: updateError } = await supabase
-      .from("testimonials")
-      .update(testimonialUpdate)
-      .eq("id", site.id);
-
-    if (updateError) {
-      return { success: false, name: site.name, url: site.url, error: `Refresh: ${updateError.message}` };
     }
 
     const { data: publicUrlData } = supabase.storage.from("site-screenshots").getPublicUrl(fileName);
