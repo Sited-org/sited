@@ -1,33 +1,50 @@
 
 
-# Make Website Showcases Dynamic (Admin-Controlled)
+# Fix: Faster Loading for Website Screenshot Showcases
 
-## Current State
+## Problem
 
-- `/go` page: **Already dynamic** — reads from your testimonials in admin settings. Any testimonial with a website URL and "Show on Homepage" enabled will appear.
-- Homepage grid, Portfolio grid, Offer page: **Hardcoded** to Hunter Insight, Ingle & Brown, Wisdom Education.
+The full-page screenshots stored in Supabase are large uncompressed PNGs (likely 2-5MB each). Every showcase card loads the full-resolution image even though it's displayed at ~400-600px wide. This causes slow initial loads and wastes bandwidth.
 
-## Plan
+## Solution
 
-Make all showcase components pull from the same testimonials data so you can control which websites appear everywhere from the admin Testimonials section.
+Use Supabase Storage's built-in **image transformation API** to serve resized, compressed versions. This requires changing only the URL pattern — no re-uploading or new infrastructure.
+
+Instead of:
+```
+/storage/v1/object/public/site-screenshots/example-full.png
+```
+
+Use:
+```
+/storage/v1/render/image/public/site-screenshots/example-full.png?width=800&quality=75
+```
+
+This serves a ~50-100KB image instead of a multi-megabyte one.
+
+## Changes
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/components/home/ClientWebsiteGrid.tsx` | Replace hardcoded `SITES` array with a `useTestimonials` hook call; filter by `show_on_homepage = true` and `website_url` present; construct screenshot URL dynamically |
-| 2 | `src/components/work/WebsiteShowcaseGrid.tsx` | Same — replace hardcoded `clientSites` with testimonials query; filter by active testimonials with `website_url` |
-| 3 | `src/components/offer/SocialProofSection.tsx` | Same — replace hardcoded `showcaseSites` with testimonials query; filter by `show_on_homepage = true` |
+| 1 | `src/lib/screenshot-url.ts` | Add optional `width` param (default 800); switch URL from `/object/` to `/render/image/` with `?width=...&quality=75` |
+| 2 | `src/components/work/WebsiteShowcaseGrid.tsx` | Pass `width=900` for the larger portfolio grid cards |
+| 3 | `src/components/offer/SocialProofSection.tsx` | Pass `width=600` for the smaller mini cards |
+| 4 | `src/components/home/ClientWebsiteGrid.tsx` | Pass `width=700` for homepage grid |
+| 5 | `src/pages/LandingPage.tsx` | Update fallback URLs and dynamic calls to use the optimized URL pattern |
 
-### Screenshot URL convention
+## Technical Detail
 
-All components will derive the screenshot URL the same way the `/go` page already does:
+The `getScreenshotUrl` function becomes:
 
+```typescript
+export function getScreenshotUrl(websiteUrl: string, width = 800): string {
+  const sanitized = websiteUrl
+    .replace(/https?:\/\//, '')
+    .replace(/\//g, '')
+    .replace(/\./g, '');
+  return `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/render/image/public/site-screenshots/${sanitized}-full.png?width=${width}&quality=75`;
+}
 ```
-https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/{sanitized-domain}-full.png
-```
 
-So as long as the screenshot has been captured (via the existing capture edge function), it will display automatically.
-
-### No database changes needed
-
-The testimonials table already has `website_url`, `show_on_homepage`, `is_active`, and display order columns — everything required.
+This cuts image payload by ~80-90% with no visible quality loss at display sizes.
 
