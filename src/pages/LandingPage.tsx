@@ -15,6 +15,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { usePackagePrices } from "@/hooks/usePackagePrices";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
 import OnboardingBookingInline from "@/components/booking/OnboardingBookingInline";
+import { getScreenshotUrl } from "@/lib/screenshot-url";
 
 const stripePromise = loadStripe("pk_live_51JrYQ7KEOhx2BLuXYJRHZBM73eHstHWeshWHlBjKoj5XdOoXCIHbSN9oGaPRNeUNUQaja8o2a4cCoyHdbPSZzfzA00BOHBEapc");
 
@@ -267,11 +268,18 @@ const LandingPage = () => {
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const clientSites = featuredTestimonials && featuredTestimonials.length > 0
-    ? featuredTestimonials.filter(t => t.website_url).map(t => ({
-        name: t.business_name,
-        url: t.website_url!,
-        screenshot: `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${t.website_url!.replace(/https?:\/\//, '').replace(/\//g, '').replace(/\./g, '')}-full.png`,
-      }))
+    ? featuredTestimonials.flatMap((t) => {
+        if (!t.website_url) return [];
+
+        const screenshot = getScreenshotUrl(t.website_url);
+        if (!screenshot) return [];
+
+        return [{
+          name: t.business_name,
+          url: t.website_url,
+          screenshot,
+        }];
+      })
     : fallbackSites;
 
   const handleFormSubmit = async () => {

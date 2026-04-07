@@ -97,13 +97,18 @@ const HomeMacBookCard = ({ site, index }: { site: SiteData; index: number }) => 
 export function ClientWebsiteGrid() {
   const { data: testimonials } = useHomepageTestimonials();
 
-  const sites: SiteData[] = testimonials
-    ?.filter((t) => t.website_url)
-    .map((t) => ({
+  const sites: SiteData[] = testimonials?.flatMap((t) => {
+    if (!t.website_url) return [];
+
+    const screenshot = getScreenshotUrl(t.website_url);
+    if (!screenshot) return [];
+
+    return [{
       name: t.business_name,
-      url: t.website_url!,
-      screenshot: getScreenshotUrl(t.website_url!),
-    })) ?? [];
+      url: t.website_url,
+      screenshot,
+    }];
+  }) ?? [];
 
   if (!sites.length) return null;
 

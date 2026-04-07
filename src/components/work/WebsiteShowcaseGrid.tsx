@@ -104,13 +104,18 @@ const MacBookCard = ({ site, index }: { site: SiteData; index: number }) => {
 export const WebsiteShowcaseGrid = () => {
   const { data: testimonials, isLoading } = usePortfolioTestimonials();
 
-  const sites: SiteData[] = testimonials
-    ?.filter((t) => t.website_url)
-    .map((t) => ({
+  const sites: SiteData[] = testimonials?.flatMap((t) => {
+    if (!t.website_url) return [];
+
+    const screenshot = getScreenshotUrl(t.website_url);
+    if (!screenshot) return [];
+
+    return [{
       name: t.business_name,
-      url: t.website_url!,
-      screenshot: getScreenshotUrl(t.website_url!),
-    })) ?? [];
+      url: t.website_url,
+      screenshot,
+    }];
+  }) ?? [];
 
   if (isLoading) return <div className="py-24 text-center text-muted-foreground">Loading...</div>;
   if (!sites.length) return null;
