@@ -53,7 +53,7 @@ export default function AdminTestimonials() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TestimonialInsert>(emptyForm);
+  const [form, setForm] = useState<TestimonialInsert & { screenshot_slug?: string }>(emptyForm);
 
   if (userRole && !['owner', 'admin'].includes(userRole.role)) {
     return <Navigate to="/admin" replace />;
