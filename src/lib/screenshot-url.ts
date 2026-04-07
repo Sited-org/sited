@@ -22,12 +22,17 @@ export function deriveScreenshotSlug(websiteUrl: string | null | undefined): str
 /**
  * Returns the public URL for a testimonial's website screenshot.
  * Accepts either a pre-set slug or derives one from the website URL.
+ * Optionally appends a version token so refreshed screenshots bypass CDN/browser cache.
  * Returns null when no slug can be determined.
  */
-export function getScreenshotUrl(slugOrUrl: string | null | undefined): string | null {
+export function getScreenshotUrl(
+  slugOrUrl: string | null | undefined,
+  version?: string | null
+): string | null {
   if (!slugOrUrl) return null;
-  // If it looks like a URL, derive the slug
   const slug = slugOrUrl.startsWith('http') ? deriveScreenshotSlug(slugOrUrl) : slugOrUrl;
   if (!slug) return null;
-  return `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${slug}-full.png`;
+
+  const baseUrl = `https://xwjoqaflrynemntyzwmw.supabase.co/storage/v1/object/public/site-screenshots/${slug}-full.png`;
+  return version ? `${baseUrl}?v=${encodeURIComponent(version)}` : baseUrl;
 }
