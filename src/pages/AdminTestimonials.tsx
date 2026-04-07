@@ -15,6 +15,7 @@ import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { extractVimeoId } from '@/lib/vimeo';
 import { PlacementSection } from '@/components/admin/testimonials/PlacementSection';
+import { deriveScreenshotSlug } from '@/lib/screenshot-url';
 
 const PROJECT_TYPES = ['Website Design'];
 
@@ -118,12 +119,16 @@ export default function AdminTestimonials() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Auto-derive screenshot slug from website URL
+    const autoSlug = deriveScreenshotSlug(form.website_url);
+
     // Sync toggle flags from position fields
     const payload = {
       ...form,
       is_active: form.portfolio_position != null || form.is_active,
       show_on_homepage: form.homepage_position != null,
       show_featured: form.featured_position != null,
+      screenshot_slug: autoSlug,
     };
 
     if (editingId) {
@@ -309,32 +314,13 @@ export default function AdminTestimonials() {
                     onChange={(e) => updateField('website_url', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="screenshot_slug">Screenshot Slug</Label>
-                  <Input
-                    id="screenshot_slug"
-                    placeholder="e.g. hunterinsight"
-                    value={(form as any).screenshot_slug || ''}
-                    onChange={(e) => updateField('screenshot_slug' as any, e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Used for the scrolling website preview. Filename in storage: <code>{(form as any).screenshot_slug || '...'}-full.png</code>
-                  </p>
-                </div>
               </div>
 
               {/* ─── Screenshot info ─── */}
-              {(form as any).screenshot_slug && (
+              {form.website_url && (
                 <div className="rounded-lg border border-sited-blue/20 bg-sited-blue/5 p-3 text-xs text-muted-foreground">
                   <p className="font-semibold text-foreground mb-1">📸 Scrolling Website Preview</p>
-                  <p>A scrolling screenshot will appear on any page this testimonial is assigned to (Portfolio, Homepage, Landing). The screenshot file must exist in storage as <code className="bg-muted px-1 rounded">{(form as any).screenshot_slug}-full.png</code>.</p>
-                </div>
-              )}
-
-              {form.website_url && !(form as any).screenshot_slug && (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                  <p className="font-semibold mb-1">⚠️ No screenshot slug set</p>
-                  <p>This testimonial has a website URL but no screenshot slug. Add a slug and run the screenshot capture to show a scrolling preview.</p>
+                  <p>A screenshot slug will be auto-generated from the website URL: <code className="bg-muted px-1 rounded">{deriveScreenshotSlug(form.website_url) || '...'}-full.png</code>. Run the screenshot capture function to generate the image.</p>
                 </div>
               )}
 
