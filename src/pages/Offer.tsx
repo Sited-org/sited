@@ -138,7 +138,12 @@ const Offer = () => {
   const { content, loading } = useOfferContent();
   const isMobile = useIsMobile();
   const { prices, depositAmount } = usePackagePrices();
-  const TIERS = useMemo(() => makeTiers(prices, depositAmount), [prices, depositAmount]);
+  const { savings: pkgSavings } = usePackageSavings();
+  const TIERS = useMemo(() => makeTiers(prices, depositAmount, {
+    blue: pkgSavings.blue.wasPrice,
+    gold: pkgSavings.gold.wasPrice,
+    platinum: pkgSavings.platinum.wasPrice,
+  }), [prices, depositAmount, pkgSavings]);
   const [selectedTier, setSelectedTier] = useState<string>("basic-deposit");
   const [showPayment, setShowPayment] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
