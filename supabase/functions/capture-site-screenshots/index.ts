@@ -33,9 +33,9 @@ async function captureSite(
     }
 
     // Use thum.io — free, no API key, reliable for full-page screenshots
-    const thumbUrl = `https://image.thum.io/get/width/1440/crop/3000/noanimate/${site.url}`;
+    const thumbUrl = `https://image.thum.io/get/width/1440/fullpage/noanimate/${site.url}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout for full-page
 
     let imageBuffer: ArrayBuffer;
     try {
@@ -55,6 +55,8 @@ async function captureSite(
     }
 
     const fileName = `${site.name}-full.png`;
+    // Delete old file first to ensure clean replacement
+    await supabase.storage.from("site-screenshots").remove([fileName]);
     const { error: uploadError } = await supabase.storage
       .from("site-screenshots")
       .upload(fileName, imageBuffer, { contentType: "image/png", upsert: true });
