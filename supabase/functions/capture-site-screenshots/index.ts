@@ -5,6 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** Derive a slug from a website URL (same logic as frontend) */
+function deriveSlug(url: string): string {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname
+      .replace(/^www\./, '')
+      .replace(/\.[a-z]{2,}(\.[a-z]{2,})?$/i, '')
+      .replace(/\./g, '')
+      .toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,13 +30,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all active testimonials with a website_url and screenshot_slug
+    // Fetch all active testimonials with a website_url
     const { data: testimonials, error: fetchError } = await supabase
       .from("testimonials")
-      .select("business_name, website_url, screenshot_slug")
+      .select("id, business_name, website_url, screenshot_slug")
       .eq("is_active", true)
-      .not("website_url", "is", null)
-      .not("screenshot_slug", "is", null);
+      .not("website_url", "is", null);
 
     if (fetchError) {
       return new Response(
@@ -32,8 +45,12 @@ Deno.serve(async (req) => {
     }
 
     const sites = (testimonials || [])
-      .filter((t: any) => t.website_url && t.screenshot_slug)
-      .map((t: any) => ({ name: t.screenshot_slug, url: t.website_url }));
+      .filter((t: any) => t.website_url)
+      .map((t: any) => {
+        const slug = t.screenshot_slug || deriveSlug(t.website_url);
+        return { id: t.id, name: slug, url: t.website_url, needsSlugUpdate: !t.screenshot_slug };
+      })
+      .filter((s) => s.name);
 
     const results: { name: string; url: string; publicUrl: string }[] = [];
     const errors: { name: string; error: string }[] = [];
@@ -41,6 +58,14 @@ Deno.serve(async (req) => {
     for (const site of sites) {
       try {
         console.log(`Capturing screenshot for ${site.name}...`);
+
+        // Auto-update the slug in DB if it was missing
+        if (site.needsSlugUpdate) {
+          await supabase
+            .from("testimonials")
+            .update({ screenshot_slug: site.name })
+            .eq("id", site.id);
+        }
 
         const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=8000&waitUntil=networkidle0`;
 
