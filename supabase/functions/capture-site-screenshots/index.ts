@@ -5,7 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-/** Derive a slug from a website URL (same logic as frontend) */
 function deriveSlug(url: string): string {
   try {
     const hostname = new URL(url).hostname;
@@ -16,6 +15,62 @@ function deriveSlug(url: string): string {
       .toLowerCase();
   } catch {
     return '';
+  }
+}
+
+async function captureSite(
+  supabase: any,
+  site: { id: string; name: string; url: string; needsSlugUpdate: boolean }
+): Promise<{ success: boolean; name: string; url: string; publicUrl?: string; error?: string }> {
+  try {
+    console.log(`Capturing ${site.name}...`);
+
+    if (site.needsSlugUpdate) {
+      await supabase
+        .from("testimonials")
+        .update({ screenshot_slug: site.name })
+        .eq("id", site.id);
+    }
+
+    const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=5000&waitUntil=networkidle0`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25000);
+
+    let response: Response;
+    try {
+      response = await fetch(microlinkUrl, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const data = await response.json();
+
+    if (data.status !== "success" || !data.data?.screenshot?.url) {
+      return { success: false, name: site.name, url: site.url, error: `Microlink: ${data.status}` };
+    }
+
+    const imageResponse = await fetch(data.data.screenshot.url);
+    if (!imageResponse.ok) {
+      return { success: false, name: site.name, url: site.url, error: `Download failed: ${imageResponse.status}` };
+    }
+
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const fileName = `${site.name}-full.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("site-screenshots")
+      .upload(fileName, imageBuffer, { contentType: "image/png", upsert: true });
+
+    if (uploadError) {
+      return { success: false, name: site.name, url: site.url, error: `Upload: ${uploadError.message}` };
+    }
+
+    const { data: publicUrlData } = supabase.storage.from("site-screenshots").getPublicUrl(fileName);
+    console.log(`Done: ${site.name}`);
+    return { success: true, name: site.name, url: site.url, publicUrl: publicUrlData.publicUrl };
+  } catch (err) {
+    return { success: false, name: site.name, url: site.url, error: String(err) };
   }
 }
 
@@ -30,12 +85,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all active testimonials with a website_url
-    const { data: testimonials, error: fetchError } = await supabase
+    // Optional: capture a single site by slug
+    let filterSlug: string | null = null;
+    try {
+      const body = await req.json();
+      filterSlug = body?.slug || null;
+    } catch { /* no body is fine */ }
+
+    const query = supabase
       .from("testimonials")
       .select("id, business_name, website_url, screenshot_slug")
       .eq("is_active", true)
       .not("website_url", "is", null);
+
+    const { data: testimonials, error: fetchError } = await query;
 
     if (fetchError) {
       return new Response(
@@ -44,7 +107,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const sites = (testimonials || [])
+    let sites = (testimonials || [])
       .filter((t: any) => t.website_url)
       .map((t: any) => {
         const slug = t.screenshot_slug || deriveSlug(t.website_url);
@@ -52,70 +115,22 @@ Deno.serve(async (req) => {
       })
       .filter((s) => s.name);
 
-    const results: { name: string; url: string; publicUrl: string }[] = [];
-    const errors: { name: string; error: string }[] = [];
-
-    for (const site of sites) {
-      try {
-        console.log(`Capturing screenshot for ${site.name}...`);
-
-        // Auto-update the slug in DB if it was missing
-        if (site.needsSlugUpdate) {
-          await supabase
-            .from("testimonials")
-            .update({ screenshot_slug: site.name })
-            .eq("id", site.id);
-        }
-
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(site.url)}&screenshot=true&fullPage=true&scroll=true&viewport.width=1440&viewport.height=900&waitForTimeout=8000&waitUntil=networkidle0`;
-
-        const response = await fetch(microlinkUrl);
-        const data = await response.json();
-
-        if (data.status !== "success" || !data.data?.screenshot?.url) {
-          errors.push({ name: site.name, error: `Microlink failed: ${data.status} - ${JSON.stringify(data.message || data)}` });
-          continue;
-        }
-
-        const screenshotUrl = data.data.screenshot.url;
-        console.log(`Got screenshot URL for ${site.name}: ${screenshotUrl}`);
-
-        const imageResponse = await fetch(screenshotUrl);
-        if (!imageResponse.ok) {
-          errors.push({ name: site.name, error: `Failed to download image: ${imageResponse.status}` });
-          continue;
-        }
-
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const fileName = `${site.name}-full.png`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("site-screenshots")
-          .upload(fileName, imageBuffer, {
-            contentType: "image/png",
-            upsert: true,
-          });
-
-        if (uploadError) {
-          errors.push({ name: site.name, error: `Upload failed: ${uploadError.message}` });
-          continue;
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from("site-screenshots")
-          .getPublicUrl(fileName);
-
-        results.push({
-          name: site.name,
-          url: site.url,
-          publicUrl: publicUrlData.publicUrl,
-        });
-
-        console.log(`Successfully captured and stored ${site.name}: ${publicUrlData.publicUrl}`);
-      } catch (err) {
-        errors.push({ name: site.name, error: String(err) });
-      }
+    if (filterSlug) {
+      sites = sites.filter(s => s.name === filterSlug);
     }
+
+    if (sites.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, results: [], errors: [], message: "No sites to capture" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Process all sites in parallel
+    const outcomes = await Promise.all(sites.map(site => captureSite(supabase, site)));
+
+    const results = outcomes.filter(o => o.success).map(o => ({ name: o.name, url: o.url, publicUrl: o.publicUrl }));
+    const errors = outcomes.filter(o => !o.success).map(o => ({ name: o.name, error: o.error }));
 
     return new Response(
       JSON.stringify({ success: true, results, errors }),
