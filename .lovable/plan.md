@@ -1,42 +1,47 @@
 
 
-# Fix: Full-Page Website Screenshots & Auto-Capture on Save
+# Consistent Package Features & Comparison Chart Reorder
 
-## Problem
+## Changes
 
-The current screenshot capture uses thum.io with `crop/3000` which only captures the **top 3000 pixels** of each website — essentially the hero section stretched. This is why the screenshots don't look like the actual full websites.
+### 1. Reorder comparison chart rows (`src/pages/Offer.tsx`)
+Move "Calendar Integration" row to sit directly below "Email Integration" in the comparison table (lines ~893-908). New order:
+- Professional Website → High-Converting Funnel → Lead Capture Forms → Lifetime Hosting → SEO Optimisation → Email Integration → **Calendar Integration** → Payment Integration → Admin Dashboard → ...
 
-Additionally, screenshots are only captured when the admin manually clicks "Capture Screenshots". The user wants auto-capture when a testimonial is saved.
+### 2. Fix inconsistencies across pages
 
-## Solution
+**`src/pages/CustomWebsites.tsx`** (line 47):
+- Blue tier still lists `"Calendar booking"` — remove it
+- Gold tier should explicitly include `"Calendar integration"` (currently bundled vaguely under "Full integrations suite")
 
-### 1. Fix the Edge Function to Capture Full Pages
+**`src/pages/LandingPage.tsx`** (line 40):
+- Line item says `"Calendar & Email Integration"` — change to just `"Email Integration"` since Calendar is no longer in Blue
 
-Change the thum.io URL from:
-```
-/get/width/1440/crop/3000/noanimate/
-```
-to:
-```
-/get/width/1440/fullpage/noanimate/
-```
+### 3. Summary of correct package breakdown
 
-This tells thum.io to render and capture the **entire page** from top to bottom, not just 3000px.
+| Feature | Blue | Gold | Platinum |
+|---------|------|------|----------|
+| Professional website | Yes | Yes | Yes |
+| High-converting funnel | Yes | Yes | Yes |
+| Lead capture forms | Yes | Yes | Yes |
+| Lifetime hosting | Yes | Yes | Yes |
+| SEO (Basic/Extra/Premium) | Yes | Yes | Yes |
+| Email integration | Yes | Yes | Yes |
+| Calendar integration | **No** | **Yes** | Yes |
+| Payment integration | No | Yes | Yes |
+| Admin dashboard | No | Yes | Yes |
+| Lead management CRM | No | Yes | Yes |
+| Client portal | No | No | Yes |
+| Staff portal | No | No | Yes |
+| AI chatbot | No | No | Yes |
+| Custom integrations | No | No | Yes |
+| Priority support | No | No | Yes |
 
-Also delete the old incorrect screenshots from storage before uploading new ones (upsert already handles replacement, but we'll ensure cache-busting by appending a timestamp query param to the stored URL reference).
-
-### 2. Auto-Trigger Screenshot Capture on Testimonial Save
-
-In `AdminTestimonials.tsx`, after successfully creating or updating a testimonial that has a `website_url`, automatically invoke the `capture-site-screenshots` edge function with the specific slug so only that one site is re-captured — fast and targeted.
-
-### 3. Delete Old Screenshots
-
-The edge function will first delete the existing file before uploading the new full-page version, ensuring no stale cropped images remain.
-
-## Files Changed
+### Files changed
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `supabase/functions/capture-site-screenshots/index.ts` | Change `crop/3000` → `fullpage` in thum.io URL; increase timeout to 60s for larger images; delete old file before upload |
-| 2 | `src/pages/AdminTestimonials.tsx` | After save, auto-invoke edge function for the saved testimonial's slug; remove manual "Capture Screenshots" button |
+| 1 | `src/pages/Offer.tsx` | Reorder comparison table: move Calendar Integration row below Email Integration |
+| 2 | `src/pages/CustomWebsites.tsx` | Remove "Calendar booking" from Blue features; add "Calendar integration" to Gold features |
+| 3 | `src/pages/LandingPage.tsx` | Change "Calendar & Email Integration" line item to "Email Integration" |
 
