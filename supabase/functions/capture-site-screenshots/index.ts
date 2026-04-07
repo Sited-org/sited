@@ -32,8 +32,8 @@ async function captureSite(
         .eq("id", site.id);
     }
 
-    // Use thum.io full-page capture to preserve tall screenshots needed for scroll animations
-    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/maxAge/1/noanimate/${site.url}`;
+    // Use thum.io full-page capture with a tall crop cap so showcase cards always get scrollable screenshots
+    const thumbUrl = `https://image.thum.io/get/fullpage/width/1440/crop/10000/noanimate/${site.url}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
