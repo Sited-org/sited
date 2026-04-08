@@ -1,33 +1,60 @@
 
 
-# Remove `/free` Page & Clean Up SEO Blockers
+# Make Blog Posts Fully Indexable for SEO & AEO
 
-## Changes
+## Problem
+Individual blog posts (`/blog/:slug`) are invisible to Google because:
+1. They're not listed in `sitemap.xml` (only `/blog` is)
+2. No `Article` JSON-LD structured data — Google can't generate rich results or AEO answers
+3. The sitemap is static and can't grow as new posts are created
 
-### 1. Delete `/free` page
-- **Delete** `src/pages/free/index.tsx` (the entire directory)
+## Solution
 
-### 2. Remove route & import from `src/App.tsx`
-- Remove the `FreeLandingPage` lazy import (line 48)
-- Remove the `/free` route (line 87)
+### 1. Dynamic sitemap edge function
+Create a backend function at `/sitemap.xml` that queries the `blog_posts` table and generates a complete sitemap including all published blog post URLs alongside the existing static pages.
 
-### 3. Remove `/free` from sitemap (`public/sitemap.xml`)
-- Delete the `/free` URL entry
+### 2. Article JSON-LD on each blog post
+Add structured data to `BlogPost.tsx` so Google sees each post as a proper `Article` with author, date, image, and description — key for AEO and rich snippets.
 
-### 4. Clean up `index.html` SEO issues
-- Remove empty lines 84-93 (leftover whitespace)
-- Add `<meta name="robots" content="index, follow">` as default
-- Add `<link rel="canonical">` base tag (the `usePageSEO` hook will update it per-route)
+### 3. Update `index.html` sitemap reference
+Point the sitemap URL to the dynamic edge function endpoint.
 
-### 5. Remove `/free` reference from `usePackageSavings` if present
-The hook was imported by the `/free` page. If no other page uses it, keep it (other pages like `/offer` use it). Just confirming no orphaned `/free`-specific code remains.
+---
 
-## Files changed
+## Technical Details
+
+### Edge function: `generate-sitemap`
+- Queries `blog_posts` where `status = 'published'`
+- Combines with hardcoded static pages (same list as current `sitemap.xml`)
+- Returns XML with proper `Content-Type: application/xml`
+- Each blog post gets `<lastmod>` from its `updated_at` field
+
+### BlogPost.tsx — Article JSON-LD
+Inject a `<script type="application/ld+json">` into the head via `useEffect` with:
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "post.title",
+  "description": "post.excerpt",
+  "image": "post.cover_image_url",
+  "author": { "@type": "Person", "name": "post.author_name" },
+  "datePublished": "post.published_at",
+  "dateModified": "post.updated_at",
+  "publisher": { "@type": "Organization", "name": "Sited" }
+}
+```
+Cleanup on unmount to avoid stale data.
+
+### robots.txt
+Update the `Sitemap:` directive to point to the edge function URL.
+
+## Files Changed
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/pages/free/index.tsx` | **Delete** |
-| 2 | `src/App.tsx` | Remove `FreeLandingPage` import + route |
-| 3 | `public/sitemap.xml` | Remove `/free` entry |
-| 4 | `index.html` | Add default robots meta, canonical link, remove empty lines |
+| 1 | `supabase/functions/generate-sitemap/index.ts` | **New** — dynamic sitemap from DB + static pages |
+| 2 | `src/pages/BlogPost.tsx` | Add Article JSON-LD structured data via useEffect |
+| 3 | `public/robots.txt` | Update Sitemap URL to edge function |
+| 4 | `public/sitemap.xml` | Keep as fallback but edge function is primary |
 
