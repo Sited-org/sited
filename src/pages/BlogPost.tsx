@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useBlogPostBySlug } from "@/hooks/useBlogPosts";
 import { useParams, Link } from "react-router-dom";
@@ -16,6 +17,38 @@ const BlogPost = () => {
     title: post?.meta_title || post?.title || "Blog Post | Sited",
     description: post?.meta_description || post?.excerpt || "",
   });
+
+  // Inject Article JSON-LD for SEO & AEO
+  useEffect(() => {
+    if (!post) return;
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.id = "blog-article-jsonld";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": post.title,
+      "description": post.excerpt || "",
+      "image": post.cover_image_url || undefined,
+      "author": { "@type": "Person", "name": post.author_name },
+      "datePublished": post.published_at,
+      "dateModified": post.updated_at,
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sited",
+        "url": "https://sited.lovable.app"
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": `https://sited.lovable.app/blog/${post.slug}`
+      }
+    });
+    document.head.appendChild(script);
+    return () => {
+      const el = document.getElementById("blog-article-jsonld");
+      if (el) el.remove();
+    };
+  }, [post]);
 
   if (isLoading) {
     return (

@@ -134,3 +134,6 @@ verify_jwt = true
 
 [functions.submit-booking]
 verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false
