@@ -105,7 +105,19 @@ export default function AdminSitemapBuilder() {
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
+
+  // Color palette for parent-page distinction
+  const PAGE_COLORS = [
+    'hsl(221, 83%, 53%)',  // blue
+    'hsl(262, 83%, 58%)',  // purple
+    'hsl(142, 71%, 45%)',  // green
+    'hsl(25, 95%, 53%)',   // orange
+    'hsl(346, 77%, 50%)',  // rose
+    'hsl(187, 85%, 43%)',  // teal
+    'hsl(45, 93%, 47%)',   // amber
+    'hsl(316, 72%, 51%)',  // pink
+  ];
 
   // ── Fetch ──
 
