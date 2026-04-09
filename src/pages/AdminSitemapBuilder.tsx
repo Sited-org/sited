@@ -913,46 +913,26 @@ export default function AdminSitemapBuilder() {
                               </div>
                             </div>
 
-                            {/* Tabs for this sub-page */}
+                            {/* Tabs for this sub-page (recursive) */}
                             {child.tabs && child.tabs.length > 0 && (
-                              <div className="flex flex-col gap-1">
-                                {child.tabs.map((tab, tIdx) => (
-                                  <div key={tIdx}>
-                                    {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 rounded-full mb-1 mx-1 transition-all" style={{ backgroundColor: pageColor, opacity: 0.3 }} />}
-                                    <div
-                                      ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
-                                      data-drop-type="tab"
-                                      data-drop-index={tIdx}
-                                      data-drop-parent-p={pIdx}
-                                      data-drop-parent-c={cIdx}
-                                      onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
-                                      className={`group flex items-center gap-1 bg-muted border px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
-                                        dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                                      }`}
-                                      style={{ borderColor: `${pageColor}30` }}
-                                    >
-                                      <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
-                                      <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.4 }} />
-                                      {editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx && editingNode.tIdx === tIdx ? (
-                                        <Input
-                                          autoFocus value={tab.name}
-                                          onChange={e => updateTabName(pIdx, cIdx, tIdx, e.target.value)}
-                                          onBlur={() => setEditingNode(null)}
-                                          onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                                          className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
-                                        />
-                                      ) : (
-                                        <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx })}>
-                                          {tab.name}
-                                        </span>
-                                      )}
-                                      <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, tIdx)}>
-                                        <X className="h-2 w-2 text-destructive" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                              <TabNodes
+                                tabs={child.tabs}
+                                pIdx={pIdx}
+                                cIdx={cIdx}
+                                parentPath={[]}
+                                depth={1}
+                                pageColor={pageColor}
+                                tabNodeRefs={tabNodeRefs}
+                                editingNode={editingNode}
+                                setEditingNode={setEditingNode}
+                                activeSectionIdx={activeSectionIdx}
+                                updateTabName={updateTabName}
+                                removeTab={removeTab}
+                                addTab={addTab}
+                                dragItem={dragItem}
+                                startDrag={startDrag}
+                                isDropping={isDropping}
+                              />
                             )}
                           </div>
                         ))}
