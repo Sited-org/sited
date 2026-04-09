@@ -1,66 +1,66 @@
 
 
-# Admin Sitemaps Builder — Plan
+# Redesign: Interactive Drag & Drop Sitemap Builder
 
 ## Overview
 
-A new admin page at `/admin/sitemaps` that lets admins create visual sitemap PDFs for client projects. Sitemaps can be built from scratch or pre-populated from a client's discovery form answers. The PDF output is a Sited-branded landscape document showing the page hierarchy across multiple sheets (Front-End, Admin Portal, Client Portal, Staff Portal, etc.).
+Replace the current sheet-based editor with a dedicated full-page builder at `/admin/sitemaps/:id` (and `/admin/sitemaps/new`). The list page stays at `/admin/sitemaps`. The builder is a visual canvas where nodes are dragged, connected, and edited inline — similar to tools like Octopus.do or FlowMapp.
 
-## Data Model
+## Architecture
 
-New table: `project_sitemaps`
+```text
+/admin/sitemaps          → List page (table of saved sitemaps)
+/admin/sitemaps/new      → Builder (new sitemap)
+/admin/sitemaps/:id      → Builder (edit existing sitemap)
+```
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid PK | |
-| lead_id | uuid FK → leads | nullable (scratch sitemaps) |
-| build_flow_id | uuid FK → build_flows | nullable |
-| name | text | e.g. "Acme Corp Sitemap" |
-| sections | jsonb | Array of `{ title: string, pages: { name: string, children?: string[] }[] }` |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
+## Builder UI Design
 
-Each "section" becomes one landscape PDF page (Front-End, Admin Portal, etc.). Pages within a section can have children to show hierarchy.
+Full-screen canvas layout inside AdminLayout:
 
-## UI — Admin Sitemaps Page (`/admin/sitemaps`)
+- **Top toolbar**: Sitemap name (editable inline), client selector, Import from Discovery button, Save button, Download PDF button, Back arrow
+- **Left sidebar** (collapsible, ~240px): Section tabs (Front-End, Admin Portal, etc.) with add/remove. Each section lists its pages as draggable items. Add Page / Add Sub-page buttons.
+- **Main canvas**: Visual tree diagram rendered with HTML/CSS nodes and SVG connector lines. The section root node sits on the left, page nodes in the middle column, sub-page nodes on the right. Nodes are:
+  - Draggable (reorder within their column via drag & drop using `@dnd-kit/core`)
+  - Click-to-edit name inline
+  - Right-click or hover menu: rename, add child, delete
+  - Connected by smooth SVG bezier lines that update on drag
 
-**Top bar**: Title "Sitemaps" + "New Sitemap" button
+### Node Layout
+- **Root node** (dark, section title) → fixed left position
+- **Page nodes** (blue) → middle column, vertically spaced, draggable to reorder
+- **Sub-page nodes** (light gray) → right column, grouped under parent page, draggable to reorder
 
-**Sitemap list**: Table showing existing sitemaps (name, linked client, section count, created date) with Edit/Download/Delete actions.
+### Interactions
+- Drag page nodes to reorder vertically
+- Drag sub-pages between parent pages
+- Click node to select → inline text editing
+- "+" button on each page node to add a sub-page
+- "+" button at bottom of page column to add a new page
+- Delete via X button or keyboard Delete key on selected node
+- Section tabs switch which tree is displayed on canvas
 
-**Create/Edit dialog** (full-screen sheet):
-1. **Client selector** — optional dropdown of leads. When selected, offers "Import from Discovery" button that auto-populates sections from `discovery_answers` (selectedPortals, frontEnd.corePages, frontEnd.marketingPages, frontEnd.customPages, adminPortal.features, clientPortal.features, staffPortal.features).
-2. **Section builder** — tab-based interface. Each tab = one PDF page. Add/remove/rename sections. Within each section, add pages with optional child pages (drag or indent).
-3. **Preview & Download** — generates the branded PDF client-side using jsPDF (same pattern as ProposalGenerator).
+## PDF Fix
 
-## PDF Generation
+Rewrite the tree connector logic. Current issue: bezier curves use `doc.lines()` with incorrect control points. Fix:
+- Use simple `doc.line()` calls with an elbow/step connector pattern (horizontal out → vertical → horizontal in)
+- Root → Page: horizontal line from root right edge, vertical step to page center-Y, horizontal into page left edge
+- Page → Child: same elbow pattern from page right edge to child left edge
+- This guarantees lines always connect to the correct nodes regardless of vertical position
 
-- **Format**: A4 landscape (841.89 x 595.28 pt)
-- **Margins**: 2cm sides (~56.7pt), 1cm top/bottom (~28.35pt)
-- **Branding**: "Sited.co" header top-left, section title top-right, footer with "Sited · Web Design & Development"
-- **Layout**: Tree/hierarchy diagram — root node (section title) at left, child pages branching right with connecting lines. Clean, minimal style using the same Slate colour palette as the SOW PDF.
-- **Multi-page**: One PDF page per section. All sections combined into a single downloadable PDF.
-
-## Routing & Navigation
-
-- Add "Sitemaps" nav item in AdminLayout (below "Analysis AI"), using `Map` icon from lucide-react
-- Add route `/admin/sitemaps` in App.tsx
-- New page: `src/pages/AdminSitemaps.tsx`
-
-## Files
+## Files Changed
 
 | # | File | Change |
-|---|------|-------|
-| 1 | Migration | Create `project_sitemaps` table with RLS (admin-only CRUD) |
-| 2 | `src/pages/AdminSitemaps.tsx` | New — sitemap list + create/edit sheet + PDF generation |
-| 3 | `src/components/admin/AdminLayout.tsx` | Add "Sitemaps" to navItems |
-| 4 | `src/App.tsx` | Add lazy import + route for AdminSitemaps |
+|---|------|--------|
+| 1 | `src/pages/AdminSitemaps.tsx` | Simplify to list-only page; navigate to builder on edit/create |
+| 2 | `src/pages/AdminSitemapBuilder.tsx` | **New** — full-page drag & drop builder with canvas, sidebar, toolbar, PDF generation with fixed connectors |
+| 3 | `src/App.tsx` | Add lazy import + routes for `/admin/sitemaps/new` and `/admin/sitemaps/:id` |
 
 ## Technical Details
 
-- PDF generated client-side with jsPDF (already a project dependency)
-- Discovery answers fetched via `discovery_answers` table keyed by `build_flow_id`
-- Import logic maps: `selectedPortals` → sections, `frontEnd.corePages` + `frontEnd.marketingPages` + `frontEnd.customPages` → Front-End pages, portal features → respective portal pages
-- Tree rendering in PDF: horizontal tree layout with rounded-rect nodes and bezier connector lines
-- RLS: `is_admin(auth.uid())` for all operations
+- **Drag & drop**: Use HTML5 drag events (no new dependency needed) — `onDragStart`, `onDragOver`, `onDrop` for reordering pages and sub-pages within the visual tree
+- **SVG connectors**: Rendered as an absolutely-positioned SVG overlay on the canvas, recalculated on node position changes using `getBoundingClientRect()` of each node ref
+- **PDF connectors fix**: Replace bezier `doc.lines()` with elbow connectors using three `doc.line()` calls per connection: `(startX, startY) → (midX, startY) → (midX, endY) → (endX, endY)`
+- **Canvas scrolling**: Container with `overflow: auto` for large sitemaps; nodes positioned via flexbox columns with CSS gap
+- **Inline editing**: Click node → transforms into an `<input>` field; blur/Enter saves
 
