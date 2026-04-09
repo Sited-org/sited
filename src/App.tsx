@@ -35,6 +35,7 @@ const AdminFinancial = lazy(() => import("./pages/AdminFinancial"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const AdminAnalysisAI = lazy(() => import("./pages/AdminAnalysisAI"));
 const AdminSitemaps = lazy(() => import("./pages/AdminSitemaps"));
+const AdminSitemapBuilder = lazy(() => import("./pages/AdminSitemapBuilder"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
