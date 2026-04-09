@@ -619,17 +619,14 @@ export default function AdminSitemapBuilder() {
               {currentSection.pages.map((page, pIdx) => (
                 <div key={pIdx}>
                   {/* Drop indicator */}
-                  {isDropping('page', pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                  {isDropping('page', pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
                   <div
                     ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
-                    draggable
-                    onDragStart={e => handleDragStart({ type: 'page', pIdx }, e)}
-                    onDragOver={e => handleDragOver({ type: 'page', index: pIdx }, e)}
-                    onDrop={e => handleDrop({ type: 'page', index: pIdx }, e)}
-                    onDragLeave={handleDragLeave}
-                    onDragEnd={handleDragEnd}
-                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm ${
-                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-40 scale-95' : ''
+                    data-drop-type="page"
+                    data-drop-index={pIdx}
+                    onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
+                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
+                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
                     }`}
                   >
                     <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
