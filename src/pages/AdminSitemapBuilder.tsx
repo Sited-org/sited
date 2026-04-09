@@ -369,34 +369,48 @@ export default function AdminSitemapBuilder() {
     setDragItem(item);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', JSON.stringify(item));
+    // Make the drag ghost semi-transparent
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.4';
+    }
   };
 
   const handleDragOver = (target: NonNullable<DropTarget>, e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     if (!dragItem || dragItem.type !== target.type) return;
-    setDropTarget(target);
+    // Only update if target changed
+    if (
+      dropTarget?.type !== target.type ||
+      dropTarget?.index !== target.index ||
+      dropTarget?.parentPIdx !== target.parentPIdx ||
+      dropTarget?.parentCIdx !== target.parentCIdx
+    ) {
+      setDropTarget(target);
+    }
   };
 
-  const handleDrop = (target: NonNullable<DropTarget>) => {
+  const handleDrop = (target: NonNullable<DropTarget>, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!dragItem || dragItem.type !== target.type) { setDragItem(null); setDropTarget(null); return; }
 
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
 
-    if (dragItem.type === 'page') {
+    if (dragItem.type === 'page' && dragItem.pIdx !== target.index) {
       const [moved] = pages.splice(dragItem.pIdx, 1);
       pages.splice(target.index, 0, moved);
     } else if (dragItem.type === 'child' && dragItem.cIdx !== undefined && target.parentPIdx !== undefined) {
-      // Only reorder within same parent for now
-      if (dragItem.pIdx === target.parentPIdx) {
+      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx !== target.index) {
         const children = [...(pages[dragItem.pIdx].children || [])];
         const [moved] = children.splice(dragItem.cIdx, 1);
         children.splice(target.index, 0, moved);
         pages[dragItem.pIdx] = { ...pages[dragItem.pIdx], children };
       }
     } else if (dragItem.type === 'tab' && dragItem.cIdx !== undefined && dragItem.tIdx !== undefined && target.parentPIdx !== undefined && target.parentCIdx !== undefined) {
-      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx === target.parentCIdx) {
+      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx === target.parentCIdx && dragItem.tIdx !== target.index) {
         const children = [...(pages[dragItem.pIdx].children || [])];
         const tabs = [...(children[dragItem.cIdx].tabs || [])];
         const [moved] = tabs.splice(dragItem.tIdx, 1);
@@ -412,7 +426,23 @@ export default function AdminSitemapBuilder() {
     setDropTarget(null);
   };
 
-  const handleDragEnd = () => { setDragItem(null); setDropTarget(null); };
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDragItem(null);
+    setDropTarget(null);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Only clear if leaving the actual element (not entering a child)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const { clientX, clientY } = e;
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+      setDropTarget(null);
+    }
+  };
 
   // ── Download ──
 
@@ -554,7 +584,8 @@ export default function AdminSitemapBuilder() {
                     draggable
                     onDragStart={e => handleDragStart({ type: 'page', pIdx }, e)}
                     onDragOver={e => handleDragOver({ type: 'page', index: pIdx }, e)}
-                    onDrop={() => handleDrop({ type: 'page', index: pIdx })}
+                    onDrop={e => handleDrop({ type: 'page', index: pIdx }, e)}
+                    onDragLeave={handleDragLeave}
                     onDragEnd={handleDragEnd}
                     className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm ${
                       dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-40 scale-95' : ''
@@ -602,7 +633,8 @@ export default function AdminSitemapBuilder() {
                           draggable
                           onDragStart={e => handleDragStart({ type: 'child', pIdx, cIdx }, e)}
                           onDragOver={e => handleDragOver({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDrop={() => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx })}
+                          onDrop={e => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
+                          onDragLeave={handleDragLeave}
                           onDragEnd={handleDragEnd}
                           className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing ${
                             dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-40 scale-95' : ''
@@ -652,7 +684,8 @@ export default function AdminSitemapBuilder() {
                               draggable
                               onDragStart={e => handleDragStart({ type: 'tab', pIdx, cIdx, tIdx }, e)}
                               onDragOver={e => handleDragOver({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDrop={() => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx })}
+                              onDrop={e => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
+                              onDragLeave={handleDragLeave}
                               onDragEnd={handleDragEnd}
                               className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing ${
                                 dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-40 scale-95' : ''
