@@ -1367,6 +1367,51 @@ export type Database = {
           },
         ]
       }
+      project_sitemaps: {
+        Row: {
+          build_flow_id: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          name: string
+          sections: Json
+          updated_at: string
+        }
+        Insert: {
+          build_flow_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          name: string
+          sections?: Json
+          updated_at?: string
+        }
+        Update: {
+          build_flow_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          name?: string
+          sections?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_sitemaps_build_flow_id_fkey"
+            columns: ["build_flow_id"]
+            isOneToOne: false
+            referencedRelation: "build_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_sitemaps_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_updates: {
         Row: {
           content: string
