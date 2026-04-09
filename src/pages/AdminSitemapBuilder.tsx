@@ -90,7 +90,54 @@ export default function AdminSitemapBuilder() {
 
   const [name, setName] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [sections, setSections] = useState<SitemapSection[]>([{ title: 'Front-End', pages: [{ name: 'Home' }] }]);
+  const [sections, setSectionsRaw] = useState<SitemapSection[]>([{ title: 'Front-End', pages: [{ name: 'Home' }] }]);
+
+  // ── Undo / Redo (max 5 snapshots) ──
+  const historyRef = useRef<SitemapSection[][]>([]);
+  const futureRef = useRef<SitemapSection[][]>([]);
+  const skipHistoryRef = useRef(false);
+
+  const setSections: typeof setSectionsRaw = useCallback((val) => {
+    setSectionsRaw(prev => {
+      const next = typeof val === 'function' ? (val as (p: SitemapSection[]) => SitemapSection[])(prev) : val;
+      if (!skipHistoryRef.current) {
+        historyRef.current = [...historyRef.current, prev].slice(-5);
+        futureRef.current = [];
+      }
+      skipHistoryRef.current = false;
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    if (!historyRef.current.length) return;
+    const prev = historyRef.current[historyRef.current.length - 1];
+    historyRef.current = historyRef.current.slice(0, -1);
+    setSectionsRaw(cur => {
+      futureRef.current = [...futureRef.current, cur].slice(-5);
+      return prev;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    if (!futureRef.current.length) return;
+    const next = futureRef.current[futureRef.current.length - 1];
+    futureRef.current = futureRef.current.slice(0, -1);
+    setSectionsRaw(cur => {
+      historyRef.current = [...historyRef.current, cur].slice(-5);
+      return next;
+    });
+  }, []);
+
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCanUndo(historyRef.current.length > 0);
+      setCanRedo(futureRef.current.length > 0);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [loading, setLoading] = useState(!isNew);
