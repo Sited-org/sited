@@ -19,6 +19,7 @@ interface SitemapTab {
 interface SitemapChild {
   name: string;
   tabs?: SitemapTab[];
+  linkedFrom?: number[];
 }
 
 interface SitemapPage {

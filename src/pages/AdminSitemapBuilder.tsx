@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2,
+  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,6 +22,7 @@ interface SitemapTab {
 interface SitemapChild {
   name: string;
   tabs?: SitemapTab[];
+  linkedFrom?: number[]; // indices of other parent pages that also link here
 }
 
 interface SitemapPage {
@@ -152,7 +155,7 @@ export default function AdminSitemapBuilder() {
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
+  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string; dashed?: boolean }[]>([]);
 
   // Color palette for parent-page distinction
   const PAGE_COLORS = [
@@ -224,6 +227,23 @@ export default function AdminSitemapBuilder() {
         lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY, color });
         lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color });
         lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color });
+
+        // Draw extra connector lines from linked parent pages
+        if (child.linkedFrom?.length) {
+          child.linkedFrom.forEach(lpIdx => {
+            const lpEl = pageNodeRefs.current.get(lpIdx);
+            if (!lpEl) return;
+            const lpColor = PAGE_COLORS[lpIdx % PAGE_COLORS.length];
+            const lpr = lpEl.getBoundingClientRect();
+            const lpRight = lpr.right - off.x;
+            const lpMidY = lpr.top + lpr.height / 2 - off.y;
+            // Use a dashed-style approach: we'll mark these with a special color mix
+            const lElbowX = lpRight + (cLeft - lpRight) / 2;
+            lines.push({ x1: lpRight, y1: lpMidY, x2: lElbowX, y2: lpMidY, color: lpColor, dashed: true });
+            lines.push({ x1: lElbowX, y1: lpMidY, x2: lElbowX, y2: cMidY, color: lpColor, dashed: true });
+            lines.push({ x1: lElbowX, y1: cMidY, x2: cLeft, y2: cMidY, color: lpColor, dashed: true });
+          });
+        }
 
         // child → tabs
         child.tabs?.forEach((_, tIdx) => {
@@ -430,6 +450,26 @@ export default function AdminSitemapBuilder() {
     const children = [...(pages[pIdx].children || [])];
     const tabs = (children[cIdx].tabs || []).filter((_, i) => i !== tIdx);
     children[cIdx] = { ...children[cIdx], tabs: tabs.length ? tabs : undefined };
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  // ── Linked parent helpers ──
+
+  const toggleLinkedParent = (pIdx: number, cIdx: number, linkedPIdx: number) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = { ...children[cIdx] };
+    const existing = child.linkedFrom || [];
+    if (existing.includes(linkedPIdx)) {
+      child.linkedFrom = existing.filter(i => i !== linkedPIdx);
+      if (child.linkedFrom.length === 0) child.linkedFrom = undefined;
+    } else {
+      child.linkedFrom = [...existing, linkedPIdx];
+    }
+    children[cIdx] = child;
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
@@ -686,7 +726,7 @@ export default function AdminSitemapBuilder() {
           <svg className="absolute inset-0 pointer-events-none z-0" style={{ width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}>
             {connectorLines.map((l, i) => (
               <g key={i}>
-                <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+                <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" strokeDasharray={l.dashed ? '4 3' : undefined} />
                 {/* Endpoint dot at the final horizontal segment end */}
                 {i % 3 === 2 && <circle cx={l.x2} cy={l.y2} r="2.5" fill={l.color} opacity="0.7" />}
               </g>
@@ -760,10 +800,19 @@ export default function AdminSitemapBuilder() {
                                 className={`group flex items-center gap-1.5 bg-card border-2 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 }`}
-                                style={{ borderColor: `${pageColor}40` }}
+                                style={{
+                                  borderColor: `${pageColor}40`,
+                                  ...(child.linkedFrom?.length ? { borderStyle: 'solid', borderWidth: '2px', boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
+                                }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
+                                {/* Show linked parent color dots */}
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
+                                  {child.linkedFrom?.map(lpIdx => (
+                                    <div key={lpIdx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[lpIdx % PAGE_COLORS.length], opacity: 0.6 }} />
+                                  ))}
+                                </div>
                                 {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
                                   <Input
                                     autoFocus value={child.name}
@@ -777,7 +826,38 @@ export default function AdminSitemapBuilder() {
                                     {child.name}
                                   </span>
                                 )}
-                                <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
+                                {/* Link to other parents */}
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`}
+                                      title="Link to other pages"
+                                    >
+                                      <Link2 className="h-2.5 w-2.5" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2" side="right" align="start">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Also linked from</p>
+                                    {currentSection.pages.map((otherPage, otherPIdx) => {
+                                      if (otherPIdx === pIdx) return null;
+                                      const isLinked = child.linkedFrom?.includes(otherPIdx) || false;
+                                      return (
+                                        <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
+                                          <Checkbox
+                                            checked={isLinked}
+                                            onCheckedChange={() => toggleLinkedParent(pIdx, cIdx, otherPIdx)}
+                                          />
+                                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
+                                          <span className="truncate">{otherPage.name}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {currentSection.pages.length <= 1 && (
+                                      <p className="text-[10px] text-muted-foreground py-1">Add more pages to link</p>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
+                                <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
                                   <Plus className="h-2.5 w-2.5" />
                                 </button>
                                 <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
