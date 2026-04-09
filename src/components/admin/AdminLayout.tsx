@@ -16,7 +16,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 
-import { ClipboardList, Wallet, CalendarDays, Sparkles } from 'lucide-react';
+import { ClipboardList, Wallet, CalendarDays, Sparkles, Map } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -24,6 +24,7 @@ const navItems = [
   { name: 'Requests', href: '/admin/requests', icon: ClipboardList },
   { name: 'Calendar', href: '/admin/calendar', icon: CalendarDays },
   { name: 'Analysis AI', href: '/admin/analysis-ai', icon: Sparkles },
+  { name: 'Sitemaps', href: '/admin/sitemaps', icon: Map },
   { name: 'Financial', href: '/admin/financial', icon: Wallet, paymentsOnly: true },
   { name: 'Blog', href: '/admin/blog', icon: FileText },
   { name: 'Team', href: '/admin/team', icon: UserCircle },
