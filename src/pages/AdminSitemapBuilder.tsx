@@ -228,6 +228,23 @@ export default function AdminSitemapBuilder() {
         lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color });
         lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color });
 
+        // Draw extra connector lines from linked parent pages
+        if (child.linkedFrom?.length) {
+          child.linkedFrom.forEach(lpIdx => {
+            const lpEl = pageNodeRefs.current.get(lpIdx);
+            if (!lpEl) return;
+            const lpColor = PAGE_COLORS[lpIdx % PAGE_COLORS.length];
+            const lpr = lpEl.getBoundingClientRect();
+            const lpRight = lpr.right - off.x;
+            const lpMidY = lpr.top + lpr.height / 2 - off.y;
+            // Use a dashed-style approach: we'll mark these with a special color mix
+            const lElbowX = lpRight + (cLeft - lpRight) / 2;
+            lines.push({ x1: lpRight, y1: lpMidY, x2: lElbowX, y2: lpMidY, color: lpColor });
+            lines.push({ x1: lElbowX, y1: lpMidY, x2: lElbowX, y2: cMidY, color: lpColor });
+            lines.push({ x1: lElbowX, y1: cMidY, x2: cLeft, y2: cMidY, color: lpColor });
+          });
+        }
+
         // child → tabs
         child.tabs?.forEach((_, tIdx) => {
           const te = tabNodeRefs.current.get(`${pIdx}-${cIdx}-${tIdx}`);
