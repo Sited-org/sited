@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers,
+  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -90,7 +90,54 @@ export default function AdminSitemapBuilder() {
 
   const [name, setName] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [sections, setSections] = useState<SitemapSection[]>([{ title: 'Front-End', pages: [{ name: 'Home' }] }]);
+  const [sections, setSectionsRaw] = useState<SitemapSection[]>([{ title: 'Front-End', pages: [{ name: 'Home' }] }]);
+
+  // ── Undo / Redo (max 5 snapshots) ──
+  const historyRef = useRef<SitemapSection[][]>([]);
+  const futureRef = useRef<SitemapSection[][]>([]);
+  const skipHistoryRef = useRef(false);
+
+  const setSections: typeof setSectionsRaw = useCallback((val) => {
+    setSectionsRaw(prev => {
+      const next = typeof val === 'function' ? (val as (p: SitemapSection[]) => SitemapSection[])(prev) : val;
+      if (!skipHistoryRef.current) {
+        historyRef.current = [...historyRef.current, prev].slice(-5);
+        futureRef.current = [];
+      }
+      skipHistoryRef.current = false;
+      return next;
+    });
+  }, []);
+
+  const undo = useCallback(() => {
+    if (!historyRef.current.length) return;
+    const prev = historyRef.current[historyRef.current.length - 1];
+    historyRef.current = historyRef.current.slice(0, -1);
+    setSectionsRaw(cur => {
+      futureRef.current = [...futureRef.current, cur].slice(-5);
+      return prev;
+    });
+  }, []);
+
+  const redo = useCallback(() => {
+    if (!futureRef.current.length) return;
+    const next = futureRef.current[futureRef.current.length - 1];
+    futureRef.current = futureRef.current.slice(0, -1);
+    setSectionsRaw(cur => {
+      historyRef.current = [...historyRef.current, cur].slice(-5);
+      return next;
+    });
+  }, []);
+
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCanUndo(historyRef.current.length > 0);
+      setCanRedo(futureRef.current.length > 0);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
   const [activeSectionIdx, setActiveSectionIdx] = useState(0);
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [loading, setLoading] = useState(!isNew);
@@ -133,6 +180,7 @@ export default function AdminSitemapBuilder() {
     setName(data.name);
     setSelectedLeadId(data.lead_id || '');
     const s = (data.sections as any) || [];
+    skipHistoryRef.current = true;
     setSections(s.length ? migrateSections(s) : [{ title: 'Front-End', pages: [] }]);
     setLoading(false);
   }, [id, isNew, navigate]);
@@ -205,7 +253,18 @@ export default function AdminSitemapBuilder() {
     return () => window.removeEventListener('resize', recalcConnectors);
   }, [recalcConnectors]);
 
-  // ── Save ──
+  // ── Keyboard shortcuts for undo/redo ──
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
+
 
   const saveSitemap = async () => {
     if (!name.trim()) { toast.error('Name is required'); return; }
@@ -553,6 +612,15 @@ export default function AdminSitemapBuilder() {
             <Import className="h-3.5 w-3.5 mr-1" />Import
           </Button>
         )}
+
+        <div className="flex items-center gap-0.5 border-l border-border pl-3 ml-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={undo} disabled={!canUndo} title="Undo">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={redo} disabled={!canRedo} title="Redo">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        </div>
 
         <div className="flex-1" />
 
