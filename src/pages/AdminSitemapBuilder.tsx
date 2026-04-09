@@ -247,18 +247,28 @@ export default function AdminSitemapBuilder() {
           });
         }
 
-        // child → tabs
-        child.tabs?.forEach((_, tIdx) => {
-          const te = tabNodeRefs.current.get(`${pIdx}-${cIdx}-${tIdx}`);
-          if (!te) return;
-          const tr = te.getBoundingClientRect();
-          const tLeft = tr.left - off.x;
-          const tMidY = tr.top + tr.height / 2 - off.y;
-          const teX = cRight + (tLeft - cRight) / 2;
-          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY, color });
-          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY, color });
-          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
-        });
+        // child → tabs (recursive for nested tabs)
+        const drawTabConnectors = (tabs: SitemapTab[], parentRight: number, parentMidY: number, pathPrefix: string) => {
+          tabs.forEach((tab, tIdx) => {
+            const te = tabNodeRefs.current.get(`${pathPrefix}-${tIdx}`);
+            if (!te) return;
+            const tr = te.getBoundingClientRect();
+            const tLeft = tr.left - off.x;
+            const tRight = tr.right - off.x;
+            const tMidY = tr.top + tr.height / 2 - off.y;
+            const teX = parentRight + (tLeft - parentRight) / 2;
+            lines.push({ x1: parentRight, y1: parentMidY, x2: teX, y2: parentMidY, color });
+            lines.push({ x1: teX, y1: parentMidY, x2: teX, y2: tMidY, color });
+            lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
+            // Recurse into sub-tabs
+            if (tab.tabs?.length) {
+              drawTabConnectors(tab.tabs, tRight, tMidY, `${pathPrefix}-${tIdx}`);
+            }
+          });
+        };
+        if (child.tabs?.length) {
+          drawTabConnectors(child.tabs, cRight, cMidY, `${pIdx}-${cIdx}`);
+        }
       });
     });
 
