@@ -48,6 +48,7 @@ type EditingNode = {
   pIdx?: number;
   cIdx?: number;
   tIdx?: number;
+  tPath?: number[]; // path of tab indices for nested tabs e.g. [0, 1] = first tab's second sub-tab
 } | null;
 
 type DragItem = {
