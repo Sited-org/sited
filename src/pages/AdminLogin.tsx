@@ -23,6 +23,7 @@ export default function AdminLogin() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showOTPVerify, setShowOTPVerify] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const loginInProgressRef = useRef(false);
   
   const { isAuthenticated, isAdmin, isDeveloper, loading, user } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +31,9 @@ export default function AdminLogin() {
 
   // Check if already authenticated and OTP verified
   useEffect(() => {
+    // Don't redirect while login form submission is in progress
+    if (loginInProgressRef.current) return;
+    
     const checkAuthAndRedirect = async () => {
       if (!loading && isAuthenticated && !showOTPVerify) {
         const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
