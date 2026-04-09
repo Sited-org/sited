@@ -905,7 +905,10 @@ export default function AdminSitemapBuilder() {
 
           <div className="relative z-10 flex items-start gap-16 p-10 min-h-full" style={{ minWidth: 'max-content' }}>
             {/* Root Node */}
-            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.reduce((sum, p) => sum + 48 + (p.children?.length || 0) * 40 + (p.children?.reduce((s, c) => s + (c.tabs?.length || 0) * 36, 0) || 0), 0), 100)}px` }}>
+            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.reduce((sum, p) => {
+              const countTabs = (tabs?: SitemapTab[]): number => tabs ? tabs.reduce((s, t) => s + 1 + countTabs(t.tabs), 0) : 0;
+              return sum + 48 + (p.children?.length || 0) * 40 + (p.children?.reduce((s, c) => s + countTabs(c.tabs) * 32, 0) || 0);
+            }, 0), 100)}px` }}>
               <div ref={rootNodeRef} className="bg-foreground text-background px-5 py-3 rounded-xl font-bold text-sm shadow-lg select-none whitespace-nowrap">
                 {currentSection.title}
               </div>
