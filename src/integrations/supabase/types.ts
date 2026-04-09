@@ -1371,6 +1371,7 @@ export type Database = {
         Row: {
           build_flow_id: string | null
           created_at: string
+          download_count: number
           id: string
           lead_id: string | null
           name: string
@@ -1380,6 +1381,7 @@ export type Database = {
         Insert: {
           build_flow_id?: string | null
           created_at?: string
+          download_count?: number
           id?: string
           lead_id?: string | null
           name: string
@@ -1389,6 +1391,7 @@ export type Database = {
         Update: {
           build_flow_id?: string | null
           created_at?: string
+          download_count?: number
           id?: string
           lead_id?: string | null
           name?: string

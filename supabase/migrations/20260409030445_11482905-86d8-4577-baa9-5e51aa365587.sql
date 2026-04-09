@@ -1,0 +1,1 @@
+ALTER TABLE public.project_sitemaps ADD COLUMN download_count integer NOT NULL DEFAULT 0;
