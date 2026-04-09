@@ -102,6 +102,9 @@ const App = () => (
               <Route path="requests" element={<DevRequests />} />
               <Route path="project/:id" element={<DevProjectView />} />
             </Route>
+            {/* Standalone Sitemap Builder (no admin sidebar) */}
+            <Route path="/admin/sitemaps/new" element={<AdminSitemapBuilder />} />
+            <Route path="/admin/sitemaps/:id" element={<AdminSitemapBuilder />} />
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>
@@ -112,8 +115,6 @@ const App = () => (
               <Route path="calendar" element={<AdminCalendar />} />
               <Route path="analysis-ai" element={<AdminAnalysisAI />} />
               <Route path="sitemaps" element={<AdminSitemaps />} />
-              <Route path="sitemaps/new" element={<AdminSitemapBuilder />} />
-              <Route path="sitemaps/:id" element={<AdminSitemapBuilder />} />
               <Route path="financial" element={<AdminFinancial />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="team" element={<AdminTeam />} />
