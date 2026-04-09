@@ -800,10 +800,19 @@ export default function AdminSitemapBuilder() {
                                 className={`group flex items-center gap-1.5 bg-card border-2 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 }`}
-                                style={{ borderColor: `${pageColor}40` }}
+                                style={{
+                                  borderColor: `${pageColor}40`,
+                                  ...(child.linkedFrom?.length ? { borderStyle: 'solid', borderWidth: '2px', boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
+                                }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
+                                {/* Show linked parent color dots */}
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
+                                  {child.linkedFrom?.map(lpIdx => (
+                                    <div key={lpIdx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[lpIdx % PAGE_COLORS.length], opacity: 0.6 }} />
+                                  ))}
+                                </div>
                                 {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
                                   <Input
                                     autoFocus value={child.name}
@@ -817,7 +826,38 @@ export default function AdminSitemapBuilder() {
                                     {child.name}
                                   </span>
                                 )}
-                                <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
+                                {/* Link to other parents */}
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`}
+                                      title="Link to other pages"
+                                    >
+                                      <Link2 className="h-2.5 w-2.5" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-2" side="right" align="start">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Also linked from</p>
+                                    {currentSection.pages.map((otherPage, otherPIdx) => {
+                                      if (otherPIdx === pIdx) return null;
+                                      const isLinked = child.linkedFrom?.includes(otherPIdx) || false;
+                                      return (
+                                        <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
+                                          <Checkbox
+                                            checked={isLinked}
+                                            onCheckedChange={() => toggleLinkedParent(pIdx, cIdx, otherPIdx)}
+                                          />
+                                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
+                                          <span className="truncate">{otherPage.name}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {currentSection.pages.length <= 1 && (
+                                      <p className="text-[10px] text-muted-foreground py-1">Add more pages to link</p>
+                                    )}
+                                  </PopoverContent>
+                                </Popover>
+                                <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
                                   <Plus className="h-2.5 w-2.5" />
                                 </button>
                                 <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
