@@ -239,9 +239,9 @@ export default function AdminSitemapBuilder() {
             const lpMidY = lpr.top + lpr.height / 2 - off.y;
             // Use a dashed-style approach: we'll mark these with a special color mix
             const lElbowX = lpRight + (cLeft - lpRight) / 2;
-            lines.push({ x1: lpRight, y1: lpMidY, x2: lElbowX, y2: lpMidY, color: lpColor });
-            lines.push({ x1: lElbowX, y1: lpMidY, x2: lElbowX, y2: cMidY, color: lpColor });
-            lines.push({ x1: lElbowX, y1: cMidY, x2: cLeft, y2: cMidY, color: lpColor });
+            lines.push({ x1: lpRight, y1: lpMidY, x2: lElbowX, y2: lpMidY, color: lpColor, dashed: true });
+            lines.push({ x1: lElbowX, y1: lpMidY, x2: lElbowX, y2: cMidY, color: lpColor, dashed: true });
+            lines.push({ x1: lElbowX, y1: cMidY, x2: cLeft, y2: cMidY, color: lpColor, dashed: true });
           });
         }
 
@@ -726,7 +726,7 @@ export default function AdminSitemapBuilder() {
           <svg className="absolute inset-0 pointer-events-none z-0" style={{ width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}>
             {connectorLines.map((l, i) => (
               <g key={i}>
-                <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+                <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" strokeDasharray={l.dashed ? '4 3' : undefined} />
                 {/* Endpoint dot at the final horizontal segment end */}
                 {i % 3 === 2 && <circle cx={l.x2} cy={l.y2} r="2.5" fill={l.color} opacity="0.7" />}
               </g>
