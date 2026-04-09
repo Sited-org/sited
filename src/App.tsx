@@ -34,6 +34,7 @@ const AdminRequests = lazy(() => import("./pages/AdminRequests"));
 const AdminFinancial = lazy(() => import("./pages/AdminFinancial"));
 const AdminCalendar = lazy(() => import("./pages/AdminCalendar"));
 const AdminAnalysisAI = lazy(() => import("./pages/AdminAnalysisAI"));
+const AdminSitemaps = lazy(() => import("./pages/AdminSitemaps"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
@@ -109,6 +110,7 @@ const App = () => (
               <Route path="requests" element={<AdminRequests />} />
               <Route path="calendar" element={<AdminCalendar />} />
               <Route path="analysis-ai" element={<AdminAnalysisAI />} />
+              <Route path="sitemaps" element={<AdminSitemaps />} />
               <Route path="financial" element={<AdminFinancial />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="team" element={<AdminTeam />} />
