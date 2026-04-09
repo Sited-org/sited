@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical,
+  ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,9 +13,18 @@ import { generateSitemapPDF } from './AdminSitemaps';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+interface SitemapTab {
+  name: string;
+}
+
+interface SitemapChild {
+  name: string;
+  tabs?: SitemapTab[];
+}
+
 interface SitemapPage {
   name: string;
-  children?: string[];
+  children?: SitemapChild[];
 }
 
 interface SitemapSection {
@@ -29,9 +38,47 @@ interface LeadOption {
   business_name: string | null;
 }
 
+type EditingNode = {
+  type: 'section' | 'page' | 'child' | 'tab';
+  sIdx: number;
+  pIdx?: number;
+  cIdx?: number;
+  tIdx?: number;
+} | null;
+
+type DragItem = {
+  type: 'page' | 'child' | 'tab';
+  pIdx: number;
+  cIdx?: number;
+  tIdx?: number;
+} | null;
+
+type DropTarget = {
+  type: 'page' | 'child' | 'tab';
+  index: number;
+  parentPIdx?: number;
+  parentCIdx?: number;
+} | null;
+
 function safeJsonParse<T>(val: string | undefined, fallback: T): T {
   if (!val) return fallback;
   try { return JSON.parse(val); } catch { return fallback; }
+}
+
+/** Migrate legacy string[] children to SitemapChild[] */
+function migrateChildren(children: any[] | undefined): SitemapChild[] | undefined {
+  if (!children?.length) return undefined;
+  return children.map(c => typeof c === 'string' ? { name: c } : c);
+}
+
+function migrateSections(raw: any[]): SitemapSection[] {
+  return raw.map(s => ({
+    ...s,
+    pages: (s.pages || []).map((p: any) => ({
+      ...p,
+      children: migrateChildren(p.children),
+    })),
+  }));
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -48,15 +95,17 @@ export default function AdminSitemapBuilder() {
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
-  const [editingNode, setEditingNode] = useState<{ type: 'section' | 'page' | 'child'; sIdx: number; pIdx?: number; cIdx?: number } | null>(null);
-  const [dragState, setDragState] = useState<{ type: 'page' | 'child'; pIdx: number; cIdx?: number } | null>(null);
+  const [editingNode, setEditingNode] = useState<EditingNode>(null);
+  const [dragItem, setDragItem] = useState<DragItem>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget>(null);
 
   // Canvas refs for SVG connectors
   const canvasRef = useRef<HTMLDivElement>(null);
   const rootNodeRef = useRef<HTMLDivElement>(null);
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
+  const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
 
   // ── Fetch ──
 
@@ -72,7 +121,7 @@ export default function AdminSitemapBuilder() {
     setName(data.name);
     setSelectedLeadId(data.lead_id || '');
     const s = (data.sections as any) || [];
-    setSections(s.length ? s : [{ title: 'Front-End', pages: [] }]);
+    setSections(s.length ? migrateSections(s) : [{ title: 'Front-End', pages: [] }]);
     setLoading(false);
   }, [id, isNew, navigate]);
 
@@ -84,47 +133,57 @@ export default function AdminSitemapBuilder() {
 
   const recalcConnectors = useCallback(() => {
     if (!canvasRef.current || !rootNodeRef.current) return;
-    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const cr = canvasRef.current.getBoundingClientRect();
+    const off = { x: cr.left - canvasRef.current.scrollLeft, y: cr.top - canvasRef.current.scrollTop };
     const lines: typeof connectorLines = [];
 
-    const rootRect = rootNodeRef.current.getBoundingClientRect();
-    const rootRight = rootRect.right - canvasRect.left;
-    const rootMidY = rootRect.top + rootRect.height / 2 - canvasRect.top;
+    const rr = rootNodeRef.current.getBoundingClientRect();
+    const rootRight = rr.right - off.x;
+    const rootMidY = rr.top + rr.height / 2 - off.y;
 
     pageNodeRefs.current.forEach((el, pIdx) => {
-      const pRect = el.getBoundingClientRect();
-      const pLeft = pRect.left - canvasRect.left;
-      const pMidY = pRect.top + pRect.height / 2 - canvasRect.top;
-      const pRight = pRect.right - canvasRect.left;
+      const pr = el.getBoundingClientRect();
+      const pLeft = pr.left - off.x;
+      const pMidY = pr.top + pr.height / 2 - off.y;
+      const pRight = pr.right - off.x;
+      const eX = rootRight + (pLeft - rootRight) / 2;
+      lines.push({ x1: rootRight, y1: rootMidY, x2: eX, y2: rootMidY });
+      lines.push({ x1: eX, y1: rootMidY, x2: eX, y2: pMidY });
+      lines.push({ x1: eX, y1: pMidY, x2: pLeft, y2: pMidY });
 
-      // root → page elbow
-      const elbowX = rootRight + (pLeft - rootRight) / 2;
-      lines.push({ x1: rootRight, y1: rootMidY, x2: elbowX, y2: rootMidY, color: 'var(--border)' });
-      lines.push({ x1: elbowX, y1: rootMidY, x2: elbowX, y2: pMidY, color: 'var(--border)' });
-      lines.push({ x1: elbowX, y1: pMidY, x2: pLeft, y2: pMidY, color: 'var(--border)' });
-
-      // page → children
       const page = currentSection?.pages[pIdx];
-      if (page?.children?.length) {
-        page.children.forEach((_, cIdx) => {
-          const childEl = childNodeRefs.current.get(`${pIdx}-${cIdx}`);
-          if (!childEl) return;
-          const cRect = childEl.getBoundingClientRect();
-          const cLeft = cRect.left - canvasRect.left;
-          const cMidY = cRect.top + cRect.height / 2 - canvasRect.top;
-          const childElbowX = pRight + (cLeft - pRight) / 2;
-          lines.push({ x1: pRight, y1: pMidY, x2: childElbowX, y2: pMidY, color: 'var(--muted-foreground)' });
-          lines.push({ x1: childElbowX, y1: pMidY, x2: childElbowX, y2: cMidY, color: 'var(--muted-foreground)' });
-          lines.push({ x1: childElbowX, y1: cMidY, x2: cLeft, y2: cMidY, color: 'var(--muted-foreground)' });
+      page?.children?.forEach((child, cIdx) => {
+        const ce = childNodeRefs.current.get(`${pIdx}-${cIdx}`);
+        if (!ce) return;
+        const ccr = ce.getBoundingClientRect();
+        const cLeft = ccr.left - off.x;
+        const cMidY = ccr.top + ccr.height / 2 - off.y;
+        const cRight = ccr.right - off.x;
+        const ceX = pRight + (cLeft - pRight) / 2;
+        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY });
+        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY });
+        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY });
+
+        // child → tabs
+        child.tabs?.forEach((_, tIdx) => {
+          const te = tabNodeRefs.current.get(`${pIdx}-${cIdx}-${tIdx}`);
+          if (!te) return;
+          const tr = te.getBoundingClientRect();
+          const tLeft = tr.left - off.x;
+          const tMidY = tr.top + tr.height / 2 - off.y;
+          const teX = cRight + (tLeft - cRight) / 2;
+          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY });
+          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY });
+          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY });
         });
-      }
+      });
     });
 
     setConnectorLines(lines);
   }, [currentSection]);
 
   useEffect(() => {
-    const t = setTimeout(recalcConnectors, 50);
+    const t = setTimeout(recalcConnectors, 60);
     return () => clearTimeout(t);
   }, [sections, activeSectionIdx, recalcConnectors]);
 
@@ -138,18 +197,15 @@ export default function AdminSitemapBuilder() {
   const saveSitemap = async () => {
     if (!name.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
-
     const payload: any = {
       name: name.trim(),
       lead_id: selectedLeadId && selectedLeadId !== 'none' ? selectedLeadId : null,
       sections,
     };
-
     if (payload.lead_id) {
       const { data: bf } = await supabase.from('build_flows').select('id').eq('lead_id', payload.lead_id).limit(1).maybeSingle();
       payload.build_flow_id = bf?.id || null;
     }
-
     if (isNew) {
       const { data, error } = await supabase.from('project_sitemaps').insert(payload).select('id').single();
       if (error) { toast.error('Failed to create'); setSaving(false); return; }
@@ -183,23 +239,16 @@ export default function AdminSitemapBuilder() {
       const custom: string[] = safeJsonParse(ansMap['frontEnd.customPages'], []);
       newSections.push({ title: 'Front-End', pages: [...core, ...marketing, ...custom].filter(Boolean).map(p => ({ name: p })) });
     }
-    if (portals.includes('admin_portal')) {
-      const features: string[] = safeJsonParse(ansMap['adminPortal.features'], []);
-      newSections.push({ title: 'Admin Portal', pages: [{ name: 'Dashboard' }, ...features.map(f => ({ name: f }))] });
-    }
-    if (portals.includes('client_portal')) {
-      const features: string[] = safeJsonParse(ansMap['clientPortal.features'], []);
-      newSections.push({ title: 'Client Portal', pages: [{ name: 'Dashboard' }, ...features.map(f => ({ name: f }))] });
-    }
-    if (portals.includes('staff_portal')) {
-      const features: string[] = safeJsonParse(ansMap['staffPortal.features'], []);
-      newSections.push({ title: 'Staff Portal', pages: [{ name: 'Dashboard' }, ...features.map(f => ({ name: f }))] });
-    }
+    ['admin_portal', 'client_portal', 'staff_portal'].forEach(portal => {
+      if (!portals.includes(portal)) return;
+      const label = portal.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const features: string[] = safeJsonParse(ansMap[`${portal.replace(/_([a-z])/g, (_, c) => c.toUpperCase().replace('_', ''))}.features`] || ansMap[`${portal === 'admin_portal' ? 'adminPortal' : portal === 'client_portal' ? 'clientPortal' : 'staffPortal'}.features`], []);
+      newSections.push({ title: label, pages: [{ name: 'Dashboard' }, ...features.map(f => ({ name: f }))] });
+    });
 
     if (!newSections.length) { toast.error('No portals found'); return; }
     setSections(newSections);
     setActiveSectionIdx(0);
-
     if (!name) {
       const lead = leads.find(l => l.id === selectedLeadId);
       setName(`${lead?.business_name || lead?.name || 'Client'} Sitemap`);
@@ -209,22 +258,21 @@ export default function AdminSitemapBuilder() {
 
   // ── Section helpers ──
 
+  const updateSection = (idx: number, title: string) => {
+    const next = [...sections];
+    next[idx] = { ...next[idx], title };
+    setSections(next);
+  };
+
   const addSection = () => {
-    const idx = sections.length;
-    setSections([...sections, { title: `Section ${idx + 1}`, pages: [] }]);
-    setActiveSectionIdx(idx);
+    setSections([...sections, { title: `Section ${sections.length + 1}`, pages: [] }]);
+    setActiveSectionIdx(sections.length);
   };
 
   const removeSection = (idx: number) => {
     if (sections.length <= 1) return;
     setSections(sections.filter((_, i) => i !== idx));
     setActiveSectionIdx(Math.max(0, idx - 1));
-  };
-
-  const updateSectionTitle = (idx: number, title: string) => {
-    const next = [...sections];
-    next[idx] = { ...next[idx], title };
-    setSections(next);
   };
 
   // ── Page helpers ──
@@ -235,10 +283,10 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  const updatePageName = (pIdx: number, newName: string) => {
+  const updatePageName = (pIdx: number, val: string) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
-    pages[pIdx] = { ...pages[pIdx], name: newName };
+    pages[pIdx] = { ...pages[pIdx], name: val };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
@@ -249,19 +297,22 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
+  // ── Child helpers ──
+
   const addChild = (pIdx: number) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
-    pages[pIdx] = { ...pages[pIdx], children: [...(pages[pIdx].children || []), 'Sub Page'] };
+    const existing = pages[pIdx].children || [];
+    pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: 'Sub Page' }] };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
 
-  const updateChild = (pIdx: number, cIdx: number, value: string) => {
+  const updateChildName = (pIdx: number, cIdx: number, val: string) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    children[cIdx] = value;
+    children[cIdx] = { ...children[cIdx], name: val };
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
@@ -276,51 +327,119 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Drag & Drop (page reorder) ──
+  // ── Tab helpers ──
 
-  const handlePageDragStart = (pIdx: number) => {
-    setDragState({ type: 'page', pIdx });
-  };
-
-  const handlePageDragOver = (e: React.DragEvent, targetIdx: number) => {
-    e.preventDefault();
-    if (!dragState || dragState.type !== 'page' || dragState.pIdx === targetIdx) return;
-  };
-
-  const handlePageDrop = (targetIdx: number) => {
-    if (!dragState || dragState.type !== 'page') return;
+  const addTab = (pIdx: number, cIdx: number) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
-    const [moved] = pages.splice(dragState.pIdx, 1);
-    pages.splice(targetIdx, 0, moved);
+    const children = [...(pages[pIdx].children || [])];
+    const existing = children[cIdx].tabs || [];
+    children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+    pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
-    setDragState(null);
   };
+
+  const updateTabName = (pIdx: number, cIdx: number, tIdx: number, val: string) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const tabs = [...(children[cIdx].tabs || [])];
+    tabs[tIdx] = { name: val };
+    children[cIdx] = { ...children[cIdx], tabs };
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  const removeTab = (pIdx: number, cIdx: number, tIdx: number) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const tabs = (children[cIdx].tabs || []).filter((_, i) => i !== tIdx);
+    children[cIdx] = { ...children[cIdx], tabs: tabs.length ? tabs : undefined };
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  // ── Drag & Drop ──
+
+  const handleDragStart = (item: NonNullable<DragItem>, e: React.DragEvent) => {
+    setDragItem(item);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(item));
+  };
+
+  const handleDragOver = (target: NonNullable<DropTarget>, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragItem || dragItem.type !== target.type) return;
+    setDropTarget(target);
+  };
+
+  const handleDrop = (target: NonNullable<DropTarget>) => {
+    if (!dragItem || dragItem.type !== target.type) { setDragItem(null); setDropTarget(null); return; }
+
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+
+    if (dragItem.type === 'page') {
+      const [moved] = pages.splice(dragItem.pIdx, 1);
+      pages.splice(target.index, 0, moved);
+    } else if (dragItem.type === 'child' && dragItem.cIdx !== undefined && target.parentPIdx !== undefined) {
+      // Only reorder within same parent for now
+      if (dragItem.pIdx === target.parentPIdx) {
+        const children = [...(pages[dragItem.pIdx].children || [])];
+        const [moved] = children.splice(dragItem.cIdx, 1);
+        children.splice(target.index, 0, moved);
+        pages[dragItem.pIdx] = { ...pages[dragItem.pIdx], children };
+      }
+    } else if (dragItem.type === 'tab' && dragItem.cIdx !== undefined && dragItem.tIdx !== undefined && target.parentPIdx !== undefined && target.parentCIdx !== undefined) {
+      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx === target.parentCIdx) {
+        const children = [...(pages[dragItem.pIdx].children || [])];
+        const tabs = [...(children[dragItem.cIdx].tabs || [])];
+        const [moved] = tabs.splice(dragItem.tIdx, 1);
+        tabs.splice(target.index, 0, moved);
+        children[dragItem.cIdx] = { ...children[dragItem.cIdx], tabs };
+        pages[dragItem.pIdx] = { ...pages[dragItem.pIdx], children };
+      }
+    }
+
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+    setDragItem(null);
+    setDropTarget(null);
+  };
+
+  const handleDragEnd = () => { setDragItem(null); setDropTarget(null); };
 
   // ── Download ──
 
   const handleDownload = () => {
     generateSitemapPDF({
-      id: id || '',
-      lead_id: selectedLeadId || null,
-      build_flow_id: null,
-      name: name || 'Sitemap',
-      sections,
-      created_at: '',
-      updated_at: '',
+      id: id || '', lead_id: selectedLeadId || null, build_flow_id: null,
+      name: name || 'Sitemap', sections, created_at: '', updated_at: '',
     });
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-muted-foreground">Loading…</div>;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
+  const isDropping = (type: string, index: number, parentPIdx?: number, parentCIdx?: number) =>
+    dropTarget?.type === type && dropTarget.index === index &&
+    dropTarget.parentPIdx === parentPIdx && dropTarget.parentCIdx === parentCIdx;
+
   return (
-    <div className="flex flex-col h-full -m-6 lg:-m-8">
+    <div className="fixed inset-0 flex flex-col bg-background z-50">
       {/* ── Top Toolbar ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/sitemaps')}>
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/sitemaps')} className="shrink-0">
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
@@ -328,11 +447,11 @@ export default function AdminSitemapBuilder() {
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Sitemap name…"
-          className="max-w-[220px] font-semibold"
+          className="max-w-[200px] font-semibold text-sm h-8"
         />
 
         <Select value={selectedLeadId || 'none'} onValueChange={v => setSelectedLeadId(v === 'none' ? '' : v)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[170px] h-8 text-sm">
             <SelectValue placeholder="Link client…" />
           </SelectTrigger>
           <SelectContent>
@@ -344,26 +463,26 @@ export default function AdminSitemapBuilder() {
         </Select>
 
         {selectedLeadId && selectedLeadId !== 'none' && (
-          <Button variant="outline" size="sm" onClick={importFromDiscovery}>
-            <Import className="h-4 w-4 mr-1" />Import
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={importFromDiscovery}>
+            <Import className="h-3.5 w-3.5 mr-1" />Import
           </Button>
         )}
 
         <div className="flex-1" />
 
-        <Button variant="outline" size="sm" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
-          <Download className="h-4 w-4 mr-1" />PDF
+        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
+          <Download className="h-3.5 w-3.5 mr-1" />PDF
         </Button>
-        <Button size="sm" onClick={saveSitemap} disabled={saving}>
-          <Save className="h-4 w-4 mr-1" />{saving ? 'Saving…' : 'Save'}
+        <Button size="sm" className="h-8 text-xs" onClick={saveSitemap} disabled={saving}>
+          <Save className="h-3.5 w-3.5 mr-1" />{saving ? 'Saving…' : 'Save'}
         </Button>
       </div>
 
       <div className="flex flex-1 min-h-0">
         {/* ── Left Sidebar (Sections) ── */}
-        <div className="w-56 shrink-0 border-r border-border bg-card overflow-y-auto p-3 space-y-2">
+        <div className="w-52 shrink-0 border-r border-border bg-card overflow-y-auto p-3 space-y-1.5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sections</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sections</span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={addSection}>
               <Plus className="h-3 w-3" />
             </Button>
@@ -372,39 +491,34 @@ export default function AdminSitemapBuilder() {
           {sections.map((s, sIdx) => (
             <div
               key={sIdx}
-              className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${
+              className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg cursor-pointer text-xs transition-colors ${
                 sIdx === activeSectionIdx
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted text-foreground'
               }`}
               onClick={() => setActiveSectionIdx(sIdx)}
             >
+              <Layers className="h-3 w-3 shrink-0 opacity-60" />
               {editingNode?.type === 'section' && editingNode.sIdx === sIdx ? (
                 <Input
                   autoFocus
                   value={s.title}
-                  onChange={e => updateSectionTitle(sIdx, e.target.value)}
+                  onChange={e => updateSection(sIdx, e.target.value)}
                   onBlur={() => setEditingNode(null)}
                   onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                  className="h-6 text-xs px-1 bg-transparent border-none"
+                  className="h-5 text-[11px] px-1 bg-transparent border-none"
                   onClick={e => e.stopPropagation()}
                 />
               ) : (
-                <span
-                  className="flex-1 truncate"
-                  onDoubleClick={(e) => { e.stopPropagation(); setEditingNode({ type: 'section', sIdx }); }}
-                >
+                <span className="flex-1 truncate" onDoubleClick={e => { e.stopPropagation(); setEditingNode({ type: 'section', sIdx }); }}>
                   {s.title}
                 </span>
               )}
-              <Badge variant="secondary" className="text-[10px] h-5 min-w-[20px] justify-center">
+              <Badge variant="secondary" className="text-[9px] h-4 min-w-[16px] justify-center px-1">
                 {s.pages.length}
               </Badge>
               {sections.length > 1 && (
-                <button
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => { e.stopPropagation(); removeSection(sIdx); }}
-                >
+                <button className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => { e.stopPropagation(); removeSection(sIdx); }}>
                   <X className="h-3 w-3" />
                 </button>
               )}
@@ -413,127 +527,157 @@ export default function AdminSitemapBuilder() {
         </div>
 
         {/* ── Main Canvas ── */}
-        <div className="flex-1 overflow-auto bg-muted/30 relative" ref={canvasRef}>
+        <div className="flex-1 overflow-auto bg-muted/20 relative" ref={canvasRef}>
           {/* SVG Connectors */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ minHeight: '100%', minWidth: '100%' }}>
-            {connectorLines.map((line, i) => (
-              <line
-                key={i}
-                x1={line.x1} y1={line.y1}
-                x2={line.x2} y2={line.y2}
-                stroke="hsl(var(--border))"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
+          <svg className="absolute inset-0 pointer-events-none z-0" style={{ width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}>
+            {connectorLines.map((l, i) => (
+              <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="hsl(var(--border))" strokeWidth="1.5" strokeLinecap="round" />
             ))}
           </svg>
 
-          <div className="relative z-10 flex items-start gap-16 p-8 min-h-full" style={{ minWidth: 'max-content' }}>
+          <div className="relative z-10 flex items-start gap-20 p-10 min-h-full" style={{ minWidth: 'max-content' }}>
             {/* Root Node */}
-            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 60, 120)}px` }}>
-              <div
-                ref={rootNodeRef}
-                className="bg-foreground text-background px-6 py-3 rounded-xl font-bold text-sm shadow-lg select-none whitespace-nowrap"
-              >
+            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
+              <div ref={rootNodeRef} className="bg-foreground text-background px-5 py-3 rounded-xl font-bold text-sm shadow-lg select-none whitespace-nowrap">
                 {currentSection.title}
               </div>
             </div>
 
             {/* Page Nodes Column */}
-            <div className="flex flex-col gap-3 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 60, 120)}px` }}>
+            <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
               {currentSection.pages.map((page, pIdx) => (
-                <div
-                  key={pIdx}
-                  ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
-                  draggable
-                  onDragStart={() => handlePageDragStart(pIdx)}
-                  onDragOver={(e) => handlePageDragOver(e, pIdx)}
-                  onDrop={() => handlePageDrop(pIdx)}
-                  onDragEnd={() => setDragState(null)}
-                  className={`group flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none ${
-                    dragState?.type === 'page' && dragState.pIdx === pIdx ? 'opacity-50' : ''
-                  }`}
-                >
-                  <GripVertical className="h-3.5 w-3.5 opacity-40 shrink-0" />
-
-                  {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
-                    <Input
-                      autoFocus
-                      value={page.name}
-                      onChange={e => updatePageName(pIdx, e.target.value)}
-                      onBlur={() => setEditingNode(null)}
-                      onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                      className="h-6 text-xs px-1 bg-transparent border-none text-primary-foreground w-28"
-                      onClick={e => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span
-                      className="text-sm font-medium whitespace-nowrap"
-                      onDoubleClick={() => setEditingNode({ type: 'page', sIdx: activeSectionIdx, pIdx })}
-                    >
-                      {page.name}
-                    </span>
-                  )}
-
-                  <button
-                    className="opacity-0 group-hover:opacity-100 ml-1 hover:bg-primary-foreground/20 rounded p-0.5 transition-opacity"
-                    onClick={() => addChild(pIdx)}
-                    title="Add sub-page"
+                <div key={pIdx}>
+                  {/* Drop indicator */}
+                  {isDropping('page', pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                  <div
+                    ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
+                    draggable
+                    onDragStart={e => handleDragStart({ type: 'page', pIdx }, e)}
+                    onDragOver={e => handleDragOver({ type: 'page', index: pIdx }, e)}
+                    onDrop={() => handleDrop({ type: 'page', index: pIdx })}
+                    onDragEnd={handleDragEnd}
+                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm ${
+                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-40 scale-95' : ''
+                    }`}
                   >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5 transition-opacity"
-                    onClick={() => removePage(pIdx)}
-                    title="Delete page"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                    <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
+                    {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
+                      <Input
+                        autoFocus value={page.name}
+                        onChange={e => updatePageName(pIdx, e.target.value)}
+                        onBlur={() => setEditingNode(null)}
+                        onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                        className="h-5 text-xs px-1 bg-transparent border-none text-primary-foreground w-24"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span className="font-medium whitespace-nowrap text-xs" onDoubleClick={() => setEditingNode({ type: 'page', sIdx: activeSectionIdx, pIdx })}>
+                        {page.name}
+                      </span>
+                    )}
+                    <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-primary-foreground/20 rounded p-0.5" onClick={() => addChild(pIdx)} title="Add sub-page">
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removePage(pIdx)}>
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
-
-              <button
-                onClick={addPage}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-4 py-2 transition-colors"
-              >
+              <button onClick={addPage} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors">
                 <Plus className="h-3 w-3" /> Add Page
               </button>
             </div>
 
-            {/* Child Nodes Column */}
+            {/* Child (Sub-page) Nodes Column */}
             {currentSection.pages.some(p => p.children?.length) && (
-              <div className="flex flex-col gap-3 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 60, 120)}px` }}>
+              <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
                 {currentSection.pages.map((page, pIdx) => (
-                  <div key={pIdx} className="space-y-2">
+                  <div key={pIdx} className="space-y-1.5">
                     {page.children?.map((child, cIdx) => (
-                      <div
-                        key={cIdx}
-                        ref={el => { const key = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(key, el); else childNodeRefs.current.delete(key); }}
-                        className="group flex items-center gap-2 bg-card border border-border px-3 py-2 rounded-lg shadow-sm text-sm select-none"
-                      >
-                        {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
-                          <Input
-                            autoFocus
-                            value={child}
-                            onChange={e => updateChild(pIdx, cIdx, e.target.value)}
-                            onBlur={() => setEditingNode(null)}
-                            onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                            className="h-5 text-xs px-1 bg-transparent border-none w-24"
-                          />
-                        ) : (
-                          <span
-                            className="text-muted-foreground whitespace-nowrap"
-                            onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}
-                          >
-                            {child}
-                          </span>
-                        )}
-                        <button
-                          className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5 transition-opacity"
-                          onClick={() => removeChild(pIdx, cIdx)}
+                      <div key={cIdx}>
+                        {isDropping('child', cIdx, pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                        <div
+                          ref={el => { const k = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(k, el); else childNodeRefs.current.delete(k); }}
+                          draggable
+                          onDragStart={e => handleDragStart({ type: 'child', pIdx, cIdx }, e)}
+                          onDragOver={e => handleDragOver({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
+                          onDrop={() => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx })}
+                          onDragEnd={handleDragEnd}
+                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing ${
+                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-40 scale-95' : ''
+                          }`}
                         >
-                          <X className="h-3 w-3 text-destructive" />
-                        </button>
+                          <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                          {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
+                            <Input
+                              autoFocus value={child.name}
+                              onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
+                              onBlur={() => setEditingNode(null)}
+                              onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                              className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                              {child.name}
+                            </span>
+                          )}
+                          <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
+                            <Plus className="h-2.5 w-2.5" />
+                          </button>
+                          <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
+                            <X className="h-2.5 w-2.5 text-destructive" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Only show "add sub-page" below the last child of a page that has children */}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tab Nodes Column */}
+            {currentSection.pages.some(p => p.children?.some(c => c.tabs?.length)) && (
+              <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
+                {currentSection.pages.map((page, pIdx) => (
+                  <div key={pIdx} className="space-y-1">
+                    {page.children?.map((child, cIdx) => (
+                      <div key={cIdx} className="space-y-1">
+                        {child.tabs?.map((tab, tIdx) => (
+                          <div key={tIdx}>
+                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-1" />}
+                            <div
+                              ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
+                              draggable
+                              onDragStart={e => handleDragStart({ type: 'tab', pIdx, cIdx, tIdx }, e)}
+                              onDragOver={e => handleDragOver({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
+                              onDrop={() => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx })}
+                              onDragEnd={handleDragEnd}
+                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing ${
+                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-40 scale-95' : ''
+                              }`}
+                            >
+                              <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
+                              {editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx && editingNode.tIdx === tIdx ? (
+                                <Input
+                                  autoFocus value={tab.name}
+                                  onChange={e => updateTabName(pIdx, cIdx, tIdx, e.target.value)}
+                                  onBlur={() => setEditingNode(null)}
+                                  onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                                  className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
+                                />
+                              ) : (
+                                <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx })}>
+                                  {tab.name}
+                                </span>
+                              )}
+                              <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, tIdx)}>
+                                <X className="h-2 w-2 text-destructive" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
