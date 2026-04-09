@@ -70,29 +70,36 @@ export default function AdminLogin() {
     }
 
     setIsLoading(true);
+    loginInProgressRef.current = true;
     
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password'
-          : error.message,
-        variant: "destructive"
+    try {
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-    } else if (data.user) {
-      // Successfully authenticated, now require OTP verification
-      sessionStorage.removeItem(`admin_otp_verified_${data.user.id}`);
-      sessionStorage.removeItem(`otp_sent_admin_${data.user.id}`);
-      setPendingUserId(data.user.id);
-      setShowOTPVerify(true);
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message === 'Invalid login credentials' 
+            ? 'Invalid email or password'
+            : error.message,
+          variant: "destructive"
+        });
+      } else if (data.user) {
+        // Wait briefly for useAuth to process the auth state change and fetch the role
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Successfully authenticated, now require OTP verification
+        sessionStorage.removeItem(`admin_otp_verified_${data.user.id}`);
+        sessionStorage.removeItem(`otp_sent_admin_${data.user.id}`);
+        setPendingUserId(data.user.id);
+        setShowOTPVerify(true);
+      }
+    } finally {
+      setIsLoading(false);
+      loginInProgressRef.current = false;
     }
-    
-    setIsLoading(false);
   };
 
   const handleOTPVerified = async () => {
