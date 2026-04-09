@@ -105,7 +105,19 @@ export default function AdminSitemapBuilder() {
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string }[]>([]);
+
+  // Color palette for parent-page distinction
+  const PAGE_COLORS = [
+    'hsl(221, 83%, 53%)',  // blue
+    'hsl(262, 83%, 58%)',  // purple
+    'hsl(142, 71%, 45%)',  // green
+    'hsl(25, 95%, 53%)',   // orange
+    'hsl(346, 77%, 50%)',  // rose
+    'hsl(187, 85%, 43%)',  // teal
+    'hsl(45, 93%, 47%)',   // amber
+    'hsl(316, 72%, 51%)',  // pink
+  ];
 
   // ── Fetch ──
 
@@ -142,14 +154,15 @@ export default function AdminSitemapBuilder() {
     const rootMidY = rr.top + rr.height / 2 - off.y;
 
     pageNodeRefs.current.forEach((el, pIdx) => {
+      const color = PAGE_COLORS[pIdx % PAGE_COLORS.length];
       const pr = el.getBoundingClientRect();
       const pLeft = pr.left - off.x;
       const pMidY = pr.top + pr.height / 2 - off.y;
       const pRight = pr.right - off.x;
       const eX = rootRight + (pLeft - rootRight) / 2;
-      lines.push({ x1: rootRight, y1: rootMidY, x2: eX, y2: rootMidY });
-      lines.push({ x1: eX, y1: rootMidY, x2: eX, y2: pMidY });
-      lines.push({ x1: eX, y1: pMidY, x2: pLeft, y2: pMidY });
+      lines.push({ x1: rootRight, y1: rootMidY, x2: eX, y2: rootMidY, color });
+      lines.push({ x1: eX, y1: rootMidY, x2: eX, y2: pMidY, color });
+      lines.push({ x1: eX, y1: pMidY, x2: pLeft, y2: pMidY, color });
 
       const page = currentSection?.pages[pIdx];
       page?.children?.forEach((child, cIdx) => {
@@ -160,9 +173,9 @@ export default function AdminSitemapBuilder() {
         const cMidY = ccr.top + ccr.height / 2 - off.y;
         const cRight = ccr.right - off.x;
         const ceX = pRight + (cLeft - pRight) / 2;
-        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY });
-        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY });
-        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY });
+        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY, color });
+        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color });
+        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color });
 
         // child → tabs
         child.tabs?.forEach((_, tIdx) => {
@@ -172,9 +185,9 @@ export default function AdminSitemapBuilder() {
           const tLeft = tr.left - off.x;
           const tMidY = tr.top + tr.height / 2 - off.y;
           const teX = cRight + (tLeft - cRight) / 2;
-          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY });
-          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY });
-          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY });
+          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY, color });
+          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY, color });
+          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
         });
       });
     });
@@ -604,156 +617,159 @@ export default function AdminSitemapBuilder() {
           {/* SVG Connectors */}
           <svg className="absolute inset-0 pointer-events-none z-0" style={{ width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}>
             {connectorLines.map((l, i) => (
-              <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="hsl(var(--border))" strokeWidth="1.5" strokeLinecap="round" />
+              <g key={i}>
+                <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+                {/* Endpoint dot at the final horizontal segment end */}
+                {i % 3 === 2 && <circle cx={l.x2} cy={l.y2} r="2.5" fill={l.color} opacity="0.7" />}
+              </g>
             ))}
           </svg>
 
-          <div className="relative z-10 flex items-start gap-20 p-10 min-h-full" style={{ minWidth: 'max-content' }}>
+          <div className="relative z-10 flex items-start gap-16 p-10 min-h-full" style={{ minWidth: 'max-content' }}>
             {/* Root Node */}
-            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
+            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.reduce((sum, p) => sum + 48 + (p.children?.length || 0) * 40 + (p.children?.reduce((s, c) => s + (c.tabs?.length || 0) * 36, 0) || 0), 0), 100)}px` }}>
               <div ref={rootNodeRef} className="bg-foreground text-background px-5 py-3 rounded-xl font-bold text-sm shadow-lg select-none whitespace-nowrap">
                 {currentSection.title}
               </div>
             </div>
 
-            {/* Page Nodes Column */}
-            <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
-              {currentSection.pages.map((page, pIdx) => (
-                <div key={pIdx}>
-                  {/* Drop indicator */}
-                  {isDropping('page', pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
-                  <div
-                    ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
-                    data-drop-type="page"
-                    data-drop-index={pIdx}
-                    onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
-                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
-                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
-                    }`}
-                  >
-                    <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
-                    {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
-                      <Input
-                        autoFocus value={page.name}
-                        onChange={e => updatePageName(pIdx, e.target.value)}
-                        onBlur={() => setEditingNode(null)}
-                        onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                        className="h-5 text-xs px-1 bg-transparent border-none text-primary-foreground w-24"
-                        onClick={e => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span className="font-medium whitespace-nowrap text-xs" onDoubleClick={() => setEditingNode({ type: 'page', sIdx: activeSectionIdx, pIdx })}>
-                        {page.name}
-                      </span>
-                    )}
-                    <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-primary-foreground/20 rounded p-0.5" onClick={() => addChild(pIdx)} title="Add sub-page">
-                      <Plus className="h-3 w-3" />
-                    </button>
-                    <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removePage(pIdx)}>
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button onClick={addPage} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors">
-                <Plus className="h-3 w-3" /> Add Page
-              </button>
-            </div>
-
-            {/* Child (Sub-page) Nodes Column */}
-            {currentSection.pages.some(p => p.children?.length) && (
-              <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
-                {currentSection.pages.map((page, pIdx) => (
-                  <div key={pIdx} className="space-y-1.5">
-                    {page.children?.map((child, cIdx) => (
-                      <div key={cIdx}>
-                        {isDropping('child', cIdx, pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
-                        <div
-                          ref={el => { const k = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(k, el); else childNodeRefs.current.delete(k); }}
-                          data-drop-type="child"
-                          data-drop-index={cIdx}
-                          data-drop-parent-p={pIdx}
-                          onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
-                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
-                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
-                          }`}
-                        >
-                          <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                          {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
-                            <Input
-                              autoFocus value={child.name}
-                              onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
-                              onBlur={() => setEditingNode(null)}
-                              onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                              className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
-                            />
-                          ) : (
-                            <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
-                              {child.name}
-                            </span>
-                          )}
-                          <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
-                            <Plus className="h-2.5 w-2.5" />
-                          </button>
-                          <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
-                            <X className="h-2.5 w-2.5 text-destructive" />
-                          </button>
-                        </div>
+            {/* Tree: each page row with its children and tabs inline */}
+            <div className="flex flex-col gap-4" style={{ minWidth: 'max-content' }}>
+              {currentSection.pages.map((page, pIdx) => {
+                const pageColor = PAGE_COLORS[pIdx % PAGE_COLORS.length];
+                return (
+                  <div key={pIdx} className="flex items-start gap-12">
+                    {/* Page Node */}
+                    <div className="flex flex-col items-start">
+                      {isDropping('page', pIdx) && <div className="h-1 rounded-full mb-1 mx-2 transition-all" style={{ backgroundColor: pageColor }} />}
+                      <div
+                        ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
+                        data-drop-type="page"
+                        data-drop-index={pIdx}
+                        onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
+                        className={`group flex items-center gap-1.5 text-white px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
+                          dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
+                        }`}
+                        style={{ backgroundColor: pageColor }}
+                      >
+                        <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
+                        {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
+                          <Input
+                            autoFocus value={page.name}
+                            onChange={e => updatePageName(pIdx, e.target.value)}
+                            onBlur={() => setEditingNode(null)}
+                            onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                            className="h-5 text-xs px-1 bg-transparent border-none text-white w-24"
+                            onClick={e => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span className="font-medium whitespace-nowrap text-xs" onDoubleClick={() => setEditingNode({ type: 'page', sIdx: activeSectionIdx, pIdx })}>
+                            {page.name}
+                          </span>
+                        )}
+                        <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-white/20 rounded p-0.5" onClick={() => addChild(pIdx)} title="Add sub-page">
+                          <Plus className="h-3 w-3" />
+                        </button>
+                        <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removePage(pIdx)}>
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       </div>
-                    ))}
-                    {/* Only show "add sub-page" below the last child of a page that has children */}
-                  </div>
-                ))}
-              </div>
-            )}
+                    </div>
 
-            {/* Tab Nodes Column */}
-            {currentSection.pages.some(p => p.children?.some(c => c.tabs?.length)) && (
-              <div className="flex flex-col gap-2 justify-center" style={{ minHeight: `${Math.max(currentSection.pages.length * 56, 100)}px` }}>
-                {currentSection.pages.map((page, pIdx) => (
-                  <div key={pIdx} className="space-y-1">
-                    {page.children?.map((child, cIdx) => (
-                      <div key={cIdx} className="space-y-1">
-                        {child.tabs?.map((tab, tIdx) => (
-                          <div key={tIdx}>
-                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-1 transition-all" />}
-                            <div
-                              ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
-                              data-drop-type="tab"
-                              data-drop-index={tIdx}
-                              data-drop-parent-p={pIdx}
-                              data-drop-parent-c={cIdx}
-                              onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
-                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
-                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                              }`}
-                            >
-                              <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
-                              {editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx && editingNode.tIdx === tIdx ? (
-                                <Input
-                                  autoFocus value={tab.name}
-                                  onChange={e => updateTabName(pIdx, cIdx, tIdx, e.target.value)}
-                                  onBlur={() => setEditingNode(null)}
-                                  onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                                  className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
-                                />
-                              ) : (
-                                <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx })}>
-                                  {tab.name}
-                                </span>
-                              )}
-                              <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, tIdx)}>
-                                <X className="h-2 w-2 text-destructive" />
-                              </button>
+                    {/* Sub-pages for this page */}
+                    {page.children && page.children.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        {page.children.map((child, cIdx) => (
+                          <div key={cIdx} className="flex items-start gap-10">
+                            <div>
+                              {isDropping('child', cIdx, pIdx) && <div className="h-1 rounded-full mb-1 mx-2 transition-all" style={{ backgroundColor: pageColor, opacity: 0.5 }} />}
+                              <div
+                                ref={el => { const k = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(k, el); else childNodeRefs.current.delete(k); }}
+                                data-drop-type="child"
+                                data-drop-index={cIdx}
+                                data-drop-parent-p={pIdx}
+                                onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                                className={`group flex items-center gap-1.5 bg-card border-2 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                                  dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
+                                }`}
+                                style={{ borderColor: `${pageColor}40` }}
+                              >
+                                <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
+                                {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
+                                  <Input
+                                    autoFocus value={child.name}
+                                    onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
+                                    onBlur={() => setEditingNode(null)}
+                                    onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                                    className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
+                                  />
+                                ) : (
+                                  <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                                    {child.name}
+                                  </span>
+                                )}
+                                <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
+                                  <Plus className="h-2.5 w-2.5" />
+                                </button>
+                                <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
+                                  <X className="h-2.5 w-2.5 text-destructive" />
+                                </button>
+                              </div>
                             </div>
+
+                            {/* Tabs for this sub-page */}
+                            {child.tabs && child.tabs.length > 0 && (
+                              <div className="flex flex-col gap-1">
+                                {child.tabs.map((tab, tIdx) => (
+                                  <div key={tIdx}>
+                                    {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 rounded-full mb-1 mx-1 transition-all" style={{ backgroundColor: pageColor, opacity: 0.3 }} />}
+                                    <div
+                                      ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
+                                      data-drop-type="tab"
+                                      data-drop-index={tIdx}
+                                      data-drop-parent-p={pIdx}
+                                      data-drop-parent-c={cIdx}
+                                      onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
+                                      className={`group flex items-center gap-1 bg-muted border px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
+                                        dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
+                                      }`}
+                                      style={{ borderColor: `${pageColor}30` }}
+                                    >
+                                      <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
+                                      <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.4 }} />
+                                      {editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx && editingNode.tIdx === tIdx ? (
+                                        <Input
+                                          autoFocus value={tab.name}
+                                          onChange={e => updateTabName(pIdx, cIdx, tIdx, e.target.value)}
+                                          onBlur={() => setEditingNode(null)}
+                                          onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                                          className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
+                                        />
+                                      ) : (
+                                        <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx })}>
+                                          {tab.name}
+                                        </span>
+                                      )}
+                                      <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, tIdx)}>
+                                        <X className="h-2 w-2 text-destructive" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+              <button onClick={addPage} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors w-fit">
+                <Plus className="h-3 w-3" /> Add Page
+              </button>
+            </div>
           </div>
         </div>
       </div>
