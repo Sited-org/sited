@@ -1,66 +1,72 @@
 
 
-# Redesign: Interactive Drag & Drop Sitemap Builder
+# Sitemap Builder — Full-Page Redesign + Tabs Layer + Better Drag & Drop
 
-## Overview
+## Problems
+1. Builder renders inside `AdminLayout`, showing the admin sidebar — should be full-page standalone
+2. Drag & drop only works for pages, not children, and has no visual feedback (drop indicators)
+3. No "tabs" level — need a 4th hierarchy tier: Section → Page → Sub-page → Tab
+4. Children are stored as `string[]` — need to become objects to support nested tabs
 
-Replace the current sheet-based editor with a dedicated full-page builder at `/admin/sitemaps/:id` (and `/admin/sitemaps/new`). The list page stays at `/admin/sitemaps`. The builder is a visual canvas where nodes are dragged, connected, and edited inline — similar to tools like Octopus.do or FlowMapp.
+## Changes
 
-## Architecture
+### 1. Make builder a standalone route (`src/App.tsx`)
+Move the two builder routes (`sitemaps/new` and `sitemaps/:id`) **outside** the `<Route path="/admin" element={<AdminLayout />}>` wrapper so they render without the admin sidebar. The list page (`/admin/sitemaps`) stays inside AdminLayout.
 
-```text
-/admin/sitemaps          → List page (table of saved sitemaps)
-/admin/sitemaps/new      → Builder (new sitemap)
-/admin/sitemaps/:id      → Builder (edit existing sitemap)
+### 2. Restructure data types (`AdminSitemapBuilder.tsx`)
+Upgrade the hierarchy to support tabs under sub-pages:
+
+```typescript
+interface SitemapTab {
+  name: string;
+}
+
+interface SitemapChild {
+  name: string;
+  tabs?: SitemapTab[];
+}
+
+interface SitemapPage {
+  name: string;
+  children?: SitemapChild[];  // was string[]
+}
 ```
 
-## Builder UI Design
+This adds a 4th column on the canvas: Section → Pages → Sub-pages → Tabs.
 
-Full-screen canvas layout inside AdminLayout:
+### 3. Improved drag & drop with visual indicators
+- Add a `dropTarget` state tracking which index is being hovered
+- Render a blue highlight bar at the drop position during drag-over
+- Support drag & drop for sub-pages (reorder within parent) and tabs (reorder within sub-page)
+- Use `e.dataTransfer.setData()` / `getData()` properly for drag type identification
 
-- **Top toolbar**: Sitemap name (editable inline), client selector, Import from Discovery button, Save button, Download PDF button, Back arrow
-- **Left sidebar** (collapsible, ~240px): Section tabs (Front-End, Admin Portal, etc.) with add/remove. Each section lists its pages as draggable items. Add Page / Add Sub-page buttons.
-- **Main canvas**: Visual tree diagram rendered with HTML/CSS nodes and SVG connector lines. The section root node sits on the left, page nodes in the middle column, sub-page nodes on the right. Nodes are:
-  - Draggable (reorder within their column via drag & drop using `@dnd-kit/core`)
-  - Click-to-edit name inline
-  - Right-click or hover menu: rename, add child, delete
-  - Connected by smooth SVG bezier lines that update on drag
+### 4. Full-page layout
+- Remove the `-m-6 lg:-m-8` hack (no longer inside AdminLayout padding)
+- Make the component render as `fixed inset-0` or `h-screen w-screen` so it truly fills the viewport
+- Back arrow navigates to `/admin/sitemaps`
 
-### Node Layout
-- **Root node** (dark, section title) → fixed left position
-- **Page nodes** (blue) → middle column, vertically spaced, draggable to reorder
-- **Sub-page nodes** (light gray) → right column, grouped under parent page, draggable to reorder
+### 5. Tab management helpers
+- `addTab(pIdx, cIdx)` — adds a tab under a sub-page
+- `updateTab(pIdx, cIdx, tIdx, value)` — rename a tab
+- `removeTab(pIdx, cIdx, tIdx)` — delete a tab
+- Tab nodes rendered as a 4th column with their own SVG connectors (sub-page → tab)
 
-### Interactions
-- Drag page nodes to reorder vertically
-- Drag sub-pages between parent pages
-- Click node to select → inline text editing
-- "+" button on each page node to add a sub-page
-- "+" button at bottom of page column to add a new page
-- Delete via X button or keyboard Delete key on selected node
-- Section tabs switch which tree is displayed on canvas
+### 6. Update SVG connector logic
+Add connectors for the new sub-page → tab connections, using the same elbow pattern. Track tab node refs with a `tabNodeRefs` map keyed by `${pIdx}-${cIdx}-${tIdx}`.
 
-## PDF Fix
+### 7. Update PDF generation (`AdminSitemaps.tsx`)
+- Handle `SitemapChild` objects instead of strings
+- Add a 4th column for tabs in the PDF tree layout
+- Draw connectors from sub-page nodes to tab nodes
 
-Rewrite the tree connector logic. Current issue: bezier curves use `doc.lines()` with incorrect control points. Fix:
-- Use simple `doc.line()` calls with an elbow/step connector pattern (horizontal out → vertical → horizontal in)
-- Root → Page: horizontal line from root right edge, vertical step to page center-Y, horizontal into page left edge
-- Page → Child: same elbow pattern from page right edge to child left edge
-- This guarantees lines always connect to the correct nodes regardless of vertical position
+### 8. Migrate existing data
+Children stored as `string[]` need backward compat — on load, map `string` children to `{ name: string }` objects.
 
 ## Files Changed
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `src/pages/AdminSitemaps.tsx` | Simplify to list-only page; navigate to builder on edit/create |
-| 2 | `src/pages/AdminSitemapBuilder.tsx` | **New** — full-page drag & drop builder with canvas, sidebar, toolbar, PDF generation with fixed connectors |
-| 3 | `src/App.tsx` | Add lazy import + routes for `/admin/sitemaps/new` and `/admin/sitemaps/:id` |
-
-## Technical Details
-
-- **Drag & drop**: Use HTML5 drag events (no new dependency needed) — `onDragStart`, `onDragOver`, `onDrop` for reordering pages and sub-pages within the visual tree
-- **SVG connectors**: Rendered as an absolutely-positioned SVG overlay on the canvas, recalculated on node position changes using `getBoundingClientRect()` of each node ref
-- **PDF connectors fix**: Replace bezier `doc.lines()` with elbow connectors using three `doc.line()` calls per connection: `(startX, startY) → (midX, startY) → (midX, endY) → (endX, endY)`
-- **Canvas scrolling**: Container with `overflow: auto` for large sitemaps; nodes positioned via flexbox columns with CSS gap
-- **Inline editing**: Click node → transforms into an `<input>` field; blur/Enter saves
+| 1 | `src/App.tsx` | Move builder routes outside AdminLayout wrapper |
+| 2 | `src/pages/AdminSitemapBuilder.tsx` | Full rewrite: standalone layout, new types with tabs, proper drag & drop with visual feedback, tab management, updated connectors |
+| 3 | `src/pages/AdminSitemaps.tsx` | Update `generateSitemapPDF` to handle child objects + tabs column |
 
