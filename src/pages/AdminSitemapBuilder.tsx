@@ -665,17 +665,15 @@ export default function AdminSitemapBuilder() {
                   <div key={pIdx} className="space-y-1.5">
                     {page.children?.map((child, cIdx) => (
                       <div key={cIdx}>
-                        {isDropping('child', cIdx, pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                        {isDropping('child', cIdx, pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
                         <div
                           ref={el => { const k = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(k, el); else childNodeRefs.current.delete(k); }}
-                          draggable
-                          onDragStart={e => handleDragStart({ type: 'child', pIdx, cIdx }, e)}
-                          onDragOver={e => handleDragOver({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDrop={e => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDragLeave={handleDragLeave}
-                          onDragEnd={handleDragEnd}
-                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing ${
-                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-40 scale-95' : ''
+                          data-drop-type="child"
+                          data-drop-index={cIdx}
+                          data-drop-parent-p={pIdx}
+                          onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                           }`}
                         >
                           <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
@@ -716,17 +714,16 @@ export default function AdminSitemapBuilder() {
                       <div key={cIdx} className="space-y-1">
                         {child.tabs?.map((tab, tIdx) => (
                           <div key={tIdx}>
-                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-1" />}
+                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-1 transition-all" />}
                             <div
                               ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
-                              draggable
-                              onDragStart={e => handleDragStart({ type: 'tab', pIdx, cIdx, tIdx }, e)}
-                              onDragOver={e => handleDragOver({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDrop={e => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDragLeave={handleDragLeave}
-                              onDragEnd={handleDragEnd}
-                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing ${
-                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-40 scale-95' : ''
+                              data-drop-type="tab"
+                              data-drop-index={tIdx}
+                              data-drop-parent-p={pIdx}
+                              data-drop-parent-c={cIdx}
+                              onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
+                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
+                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
                               }`}
                             >
                               <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
