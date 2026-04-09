@@ -12,9 +12,18 @@ import jsPDF from 'jspdf';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+interface SitemapTab {
+  name: string;
+}
+
+interface SitemapChild {
+  name: string;
+  tabs?: SitemapTab[];
+}
+
 interface SitemapPage {
   name: string;
-  children?: string[];
+  children?: SitemapChild[];
 }
 
 interface SitemapSection {
@@ -48,6 +57,8 @@ const SLATE_200 = '#e2e8f0';
 const SLATE_100 = '#f1f5f9';
 const WHITE = '#ffffff';
 const SITED_BLUE = '#3b82f6';
+const TAB_COLOR = '#dbeafe';
+const TAB_BORDER = '#93c5fd';
 
 const PW = 841.89;
 const PH = 595.28;
@@ -56,16 +67,19 @@ const MR = 57;
 const MT = 28;
 const MB = 28;
 
-// ─── PDF Generation (elbow connectors) ─────────────────────────────────────────
+/** Backward compat: migrate string[] children to SitemapChild[] */
+function migrateChild(c: any): SitemapChild {
+  if (typeof c === 'string') return { name: c };
+  return c;
+}
+
+// ─── PDF Generation (elbow connectors, 4-level) ───────────────────────────────
 
 export function generateSitemapPDF(sitemap: ProjectSitemap) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const sections = sitemap.sections;
 
-  if (!sections.length) {
-    toast.error('No sections to generate');
-    return;
-  }
+  if (!sections.length) { toast.error('No sections to generate'); return; }
 
   sections.forEach((section, sIdx) => {
     if (sIdx > 0) doc.addPage();
@@ -106,13 +120,33 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
     const contentBottom = PH - 45;
     const contentHeight = contentBottom - contentTop;
 
-    // Root node
-    const rootW = 140;
-    const rootH = 36;
+    // Check if we have children and tabs
+    const hasChildren = pages.some(p => p.children?.length);
+    const hasTabs = pages.some(p => p.children?.some(c => {
+      const mc = migrateChild(c);
+      return mc.tabs?.length;
+    }));
+
+    // Column X positions
+    const rootW = 130;
+    const rootH = 34;
     const rootX = ML;
     const rootCY = contentTop + contentHeight / 2;
     const rootY = rootCY - rootH / 2;
 
+    const pageColX = rootX + rootW + 70;
+    const pageW = 120;
+    const pageH = 28;
+
+    const childColX = pageColX + pageW + 60;
+    const childW = 110;
+    const childH = 24;
+
+    const tabColX = childColX + childW + 50;
+    const tabW = 100;
+    const tabH = 20;
+
+    // Root node
     doc.setFillColor(SLATE_900);
     doc.roundedRect(rootX, rootY, rootW, rootH, 6, 6, 'F');
     doc.setTextColor(WHITE);
@@ -120,19 +154,11 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
     doc.setFontSize(10);
     doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3, { align: 'center' });
 
-    // Page nodes
-    const pageColX = rootX + rootW + 80;
-    const pageW = 130;
-    const pageH = 30;
-    const pageGap = Math.min(12, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
-    const totalPageHeight = pages.length * pageH + (pages.length - 1) * pageGap;
-    let pageStartY = contentTop + (contentHeight - totalPageHeight) / 2;
+    // Layout pages vertically centered
+    const pageGap = Math.min(10, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
+    const totalPageH = pages.length * pageH + (pages.length - 1) * pageGap;
+    let pageStartY = contentTop + (contentHeight - totalPageH) / 2;
     if (pageStartY < contentTop) pageStartY = contentTop;
-
-    // Child column
-    const childColX = pageColX + pageW + 70;
-    const childW = 120;
-    const childH = 24;
 
     const rootRightX = rootX + rootW;
     const rootMidY = rootY + rootH / 2;
@@ -141,13 +167,13 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
       const pageY = pageStartY + pIdx * (pageH + pageGap);
       const pageMidY = pageY + pageH / 2;
 
-      // Elbow connector: root → page
+      // Elbow: root → page
       doc.setDrawColor(SLATE_400);
       doc.setLineWidth(1.2);
-      const elbowX = rootRightX + 40;
-      doc.line(rootRightX, rootMidY, elbowX, rootMidY);
-      doc.line(elbowX, rootMidY, elbowX, pageMidY);
-      doc.line(elbowX, pageMidY, pageColX, pageMidY);
+      const eX = rootRightX + 35;
+      doc.line(rootRightX, rootMidY, eX, rootMidY);
+      doc.line(eX, rootMidY, eX, pageMidY);
+      doc.line(eX, pageMidY, pageColX, pageMidY);
 
       // Page node
       doc.setFillColor(SITED_BLUE);
@@ -155,24 +181,25 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
       doc.setTextColor(WHITE);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      const truncName = page.name.length > 18 ? page.name.substring(0, 17) + '…' : page.name;
-      doc.text(truncName, pageColX + pageW / 2, pageY + pageH / 2 + 3, { align: 'center' });
+      const tName = page.name.length > 16 ? page.name.substring(0, 15) + '…' : page.name;
+      doc.text(tName, pageColX + pageW / 2, pageY + pageH / 2 + 3, { align: 'center' });
 
       // Children
-      if (page.children?.length) {
-        const childGap = 6;
-        const totalChildH = page.children.length * childH + (page.children.length - 1) * childGap;
+      const children = (page.children || []).map(migrateChild);
+      if (children.length) {
+        const childGap = 5;
+        const totalChildH = children.length * childH + (children.length - 1) * childGap;
         let childStartY = pageMidY - totalChildH / 2;
         if (childStartY < contentTop) childStartY = contentTop;
 
         const pageRightX = pageColX + pageW;
-        const childElbowX = pageRightX + 20;
+        const childElbowX = pageRightX + 18;
 
-        page.children.forEach((child, cIdx) => {
+        children.forEach((child, cIdx) => {
           const childY = childStartY + cIdx * (childH + childGap);
           const childMidY = childY + childH / 2;
 
-          // Elbow connector: page → child
+          // Elbow: page → child
           doc.setDrawColor(SLATE_200);
           doc.setLineWidth(1);
           doc.line(pageRightX, pageMidY, childElbowX, pageMidY);
@@ -185,8 +212,41 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
           doc.roundedRect(childColX, childY, childW, childH, 4, 4, 'FD');
           doc.setTextColor(SLATE_700);
           doc.setFontSize(8);
-          const truncChild = child.length > 16 ? child.substring(0, 15) + '…' : child;
-          doc.text(truncChild, childColX + childW / 2, childY + childH / 2 + 3, { align: 'center' });
+          const tChild = child.name.length > 14 ? child.name.substring(0, 13) + '…' : child.name;
+          doc.text(tChild, childColX + childW / 2, childY + childH / 2 + 3, { align: 'center' });
+
+          // Tabs
+          const tabs = child.tabs || [];
+          if (tabs.length) {
+            const tabGap = 4;
+            const totalTabH = tabs.length * tabH + (tabs.length - 1) * tabGap;
+            let tabStartY = childMidY - totalTabH / 2;
+            if (tabStartY < contentTop) tabStartY = contentTop;
+
+            const childRightX = childColX + childW;
+            const tabElbowX = childRightX + 14;
+
+            tabs.forEach((tab, tIdx) => {
+              const tabY = tabStartY + tIdx * (tabH + tabGap);
+              const tabMidY = tabY + tabH / 2;
+
+              // Elbow: child → tab
+              doc.setDrawColor(TAB_BORDER);
+              doc.setLineWidth(0.8);
+              doc.line(childRightX, childMidY, tabElbowX, childMidY);
+              doc.line(tabElbowX, childMidY, tabElbowX, tabMidY);
+              doc.line(tabElbowX, tabMidY, tabColX, tabMidY);
+
+              // Tab node
+              doc.setFillColor(TAB_COLOR);
+              doc.setDrawColor(TAB_BORDER);
+              doc.roundedRect(tabColX, tabY, tabW, tabH, 3, 3, 'FD');
+              doc.setTextColor(SLATE_700);
+              doc.setFontSize(7);
+              const tTab = tab.name.length > 13 ? tab.name.substring(0, 12) + '…' : tab.name;
+              doc.text(tTab, tabColX + tabW / 2, tabY + tabH / 2 + 2.5, { align: 'center' });
+            });
+          }
         });
       }
     });
