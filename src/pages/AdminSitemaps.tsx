@@ -49,16 +49,21 @@ interface LeadOption {
 
 // ─── PDF Brand Constants ───────────────────────────────────────────────────────
 
-const SLATE_900 = '#0f172a';
-const SLATE_700 = '#334155';
-const SLATE_500 = '#64748b';
-const SLATE_400 = '#94a3b8';
-const SLATE_200 = '#e2e8f0';
-const SLATE_100 = '#f1f5f9';
-const WHITE = '#ffffff';
-const SITED_BLUE = '#3b82f6';
-const TAB_COLOR = '#dbeafe';
+const DARK_BG = '#0f172a';
+const ACCENT = '#3b82f6';
+const ACCENT_LIGHT = '#60a5fa';
+const TEXT_WHITE = '#ffffff';
+const TEXT_LIGHT = '#cbd5e1';
+const TEXT_MID = '#94a3b8';
+const TEXT_DARK = '#1e293b';
+const NODE_BG = '#1e293b';
+const NODE_PAGE = '#3b82f6';
+const NODE_CHILD_BG = '#f1f5f9';
+const NODE_CHILD_BORDER = '#e2e8f0';
+const TAB_BG = '#dbeafe';
 const TAB_BORDER = '#93c5fd';
+const FOOTER_LINE = '#334155';
+const SUBTLE_LINE = '#334155';
 
 const PW = 841.89;
 const PH = 595.28;
@@ -73,88 +78,131 @@ function migrateChild(c: any): SitemapChild {
   return c;
 }
 
-// ─── PDF Generation (elbow connectors, 4-level) ───────────────────────────────
+// ─── Branded PDF Generation ───────────────────────────────────────────────────
 
-export function generateSitemapPDF(sitemap: ProjectSitemap) {
+function drawBrandedHeader(doc: jsPDF, sectionTitle: string, clientLabel: string, docId: string) {
+  // Full-width dark header bar
+  doc.setFillColor(DARK_BG);
+  doc.rect(0, 0, PW, 56, 'F');
+
+  // Accent line under header
+  doc.setFillColor(ACCENT);
+  doc.rect(0, 56, PW, 2.5, 'F');
+
+  // SITED.CO logo — top left, Poppins Bold simulation with Helvetica Bold (closest available)
+  doc.setTextColor(TEXT_WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('SITED.CO', ML, 37);
+
+  // Client ID & Doc ID — top right
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(TEXT_LIGHT);
+  if (clientLabel && clientLabel !== '—') {
+    doc.text(`Client: ${clientLabel}`, PW - MR, 24, { align: 'right' });
+  }
+  doc.text(`Doc ID: ${docId}`, PW - MR, 36, { align: 'right' });
+
+  // Section title — subtle, below the accent line
+  doc.setTextColor(TEXT_MID);
+  doc.setFontSize(9);
+  doc.text(sectionTitle, ML, 74);
+}
+
+function drawBrandedFooter(doc: jsPDF, pageNum: number, totalPages: number, sitemapName: string) {
+  const footerY = PH - 32;
+
+  // Separator line
+  doc.setDrawColor(FOOTER_LINE);
+  doc.setLineWidth(0.5);
+  doc.line(ML, footerY, PW - MR, footerY);
+
+  // Left: brand tagline
+  doc.setTextColor(TEXT_MID);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.text('SITED.CO — Web Design & Development', ML, footerY + 14);
+
+  // Center: sitemap name
+  doc.text(sitemapName, PW / 2, footerY + 14, { align: 'center' });
+
+  // Right: page counter
+  doc.text(`${pageNum} / ${totalPages}`, PW - MR, footerY + 14, { align: 'right' });
+}
+
+export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: string) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const sections = sitemap.sections;
 
   if (!sections.length) { toast.error('No sections to generate'); return; }
 
+  // Increment download counter
+  let downloadCount = 0;
+  try {
+    const { data } = await supabase
+      .from('project_sitemaps')
+      .select('download_count')
+      .eq('id', sitemap.id)
+      .single();
+    downloadCount = ((data as any)?.download_count || 0) + 1;
+    await supabase
+      .from('project_sitemaps')
+      .update({ download_count: downloadCount } as any)
+      .eq('id', sitemap.id);
+  } catch { downloadCount = 1; }
+
+  // Build document identifier
+  const shortId = sitemap.id.slice(0, 8).toUpperCase();
+  const docId = `SM-${shortId}-${String(downloadCount).padStart(4, '0')}`;
+  const clientDisplay = leadLabel || '—';
+
   sections.forEach((section, sIdx) => {
     if (sIdx > 0) doc.addPage();
 
-    // Header
-    doc.setFillColor(SLATE_900);
-    doc.rect(0, 0, PW, 50, 'F');
-    doc.setTextColor(WHITE);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('Sited.co', ML, 33);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.text(section.title, PW - MR, 33, { align: 'right' });
-
-    // Footer
-    doc.setFillColor(SLATE_100);
-    doc.rect(0, PH - 30, PW, 30, 'F');
-    doc.setTextColor(SLATE_500);
-    doc.setFontSize(8);
-    doc.text('Sited · Web Design & Development', ML, PH - 12);
-    doc.text(`${sIdx + 1} / ${sections.length}`, PW - MR, PH - 12, { align: 'right' });
-
-    // Subtitle
-    doc.setTextColor(SLATE_700);
-    doc.setFontSize(10);
-    doc.text(sitemap.name, ML, 72);
+    drawBrandedHeader(doc, section.title, clientDisplay, docId);
+    drawBrandedFooter(doc, sIdx + 1, sections.length, sitemap.name);
 
     const pages = section.pages;
     if (!pages.length) {
-      doc.setTextColor(SLATE_400);
+      doc.setTextColor(TEXT_MID);
       doc.setFontSize(12);
       doc.text('No pages in this section', PW / 2, PH / 2, { align: 'center' });
       return;
     }
 
     const contentTop = 90;
-    const contentBottom = PH - 45;
+    const contentBottom = PH - 48;
     const contentHeight = contentBottom - contentTop;
 
-    // Check if we have children and tabs
-    const hasChildren = pages.some(p => p.children?.length);
-    const hasTabs = pages.some(p => p.children?.some(c => {
-      const mc = migrateChild(c);
-      return mc.tabs?.length;
-    }));
-
-    // Column X positions
+    // Column layout
     const rootW = 130;
-    const rootH = 34;
+    const rootH = 36;
     const rootX = ML;
     const rootCY = contentTop + contentHeight / 2;
     const rootY = rootCY - rootH / 2;
 
     const pageColX = rootX + rootW + 70;
     const pageW = 120;
-    const pageH = 28;
+    const pageH = 30;
 
     const childColX = pageColX + pageW + 60;
     const childW = 110;
-    const childH = 24;
+    const childH = 26;
 
     const tabColX = childColX + childW + 50;
     const tabW = 100;
-    const tabH = 20;
+    const tabH = 22;
 
-    // Root node
-    doc.setFillColor(SLATE_900);
+    // Root node — dark card
+    doc.setFillColor(NODE_BG);
     doc.roundedRect(rootX, rootY, rootW, rootH, 6, 6, 'F');
-    doc.setTextColor(WHITE);
+    doc.setTextColor(TEXT_WHITE);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3, { align: 'center' });
+    doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3.5, { align: 'center' });
 
-    // Layout pages vertically centered
+    // Layout pages
     const pageGap = Math.min(10, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
     const totalPageH = pages.length * pageH + (pages.length - 1) * pageGap;
     let pageStartY = contentTop + (contentHeight - totalPageH) / 2;
@@ -167,18 +215,22 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
       const pageY = pageStartY + pIdx * (pageH + pageGap);
       const pageMidY = pageY + pageH / 2;
 
-      // Elbow: root → page
-      doc.setDrawColor(SLATE_400);
+      // Elbow connector: root → page
+      doc.setDrawColor(ACCENT_LIGHT);
       doc.setLineWidth(1.2);
       const eX = rootRightX + 35;
       doc.line(rootRightX, rootMidY, eX, rootMidY);
       doc.line(eX, rootMidY, eX, pageMidY);
       doc.line(eX, pageMidY, pageColX, pageMidY);
 
+      // Small dot at connection point
+      doc.setFillColor(ACCENT_LIGHT);
+      doc.circle(pageColX, pageMidY, 2, 'F');
+
       // Page node
-      doc.setFillColor(SITED_BLUE);
+      doc.setFillColor(NODE_PAGE);
       doc.roundedRect(pageColX, pageY, pageW, pageH, 5, 5, 'F');
-      doc.setTextColor(WHITE);
+      doc.setTextColor(TEXT_WHITE);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       const tName = page.name.length > 16 ? page.name.substring(0, 15) + '…' : page.name;
@@ -199,18 +251,20 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
           const childY = childStartY + cIdx * (childH + childGap);
           const childMidY = childY + childH / 2;
 
-          // Elbow: page → child
-          doc.setDrawColor(SLATE_200);
+          // Elbow connector
+          doc.setDrawColor(NODE_CHILD_BORDER);
           doc.setLineWidth(1);
           doc.line(pageRightX, pageMidY, childElbowX, pageMidY);
           doc.line(childElbowX, pageMidY, childElbowX, childMidY);
           doc.line(childElbowX, childMidY, childColX, childMidY);
+          doc.setFillColor(NODE_CHILD_BORDER);
+          doc.circle(childColX, childMidY, 1.5, 'F');
 
           // Child node
-          doc.setFillColor(SLATE_100);
-          doc.setDrawColor(SLATE_200);
+          doc.setFillColor(NODE_CHILD_BG);
+          doc.setDrawColor(NODE_CHILD_BORDER);
           doc.roundedRect(childColX, childY, childW, childH, 4, 4, 'FD');
-          doc.setTextColor(SLATE_700);
+          doc.setTextColor(TEXT_DARK);
           doc.setFontSize(8);
           const tChild = child.name.length > 14 ? child.name.substring(0, 13) + '…' : child.name;
           doc.text(tChild, childColX + childW / 2, childY + childH / 2 + 3, { align: 'center' });
@@ -230,18 +284,18 @@ export function generateSitemapPDF(sitemap: ProjectSitemap) {
               const tabY = tabStartY + tIdx * (tabH + tabGap);
               const tabMidY = tabY + tabH / 2;
 
-              // Elbow: child → tab
               doc.setDrawColor(TAB_BORDER);
               doc.setLineWidth(0.8);
               doc.line(childRightX, childMidY, tabElbowX, childMidY);
               doc.line(tabElbowX, childMidY, tabElbowX, tabMidY);
               doc.line(tabElbowX, tabMidY, tabColX, tabMidY);
+              doc.setFillColor(TAB_BORDER);
+              doc.circle(tabColX, tabMidY, 1.2, 'F');
 
-              // Tab node
-              doc.setFillColor(TAB_COLOR);
+              doc.setFillColor(TAB_BG);
               doc.setDrawColor(TAB_BORDER);
               doc.roundedRect(tabColX, tabY, tabW, tabH, 3, 3, 'FD');
-              doc.setTextColor(SLATE_700);
+              doc.setTextColor(TEXT_DARK);
               doc.setFontSize(7);
               const tTab = tab.name.length > 13 ? tab.name.substring(0, 12) + '…' : tab.name;
               doc.text(tTab, tabColX + tabW / 2, tabY + tabH / 2 + 2.5, { align: 'center' });
@@ -337,7 +391,7 @@ export default function AdminSitemaps() {
                     <TableCell className="text-muted-foreground text-sm">{format(new Date(sm.created_at), 'dd MMM yyyy')}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/sitemaps/${sm.id}`)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => generateSitemapPDF(sm)}><Download className="h-4 w-4" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => generateSitemapPDF(sm, getLeadLabel(sm.lead_id))}><Download className="h-4 w-4" /></Button>
                       <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteSitemap(sm.id)}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
