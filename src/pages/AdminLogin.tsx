@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ export default function AdminLogin() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showOTPVerify, setShowOTPVerify] = useState(false);
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const loginInProgressRef = useRef(false);
   
   const { isAuthenticated, isAdmin, isDeveloper, loading, user } = useAuth();
   const navigate = useNavigate();
@@ -30,6 +31,9 @@ export default function AdminLogin() {
 
   // Check if already authenticated and OTP verified
   useEffect(() => {
+    // Don't redirect while login form submission is in progress
+    if (loginInProgressRef.current) return;
+    
     const checkAuthAndRedirect = async () => {
       if (!loading && isAuthenticated && !showOTPVerify) {
         const otpVerified = sessionStorage.getItem(`admin_otp_verified_${user?.id}`);
@@ -66,29 +70,36 @@ export default function AdminLogin() {
     }
 
     setIsLoading(true);
+    loginInProgressRef.current = true;
     
-    const { error, data } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password'
-          : error.message,
-        variant: "destructive"
+    try {
+      const { error, data } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-    } else if (data.user) {
-      // Successfully authenticated, now require OTP verification
-      sessionStorage.removeItem(`admin_otp_verified_${data.user.id}`);
-      sessionStorage.removeItem(`otp_sent_admin_${data.user.id}`);
-      setPendingUserId(data.user.id);
-      setShowOTPVerify(true);
+      
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message === 'Invalid login credentials' 
+            ? 'Invalid email or password'
+            : error.message,
+          variant: "destructive"
+        });
+      } else if (data.user) {
+        // Wait briefly for useAuth to process the auth state change and fetch the role
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Successfully authenticated, now require OTP verification
+        sessionStorage.removeItem(`admin_otp_verified_${data.user.id}`);
+        sessionStorage.removeItem(`otp_sent_admin_${data.user.id}`);
+        setPendingUserId(data.user.id);
+        setShowOTPVerify(true);
+      }
+    } finally {
+      setIsLoading(false);
+      loginInProgressRef.current = false;
     }
-    
-    setIsLoading(false);
   };
 
   const handleOTPVerified = async () => {

@@ -17,6 +17,7 @@ import { generateSitemapPDF } from './AdminSitemaps';
 
 interface SitemapTab {
   name: string;
+  tabs?: SitemapTab[]; // nested sub-tabs (up to 3 levels)
 }
 
 interface SitemapChild {
@@ -47,6 +48,7 @@ type EditingNode = {
   pIdx?: number;
   cIdx?: number;
   tIdx?: number;
+  tPath?: number[]; // path of tab indices for nested tabs e.g. [0, 1] = first tab's second sub-tab
 } | null;
 
 type DragItem = {
@@ -82,6 +84,129 @@ function migrateSections(raw: any[]): SitemapSection[] {
       children: migrateChildren(p.children),
     })),
   }));
+}
+
+// ─── Recursive Tab Nodes Component ─────────────────────────────────────────────
+
+const MAX_TAB_DEPTH = 3;
+
+function TabNodes({
+  tabs,
+  pIdx,
+  cIdx,
+  parentPath,
+  depth,
+  pageColor,
+  tabNodeRefs,
+  editingNode,
+  setEditingNode,
+  activeSectionIdx,
+  updateTabName,
+  removeTab,
+  addTab,
+  dragItem,
+  startDrag,
+  isDropping,
+}: {
+  tabs: SitemapTab[];
+  pIdx: number;
+  cIdx: number;
+  parentPath: number[];
+  depth: number;
+  pageColor: string;
+  tabNodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  editingNode: EditingNode;
+  setEditingNode: (n: EditingNode) => void;
+  activeSectionIdx: number;
+  updateTabName: (pIdx: number, cIdx: number, tPath: number[], val: string) => void;
+  removeTab: (pIdx: number, cIdx: number, tPath: number[]) => void;
+  addTab: (pIdx: number, cIdx: number, parentPath?: number[]) => void;
+  dragItem: DragItem;
+  startDrag: (item: NonNullable<DragItem>, e: React.PointerEvent) => void;
+  isDropping: (type: string, index: number, parentPIdx?: number, parentCIdx?: number) => boolean;
+}) {
+  const depthOpacity = Math.max(0.2, 0.5 - (depth - 1) * 0.12);
+  const depthFontSize = depth === 1 ? 'text-[11px]' : depth === 2 ? 'text-[10px]' : 'text-[9px]';
+
+  return (
+    <div className="flex flex-col gap-1">
+      {tabs.map((tab, tIdx) => {
+        const currentPath = [...parentPath, tIdx];
+        const refKey = `${pIdx}-${cIdx}-${currentPath.join('-')}`;
+        const matchesEditing = editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx &&
+          editingNode.tPath && editingNode.tPath.length === currentPath.length &&
+          editingNode.tPath.every((v, i) => v === currentPath[i]);
+
+        return (
+          <div key={tIdx} className="flex items-start gap-8">
+            <div>
+              {depth === 1 && isDropping('tab', tIdx, pIdx, cIdx) && (
+                <div className="h-1 rounded-full mb-1 mx-1 transition-all" style={{ backgroundColor: pageColor, opacity: 0.3 }} />
+              )}
+              <div
+                ref={el => { if (el) tabNodeRefs.current.set(refKey, el); else tabNodeRefs.current.delete(refKey); }}
+                data-drop-type={depth === 1 ? 'tab' : undefined}
+                data-drop-index={depth === 1 ? tIdx : undefined}
+                data-drop-parent-p={depth === 1 ? pIdx : undefined}
+                data-drop-parent-c={depth === 1 ? cIdx : undefined}
+                onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
+                className={`group flex items-center gap-1 bg-muted border px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
+                  depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
+                }`}
+                style={{ borderColor: `${pageColor}30`, opacity: depth > 1 ? 0.85 : 1 }}
+              >
+                {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
+                <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
+                {matchesEditing ? (
+                  <Input
+                    autoFocus value={tab.name}
+                    onChange={e => updateTabName(pIdx, cIdx, currentPath, e.target.value)}
+                    onBlur={() => setEditingNode(null)}
+                    onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                    className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
+                  />
+                ) : (
+                  <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tPath: currentPath })}>
+                    {tab.name}
+                  </span>
+                )}
+                {depth < MAX_TAB_DEPTH && (
+                  <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx, currentPath)} title="Add sub-tab">
+                    <Plus className="h-2 w-2" />
+                  </button>
+                )}
+                <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, currentPath)}>
+                  <X className="h-2 w-2 text-destructive" />
+                </button>
+              </div>
+            </div>
+
+            {/* Recursive sub-tabs */}
+            {tab.tabs && tab.tabs.length > 0 && depth < MAX_TAB_DEPTH && (
+              <TabNodes
+                tabs={tab.tabs}
+                pIdx={pIdx}
+                cIdx={cIdx}
+                parentPath={currentPath}
+                depth={depth + 1}
+                pageColor={pageColor}
+                tabNodeRefs={tabNodeRefs}
+                editingNode={editingNode}
+                setEditingNode={setEditingNode}
+                activeSectionIdx={activeSectionIdx}
+                updateTabName={updateTabName}
+                removeTab={removeTab}
+                addTab={addTab}
+                dragItem={dragItem}
+                startDrag={startDrag}
+                isDropping={isDropping}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -245,18 +370,28 @@ export default function AdminSitemapBuilder() {
           });
         }
 
-        // child → tabs
-        child.tabs?.forEach((_, tIdx) => {
-          const te = tabNodeRefs.current.get(`${pIdx}-${cIdx}-${tIdx}`);
-          if (!te) return;
-          const tr = te.getBoundingClientRect();
-          const tLeft = tr.left - off.x;
-          const tMidY = tr.top + tr.height / 2 - off.y;
-          const teX = cRight + (tLeft - cRight) / 2;
-          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY, color });
-          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY, color });
-          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
-        });
+        // child → tabs (recursive for nested tabs)
+        const drawTabConnectors = (tabs: SitemapTab[], parentRight: number, parentMidY: number, pathPrefix: string) => {
+          tabs.forEach((tab, tIdx) => {
+            const te = tabNodeRefs.current.get(`${pathPrefix}-${tIdx}`);
+            if (!te) return;
+            const tr = te.getBoundingClientRect();
+            const tLeft = tr.left - off.x;
+            const tRight = tr.right - off.x;
+            const tMidY = tr.top + tr.height / 2 - off.y;
+            const teX = parentRight + (tLeft - parentRight) / 2;
+            lines.push({ x1: parentRight, y1: parentMidY, x2: teX, y2: parentMidY, color });
+            lines.push({ x1: teX, y1: parentMidY, x2: teX, y2: tMidY, color });
+            lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
+            // Recurse into sub-tabs
+            if (tab.tabs?.length) {
+              drawTabConnectors(tab.tabs, tRight, tMidY, `${pathPrefix}-${tIdx}`);
+            }
+          });
+        };
+        if (child.tabs?.length) {
+          drawTabConnectors(child.tabs, cRight, cMidY, `${pIdx}-${cIdx}`);
+        }
       });
     });
 
@@ -419,37 +554,72 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Tab helpers ──
+  // ── Tab helpers (supports nested tabs up to 3 levels) ──
 
-  const addTab = (pIdx: number, cIdx: number) => {
+  const addTab = (pIdx: number, cIdx: number, parentPath?: number[]) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const existing = children[cIdx].tabs || [];
-    children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+    
+    if (parentPath && parentPath.length > 0) {
+      // Adding a nested sub-tab
+      const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+      let target: SitemapTab = child.tabs![parentPath[0]];
+      for (let i = 1; i < parentPath.length; i++) {
+        target = target.tabs![parentPath[i]];
+      }
+      if (!target.tabs) target.tabs = [];
+      target.tabs.push({ name: 'New Tab' });
+      children[cIdx] = child;
+    } else {
+      // Adding a top-level tab on a sub-page
+      const existing = children[cIdx].tabs || [];
+      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+    }
+    
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
 
-  const updateTabName = (pIdx: number, cIdx: number, tIdx: number, val: string) => {
+  const updateTabName = (pIdx: number, cIdx: number, tPath: number[], val: string) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const tabs = [...(children[cIdx].tabs || [])];
-    tabs[tIdx] = { name: val };
-    children[cIdx] = { ...children[cIdx], tabs };
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    
+    let target: SitemapTab = child.tabs![tPath[0]];
+    for (let i = 1; i < tPath.length; i++) {
+      target = target.tabs![tPath[i]];
+    }
+    target.name = val;
+    
+    children[cIdx] = child;
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
 
-  const removeTab = (pIdx: number, cIdx: number, tIdx: number) => {
+  const removeTab = (pIdx: number, cIdx: number, tPath: number[]) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const tabs = (children[cIdx].tabs || []).filter((_, i) => i !== tIdx);
-    children[cIdx] = { ...children[cIdx], tabs: tabs.length ? tabs : undefined };
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    
+    if (tPath.length === 1) {
+      const tabs = (child.tabs || []).filter((_, i) => i !== tPath[0]);
+      child.tabs = tabs.length ? tabs : undefined;
+    } else {
+      let parent: SitemapTab = child.tabs![tPath[0]];
+      for (let i = 1; i < tPath.length - 1; i++) {
+        parent = parent.tabs![tPath[i]];
+      }
+      const lastIdx = tPath[tPath.length - 1];
+      const tabs = (parent.tabs || []).filter((_, i) => i !== lastIdx);
+      parent.tabs = tabs.length ? tabs : undefined;
+    }
+    
+    children[cIdx] = child;
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
@@ -735,7 +905,10 @@ export default function AdminSitemapBuilder() {
 
           <div className="relative z-10 flex items-start gap-16 p-10 min-h-full" style={{ minWidth: 'max-content' }}>
             {/* Root Node */}
-            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.reduce((sum, p) => sum + 48 + (p.children?.length || 0) * 40 + (p.children?.reduce((s, c) => s + (c.tabs?.length || 0) * 36, 0) || 0), 0), 100)}px` }}>
+            <div className="flex items-center" style={{ minHeight: `${Math.max(currentSection.pages.reduce((sum, p) => {
+              const countTabs = (tabs?: SitemapTab[]): number => tabs ? tabs.reduce((s, t) => s + 1 + countTabs(t.tabs), 0) : 0;
+              return sum + 48 + (p.children?.length || 0) * 40 + (p.children?.reduce((s, c) => s + countTabs(c.tabs) * 32, 0) || 0);
+            }, 0), 100)}px` }}>
               <div ref={rootNodeRef} className="bg-foreground text-background px-5 py-3 rounded-xl font-bold text-sm shadow-lg select-none whitespace-nowrap">
                 {currentSection.title}
               </div>
@@ -866,46 +1039,26 @@ export default function AdminSitemapBuilder() {
                               </div>
                             </div>
 
-                            {/* Tabs for this sub-page */}
+                            {/* Tabs for this sub-page (recursive) */}
                             {child.tabs && child.tabs.length > 0 && (
-                              <div className="flex flex-col gap-1">
-                                {child.tabs.map((tab, tIdx) => (
-                                  <div key={tIdx}>
-                                    {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 rounded-full mb-1 mx-1 transition-all" style={{ backgroundColor: pageColor, opacity: 0.3 }} />}
-                                    <div
-                                      ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
-                                      data-drop-type="tab"
-                                      data-drop-index={tIdx}
-                                      data-drop-parent-p={pIdx}
-                                      data-drop-parent-c={cIdx}
-                                      onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
-                                      className={`group flex items-center gap-1 bg-muted border px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
-                                        dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                                      }`}
-                                      style={{ borderColor: `${pageColor}30` }}
-                                    >
-                                      <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
-                                      <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: pageColor, opacity: 0.4 }} />
-                                      {editingNode?.type === 'tab' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx && editingNode.tIdx === tIdx ? (
-                                        <Input
-                                          autoFocus value={tab.name}
-                                          onChange={e => updateTabName(pIdx, cIdx, tIdx, e.target.value)}
-                                          onBlur={() => setEditingNode(null)}
-                                          onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                                          className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
-                                        />
-                                      ) : (
-                                        <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx })}>
-                                          {tab.name}
-                                        </span>
-                                      )}
-                                      <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, tIdx)}>
-                                        <X className="h-2 w-2 text-destructive" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                              <TabNodes
+                                tabs={child.tabs}
+                                pIdx={pIdx}
+                                cIdx={cIdx}
+                                parentPath={[]}
+                                depth={1}
+                                pageColor={pageColor}
+                                tabNodeRefs={tabNodeRefs}
+                                editingNode={editingNode}
+                                setEditingNode={setEditingNode}
+                                activeSectionIdx={activeSectionIdx}
+                                updateTabName={updateTabName}
+                                removeTab={removeTab}
+                                addTab={addTab}
+                                dragItem={dragItem}
+                                startDrag={startDrag}
+                                isDropping={isDropping}
+                              />
                             )}
                           </div>
                         ))}

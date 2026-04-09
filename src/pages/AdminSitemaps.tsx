@@ -14,6 +14,7 @@ import jsPDF from 'jspdf';
 
 interface SitemapTab {
   name: string;
+  tabs?: SitemapTab[];
 }
 
 interface SitemapChild {
