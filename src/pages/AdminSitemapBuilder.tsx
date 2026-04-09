@@ -154,14 +154,15 @@ export default function AdminSitemapBuilder() {
     const rootMidY = rr.top + rr.height / 2 - off.y;
 
     pageNodeRefs.current.forEach((el, pIdx) => {
+      const color = PAGE_COLORS[pIdx % PAGE_COLORS.length];
       const pr = el.getBoundingClientRect();
       const pLeft = pr.left - off.x;
       const pMidY = pr.top + pr.height / 2 - off.y;
       const pRight = pr.right - off.x;
       const eX = rootRight + (pLeft - rootRight) / 2;
-      lines.push({ x1: rootRight, y1: rootMidY, x2: eX, y2: rootMidY });
-      lines.push({ x1: eX, y1: rootMidY, x2: eX, y2: pMidY });
-      lines.push({ x1: eX, y1: pMidY, x2: pLeft, y2: pMidY });
+      lines.push({ x1: rootRight, y1: rootMidY, x2: eX, y2: rootMidY, color });
+      lines.push({ x1: eX, y1: rootMidY, x2: eX, y2: pMidY, color });
+      lines.push({ x1: eX, y1: pMidY, x2: pLeft, y2: pMidY, color });
 
       const page = currentSection?.pages[pIdx];
       page?.children?.forEach((child, cIdx) => {
@@ -172,9 +173,9 @@ export default function AdminSitemapBuilder() {
         const cMidY = ccr.top + ccr.height / 2 - off.y;
         const cRight = ccr.right - off.x;
         const ceX = pRight + (cLeft - pRight) / 2;
-        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY });
-        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY });
-        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY });
+        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY, color });
+        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color });
+        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color });
 
         // child → tabs
         child.tabs?.forEach((_, tIdx) => {
@@ -184,9 +185,9 @@ export default function AdminSitemapBuilder() {
           const tLeft = tr.left - off.x;
           const tMidY = tr.top + tr.height / 2 - off.y;
           const teX = cRight + (tLeft - cRight) / 2;
-          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY });
-          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY });
-          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY });
+          lines.push({ x1: cRight, y1: cMidY, x2: teX, y2: cMidY, color });
+          lines.push({ x1: teX, y1: cMidY, x2: teX, y2: tMidY, color });
+          lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
         });
       });
     });
