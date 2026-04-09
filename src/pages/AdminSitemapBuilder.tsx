@@ -601,6 +601,15 @@ export default function AdminSitemapBuilder() {
           </Button>
         )}
 
+        <div className="flex items-center gap-0.5 border-l border-border pl-3 ml-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={undo} disabled={!canUndo} title="Undo">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={redo} disabled={!canRedo} title="Redo">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="flex-1" />
 
         <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
