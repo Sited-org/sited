@@ -363,86 +363,127 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Drag & Drop ──
+  // ── Pointer-based Drag & Drop (smooth "lift" feel) ──
 
-  const handleDragStart = (item: NonNullable<DragItem>, e: React.DragEvent) => {
+  const dragCloneRef = useRef<HTMLDivElement | null>(null);
+  const dragSourceRef = useRef<HTMLElement | null>(null);
+  const pointerOffsetRef = useRef({ x: 0, y: 0 });
+
+  const startDrag = useCallback((item: NonNullable<DragItem>, e: React.PointerEvent) => {
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    pointerOffsetRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+
+    // Create floating clone
+    const clone = el.cloneNode(true) as HTMLDivElement;
+    clone.style.position = 'fixed';
+    clone.style.left = `${rect.left}px`;
+    clone.style.top = `${rect.top}px`;
+    clone.style.width = `${rect.width}px`;
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.opacity = '0.9';
+    clone.style.boxShadow = '0 12px 28px rgba(0,0,0,0.35)';
+    clone.style.transform = 'scale(1.04)';
+    clone.style.transition = 'box-shadow 0.15s, transform 0.15s';
+    clone.style.borderRadius = '8px';
+    document.body.appendChild(clone);
+    dragCloneRef.current = clone;
+    dragSourceRef.current = el;
+
+    el.style.opacity = '0.25';
+    el.style.transform = 'scale(0.95)';
+
     setDragItem(item);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify(item));
-    // Make the drag ghost semi-transparent
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '0.4';
-    }
-  };
-
-  const handleDragOver = (target: NonNullable<DropTarget>, e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = 'move';
-    if (!dragItem || dragItem.type !== target.type) return;
-    // Only update if target changed
-    if (
-      dropTarget?.type !== target.type ||
-      dropTarget?.index !== target.index ||
-      dropTarget?.parentPIdx !== target.parentPIdx ||
-      dropTarget?.parentCIdx !== target.parentCIdx
-    ) {
-      setDropTarget(target);
-    }
-  };
-
-  const handleDrop = (target: NonNullable<DropTarget>, e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!dragItem || dragItem.type !== target.type) { setDragItem(null); setDropTarget(null); return; }
-
-    const next = [...sections];
-    const pages = [...next[activeSectionIdx].pages];
-
-    if (dragItem.type === 'page' && dragItem.pIdx !== target.index) {
-      const [moved] = pages.splice(dragItem.pIdx, 1);
-      pages.splice(target.index, 0, moved);
-    } else if (dragItem.type === 'child' && dragItem.cIdx !== undefined && target.parentPIdx !== undefined) {
-      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx !== target.index) {
-        const children = [...(pages[dragItem.pIdx].children || [])];
-        const [moved] = children.splice(dragItem.cIdx, 1);
-        children.splice(target.index, 0, moved);
-        pages[dragItem.pIdx] = { ...pages[dragItem.pIdx], children };
-      }
-    } else if (dragItem.type === 'tab' && dragItem.cIdx !== undefined && dragItem.tIdx !== undefined && target.parentPIdx !== undefined && target.parentCIdx !== undefined) {
-      if (dragItem.pIdx === target.parentPIdx && dragItem.cIdx === target.parentCIdx && dragItem.tIdx !== target.index) {
-        const children = [...(pages[dragItem.pIdx].children || [])];
-        const tabs = [...(children[dragItem.cIdx].tabs || [])];
-        const [moved] = tabs.splice(dragItem.tIdx, 1);
-        tabs.splice(target.index, 0, moved);
-        children[dragItem.cIdx] = { ...children[dragItem.cIdx], tabs };
-        pages[dragItem.pIdx] = { ...pages[dragItem.pIdx], children };
-      }
-    }
-
-    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
-    setSections(next);
-    setDragItem(null);
     setDropTarget(null);
-  };
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    if (e.currentTarget instanceof HTMLElement) {
-      e.currentTarget.style.opacity = '1';
-    }
-    setDragItem(null);
-    setDropTarget(null);
-  };
+    const onPointerMove = (ev: PointerEvent) => {
+      if (dragCloneRef.current) {
+        dragCloneRef.current.style.left = `${ev.clientX - pointerOffsetRef.current.x}px`;
+        dragCloneRef.current.style.top = `${ev.clientY - pointerOffsetRef.current.y}px`;
+      }
+      // Hit-test for drop target
+      if (dragCloneRef.current) dragCloneRef.current.style.display = 'none';
+      const hitEl = document.elementFromPoint(ev.clientX, ev.clientY);
+      if (dragCloneRef.current) dragCloneRef.current.style.display = '';
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    // Only clear if leaving the actual element (not entering a child)
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const { clientX, clientY } = e;
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
-      setDropTarget(null);
-    }
-  };
+      if (hitEl) {
+        const dropEl = hitEl.closest('[data-drop-type]') as HTMLElement | null;
+        if (dropEl && dropEl.dataset.dropType === item.type) {
+          const newTarget: DropTarget = {
+            type: dropEl.dataset.dropType as any,
+            index: parseInt(dropEl.dataset.dropIndex || '0'),
+            parentPIdx: dropEl.dataset.dropParentP ? parseInt(dropEl.dataset.dropParentP) : undefined,
+            parentCIdx: dropEl.dataset.dropParentC ? parseInt(dropEl.dataset.dropParentC) : undefined,
+          };
+          setDropTarget(prev => {
+            if (prev?.index === newTarget.index && prev?.parentPIdx === newTarget.parentPIdx && prev?.parentCIdx === newTarget.parentCIdx) return prev;
+            return newTarget;
+          });
+        } else {
+          setDropTarget(null);
+        }
+      }
+    };
+
+    const onPointerUp = () => {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
+
+      // Clean up clone
+      if (dragCloneRef.current) {
+        dragCloneRef.current.remove();
+        dragCloneRef.current = null;
+      }
+      if (dragSourceRef.current) {
+        dragSourceRef.current.style.opacity = '1';
+        dragSourceRef.current.style.transform = '';
+        dragSourceRef.current = null;
+      }
+
+      // Apply the drop
+      setDropTarget(currentTarget => {
+        setDragItem(currentDrag => {
+          if (currentDrag && currentTarget && currentDrag.type === currentTarget.type) {
+            setSections(prev => {
+              const next = [...prev];
+              const pages = [...next[activeSectionIdx].pages];
+
+              if (currentDrag.type === 'page' && currentDrag.pIdx !== currentTarget.index) {
+                const [moved] = pages.splice(currentDrag.pIdx, 1);
+                pages.splice(currentTarget.index, 0, moved);
+              } else if (currentDrag.type === 'child' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined) {
+                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx !== currentTarget.index) {
+                  const children = [...(pages[currentDrag.pIdx].children || [])];
+                  const [moved] = children.splice(currentDrag.cIdx, 1);
+                  children.splice(currentTarget.index, 0, moved);
+                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+                }
+              } else if (currentDrag.type === 'tab' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
+                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx === currentTarget.parentCIdx && currentDrag.tIdx !== currentTarget.index) {
+                  const children = [...(pages[currentDrag.pIdx].children || [])];
+                  const tabs = [...(children[currentDrag.cIdx].tabs || [])];
+                  const [moved] = tabs.splice(currentDrag.tIdx, 1);
+                  tabs.splice(currentTarget.index, 0, moved);
+                  children[currentDrag.cIdx] = { ...children[currentDrag.cIdx], tabs };
+                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+                }
+              }
+
+              next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+              return next;
+            });
+          }
+          return null;
+        });
+        return null;
+      });
+    };
+
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+  }, [activeSectionIdx]);
 
   // ── Download ──
 
@@ -578,17 +619,14 @@ export default function AdminSitemapBuilder() {
               {currentSection.pages.map((page, pIdx) => (
                 <div key={pIdx}>
                   {/* Drop indicator */}
-                  {isDropping('page', pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                  {isDropping('page', pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
                   <div
                     ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
-                    draggable
-                    onDragStart={e => handleDragStart({ type: 'page', pIdx }, e)}
-                    onDragOver={e => handleDragOver({ type: 'page', index: pIdx }, e)}
-                    onDrop={e => handleDrop({ type: 'page', index: pIdx }, e)}
-                    onDragLeave={handleDragLeave}
-                    onDragEnd={handleDragEnd}
-                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm ${
-                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-40 scale-95' : ''
+                    data-drop-type="page"
+                    data-drop-index={pIdx}
+                    onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
+                    className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
+                      dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
                     }`}
                   >
                     <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
@@ -627,17 +665,15 @@ export default function AdminSitemapBuilder() {
                   <div key={pIdx} className="space-y-1.5">
                     {page.children?.map((child, cIdx) => (
                       <div key={cIdx}>
-                        {isDropping('child', cIdx, pIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-2" />}
+                        {isDropping('child', cIdx, pIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-2 transition-all" />}
                         <div
                           ref={el => { const k = `${pIdx}-${cIdx}`; if (el) childNodeRefs.current.set(k, el); else childNodeRefs.current.delete(k); }}
-                          draggable
-                          onDragStart={e => handleDragStart({ type: 'child', pIdx, cIdx }, e)}
-                          onDragOver={e => handleDragOver({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDrop={e => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDragLeave={handleDragLeave}
-                          onDragEnd={handleDragEnd}
-                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing ${
-                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-40 scale-95' : ''
+                          data-drop-type="child"
+                          data-drop-index={cIdx}
+                          data-drop-parent-p={pIdx}
+                          onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                          className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                            dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                           }`}
                         >
                           <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
@@ -678,17 +714,16 @@ export default function AdminSitemapBuilder() {
                       <div key={cIdx} className="space-y-1">
                         {child.tabs?.map((tab, tIdx) => (
                           <div key={tIdx}>
-                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-0.5 bg-primary rounded-full mb-1 mx-1" />}
+                            {isDropping('tab', tIdx, pIdx, cIdx) && <div className="h-1 bg-primary rounded-full mb-1 mx-1 transition-all" />}
                             <div
                               ref={el => { const k = `${pIdx}-${cIdx}-${tIdx}`; if (el) tabNodeRefs.current.set(k, el); else tabNodeRefs.current.delete(k); }}
-                              draggable
-                              onDragStart={e => handleDragStart({ type: 'tab', pIdx, cIdx, tIdx }, e)}
-                              onDragOver={e => handleDragOver({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDrop={e => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDragLeave={handleDragLeave}
-                              onDragEnd={handleDragEnd}
-                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing ${
-                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-40 scale-95' : ''
+                              data-drop-type="tab"
+                              data-drop-index={tIdx}
+                              data-drop-parent-p={pIdx}
+                              data-drop-parent-c={cIdx}
+                              onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }}
+                              className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing touch-none ${
+                                dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
                               }`}
                             >
                               <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />
