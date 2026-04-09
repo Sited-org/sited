@@ -180,6 +180,7 @@ export default function AdminSitemapBuilder() {
     setName(data.name);
     setSelectedLeadId(data.lead_id || '');
     const s = (data.sections as any) || [];
+    skipHistoryRef.current = true;
     setSections(s.length ? migrateSections(s) : [{ title: 'Front-End', pages: [] }]);
     setLoading(false);
   }, [id, isNew, navigate]);
