@@ -112,6 +112,8 @@ const App = () => (
               <Route path="calendar" element={<AdminCalendar />} />
               <Route path="analysis-ai" element={<AdminAnalysisAI />} />
               <Route path="sitemaps" element={<AdminSitemaps />} />
+              <Route path="sitemaps/new" element={<AdminSitemapBuilder />} />
+              <Route path="sitemaps/:id" element={<AdminSitemapBuilder />} />
               <Route path="financial" element={<AdminFinancial />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
               <Route path="team" element={<AdminTeam />} />
