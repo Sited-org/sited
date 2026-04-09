@@ -22,6 +22,7 @@ interface SitemapTab {
 interface SitemapChild {
   name: string;
   tabs?: SitemapTab[];
+  linkedFrom?: number[]; // indices of other parent pages that also link here
 }
 
 interface SitemapPage {
