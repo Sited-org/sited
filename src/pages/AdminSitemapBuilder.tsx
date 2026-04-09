@@ -17,6 +17,7 @@ import { generateSitemapPDF } from './AdminSitemaps';
 
 interface SitemapTab {
   name: string;
+  tabs?: SitemapTab[]; // nested sub-tabs (up to 3 levels)
 }
 
 interface SitemapChild {
