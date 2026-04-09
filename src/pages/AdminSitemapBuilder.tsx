@@ -438,6 +438,26 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
+  // ── Linked parent helpers ──
+
+  const toggleLinkedParent = (pIdx: number, cIdx: number, linkedPIdx: number) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = { ...children[cIdx] };
+    const existing = child.linkedFrom || [];
+    if (existing.includes(linkedPIdx)) {
+      child.linkedFrom = existing.filter(i => i !== linkedPIdx);
+      if (child.linkedFrom.length === 0) child.linkedFrom = undefined;
+    } else {
+      child.linkedFrom = [...existing, linkedPIdx];
+    }
+    children[cIdx] = child;
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
   // ── Pointer-based Drag & Drop (smooth "lift" feel) ──
 
   const dragCloneRef = useRef<HTMLDivElement | null>(null);
