@@ -584,7 +584,8 @@ export default function AdminSitemapBuilder() {
                     draggable
                     onDragStart={e => handleDragStart({ type: 'page', pIdx }, e)}
                     onDragOver={e => handleDragOver({ type: 'page', index: pIdx }, e)}
-                    onDrop={() => handleDrop({ type: 'page', index: pIdx })}
+                    onDrop={e => handleDrop({ type: 'page', index: pIdx }, e)}
+                    onDragLeave={handleDragLeave}
                     onDragEnd={handleDragEnd}
                     className={`group flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm ${
                       dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-40 scale-95' : ''
@@ -632,7 +633,8 @@ export default function AdminSitemapBuilder() {
                           draggable
                           onDragStart={e => handleDragStart({ type: 'child', pIdx, cIdx }, e)}
                           onDragOver={e => handleDragOver({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
-                          onDrop={() => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx })}
+                          onDrop={e => handleDrop({ type: 'child', index: cIdx, parentPIdx: pIdx }, e)}
+                          onDragLeave={handleDragLeave}
                           onDragEnd={handleDragEnd}
                           className={`group flex items-center gap-1.5 bg-card border border-border px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing ${
                             dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-40 scale-95' : ''
@@ -682,7 +684,8 @@ export default function AdminSitemapBuilder() {
                               draggable
                               onDragStart={e => handleDragStart({ type: 'tab', pIdx, cIdx, tIdx }, e)}
                               onDragOver={e => handleDragOver({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
-                              onDrop={() => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx })}
+                              onDrop={e => handleDrop({ type: 'tab', index: tIdx, parentPIdx: pIdx, parentCIdx: cIdx }, e)}
+                              onDragLeave={handleDragLeave}
                               onDragEnd={handleDragEnd}
                               className={`group flex items-center gap-1 bg-muted border border-border/50 px-2 py-1 rounded text-[11px] select-none cursor-grab active:cursor-grabbing ${
                                 dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-40 scale-95' : ''
