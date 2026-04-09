@@ -421,37 +421,72 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Tab helpers ──
+  // ── Tab helpers (supports nested tabs up to 3 levels) ──
 
-  const addTab = (pIdx: number, cIdx: number) => {
+  const addTab = (pIdx: number, cIdx: number, parentPath?: number[]) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const existing = children[cIdx].tabs || [];
-    children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+    
+    if (parentPath && parentPath.length > 0) {
+      // Adding a nested sub-tab
+      const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+      let target: SitemapTab = child.tabs![parentPath[0]];
+      for (let i = 1; i < parentPath.length; i++) {
+        target = target.tabs![parentPath[i]];
+      }
+      if (!target.tabs) target.tabs = [];
+      target.tabs.push({ name: 'New Tab' });
+      children[cIdx] = child;
+    } else {
+      // Adding a top-level tab on a sub-page
+      const existing = children[cIdx].tabs || [];
+      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+    }
+    
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
 
-  const updateTabName = (pIdx: number, cIdx: number, tIdx: number, val: string) => {
+  const updateTabName = (pIdx: number, cIdx: number, tPath: number[], val: string) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const tabs = [...(children[cIdx].tabs || [])];
-    tabs[tIdx] = { name: val };
-    children[cIdx] = { ...children[cIdx], tabs };
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    
+    let target: SitemapTab = child.tabs![tPath[0]];
+    for (let i = 1; i < tPath.length; i++) {
+      target = target.tabs![tPath[i]];
+    }
+    target.name = val;
+    
+    children[cIdx] = child;
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
 
-  const removeTab = (pIdx: number, cIdx: number, tIdx: number) => {
+  const removeTab = (pIdx: number, cIdx: number, tPath: number[]) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
-    const tabs = (children[cIdx].tabs || []).filter((_, i) => i !== tIdx);
-    children[cIdx] = { ...children[cIdx], tabs: tabs.length ? tabs : undefined };
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    
+    if (tPath.length === 1) {
+      const tabs = (child.tabs || []).filter((_, i) => i !== tPath[0]);
+      child.tabs = tabs.length ? tabs : undefined;
+    } else {
+      let parent: SitemapTab = child.tabs![tPath[0]];
+      for (let i = 1; i < tPath.length - 1; i++) {
+        parent = parent.tabs![tPath[i]];
+      }
+      const lastIdx = tPath[tPath.length - 1];
+      const tabs = (parent.tabs || []).filter((_, i) => i !== lastIdx);
+      parent.tabs = tabs.length ? tabs : undefined;
+    }
+    
+    children[cIdx] = child;
     pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
