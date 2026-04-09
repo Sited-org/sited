@@ -1,60 +1,25 @@
 
 
-# Make Blog Posts Fully Indexable for SEO & AEO
+# Fix: Admin "Pay Now" Deposit Dialog Not Loading
 
-## Problem
-Individual blog posts (`/blog/:slug`) are invisible to Google because:
-1. They're not listed in `sitemap.xml` (only `/blog` is)
-2. No `Article` JSON-LD structured data — Google can't generate rich results or AEO answers
-3. The sitemap is static and can't grow as new posts are created
+## Root Cause
 
-## Solution
+The `AdminPayNowDialog` is the **only** file using `import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY` to initialize Stripe. That env var does not exist in the `.env` file, so `loadStripe('')` produces a null Stripe instance. The `Elements` provider silently fails and the `PaymentElement` never renders — the dialog just shows a spinner forever.
 
-### 1. Dynamic sitemap edge function
-Create a backend function at `/sitemap.xml` that queries the `blog_posts` table and generates a complete sitemap including all published blog post URLs alongside the existing static pages.
+Every other payment component in the codebase uses the hardcoded live publishable key: `pk_live_51JrYQ7KEOhx2BLuX...`.
 
-### 2. Article JSON-LD on each blog post
-Add structured data to `BlogPost.tsx` so Google sees each post as a proper `Article` with author, date, image, and description — key for AEO and rich snippets.
+There's also a secondary bug: `initPayment()` is called during render (not inside `useEffect`), which can cause duplicate PaymentIntent creation on re-renders.
 
-### 3. Update `index.html` sitemap reference
-Point the sitemap URL to the dynamic edge function endpoint.
+## Fix
 
----
+### File: `src/components/admin/lead-profile/build-flow/AdminPayNowDialog.tsx`
 
-## Technical Details
+1. Replace `import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ''` with the same hardcoded live key used everywhere else
+2. Move `initPayment()` into a proper `useEffect` triggered by `open` state to prevent race conditions and duplicate calls
 
-### Edge function: `generate-sitemap`
-- Queries `blog_posts` where `status = 'published'`
-- Combines with hardcoded static pages (same list as current `sitemap.xml`)
-- Returns XML with proper `Content-Type: application/xml`
-- Each blog post gets `<lastmod>` from its `updated_at` field
-
-### BlogPost.tsx — Article JSON-LD
-Inject a `<script type="application/ld+json">` into the head via `useEffect` with:
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "Article",
-  "headline": "post.title",
-  "description": "post.excerpt",
-  "image": "post.cover_image_url",
-  "author": { "@type": "Person", "name": "post.author_name" },
-  "datePublished": "post.published_at",
-  "dateModified": "post.updated_at",
-  "publisher": { "@type": "Organization", "name": "Sited" }
-}
-```
-Cleanup on unmount to avoid stale data.
-
-### robots.txt
-Update the `Sitemap:` directive to point to the edge function URL.
-
-## Files Changed
+No edge function changes needed — `admin-charge-deposit` works correctly and returns a valid `clientSecret`.
 
 | # | File | Change |
 |---|------|--------|
-| 1 | `supabase/functions/generate-sitemap/index.ts` | **New** — dynamic sitemap from DB + static pages |
-| 2 | `src/pages/BlogPost.tsx` | Add Article JSON-LD structured data via useEffect |
-| 3 | `public/robots.txt` | Update Sitemap URL to edge function |
-| 4 | `public/sitemap.xml` | Keep as fallback but edge function is primary |
+| 1 | `src/components/admin/lead-profile/build-flow/AdminPayNowDialog.tsx` | Use correct Stripe publishable key; move init logic into useEffect |
 
