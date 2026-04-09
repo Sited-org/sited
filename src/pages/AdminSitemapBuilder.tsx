@@ -488,10 +488,12 @@ export default function AdminSitemapBuilder() {
   // ── Download ──
 
   const handleDownload = () => {
+    const lead = leads.find(l => l.id === selectedLeadId);
+    const leadLabel = lead ? (lead.business_name || lead.name || selectedLeadId?.slice(0, 8) || '') : '';
     generateSitemapPDF({
       id: id || '', lead_id: selectedLeadId || null, build_flow_id: null,
       name: name || 'Sitemap', sections, created_at: '', updated_at: '',
-    });
+    }, leadLabel);
   };
 
   if (loading) {
