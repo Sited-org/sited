@@ -114,10 +114,11 @@ export function AdminPayNowDialog({ open, onOpenChange, leadId, businessName, on
     }
   };
 
-  // Initialize when dialog opens
-  if (open && !clientSecret && !loading) {
-    initPayment();
-  }
+  useEffect(() => {
+    if (open && !clientSecret && !loading) {
+      initPayment();
+    }
+  }, [open]);
 
   // Reset when dialog closes
   const handleOpenChange = (newOpen: boolean) => {
