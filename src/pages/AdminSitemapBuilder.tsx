@@ -120,10 +120,10 @@ function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { classNam
   const type = nodeType || 'page';
   switch (type) {
     case 'page':
-      // Sub-page: solid border, dark background
+      // Sub-page: solid black background, colored border
       return {
         className: 'text-white font-medium',
-        style: { backgroundColor: 'hsl(var(--foreground))', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
+        style: { backgroundColor: '#0f172a', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
       };
     case 'popup':
       // Pop-up: dark grey background, dotted border
