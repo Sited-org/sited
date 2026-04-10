@@ -225,9 +225,9 @@ function TabNodes({
                   </span>
                 )}
                 {depth < MAX_TAB_DEPTH && (
-                  <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx, currentPath)} title="Add sub-tab">
-                    <Plus className="h-2 w-2" />
-                  </button>
+                  <span className="opacity-0 group-hover:opacity-100">
+                    <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, currentPath, type)} size="xs" />
+                  </span>
                 )}
                 <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, currentPath)}>
                   <X className="h-2 w-2 text-destructive" />
@@ -1035,6 +1035,7 @@ export default function AdminSitemapBuilder() {
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
