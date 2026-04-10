@@ -115,21 +115,36 @@ function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; classNa
   );
 }
 
-/** Returns style for child/tab nodes based on nodeType */
-function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { className: string; style: React.CSSProperties } {
+/** Bold color palette for sub-page/popup border distinction */
+const CHILD_NODE_COLORS = [
+  'hsl(346, 77%, 50%)',  // rose
+  'hsl(187, 85%, 43%)',  // teal
+  'hsl(45, 93%, 47%)',   // amber
+  'hsl(262, 83%, 58%)',  // purple
+  'hsl(142, 71%, 45%)',  // green
+  'hsl(25, 95%, 53%)',   // orange
+  'hsl(316, 72%, 51%)',  // pink
+  'hsl(221, 83%, 53%)',  // blue
+  'hsl(0, 84%, 60%)',    // red
+  'hsl(168, 76%, 42%)',  // emerald
+];
+
+/** Returns style for child/tab nodes based on nodeType, with unique color per type-index */
+function getChildNodeStyles(nodeType?: NodeType, colorIndex?: number): { className: string; style: React.CSSProperties } {
   const type = nodeType || 'page';
+  const color = CHILD_NODE_COLORS[(colorIndex ?? 0) % CHILD_NODE_COLORS.length];
   switch (type) {
     case 'page':
-      // Sub-page: solid black background, colored border
+      // Sub-page: solid black background, unique colored border
       return {
         className: 'text-white font-medium',
-        style: { backgroundColor: '#0f172a', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
+        style: { backgroundColor: '#0f172a', borderColor: color, borderWidth: '2px', borderStyle: 'solid' },
       };
     case 'popup':
-      // Pop-up: dark grey background, dotted border
+      // Pop-up: dark grey background, unique colored dotted border
       return {
         className: 'text-slate-300',
-        style: { backgroundColor: '#1e293b', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
+        style: { backgroundColor: '#1e293b', borderColor: color, borderWidth: '2px', borderStyle: 'dotted' },
       };
     case 'tab':
       // Tab: dark grey background, no border
@@ -140,7 +155,7 @@ function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { classNam
     default:
       return {
         className: 'text-muted-foreground',
-        style: { backgroundColor: 'hsl(var(--card))', borderColor: `${pageColor}40`, borderWidth: '2px', borderStyle: 'solid' },
+        style: { backgroundColor: 'hsl(var(--card))', borderColor: color, borderWidth: '2px', borderStyle: 'solid' },
       };
   }
 }
@@ -263,8 +278,8 @@ function TabNodes({
                 onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
                 className={`group flex items-center gap-1 px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
                   depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                } ${getChildNodeStyles(tab.nodeType, pageColor).className}`}
-                style={{ ...getChildNodeStyles(tab.nodeType, pageColor).style, opacity: depth > 1 ? 0.85 : 1 }}
+                } ${getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).className}`}
+                style={{ ...getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).style, opacity: depth > 1 ? 0.85 : 1 }}
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
@@ -1112,9 +1127,9 @@ export default function AdminSitemapBuilder() {
                                 onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
-                                } ${getChildNodeStyles(child.nodeType, pageColor).className}`}
+                                } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
                                 style={{
-                                  ...getChildNodeStyles(child.nodeType, pageColor).style,
+                                  ...getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style,
                                   ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
                                 }}
                               >
