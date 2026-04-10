@@ -238,7 +238,7 @@ function TabNodes({
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
-                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" />
+                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" onChangeType={(type) => changeTabType(pIdx, cIdx, currentPath, type)} />
                 {matchesEditing ? (
                   <Input
                     autoFocus value={tab.name}
