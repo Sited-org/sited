@@ -84,19 +84,19 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
 }
 
 /** Clickable icon indicator for node type — click to change */
-function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
+function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
   const currentType = nodeType || 'page';
   const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : FileText;
   
   if (!onChangeType) {
-    return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+    return <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" />;
   }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={`shrink-0 opacity-50 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20 ${className}`} title="Change node type">
-          <Icon className="h-full w-full" />
+        <button className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20" title="Change node type">
+          <Icon className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
@@ -106,13 +106,40 @@ function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: N
             className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`}
             onClick={() => onChangeType(opt.type)}
           >
-            <opt.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+            <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             {opt.label}
           </button>
         ))}
       </PopoverContent>
     </Popover>
   );
+}
+
+/** Returns style classes/props for a node based on its nodeType */
+function getNodeTypeStyles(nodeType?: NodeType, pageColor?: string): { className: string; style: React.CSSProperties } {
+  const type = nodeType || 'page';
+  switch (type) {
+    case 'page':
+      return {
+        className: 'text-foreground',
+        style: { backgroundColor: pageColor || 'hsl(var(--primary))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+      };
+    case 'popup':
+      return {
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--muted))', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
+      };
+    case 'tab':
+      return {
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--muted))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+      };
+    default:
+      return {
+        className: '',
+        style: { backgroundColor: 'hsl(var(--card))', borderColor: pageColor ? `${pageColor}40` : 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'solid' },
+      };
+  }
 }
 
 interface LeadOption {
