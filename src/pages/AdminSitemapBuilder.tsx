@@ -558,9 +558,10 @@ export default function AdminSitemapBuilder() {
 
   // ── Page helpers ──
 
-  const addPage = () => {
+  const addPage = (nodeType: NodeType = 'page') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'tab' ? 'New Tab' : 'New Page';
     const next = [...sections];
-    next[activeSectionIdx] = { ...next[activeSectionIdx], pages: [...next[activeSectionIdx].pages, { name: 'New Page' }] };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages: [...next[activeSectionIdx].pages, { name: defaultName, nodeType }] };
     setSections(next);
   };
 
