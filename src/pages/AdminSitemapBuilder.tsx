@@ -1127,9 +1127,9 @@ export default function AdminSitemapBuilder() {
                                 onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
-                                } ${getChildNodeStyles(child.nodeType, pageColor).className}`}
+                                } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
                                 style={{
-                                  ...getChildNodeStyles(child.nodeType, pageColor).style,
+                                  ...getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style,
                                   ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
                                 }}
                               >
