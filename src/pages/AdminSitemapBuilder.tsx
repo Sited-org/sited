@@ -278,8 +278,8 @@ function TabNodes({
                 onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
                 className={`group flex items-center gap-1 px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
                   depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                } ${getChildNodeStyles(tab.nodeType, pageColor).className}`}
-                style={{ ...getChildNodeStyles(tab.nodeType, pageColor).style, opacity: depth > 1 ? 0.85 : 1 }}
+                } ${getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).className}`}
+                style={{ ...getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).style, opacity: depth > 1 ? 0.85 : 1 }}
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
