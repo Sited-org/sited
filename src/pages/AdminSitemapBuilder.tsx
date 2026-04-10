@@ -279,6 +279,7 @@ function TabNodes({
                 updateTabName={updateTabName}
                 removeTab={removeTab}
                 addTab={addTab}
+                changeTabType={changeTabType}
                 dragItem={dragItem}
                 startDrag={startDrag}
                 isDropping={isDropping}
@@ -1165,6 +1166,7 @@ export default function AdminSitemapBuilder() {
                                 updateTabName={updateTabName}
                                 removeTab={removeTab}
                                 addTab={addTab}
+                                changeTabType={changeTabType}
                                 dragItem={dragItem}
                                 startDrag={startDrag}
                                 isDropping={isDropping}
