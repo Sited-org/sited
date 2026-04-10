@@ -272,7 +272,7 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
     const tabH = 20;
 
     // ── Root / Section node (dark card, matching builder) ──
-    drawRoundedRect(doc, rootX, rootY, rootW, rootH, 6, DARK_BG);
+    drawRoundedRect(doc, rootX, rootY, rootW, rootH, 6, HEADER_BG);
     doc.setTextColor(TEXT_WHITE);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
@@ -368,17 +368,17 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
 
           // ── Child node styled by type (matching builder) ──
           if (childType === 'page') {
-            // Solid dark background + colored solid border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_BG, childColor, 1.5, 'solid');
+            // Sub-page: full bold color background, no border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, childColor);
             doc.setTextColor(TEXT_WHITE);
           } else if (childType === 'popup') {
-            // Dark grey background + colored dotted border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_GREY, childColor, 1.5, 'dotted');
-            doc.setTextColor(TEXT_LIGHT);
+            // Pop-up: light grey background, colored dotted border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, LIGHT_GREY_PDF, childColor, 1.5, 'dotted');
+            doc.setTextColor(TEXT_DARK_PDF);
           } else {
-            // Tab: dark grey, no border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_GREY);
-            doc.setTextColor(TEXT_LIGHT);
+            // Tab: light grey, no border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, LIGHT_GREY_PDF);
+            doc.setTextColor(TEXT_DARK_PDF);
           }
 
           doc.setFont('helvetica', 'normal');
@@ -415,14 +415,17 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
 
               // Tab node styled by type
               if (tabType === 'page') {
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_BG, tabColor, 1.2, 'solid');
+                // Page: full color background, no border
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, tabColor);
                 doc.setTextColor(TEXT_WHITE);
               } else if (tabType === 'popup') {
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_GREY, tabColor, 1.2, 'dotted');
-                doc.setTextColor(TEXT_LIGHT);
+                // Pop-up: light grey, colored dotted border
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, LIGHT_GREY_PDF, tabColor, 1.2, 'dotted');
+                doc.setTextColor(TEXT_DARK_PDF);
               } else {
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_GREY);
-                doc.setTextColor(TEXT_LIGHT);
+                // Tab: light grey, no border
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, LIGHT_GREY_PDF);
+                doc.setTextColor(TEXT_DARK_PDF);
               }
 
               doc.setFont('helvetica', 'normal');
