@@ -12,19 +12,24 @@ import jsPDF from 'jspdf';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+type NodeType = 'page' | 'popup' | 'tab';
+
 interface SitemapTab {
   name: string;
+  nodeType?: NodeType;
   tabs?: SitemapTab[];
 }
 
 interface SitemapChild {
   name: string;
+  nodeType?: NodeType;
   tabs?: SitemapTab[];
   linkedFrom?: number[];
 }
 
 interface SitemapPage {
   name: string;
+  nodeType?: NodeType;
   children?: SitemapChild[];
 }
 
