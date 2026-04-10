@@ -1211,7 +1211,6 @@ export default function AdminSitemapBuilder() {
                                           />
                                           <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
                                           <span className="truncate">{otherPage.name}</span>
-                                          {isOriginalParent && <span className="text-[9px] text-muted-foreground ml-auto">(owner)</span>}
                                         </label>
                                       );
                                     })}
