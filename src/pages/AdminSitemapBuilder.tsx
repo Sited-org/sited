@@ -526,6 +526,46 @@ export default function AdminSitemapBuilder() {
     });
 
     setConnectorLines(lines);
+
+    // Position shared (multi-parent) children at midpoint of all parents
+    if (canvasRef.current) {
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const scrollLeft = canvasRef.current.scrollLeft;
+      const scrollTop = canvasRef.current.scrollTop;
+
+      currentSection?.pages.forEach((page, pIdx) => {
+        page.children?.forEach((child, cIdx) => {
+          if (!child.linkedFrom?.length) return;
+          const el = sharedChildRefs.current.get(`${pIdx}-${cIdx}`);
+          if (!el) return;
+
+          const parentIndices = [pIdx, ...child.linkedFrom];
+          let totalMidY = 0;
+          let count = 0;
+          parentIndices.forEach(pi => {
+            const pageEl = pageNodeRefs.current.get(pi);
+            if (pageEl) {
+              const pr = pageEl.getBoundingClientRect();
+              totalMidY += pr.top + pr.height / 2;
+              count++;
+            }
+          });
+          if (count === 0) return;
+
+          const avgMidY = totalMidY / count;
+          const topInCanvas = avgMidY - canvasRect.top + scrollTop - el.offsetHeight / 2;
+
+          // X: align with children column (first page right edge + gap)
+          const ownerPageEl = pageNodeRefs.current.get(pIdx);
+          if (ownerPageEl) {
+            const pRight = ownerPageEl.getBoundingClientRect().right;
+            const leftInCanvas = pRight - canvasRect.left + scrollLeft + 48; // gap-12 = 3rem
+            el.style.left = `${leftInCanvas}px`;
+          }
+          el.style.top = `${topInCanvas}px`;
+        });
+      });
+    }
   }, [currentSection]);
 
   useEffect(() => {
