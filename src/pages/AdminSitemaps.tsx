@@ -332,8 +332,7 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
           const childType = child.nodeType || 'page';
           const childColor = CHILD_NODE_COLORS_PDF[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS_PDF.length];
 
-          // Determine if this child is shared (has linkedFrom parents)
-          const isShared = child.linkedFrom && child.linkedFrom.length > 0;
+          // Connectors
 
           // Elbow connector from primary parent (use page color, dashed if shared)
           if (isShared) {
