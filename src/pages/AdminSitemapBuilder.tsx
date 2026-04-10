@@ -83,11 +83,36 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
   );
 }
 
-/** Small icon indicator for node type */
-function NodeTypeIcon({ nodeType, className = '' }: { nodeType?: NodeType; className?: string }) {
-  if (!nodeType || nodeType === 'page') return null;
-  const Icon = nodeType === 'popup' ? PanelTop : LayoutGrid;
-  return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+/** Clickable icon indicator for node type — click to change */
+function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
+  const currentType = nodeType || 'page';
+  const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : FileText;
+  
+  if (!onChangeType) {
+    return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`shrink-0 opacity-50 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20 ${className}`} title="Change node type">
+          <Icon className="h-full w-full" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
+        {NODE_TYPE_OPTIONS.map(opt => (
+          <button
+            key={opt.type}
+            className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`}
+            onClick={() => onChangeType(opt.type)}
+          >
+            <opt.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+            {opt.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 interface LeadOption {
@@ -158,6 +183,7 @@ function TabNodes({
   updateTabName,
   removeTab,
   addTab,
+  changeTabType,
   dragItem,
   startDrag,
   isDropping,
@@ -175,6 +201,7 @@ function TabNodes({
   updateTabName: (pIdx: number, cIdx: number, tPath: number[], val: string) => void;
   removeTab: (pIdx: number, cIdx: number, tPath: number[]) => void;
   addTab: (pIdx: number, cIdx: number, parentPath?: number[], nodeType?: NodeType) => void;
+  changeTabType: (pIdx: number, cIdx: number, tPath: number[], nodeType: NodeType) => void;
   dragItem: DragItem;
   startDrag: (item: NonNullable<DragItem>, e: React.PointerEvent) => void;
   isDropping: (type: string, index: number, parentPIdx?: number, parentCIdx?: number) => boolean;
@@ -211,7 +238,7 @@ function TabNodes({
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
-                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" />
+                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" onChangeType={(type) => changeTabType(pIdx, cIdx, currentPath, type)} />
                 {matchesEditing ? (
                   <Input
                     autoFocus value={tab.name}
@@ -252,6 +279,7 @@ function TabNodes({
                 updateTabName={updateTabName}
                 removeTab={removeTab}
                 addTab={addTab}
+                changeTabType={changeTabType}
                 dragItem={dragItem}
                 startDrag={startDrag}
                 isDropping={isDropping}
@@ -588,6 +616,32 @@ export default function AdminSitemapBuilder() {
     const pages = [...next[activeSectionIdx].pages];
     const existing = pages[pIdx].children || [];
     pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: defaultName, nodeType }] };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  const changeChildType = (pIdx: number, cIdx: number, nodeType: NodeType) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    children[cIdx] = { ...children[cIdx], nodeType };
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  const changeTabType = (pIdx: number, cIdx: number, tPath: number[], nodeType: NodeType) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    let target: SitemapTab = child.tabs![tPath[0]];
+    for (let i = 1; i < tPath.length; i++) {
+      target = target.tabs![tPath[i]];
+    }
+    target.nodeType = nodeType;
+    children[cIdx] = child;
+    pages[pIdx] = { ...pages[pIdx], children };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
@@ -990,7 +1044,6 @@ export default function AdminSitemapBuilder() {
                         style={{ backgroundColor: pageColor }}
                       >
                         <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
-                        <NodeTypeIcon nodeType={page.nodeType} className="h-3 w-3" />
                         {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
                           <Input
                             autoFocus value={page.name}
@@ -1036,7 +1089,7 @@ export default function AdminSitemapBuilder() {
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" />
+                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
@@ -1113,6 +1166,7 @@ export default function AdminSitemapBuilder() {
                                 updateTabName={updateTabName}
                                 removeTab={removeTab}
                                 addTab={addTab}
+                                changeTabType={changeTabType}
                                 dragItem={dragItem}
                                 startDrag={startDrag}
                                 isDropping={isDropping}
@@ -1125,7 +1179,9 @@ export default function AdminSitemapBuilder() {
                   </div>
                 );
               })}
-              <AddNodePopover onAdd={(type) => addPage(type)} />
+              <button onClick={() => addPage()} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors w-fit">
+                <Plus className="h-3 w-3" /> Add Page
+              </button>
             </div>
           </div>
         </div>
