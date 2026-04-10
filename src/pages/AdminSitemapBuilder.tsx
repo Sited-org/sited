@@ -366,6 +366,7 @@ export default function AdminSitemapBuilder() {
 
   const [name, setName] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState('');
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [sections, setSectionsRaw] = useState<SitemapSection[]>([{ title: 'Front-End', pages: [{ name: 'Home' }] }]);
 
   // ── Undo / Redo (max 5 snapshots) ──
@@ -1003,17 +1004,39 @@ export default function AdminSitemapBuilder() {
           className="max-w-[200px] font-semibold text-sm h-8"
         />
 
-        <Select value={selectedLeadId || 'none'} onValueChange={v => setSelectedLeadId(v === 'none' ? '' : v)}>
-          <SelectTrigger className="w-[170px] h-8 text-sm">
-            <SelectValue placeholder="Link client…" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No client</SelectItem>
-            {leads.map(l => (
-              <SelectItem key={l.id} value={l.id}>{l.business_name || l.name || l.id.slice(0, 8)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="w-[200px] h-8 text-sm justify-between font-normal">
+              {selectedLeadId && selectedLeadId !== 'none'
+                ? (leads.find(l => l.id === selectedLeadId)?.business_name || leads.find(l => l.id === selectedLeadId)?.name || selectedLeadId.slice(0, 8))
+                : 'Link client…'}
+              <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[250px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search clients…" />
+              <CommandList>
+                <CommandEmpty>No client found.</CommandEmpty>
+                <CommandGroup>
+                  <CommandItem value="no-client" onSelect={() => { setSelectedLeadId(''); setClientSearchOpen(false); }}>
+                    <Check className={`mr-2 h-3.5 w-3.5 ${!selectedLeadId || selectedLeadId === 'none' ? 'opacity-100' : 'opacity-0'}`} />
+                    No client
+                  </CommandItem>
+                  {leads.map(l => {
+                    const label = l.business_name || l.name || l.id.slice(0, 8);
+                    return (
+                      <CommandItem key={l.id} value={label} onSelect={() => { setSelectedLeadId(l.id); setClientSearchOpen(false); }}>
+                        <Check className={`mr-2 h-3.5 w-3.5 ${selectedLeadId === l.id ? 'opacity-100' : 'opacity-0'}`} />
+                        {label}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         {selectedLeadId && selectedLeadId !== 'none' && (
           <Button variant="outline" size="sm" className="h-8 text-xs" onClick={importFromDiscovery}>
