@@ -448,8 +448,52 @@ export default function AdminSitemapBuilder() {
 
   const currentSection = sections[activeSectionIdx] || sections[0];
 
+  /** Position shared (multi-parent) children at midpoint of all parents */
+  const positionSharedChildren = useCallback(() => {
+    if (!canvasRef.current) return;
+    const canvasRect = canvasRef.current.getBoundingClientRect();
+    const scrollLeft = canvasRef.current.scrollLeft;
+    const scrollTop = canvasRef.current.scrollTop;
+
+    currentSection?.pages.forEach((page, pIdx) => {
+      page.children?.forEach((child, cIdx) => {
+        if (!child.linkedFrom?.length) return;
+        const el = sharedChildRefs.current.get(`${pIdx}-${cIdx}`);
+        if (!el) return;
+
+        const parentIndices = [pIdx, ...child.linkedFrom];
+        let totalMidY = 0;
+        let count = 0;
+        parentIndices.forEach(pi => {
+          const pageEl = pageNodeRefs.current.get(pi);
+          if (pageEl) {
+            const pr = pageEl.getBoundingClientRect();
+            totalMidY += pr.top + pr.height / 2;
+            count++;
+          }
+        });
+        if (count === 0) return;
+
+        const avgMidY = totalMidY / count;
+        const topInCanvas = avgMidY - canvasRect.top + scrollTop - el.offsetHeight / 2;
+
+        const ownerPageEl = pageNodeRefs.current.get(pIdx);
+        if (ownerPageEl) {
+          const pRight = ownerPageEl.getBoundingClientRect().right;
+          const leftInCanvas = pRight - canvasRect.left + scrollLeft + 48;
+          el.style.left = `${leftInCanvas}px`;
+        }
+        el.style.top = `${topInCanvas}px`;
+      });
+    });
+  }, [currentSection]);
+
   const recalcConnectors = useCallback(() => {
     if (!canvasRef.current || !rootNodeRef.current) return;
+
+    // Phase 1: position shared children so their rects are correct
+    positionSharedChildren();
+
     const cr = canvasRef.current.getBoundingClientRect();
     const off = { x: cr.left - canvasRef.current.scrollLeft, y: cr.top - canvasRef.current.scrollTop };
     const lines: typeof connectorLines = [];
@@ -483,7 +527,6 @@ export default function AdminSitemapBuilder() {
         lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color, dashed: isShared });
         lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color, dashed: isShared });
 
-        // Draw extra connector lines from linked parent pages
         if (child.linkedFrom?.length) {
           child.linkedFrom.forEach(lpIdx => {
             const lpEl = pageNodeRefs.current.get(lpIdx);
@@ -492,7 +535,6 @@ export default function AdminSitemapBuilder() {
             const lpr = lpEl.getBoundingClientRect();
             const lpRight = lpr.right - off.x;
             const lpMidY = lpr.top + lpr.height / 2 - off.y;
-            // Use a dashed-style approach: we'll mark these with a special color mix
             const lElbowX = lpRight + (cLeft - lpRight) / 2;
             lines.push({ x1: lpRight, y1: lpMidY, x2: lElbowX, y2: lpMidY, color: lpColor, dashed: true });
             lines.push({ x1: lElbowX, y1: lpMidY, x2: lElbowX, y2: cMidY, color: lpColor, dashed: true });
@@ -500,7 +542,6 @@ export default function AdminSitemapBuilder() {
           });
         }
 
-        // child → tabs (recursive for nested tabs)
         const drawTabConnectors = (tabs: SitemapTab[], parentRight: number, parentMidY: number, pathPrefix: string) => {
           tabs.forEach((tab, tIdx) => {
             const te = tabNodeRefs.current.get(`${pathPrefix}-${tIdx}`);
@@ -513,7 +554,6 @@ export default function AdminSitemapBuilder() {
             lines.push({ x1: parentRight, y1: parentMidY, x2: teX, y2: parentMidY, color });
             lines.push({ x1: teX, y1: parentMidY, x2: teX, y2: tMidY, color });
             lines.push({ x1: teX, y1: tMidY, x2: tLeft, y2: tMidY, color });
-            // Recurse into sub-tabs
             if (tab.tabs?.length) {
               drawTabConnectors(tab.tabs, tRight, tMidY, `${pathPrefix}-${tIdx}`);
             }
@@ -526,52 +566,15 @@ export default function AdminSitemapBuilder() {
     });
 
     setConnectorLines(lines);
-
-    // Position shared (multi-parent) children at midpoint of all parents
-    if (canvasRef.current) {
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const scrollLeft = canvasRef.current.scrollLeft;
-      const scrollTop = canvasRef.current.scrollTop;
-
-      currentSection?.pages.forEach((page, pIdx) => {
-        page.children?.forEach((child, cIdx) => {
-          if (!child.linkedFrom?.length) return;
-          const el = sharedChildRefs.current.get(`${pIdx}-${cIdx}`);
-          if (!el) return;
-
-          const parentIndices = [pIdx, ...child.linkedFrom];
-          let totalMidY = 0;
-          let count = 0;
-          parentIndices.forEach(pi => {
-            const pageEl = pageNodeRefs.current.get(pi);
-            if (pageEl) {
-              const pr = pageEl.getBoundingClientRect();
-              totalMidY += pr.top + pr.height / 2;
-              count++;
-            }
-          });
-          if (count === 0) return;
-
-          const avgMidY = totalMidY / count;
-          const topInCanvas = avgMidY - canvasRect.top + scrollTop - el.offsetHeight / 2;
-
-          // X: align with children column (first page right edge + gap)
-          const ownerPageEl = pageNodeRefs.current.get(pIdx);
-          if (ownerPageEl) {
-            const pRight = ownerPageEl.getBoundingClientRect().right;
-            const leftInCanvas = pRight - canvasRect.left + scrollLeft + 48; // gap-12 = 3rem
-            el.style.left = `${leftInCanvas}px`;
-          }
-          el.style.top = `${topInCanvas}px`;
-        });
-      });
-    }
-  }, [currentSection]);
+  }, [currentSection, positionSharedChildren]);
 
   useEffect(() => {
-    const t = setTimeout(recalcConnectors, 60);
-    return () => clearTimeout(t);
-  }, [sections, activeSectionIdx, recalcConnectors]);
+    const t1 = setTimeout(() => {
+      positionSharedChildren();
+      requestAnimationFrame(recalcConnectors);
+    }, 60);
+    return () => clearTimeout(t1);
+  }, [sections, activeSectionIdx, positionSharedChildren, recalcConnectors]);
 
   useEffect(() => {
     window.addEventListener('resize', recalcConnectors);
