@@ -1110,16 +1110,16 @@ export default function AdminSitemapBuilder() {
                                 data-drop-index={cIdx}
                                 data-drop-parent-p={pIdx}
                                 onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
-                                className={`group flex items-center gap-1.5 bg-card border-2 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
-                                }`}
+                                } ${getChildNodeStyles(child.nodeType, pageColor).className}`}
                                 style={{
-                                  borderColor: `${pageColor}40`,
-                                  ...(child.linkedFrom?.length ? { borderStyle: 'solid', borderWidth: '2px', boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
+                                  ...getChildNodeStyles(child.nodeType, pageColor).style,
+                                  ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
+                                <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
