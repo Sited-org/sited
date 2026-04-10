@@ -1179,7 +1179,10 @@ export default function AdminSitemapBuilder() {
                     {/* Sub-pages for this page */}
                     {page.children && page.children.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        {page.children.map((child, cIdx) => (
+                        {page.children.map((child, cIdx) => {
+                          // Skip shared (multi-parent) children — they render in the floating layer
+                          if (child.linkedFrom?.length) return null;
+                          return (
                           <div key={cIdx} className="flex items-start gap-10">
                             <div>
                               {isDropping('child', cIdx, pIdx) && <div className="h-1 rounded-full mb-1 mx-2 transition-all" style={{ backgroundColor: pageColor, opacity: 0.5 }} />}
@@ -1192,19 +1195,12 @@ export default function AdminSitemapBuilder() {
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
-                                style={{
-                                  ...getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style,
-                                  ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
-                                }}
+                                style={getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
                                 <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
-                                {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
-                                  {child.linkedFrom?.map(lpIdx => (
-                                    <div key={lpIdx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[lpIdx % PAGE_COLORS.length], opacity: 0.6 }} />
-                                  ))}
                                 </div>
                                 {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
                                   <Input
@@ -1219,11 +1215,10 @@ export default function AdminSitemapBuilder() {
                                     {child.name}
                                   </span>
                                 )}
-                                {/* Link to other parents */}
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <button
-                                      className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`}
+                                      className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5 transition-opacity"
                                       title="Link to other pages"
                                     >
                                       <Link2 className="h-2.5 w-2.5" />
@@ -1292,7 +1287,8 @@ export default function AdminSitemapBuilder() {
                               />
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
