@@ -1299,6 +1299,120 @@ export default function AdminSitemapBuilder() {
               </button>
             </div>
           </div>
+
+          {/* Floating layer for shared (multi-parent) children */}
+          {currentSection.pages.map((page, pIdx) =>
+            page.children?.map((child, cIdx) => {
+              if (!child.linkedFrom?.length) return null;
+              const allParentIndices = [pIdx, ...child.linkedFrom];
+              return (
+                <div
+                  key={`shared-${pIdx}-${cIdx}`}
+                  ref={el => { const k = `${pIdx}-${cIdx}`; if (el) { sharedChildRefs.current.set(k, el); childNodeRefs.current.set(k, el.querySelector('[data-child-node]') as HTMLDivElement); } else { sharedChildRefs.current.delete(k); childNodeRefs.current.delete(k); } }}
+                  className="absolute z-20 flex items-start gap-10"
+                  style={{ left: 0, top: 0 }}
+                >
+                  <div
+                    data-child-node
+                    data-drop-type="child"
+                    data-drop-index={cIdx}
+                    data-drop-parent-p={pIdx}
+                    onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                    className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                      dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
+                    } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
+                    style={getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style}
+                  >
+                    <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                    <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {allParentIndices.map(pi => (
+                        <div key={pi} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[pi % PAGE_COLORS.length], opacity: 0.6 }} />
+                      ))}
+                    </div>
+                    {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
+                      <Input
+                        autoFocus value={child.name}
+                        onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
+                        onBlur={() => setEditingNode(null)}
+                        onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                        className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                        {child.name}
+                      </span>
+                    )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="opacity-70 hover:bg-accent rounded p-0.5 transition-opacity"
+                          title="Link to other pages"
+                        >
+                          <Link2 className="h-2.5 w-2.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-2" side="right" align="start">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Linked pages</p>
+                        {currentSection.pages.map((otherPage, otherPIdx) => {
+                          const isOriginalParent = otherPIdx === pIdx;
+                          const isLinked = isOriginalParent || (child.linkedFrom?.includes(otherPIdx) || false);
+                          const hasOtherLinks = isOriginalParent
+                            ? (child.linkedFrom?.length || 0) > 0
+                            : true;
+                          return (
+                            <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
+                              <Checkbox
+                                checked={isLinked}
+                                disabled={isLinked && !hasOtherLinks}
+                                onCheckedChange={() => {
+                                  if (isOriginalParent) {
+                                    moveChildToLinkedParent(pIdx, cIdx);
+                                  } else {
+                                    toggleLinkedParent(pIdx, cIdx, otherPIdx);
+                                  }
+                                }}
+                              />
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
+                              <span className="truncate">{otherPage.name}</span>
+                            </label>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    <span className="opacity-0 group-hover:opacity-100">
+                      <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" />
+                    </span>
+                    <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
+                      <X className="h-2.5 w-2.5 text-destructive" />
+                    </button>
+                  </div>
+
+                  {child.tabs && child.tabs.length > 0 && (
+                    <TabNodes
+                      tabs={child.tabs}
+                      pIdx={pIdx}
+                      cIdx={cIdx}
+                      parentPath={[]}
+                      depth={1}
+                      pageColor={PAGE_COLORS[pIdx % PAGE_COLORS.length]}
+                      tabNodeRefs={tabNodeRefs}
+                      editingNode={editingNode}
+                      setEditingNode={setEditingNode}
+                      activeSectionIdx={activeSectionIdx}
+                      updateTabName={updateTabName}
+                      removeTab={removeTab}
+                      addTab={addTab}
+                      changeTabType={changeTabType}
+                      dragItem={dragItem}
+                      startDrag={startDrag}
+                      isDropping={isDropping}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
