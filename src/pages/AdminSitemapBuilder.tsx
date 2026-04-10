@@ -477,9 +477,10 @@ export default function AdminSitemapBuilder() {
         const cMidY = ccr.top + ccr.height / 2 - off.y;
         const cRight = ccr.right - off.x;
         const ceX = pRight + (cLeft - pRight) / 2;
-        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY, color });
-        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color });
-        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color });
+        const isShared = child.linkedFrom && child.linkedFrom.length > 0;
+        lines.push({ x1: pRight, y1: pMidY, x2: ceX, y2: pMidY, color, dashed: isShared });
+        lines.push({ x1: ceX, y1: pMidY, x2: ceX, y2: cMidY, color, dashed: isShared });
+        lines.push({ x1: ceX, y1: cMidY, x2: cLeft, y2: cMidY, color, dashed: isShared });
 
         // Draw extra connector lines from linked parent pages
         if (child.linkedFrom?.length) {
