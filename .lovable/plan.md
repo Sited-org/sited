@@ -1,72 +1,25 @@
 
 
-# Sitemap Builder — Full-Page Redesign + Tabs Layer + Better Drag & Drop
+## Plan: Multi-Parent Connector Lines in Builder + PDF
 
-## Problems
-1. Builder renders inside `AdminLayout`, showing the admin sidebar — should be full-page standalone
-2. Drag & drop only works for pages, not children, and has no visual feedback (drop indicators)
-3. No "tabs" level — need a 4th hierarchy tier: Section → Page → Sub-page → Tab
-4. Children are stored as `string[]` — need to become objects to support nested tabs
+### Problem
+1. The PDF ignores `linkedFrom` data entirely — only the "main" parent page's connector is drawn.
+2. In the builder, the main parent's connector is solid while linked parents use dashed lines. The user wants **all** connectors to be dashed when a child has multiple parents, with no parent visually prioritised.
 
-## Changes
+### Changes
 
-### 1. Make builder a standalone route (`src/App.tsx`)
-Move the two builder routes (`sitemaps/new` and `sitemaps/:id`) **outside** the `<Route path="/admin" element={<AdminLayout />}>` wrapper so they render without the admin sidebar. The list page (`/admin/sitemaps`) stays inside AdminLayout.
+#### 1. Builder connector logic (`AdminSitemapBuilder.tsx`)
+- In `recalcConnectors`, when drawing the primary parent→child connector, check if `child.linkedFrom?.length > 0`. If so, mark those lines as `dashed: true` (same as the secondary connectors). This ensures all connections to a multi-linked node are visually equal.
 
-### 2. Restructure data types (`AdminSitemapBuilder.tsx`)
-Upgrade the hierarchy to support tabs under sub-pages:
+#### 2. PDF multi-parent connectors (`AdminSitemaps.tsx`)
+- After drawing each child node, check `child.linkedFrom`. For each linked parent index, draw an additional elbow connector from that parent page's Y-position to the child node, using:
+  - The linked parent's page color
+  - A **dotted/dashed** line style (matching the builder)
+- When a child has `linkedFrom` entries, also switch the primary parent's connector to dashed, matching the builder behavior.
+- Compute each linked parent's Y-position using the same layout formula already used for pages (based on `pageStartY + lpIdx * (pageH + pageGap)`).
+- Add small colored dots at the child node for each linked parent (matching the builder's multi-dot indicator).
 
-```typescript
-interface SitemapTab {
-  name: string;
-}
-
-interface SitemapChild {
-  name: string;
-  tabs?: SitemapTab[];
-}
-
-interface SitemapPage {
-  name: string;
-  children?: SitemapChild[];  // was string[]
-}
-```
-
-This adds a 4th column on the canvas: Section → Pages → Sub-pages → Tabs.
-
-### 3. Improved drag & drop with visual indicators
-- Add a `dropTarget` state tracking which index is being hovered
-- Render a blue highlight bar at the drop position during drag-over
-- Support drag & drop for sub-pages (reorder within parent) and tabs (reorder within sub-page)
-- Use `e.dataTransfer.setData()` / `getData()` properly for drag type identification
-
-### 4. Full-page layout
-- Remove the `-m-6 lg:-m-8` hack (no longer inside AdminLayout padding)
-- Make the component render as `fixed inset-0` or `h-screen w-screen` so it truly fills the viewport
-- Back arrow navigates to `/admin/sitemaps`
-
-### 5. Tab management helpers
-- `addTab(pIdx, cIdx)` — adds a tab under a sub-page
-- `updateTab(pIdx, cIdx, tIdx, value)` — rename a tab
-- `removeTab(pIdx, cIdx, tIdx)` — delete a tab
-- Tab nodes rendered as a 4th column with their own SVG connectors (sub-page → tab)
-
-### 6. Update SVG connector logic
-Add connectors for the new sub-page → tab connections, using the same elbow pattern. Track tab node refs with a `tabNodeRefs` map keyed by `${pIdx}-${cIdx}-${tIdx}`.
-
-### 7. Update PDF generation (`AdminSitemaps.tsx`)
-- Handle `SitemapChild` objects instead of strings
-- Add a 4th column for tabs in the PDF tree layout
-- Draw connectors from sub-page nodes to tab nodes
-
-### 8. Migrate existing data
-Children stored as `string[]` need backward compat — on load, map `string` children to `{ name: string }` objects.
-
-## Files Changed
-
-| # | File | Change |
-|---|------|--------|
-| 1 | `src/App.tsx` | Move builder routes outside AdminLayout wrapper |
-| 2 | `src/pages/AdminSitemapBuilder.tsx` | Full rewrite: standalone layout, new types with tabs, proper drag & drop with visual feedback, tab management, updated connectors |
-| 3 | `src/pages/AdminSitemaps.tsx` | Update `generateSitemapPDF` to handle child objects + tabs column |
+### Files Modified
+- `src/pages/AdminSitemapBuilder.tsx` — Make primary connector dashed when child has linkedFrom
+- `src/pages/AdminSitemaps.tsx` — Add linkedFrom connector rendering in `generateSitemapPDF`
 
