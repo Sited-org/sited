@@ -83,16 +83,25 @@ const CHILD_NODE_COLORS_PDF = [
   '#2563eb', // blue
   '#dc2626', // red
   '#0d9488', // emerald
+  '#f472b6', // pastel rose
+  '#67e8f9', // pastel teal
+  '#fbbf24', // pastel amber
+  '#a78bfa', // pastel purple
+  '#6ee7b7', // pastel green
+  '#fb923c', // pastel orange
+  '#f0abfc', // pastel pink
+  '#93c5fd', // pastel blue
+  '#fca5a5', // pastel red
+  '#5eead4', // pastel emerald
 ];
 
-const DARK_BG = '#0f172a';
-const DARK_GREY = '#1e293b';
+const LIGHT_GREY_PDF = '#d1d5db';
 const TEXT_WHITE = '#ffffff';
-const TEXT_LIGHT = '#cbd5e1';
-const TEXT_DARK = '#1e293b';
+const TEXT_DARK_PDF = '#374151';
 const HEADER_BG = '#0f172a';
 const ACCENT = '#3b82f6';
 const TEXT_MID = '#94a3b8';
+const TEXT_LIGHT = '#cbd5e1';
 const FOOTER_LINE = '#e2e8f0';
 
 /** Backward compat: migrate string[] children to SitemapChild[] */

@@ -115,7 +115,7 @@ function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; classNa
   );
 }
 
-/** Bold color palette for sub-page/popup border distinction */
+/** 20-color palette: 10 bold + 10 pastel, for node distinction */
 const CHILD_NODE_COLORS = [
   'hsl(346, 77%, 50%)',  // rose
   'hsl(187, 85%, 43%)',  // teal
@@ -127,7 +127,26 @@ const CHILD_NODE_COLORS = [
   'hsl(221, 83%, 53%)',  // blue
   'hsl(0, 84%, 60%)',    // red
   'hsl(168, 76%, 42%)',  // emerald
+  'hsl(350, 80%, 72%)',  // pastel rose
+  'hsl(190, 70%, 65%)',  // pastel teal
+  'hsl(50, 85%, 65%)',   // pastel amber
+  'hsl(270, 70%, 72%)',  // pastel purple
+  'hsl(150, 60%, 62%)',  // pastel green
+  'hsl(30, 80%, 68%)',   // pastel orange
+  'hsl(320, 65%, 70%)',  // pastel pink
+  'hsl(215, 75%, 68%)',  // pastel blue
+  'hsl(5, 75%, 70%)',    // pastel red
+  'hsl(160, 55%, 60%)',  // pastel emerald
 ];
+
+/** Assigns colors ensuring no two adjacent nodes share the same color */
+function getShuffledColorIndex(index: number, prevIndex?: number): number {
+  let ci = index % CHILD_NODE_COLORS.length;
+  if (prevIndex !== undefined && ci === prevIndex % CHILD_NODE_COLORS.length) {
+    ci = (ci + 1) % CHILD_NODE_COLORS.length;
+  }
+  return ci;
+}
 
 /** Returns style for child/tab nodes based on nodeType, with unique color per type-index */
 function getChildNodeStyles(nodeType?: NodeType, colorIndex?: number): { className: string; style: React.CSSProperties } {
@@ -135,22 +154,22 @@ function getChildNodeStyles(nodeType?: NodeType, colorIndex?: number): { classNa
   const color = CHILD_NODE_COLORS[(colorIndex ?? 0) % CHILD_NODE_COLORS.length];
   switch (type) {
     case 'page':
-      // Sub-page: solid black background, unique colored border
+      // Sub-page: full bold color background, no border
       return {
         className: 'text-white font-medium',
-        style: { backgroundColor: '#0f172a', borderColor: color, borderWidth: '2px', borderStyle: 'solid' },
+        style: { backgroundColor: color, borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
       };
     case 'popup':
-      // Pop-up: dark grey background, unique colored dotted border
+      // Pop-up: medium light grey background, colored dotted border
       return {
-        className: 'text-slate-300',
-        style: { backgroundColor: '#1e293b', borderColor: color, borderWidth: '2px', borderStyle: 'dotted' },
+        className: 'text-slate-700',
+        style: { backgroundColor: '#d1d5db', borderColor: color, borderWidth: '2px', borderStyle: 'dotted' },
       };
     case 'tab':
-      // Tab: dark grey background, no border
+      // Tab: medium light grey background, no border
       return {
-        className: 'text-slate-300',
-        style: { backgroundColor: '#1e293b', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+        className: 'text-slate-700',
+        style: { backgroundColor: '#d1d5db', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
       };
     default:
       return {
