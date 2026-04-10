@@ -83,11 +83,36 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
   );
 }
 
-/** Small icon indicator for node type */
-function NodeTypeIcon({ nodeType, className = '' }: { nodeType?: NodeType; className?: string }) {
-  if (!nodeType || nodeType === 'page') return null;
-  const Icon = nodeType === 'popup' ? PanelTop : LayoutGrid;
-  return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+/** Clickable icon indicator for node type — click to change */
+function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
+  const currentType = nodeType || 'page';
+  const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : FileText;
+  
+  if (!onChangeType) {
+    return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={`shrink-0 opacity-50 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20 ${className}`} title="Change node type">
+          <Icon className="h-full w-full" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
+        {NODE_TYPE_OPTIONS.map(opt => (
+          <button
+            key={opt.type}
+            className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`}
+            onClick={() => onChangeType(opt.type)}
+          >
+            <opt.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+            {opt.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 interface LeadOption {
