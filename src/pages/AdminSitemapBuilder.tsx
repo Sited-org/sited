@@ -1041,7 +1041,6 @@ export default function AdminSitemapBuilder() {
                         style={{ backgroundColor: pageColor }}
                       >
                         <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
-                        <NodeTypeIcon nodeType={page.nodeType} className="h-3 w-3" />
                         {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
                           <Input
                             autoFocus value={page.name}
@@ -1087,7 +1086,7 @@ export default function AdminSitemapBuilder() {
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" />
+                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
@@ -1176,7 +1175,9 @@ export default function AdminSitemapBuilder() {
                   </div>
                 );
               })}
-              <AddNodePopover onAdd={(type) => addPage(type)} />
+              <button onClick={() => addPage()} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors w-fit">
+                <Plus className="h-3 w-3" /> Add Page
+              </button>
             </div>
           </div>
         </div>
