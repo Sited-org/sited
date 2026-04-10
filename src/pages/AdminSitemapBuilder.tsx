@@ -312,7 +312,7 @@ function TabNodes({
                     className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
                   />
                 ) : (
-                  <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tPath: currentPath })}>
+                  <span className="whitespace-nowrap" style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tPath: currentPath })}>
                     {tab.name}
                   </span>
                 )}
