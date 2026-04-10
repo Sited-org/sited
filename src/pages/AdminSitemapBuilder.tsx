@@ -84,19 +84,19 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
 }
 
 /** Clickable icon indicator for node type — click to change */
-function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
+function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
   const currentType = nodeType || 'page';
   const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : FileText;
   
   if (!onChangeType) {
-    return <Icon className={`shrink-0 opacity-50 ${className}`} />;
+    return <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" />;
   }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={`shrink-0 opacity-50 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20 ${className}`} title="Change node type">
-          <Icon className="h-full w-full" />
+        <button className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20" title="Change node type">
+          <Icon className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
@@ -106,13 +106,43 @@ function NodeTypeIcon({ nodeType, className = '', onChangeType }: { nodeType?: N
             className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`}
             onClick={() => onChangeType(opt.type)}
           >
-            <opt.icon className="h-3 w-3 text-muted-foreground shrink-0" />
+            <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             {opt.label}
           </button>
         ))}
       </PopoverContent>
     </Popover>
   );
+}
+
+/** Returns style for child/tab nodes based on nodeType */
+function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { className: string; style: React.CSSProperties } {
+  const type = nodeType || 'page';
+  switch (type) {
+    case 'page':
+      // Sub-page: solid border, dark background
+      return {
+        className: 'text-white font-medium',
+        style: { backgroundColor: 'hsl(var(--foreground))', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
+      };
+    case 'popup':
+      // Pop-up: grey background, dotted border
+      return {
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--muted))', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
+      };
+    case 'tab':
+      // Tab: grey background, no border
+      return {
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--muted))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+      };
+    default:
+      return {
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--card))', borderColor: `${pageColor}40`, borderWidth: '2px', borderStyle: 'solid' },
+      };
+  }
 }
 
 interface LeadOption {
@@ -231,14 +261,14 @@ function TabNodes({
                 data-drop-parent-p={depth === 1 ? pIdx : undefined}
                 data-drop-parent-c={depth === 1 ? cIdx : undefined}
                 onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
-                className={`group flex items-center gap-1 bg-muted border px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
+                className={`group flex items-center gap-1 px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
                   depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
-                }`}
-                style={{ borderColor: `${pageColor}30`, opacity: depth > 1 ? 0.85 : 1 }}
+                } ${getChildNodeStyles(tab.nodeType, pageColor).className}`}
+                style={{ ...getChildNodeStyles(tab.nodeType, pageColor).style, opacity: depth > 1 ? 0.85 : 1 }}
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
-                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" onChangeType={(type) => changeTabType(pIdx, cIdx, currentPath, type)} />
+                <NodeTypeIcon nodeType={tab.nodeType} onChangeType={(type) => changeTabType(pIdx, cIdx, currentPath, type)} />
                 {matchesEditing ? (
                   <Input
                     autoFocus value={tab.name}
@@ -1080,16 +1110,16 @@ export default function AdminSitemapBuilder() {
                                 data-drop-index={cIdx}
                                 data-drop-parent-p={pIdx}
                                 onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
-                                className={`group flex items-center gap-1.5 bg-card border-2 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
-                                }`}
+                                } ${getChildNodeStyles(child.nodeType, pageColor).className}`}
                                 style={{
-                                  borderColor: `${pageColor}40`,
-                                  ...(child.linkedFrom?.length ? { borderStyle: 'solid', borderWidth: '2px', boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
+                                  ...getChildNodeStyles(child.nodeType, pageColor).style,
+                                  ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
-                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
+                                <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
