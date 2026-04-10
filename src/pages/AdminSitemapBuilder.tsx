@@ -989,6 +989,7 @@ export default function AdminSitemapBuilder() {
                         style={{ backgroundColor: pageColor }}
                       >
                         <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
+                        <NodeTypeIcon nodeType={page.nodeType} className="h-3 w-3" />
                         {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
                           <Input
                             autoFocus value={page.name}
@@ -1003,9 +1004,9 @@ export default function AdminSitemapBuilder() {
                             {page.name}
                           </span>
                         )}
-                        <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-white/20 rounded p-0.5" onClick={() => addChild(pIdx)} title="Add sub-page">
-                          <Plus className="h-3 w-3" />
-                        </button>
+                        <span className="opacity-0 group-hover:opacity-100 ml-auto">
+                          <AddNodePopover onAdd={(type) => addChild(pIdx, type)} size="xs" />
+                        </span>
                         <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removePage(pIdx)}>
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -1085,9 +1086,9 @@ export default function AdminSitemapBuilder() {
                                     )}
                                   </PopoverContent>
                                 </Popover>
-                                <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
-                                  <Plus className="h-2.5 w-2.5" />
-                                </button>
+                                <span className="opacity-0 group-hover:opacity-100">
+                                  <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" />
+                                </span>
                                 <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
                                   <X className="h-2.5 w-2.5 text-destructive" />
                                 </button>
@@ -1122,9 +1123,7 @@ export default function AdminSitemapBuilder() {
                   </div>
                 );
               })}
-              <button onClick={addPage} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors w-fit">
-                <Plus className="h-3 w-3" /> Add Page
-              </button>
+              <AddNodePopover onAdd={(type) => addPage(type)} />
             </div>
           </div>
         </div>
