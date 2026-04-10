@@ -408,6 +408,7 @@ export default function AdminSitemapBuilder() {
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const sharedChildRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string; dashed?: boolean }[]>([]);
 
   // Color palette for parent-page distinction
