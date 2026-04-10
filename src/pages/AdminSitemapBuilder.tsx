@@ -581,11 +581,12 @@ export default function AdminSitemapBuilder() {
 
   // ── Child helpers ──
 
-  const addChild = (pIdx: number) => {
+  const addChild = (pIdx: number, nodeType: NodeType = 'page') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'tab' ? 'New Tab' : 'Sub Page';
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const existing = pages[pIdx].children || [];
-    pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: 'Sub Page' }] };
+    pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: defaultName, nodeType }] };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
