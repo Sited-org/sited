@@ -612,25 +612,24 @@ export default function AdminSitemapBuilder() {
 
   // ── Tab helpers (supports nested tabs up to 3 levels) ──
 
-  const addTab = (pIdx: number, cIdx: number, parentPath?: number[]) => {
+  const addTab = (pIdx: number, cIdx: number, parentPath?: number[], nodeType: NodeType = 'tab') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'page' ? 'New Page' : 'New Tab';
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
     
     if (parentPath && parentPath.length > 0) {
-      // Adding a nested sub-tab
       const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
       let target: SitemapTab = child.tabs![parentPath[0]];
       for (let i = 1; i < parentPath.length; i++) {
         target = target.tabs![parentPath[i]];
       }
       if (!target.tabs) target.tabs = [];
-      target.tabs.push({ name: 'New Tab' });
+      target.tabs.push({ name: defaultName, nodeType });
       children[cIdx] = child;
     } else {
-      // Adding a top-level tab on a sub-page
       const existing = children[cIdx].tabs || [];
-      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: defaultName, nodeType }] };
     }
     
     pages[pIdx] = { ...pages[pIdx], children };
