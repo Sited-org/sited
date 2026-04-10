@@ -183,6 +183,7 @@ function TabNodes({
   updateTabName,
   removeTab,
   addTab,
+  changeTabType,
   dragItem,
   startDrag,
   isDropping,
@@ -200,6 +201,7 @@ function TabNodes({
   updateTabName: (pIdx: number, cIdx: number, tPath: number[], val: string) => void;
   removeTab: (pIdx: number, cIdx: number, tPath: number[]) => void;
   addTab: (pIdx: number, cIdx: number, parentPath?: number[], nodeType?: NodeType) => void;
+  changeTabType: (pIdx: number, cIdx: number, tPath: number[], nodeType: NodeType) => void;
   dragItem: DragItem;
   startDrag: (item: NonNullable<DragItem>, e: React.PointerEvent) => void;
   isDropping: (type: string, index: number, parentPIdx?: number, parentCIdx?: number) => boolean;
