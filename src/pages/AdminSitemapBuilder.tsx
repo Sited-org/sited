@@ -154,10 +154,10 @@ function getChildNodeStyles(nodeType?: NodeType, colorIndex?: number): { classNa
   const color = CHILD_NODE_COLORS[(colorIndex ?? 0) % CHILD_NODE_COLORS.length];
   switch (type) {
     case 'page':
-      // Sub-page: full bold color background, no border
+      // Sub-page: full bold color background, no border, white text
       return {
-        className: 'text-white font-medium',
-        style: { backgroundColor: color, borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+        className: 'font-medium',
+        style: { backgroundColor: color, borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid', color: '#ffffff' },
       };
     case 'popup':
       // Pop-up: medium light grey background, colored dotted border
