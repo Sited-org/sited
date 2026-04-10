@@ -1193,7 +1193,7 @@ export default function AdminSitemapBuilder() {
                                     className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
                                   />
                                 ) : (
-                                  <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                                  <span className="whitespace-nowrap" style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
                                     {child.name}
                                   </span>
                                 )}
