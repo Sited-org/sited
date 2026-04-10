@@ -149,6 +149,16 @@ function drawDottedLine(doc: jsPDF, x1: number, y1: number, x2: number, y2: numb
   }
 }
 
+function drawDashedElbow(doc: jsPDF, fromX: number, fromY: number, elbowX: number, toY: number, toX: number, color: string, lw: number) {
+  doc.setDrawColor(color);
+  doc.setLineWidth(lw);
+  const dash = 3;
+  const gap = 3;
+  drawDottedLine(doc, fromX, fromY, elbowX, fromY, dash, gap);
+  drawDottedLine(doc, elbowX, fromY, elbowX, toY, dash, gap);
+  drawDottedLine(doc, elbowX, toY, toX, toY, dash, gap);
+}
+
 function drawBrandedHeader(doc: jsPDF, sectionTitle: string, clientLabel: string, docId: string) {
   doc.setFillColor(HEADER_BG);
   doc.rect(0, 0, PW, 48, 'F');
