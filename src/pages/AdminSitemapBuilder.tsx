@@ -801,7 +801,29 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Pointer-based Drag & Drop (smooth "lift" feel) ──
+  /** Unlink the original parent: move child ownership to the first linkedFrom parent */
+  const moveChildToLinkedParent = (pIdx: number, cIdx: number) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = { ...children[cIdx] };
+    const linked = child.linkedFrom || [];
+    if (linked.length === 0) return; // can't remove owner if no other parents
+    const newOwnerIdx = linked[0];
+    // Remove child from current parent
+    children.splice(cIdx, 1);
+    pages[pIdx] = { ...pages[pIdx], children };
+    // Update linkedFrom: remove new owner, add old owner
+    const newLinked = linked.slice(1);
+    newLinked.push(pIdx);
+    child.linkedFrom = newLinked.length > 0 ? newLinked : undefined;
+    // Add child to new owner
+    const newOwnerChildren = [...(pages[newOwnerIdx].children || []), child];
+    pages[newOwnerIdx] = { ...pages[newOwnerIdx], children: newOwnerChildren };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
 
   const dragCloneRef = useRef<HTMLDivElement | null>(null);
   const dragSourceRef = useRef<HTMLElement | null>(null);
@@ -1167,18 +1189,29 @@ export default function AdminSitemapBuilder() {
                                     </button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-48 p-2" side="right" align="start">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Also linked from</p>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Linked pages</p>
                                     {currentSection.pages.map((otherPage, otherPIdx) => {
-                                      if (otherPIdx === pIdx) return null;
-                                      const isLinked = child.linkedFrom?.includes(otherPIdx) || false;
+                                      const isOriginalParent = otherPIdx === pIdx;
+                                      const isLinked = isOriginalParent || (child.linkedFrom?.includes(otherPIdx) || false);
+                                      const hasOtherLinks = isOriginalParent
+                                        ? (child.linkedFrom?.length || 0) > 0
+                                        : true;
                                       return (
                                         <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
                                           <Checkbox
                                             checked={isLinked}
-                                            onCheckedChange={() => toggleLinkedParent(pIdx, cIdx, otherPIdx)}
+                                            disabled={isLinked && !hasOtherLinks}
+                                            onCheckedChange={() => {
+                                              if (isOriginalParent) {
+                                                moveChildToLinkedParent(pIdx, cIdx);
+                                              } else {
+                                                toggleLinkedParent(pIdx, cIdx, otherPIdx);
+                                              }
+                                            }}
                                           />
                                           <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
                                           <span className="truncate">{otherPage.name}</span>
+                                          {isOriginalParent && <span className="text-[9px] text-muted-foreground ml-auto">(owner)</span>}
                                         </label>
                                       );
                                     })}
