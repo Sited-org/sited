@@ -115,29 +115,32 @@ function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; classNa
   );
 }
 
-/** Returns style classes/props for a node based on its nodeType */
-function getNodeTypeStyles(nodeType?: NodeType, pageColor?: string): { className: string; style: React.CSSProperties } {
+/** Returns style for child/tab nodes based on nodeType */
+function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { className: string; style: React.CSSProperties } {
   const type = nodeType || 'page';
   switch (type) {
     case 'page':
+      // Sub-page: solid border, dark background
       return {
-        className: 'text-foreground',
-        style: { backgroundColor: pageColor || 'hsl(var(--primary))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+        className: 'text-white font-medium',
+        style: { backgroundColor: 'hsl(var(--foreground))', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
       };
     case 'popup':
+      // Pop-up: grey background, dotted border
       return {
         className: 'text-muted-foreground',
         style: { backgroundColor: 'hsl(var(--muted))', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
       };
     case 'tab':
+      // Tab: grey background, no border
       return {
         className: 'text-muted-foreground',
         style: { backgroundColor: 'hsl(var(--muted))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
       };
     default:
       return {
-        className: '',
-        style: { backgroundColor: 'hsl(var(--card))', borderColor: pageColor ? `${pageColor}40` : 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'solid' },
+        className: 'text-muted-foreground',
+        style: { backgroundColor: 'hsl(var(--card))', borderColor: `${pageColor}40`, borderWidth: '2px', borderStyle: 'solid' },
       };
   }
 }
