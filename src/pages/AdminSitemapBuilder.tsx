@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
+  FileText, PanelTop, LayoutGrid,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,25 +16,78 @@ import { generateSitemapPDF } from './AdminSitemaps';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+type NodeType = 'page' | 'popup' | 'tab';
+
 interface SitemapTab {
   name: string;
+  nodeType?: NodeType; // defaults to 'tab'
   tabs?: SitemapTab[]; // nested sub-tabs (up to 3 levels)
 }
 
 interface SitemapChild {
   name: string;
+  nodeType?: NodeType; // defaults to 'page'
   tabs?: SitemapTab[];
   linkedFrom?: number[]; // indices of other parent pages that also link here
 }
 
 interface SitemapPage {
   name: string;
+  nodeType?: NodeType; // defaults to 'page'
   children?: SitemapChild[];
 }
 
 interface SitemapSection {
   title: string;
   pages: SitemapPage[];
+}
+
+// ─── Add-Node Popover ──────────────────────────────────────────────────────────
+
+const NODE_TYPE_OPTIONS: { type: NodeType; label: string; icon: typeof FileText; desc: string }[] = [
+  { type: 'page', label: 'Page', icon: FileText, desc: 'A standard page' },
+  { type: 'popup', label: 'Pop-Up', icon: PanelTop, desc: 'A modal / overlay' },
+  { type: 'tab', label: 'Tab', icon: LayoutGrid, desc: 'A tab within a page' },
+];
+
+function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => void; size?: 'sm' | 'xs' }) {
+  const [open, setOpen] = useState(false);
+  const iconSize = size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3';
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={`${size === 'xs' ? 'opacity-0 group-hover:opacity-100' : ''} hover:bg-accent rounded p-0.5 transition-opacity`}
+          title="Add node"
+        >
+          <Plus className={iconSize} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-44 p-1.5" side="right" align="start">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1.5">Add</p>
+        {NODE_TYPE_OPTIONS.map(opt => (
+          <button
+            key={opt.type}
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors"
+            onClick={() => { onAdd(opt.type); setOpen(false); }}
+          >
+            <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div>
+              <span className="font-medium">{opt.label}</span>
+              <p className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</p>
+            </div>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Small icon indicator for node type */
+function NodeTypeIcon({ nodeType, className = '' }: { nodeType?: NodeType; className?: string }) {
+  if (!nodeType || nodeType === 'page') return null;
+  const Icon = nodeType === 'popup' ? PanelTop : LayoutGrid;
+  return <Icon className={`shrink-0 opacity-50 ${className}`} />;
 }
 
 interface LeadOption {
