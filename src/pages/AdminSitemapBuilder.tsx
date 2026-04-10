@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
+  FileText, PanelTop, LayoutGrid,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -15,25 +16,78 @@ import { generateSitemapPDF } from './AdminSitemaps';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
+type NodeType = 'page' | 'popup' | 'tab';
+
 interface SitemapTab {
   name: string;
+  nodeType?: NodeType; // defaults to 'tab'
   tabs?: SitemapTab[]; // nested sub-tabs (up to 3 levels)
 }
 
 interface SitemapChild {
   name: string;
+  nodeType?: NodeType; // defaults to 'page'
   tabs?: SitemapTab[];
   linkedFrom?: number[]; // indices of other parent pages that also link here
 }
 
 interface SitemapPage {
   name: string;
+  nodeType?: NodeType; // defaults to 'page'
   children?: SitemapChild[];
 }
 
 interface SitemapSection {
   title: string;
   pages: SitemapPage[];
+}
+
+// ─── Add-Node Popover ──────────────────────────────────────────────────────────
+
+const NODE_TYPE_OPTIONS: { type: NodeType; label: string; icon: typeof FileText; desc: string }[] = [
+  { type: 'page', label: 'Page', icon: FileText, desc: 'A standard page' },
+  { type: 'popup', label: 'Pop-Up', icon: PanelTop, desc: 'A modal / overlay' },
+  { type: 'tab', label: 'Tab', icon: LayoutGrid, desc: 'A tab within a page' },
+];
+
+function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => void; size?: 'sm' | 'xs' }) {
+  const [open, setOpen] = useState(false);
+  const iconSize = size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3';
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className={`${size === 'xs' ? 'opacity-0 group-hover:opacity-100' : ''} hover:bg-accent rounded p-0.5 transition-opacity`}
+          title="Add node"
+        >
+          <Plus className={iconSize} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-44 p-1.5" side="right" align="start">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1.5">Add</p>
+        {NODE_TYPE_OPTIONS.map(opt => (
+          <button
+            key={opt.type}
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors"
+            onClick={() => { onAdd(opt.type); setOpen(false); }}
+          >
+            <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div>
+              <span className="font-medium">{opt.label}</span>
+              <p className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</p>
+            </div>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Small icon indicator for node type */
+function NodeTypeIcon({ nodeType, className = '' }: { nodeType?: NodeType; className?: string }) {
+  if (!nodeType || nodeType === 'page') return null;
+  const Icon = nodeType === 'popup' ? PanelTop : LayoutGrid;
+  return <Icon className={`shrink-0 opacity-50 ${className}`} />;
 }
 
 interface LeadOption {
@@ -120,7 +174,7 @@ function TabNodes({
   activeSectionIdx: number;
   updateTabName: (pIdx: number, cIdx: number, tPath: number[], val: string) => void;
   removeTab: (pIdx: number, cIdx: number, tPath: number[]) => void;
-  addTab: (pIdx: number, cIdx: number, parentPath?: number[]) => void;
+  addTab: (pIdx: number, cIdx: number, parentPath?: number[], nodeType?: NodeType) => void;
   dragItem: DragItem;
   startDrag: (item: NonNullable<DragItem>, e: React.PointerEvent) => void;
   isDropping: (type: string, index: number, parentPIdx?: number, parentCIdx?: number) => boolean;
@@ -157,6 +211,7 @@ function TabNodes({
               >
                 {depth === 1 && <GripVertical className="h-2.5 w-2.5 opacity-30 shrink-0" />}
                 <div className="rounded-full shrink-0" style={{ width: depth === 1 ? 4 : 3, height: depth === 1 ? 4 : 3, backgroundColor: pageColor, opacity: depthOpacity }} />
+                <NodeTypeIcon nodeType={tab.nodeType} className="h-2 w-2" />
                 {matchesEditing ? (
                   <Input
                     autoFocus value={tab.name}
@@ -171,9 +226,9 @@ function TabNodes({
                   </span>
                 )}
                 {depth < MAX_TAB_DEPTH && (
-                  <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx, currentPath)} title="Add sub-tab">
-                    <Plus className="h-2 w-2" />
-                  </button>
+                  <span className="opacity-0 group-hover:opacity-100">
+                    <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, currentPath, type)} size="xs" />
+                  </span>
                 )}
                 <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-destructive/20 rounded p-0.5" onClick={() => removeTab(pIdx, cIdx, currentPath)}>
                   <X className="h-2 w-2 text-destructive" />
@@ -504,9 +559,10 @@ export default function AdminSitemapBuilder() {
 
   // ── Page helpers ──
 
-  const addPage = () => {
+  const addPage = (nodeType: NodeType = 'page') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'tab' ? 'New Tab' : 'New Page';
     const next = [...sections];
-    next[activeSectionIdx] = { ...next[activeSectionIdx], pages: [...next[activeSectionIdx].pages, { name: 'New Page' }] };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages: [...next[activeSectionIdx].pages, { name: defaultName, nodeType }] };
     setSections(next);
   };
 
@@ -526,11 +582,12 @@ export default function AdminSitemapBuilder() {
 
   // ── Child helpers ──
 
-  const addChild = (pIdx: number) => {
+  const addChild = (pIdx: number, nodeType: NodeType = 'page') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'tab' ? 'New Tab' : 'Sub Page';
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const existing = pages[pIdx].children || [];
-    pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: 'Sub Page' }] };
+    pages[pIdx] = { ...pages[pIdx], children: [...existing, { name: defaultName, nodeType }] };
     next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
     setSections(next);
   };
@@ -556,25 +613,24 @@ export default function AdminSitemapBuilder() {
 
   // ── Tab helpers (supports nested tabs up to 3 levels) ──
 
-  const addTab = (pIdx: number, cIdx: number, parentPath?: number[]) => {
+  const addTab = (pIdx: number, cIdx: number, parentPath?: number[], nodeType: NodeType = 'tab') => {
+    const defaultName = nodeType === 'popup' ? 'New Pop-Up' : nodeType === 'page' ? 'New Page' : 'New Tab';
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
     const children = [...(pages[pIdx].children || [])];
     
     if (parentPath && parentPath.length > 0) {
-      // Adding a nested sub-tab
       const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
       let target: SitemapTab = child.tabs![parentPath[0]];
       for (let i = 1; i < parentPath.length; i++) {
         target = target.tabs![parentPath[i]];
       }
       if (!target.tabs) target.tabs = [];
-      target.tabs.push({ name: 'New Tab' });
+      target.tabs.push({ name: defaultName, nodeType });
       children[cIdx] = child;
     } else {
-      // Adding a top-level tab on a sub-page
       const existing = children[cIdx].tabs || [];
-      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: 'New Tab' }] };
+      children[cIdx] = { ...children[cIdx], tabs: [...existing, { name: defaultName, nodeType }] };
     }
     
     pages[pIdx] = { ...pages[pIdx], children };
@@ -934,6 +990,7 @@ export default function AdminSitemapBuilder() {
                         style={{ backgroundColor: pageColor }}
                       >
                         <GripVertical className="h-3 w-3 opacity-40 shrink-0" />
+                        <NodeTypeIcon nodeType={page.nodeType} className="h-3 w-3" />
                         {editingNode?.type === 'page' && editingNode.pIdx === pIdx ? (
                           <Input
                             autoFocus value={page.name}
@@ -948,9 +1005,9 @@ export default function AdminSitemapBuilder() {
                             {page.name}
                           </span>
                         )}
-                        <button className="opacity-0 group-hover:opacity-100 ml-auto hover:bg-white/20 rounded p-0.5" onClick={() => addChild(pIdx)} title="Add sub-page">
-                          <Plus className="h-3 w-3" />
-                        </button>
+                        <span className="opacity-0 group-hover:opacity-100 ml-auto">
+                          <AddNodePopover onAdd={(type) => addChild(pIdx, type)} size="xs" />
+                        </span>
                         <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removePage(pIdx)}>
                           <Trash2 className="h-3 w-3" />
                         </button>
@@ -979,6 +1036,7 @@ export default function AdminSitemapBuilder() {
                                 }}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                                <NodeTypeIcon nodeType={child.nodeType} className="h-2.5 w-2.5" />
                                 {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
@@ -1030,9 +1088,9 @@ export default function AdminSitemapBuilder() {
                                     )}
                                   </PopoverContent>
                                 </Popover>
-                                <button className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5" onClick={() => addTab(pIdx, cIdx)} title="Add tab">
-                                  <Plus className="h-2.5 w-2.5" />
-                                </button>
+                                <span className="opacity-0 group-hover:opacity-100">
+                                  <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" />
+                                </span>
                                 <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
                                   <X className="h-2.5 w-2.5 text-destructive" />
                                 </button>
@@ -1067,9 +1125,7 @@ export default function AdminSitemapBuilder() {
                   </div>
                 );
               })}
-              <button onClick={addPage} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg px-3 py-1.5 transition-colors w-fit">
-                <Plus className="h-3 w-3" /> Add Page
-              </button>
+              <AddNodePopover onAdd={(type) => addPage(type)} />
             </div>
           </div>
         </div>
