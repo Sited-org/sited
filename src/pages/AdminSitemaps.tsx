@@ -315,13 +315,24 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
         const childElbowX = pageRightX + 16;
 
         children.forEach((child, cIdx) => {
-          const childY = childStartY + cIdx * (childH + childGap);
-          const childMidY = childY + childH / 2;
+          const isShared = child.linkedFrom && child.linkedFrom.length > 0;
+
+          // Compute Y position: shared children sit at midpoint of all parents
+          let childMidY: number;
+          if (isShared) {
+            const allParentIndices = [pIdx, ...child.linkedFrom!];
+            const parentMidYs = allParentIndices
+              .filter(pi => pi >= 0 && pi < pages.length)
+              .map(pi => pageStartY + pi * (pageH + pageGap) + pageH / 2);
+            childMidY = parentMidYs.reduce((a, b) => a + b, 0) / parentMidYs.length;
+          } else {
+            childMidY = childStartY + cIdx * (childH + childGap) + childH / 2;
+          }
+          const childY = childMidY - childH / 2;
           const childType = child.nodeType || 'page';
           const childColor = CHILD_NODE_COLORS_PDF[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS_PDF.length];
 
-          // Determine if this child is shared (has linkedFrom parents)
-          const isShared = child.linkedFrom && child.linkedFrom.length > 0;
+          // Connectors
 
           // Elbow connector from primary parent (use page color, dashed if shared)
           if (isShared) {

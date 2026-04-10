@@ -408,6 +408,7 @@ export default function AdminSitemapBuilder() {
   const pageNodeRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const sharedChildRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string; dashed?: boolean }[]>([]);
 
   // Color palette for parent-page distinction
@@ -525,6 +526,46 @@ export default function AdminSitemapBuilder() {
     });
 
     setConnectorLines(lines);
+
+    // Position shared (multi-parent) children at midpoint of all parents
+    if (canvasRef.current) {
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const scrollLeft = canvasRef.current.scrollLeft;
+      const scrollTop = canvasRef.current.scrollTop;
+
+      currentSection?.pages.forEach((page, pIdx) => {
+        page.children?.forEach((child, cIdx) => {
+          if (!child.linkedFrom?.length) return;
+          const el = sharedChildRefs.current.get(`${pIdx}-${cIdx}`);
+          if (!el) return;
+
+          const parentIndices = [pIdx, ...child.linkedFrom];
+          let totalMidY = 0;
+          let count = 0;
+          parentIndices.forEach(pi => {
+            const pageEl = pageNodeRefs.current.get(pi);
+            if (pageEl) {
+              const pr = pageEl.getBoundingClientRect();
+              totalMidY += pr.top + pr.height / 2;
+              count++;
+            }
+          });
+          if (count === 0) return;
+
+          const avgMidY = totalMidY / count;
+          const topInCanvas = avgMidY - canvasRect.top + scrollTop - el.offsetHeight / 2;
+
+          // X: align with children column (first page right edge + gap)
+          const ownerPageEl = pageNodeRefs.current.get(pIdx);
+          if (ownerPageEl) {
+            const pRight = ownerPageEl.getBoundingClientRect().right;
+            const leftInCanvas = pRight - canvasRect.left + scrollLeft + 48; // gap-12 = 3rem
+            el.style.left = `${leftInCanvas}px`;
+          }
+          el.style.top = `${topInCanvas}px`;
+        });
+      });
+    }
   }, [currentSection]);
 
   useEffect(() => {
@@ -1138,7 +1179,10 @@ export default function AdminSitemapBuilder() {
                     {/* Sub-pages for this page */}
                     {page.children && page.children.length > 0 && (
                       <div className="flex flex-col gap-1.5">
-                        {page.children.map((child, cIdx) => (
+                        {page.children.map((child, cIdx) => {
+                          // Skip shared (multi-parent) children — they render in the floating layer
+                          if (child.linkedFrom?.length) return null;
+                          return (
                           <div key={cIdx} className="flex items-start gap-10">
                             <div>
                               {isDropping('child', cIdx, pIdx) && <div className="h-1 rounded-full mb-1 mx-2 transition-all" style={{ backgroundColor: pageColor, opacity: 0.5 }} />}
@@ -1151,19 +1195,12 @@ export default function AdminSitemapBuilder() {
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
-                                style={{
-                                  ...getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style,
-                                  ...(child.linkedFrom?.length ? { boxShadow: `0 0 0 1px ${pageColor}20` } : {}),
-                                }}
+                                style={getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style}
                               >
                                 <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
                                 <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
-                                {/* Show linked parent color dots */}
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pageColor, opacity: 0.6 }} />
-                                  {child.linkedFrom?.map(lpIdx => (
-                                    <div key={lpIdx} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[lpIdx % PAGE_COLORS.length], opacity: 0.6 }} />
-                                  ))}
                                 </div>
                                 {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
                                   <Input
@@ -1178,11 +1215,10 @@ export default function AdminSitemapBuilder() {
                                     {child.name}
                                   </span>
                                 )}
-                                {/* Link to other parents */}
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <button
-                                      className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`}
+                                      className="opacity-0 group-hover:opacity-100 hover:bg-accent rounded p-0.5 transition-opacity"
                                       title="Link to other pages"
                                     >
                                       <Link2 className="h-2.5 w-2.5" />
@@ -1251,7 +1287,8 @@ export default function AdminSitemapBuilder() {
                               />
                             )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -1262,6 +1299,120 @@ export default function AdminSitemapBuilder() {
               </button>
             </div>
           </div>
+
+          {/* Floating layer for shared (multi-parent) children */}
+          {currentSection.pages.map((page, pIdx) =>
+            page.children?.map((child, cIdx) => {
+              if (!child.linkedFrom?.length) return null;
+              const allParentIndices = [pIdx, ...child.linkedFrom];
+              return (
+                <div
+                  key={`shared-${pIdx}-${cIdx}`}
+                  ref={el => { const k = `${pIdx}-${cIdx}`; if (el) { sharedChildRefs.current.set(k, el); childNodeRefs.current.set(k, el.querySelector('[data-child-node]') as HTMLDivElement); } else { sharedChildRefs.current.delete(k); childNodeRefs.current.delete(k); } }}
+                  className="absolute z-20 flex items-start gap-10"
+                  style={{ left: 0, top: 0 }}
+                >
+                  <div
+                    data-child-node
+                    data-drop-type="child"
+                    data-drop-index={cIdx}
+                    data-drop-parent-p={pIdx}
+                    onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                    className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
+                      dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
+                    } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
+                    style={getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).style}
+                  >
+                    <GripVertical className="h-3 w-3 opacity-30 shrink-0" />
+                    <NodeTypeIcon nodeType={child.nodeType} onChangeType={(type) => changeChildType(pIdx, cIdx, type)} />
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {allParentIndices.map(pi => (
+                        <div key={pi} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: PAGE_COLORS[pi % PAGE_COLORS.length], opacity: 0.6 }} />
+                      ))}
+                    </div>
+                    {editingNode?.type === 'child' && editingNode.pIdx === pIdx && editingNode.cIdx === cIdx ? (
+                      <Input
+                        autoFocus value={child.name}
+                        onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
+                        onBlur={() => setEditingNode(null)}
+                        onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
+                        className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
+                      />
+                    ) : (
+                      <span className="text-muted-foreground whitespace-nowrap" onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                        {child.name}
+                      </span>
+                    )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className="opacity-70 hover:bg-accent rounded p-0.5 transition-opacity"
+                          title="Link to other pages"
+                        >
+                          <Link2 className="h-2.5 w-2.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-2" side="right" align="start">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Linked pages</p>
+                        {currentSection.pages.map((otherPage, otherPIdx) => {
+                          const isOriginalParent = otherPIdx === pIdx;
+                          const isLinked = isOriginalParent || (child.linkedFrom?.includes(otherPIdx) || false);
+                          const hasOtherLinks = isOriginalParent
+                            ? (child.linkedFrom?.length || 0) > 0
+                            : true;
+                          return (
+                            <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
+                              <Checkbox
+                                checked={isLinked}
+                                disabled={isLinked && !hasOtherLinks}
+                                onCheckedChange={() => {
+                                  if (isOriginalParent) {
+                                    moveChildToLinkedParent(pIdx, cIdx);
+                                  } else {
+                                    toggleLinkedParent(pIdx, cIdx, otherPIdx);
+                                  }
+                                }}
+                              />
+                              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
+                              <span className="truncate">{otherPage.name}</span>
+                            </label>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    <span className="opacity-0 group-hover:opacity-100">
+                      <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" />
+                    </span>
+                    <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}>
+                      <X className="h-2.5 w-2.5 text-destructive" />
+                    </button>
+                  </div>
+
+                  {child.tabs && child.tabs.length > 0 && (
+                    <TabNodes
+                      tabs={child.tabs}
+                      pIdx={pIdx}
+                      cIdx={cIdx}
+                      parentPath={[]}
+                      depth={1}
+                      pageColor={PAGE_COLORS[pIdx % PAGE_COLORS.length]}
+                      tabNodeRefs={tabNodeRefs}
+                      editingNode={editingNode}
+                      setEditingNode={setEditingNode}
+                      activeSectionIdx={activeSectionIdx}
+                      updateTabName={updateTabName}
+                      removeTab={removeTab}
+                      addTab={addTab}
+                      changeTabType={changeTabType}
+                      dragItem={dragItem}
+                      startDrag={startDrag}
+                      isDropping={isDropping}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>
