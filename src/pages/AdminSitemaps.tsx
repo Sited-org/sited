@@ -54,30 +54,46 @@ interface LeadOption {
   business_name: string | null;
 }
 
-// ─── PDF Brand Constants ───────────────────────────────────────────────────────
-
-const DARK_BG = '#0f172a';
-const ACCENT = '#3b82f6';
-const ACCENT_LIGHT = '#60a5fa';
-const TEXT_WHITE = '#ffffff';
-const TEXT_LIGHT = '#cbd5e1';
-const TEXT_MID = '#94a3b8';
-const TEXT_DARK = '#1e293b';
-const NODE_BG = '#1e293b';
-const NODE_PAGE = '#3b82f6';
-const NODE_CHILD_BG = '#f1f5f9';
-const NODE_CHILD_BORDER = '#e2e8f0';
-const TAB_BG = '#dbeafe';
-const TAB_BORDER = '#93c5fd';
-const FOOTER_LINE = '#334155';
-const SUBTLE_LINE = '#334155';
+// ─── PDF Constants ─────────────────────────────────────────────────────────────
 
 const PW = 841.89;
 const PH = 595.28;
-const ML = 57;
-const MR = 57;
-const MT = 28;
-const MB = 28;
+const ML = 40;
+const MR = 40;
+
+const PAGE_COLORS_PDF = [
+  '#3b82f6', // blue
+  '#8b5cf6', // purple
+  '#22c55e', // green
+  '#f97316', // orange
+  '#ef4444', // rose
+  '#14b8a6', // teal
+  '#eab308', // amber
+  '#d946ef', // pink
+];
+
+const CHILD_NODE_COLORS_PDF = [
+  '#e11d48', // rose
+  '#0891b2', // teal
+  '#ca8a04', // amber
+  '#7c3aed', // purple
+  '#16a34a', // green
+  '#ea580c', // orange
+  '#c026d3', // pink
+  '#2563eb', // blue
+  '#dc2626', // red
+  '#0d9488', // emerald
+];
+
+const DARK_BG = '#0f172a';
+const DARK_GREY = '#1e293b';
+const TEXT_WHITE = '#ffffff';
+const TEXT_LIGHT = '#cbd5e1';
+const TEXT_DARK = '#1e293b';
+const HEADER_BG = '#0f172a';
+const ACCENT = '#3b82f6';
+const TEXT_MID = '#94a3b8';
+const FOOTER_LINE = '#e2e8f0';
 
 /** Backward compat: migrate string[] children to SitemapChild[] */
 function migrateChild(c: any): SitemapChild {
@@ -85,58 +101,93 @@ function migrateChild(c: any): SitemapChild {
   return c;
 }
 
-// ─── Branded PDF Generation ───────────────────────────────────────────────────
+// ─── PDF Helper: Draw nodes matching builder styles ───────────────────────────
+
+function drawRoundedRect(doc: jsPDF, x: number, y: number, w: number, h: number, r: number, fill: string, stroke?: string, strokeWidth?: number, strokeStyle?: 'solid' | 'dotted') {
+  doc.setFillColor(fill);
+  if (stroke) {
+    doc.setDrawColor(stroke);
+    doc.setLineWidth(strokeWidth || 1.5);
+    if (strokeStyle === 'dotted') {
+      // Draw filled rect, then dotted border manually
+      doc.roundedRect(x, y, w, h, r, r, 'F');
+      drawDottedRect(doc, x, y, w, h, r, stroke, strokeWidth || 1.5);
+    } else {
+      doc.roundedRect(x, y, w, h, r, r, 'FD');
+    }
+  } else {
+    doc.roundedRect(x, y, w, h, r, r, 'F');
+  }
+}
+
+function drawDottedRect(doc: jsPDF, x: number, y: number, w: number, h: number, r: number, color: string, lw: number) {
+  doc.setDrawColor(color);
+  doc.setLineWidth(lw);
+  const gap = 4;
+  const dash = 3;
+  // Top edge
+  drawDottedLine(doc, x + r, y, x + w - r, y, dash, gap);
+  // Right edge
+  drawDottedLine(doc, x + w, y + r, x + w, y + h - r, dash, gap);
+  // Bottom edge
+  drawDottedLine(doc, x + w - r, y + h, x + r, y + h, dash, gap);
+  // Left edge
+  drawDottedLine(doc, x, y + h - r, x, y + r, dash, gap);
+}
+
+function drawDottedLine(doc: jsPDF, x1: number, y1: number, x2: number, y2: number, dash: number, gap: number) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  let pos = 0;
+  while (pos < len) {
+    const end = Math.min(pos + dash, len);
+    doc.line(x1 + ux * pos, y1 + uy * pos, x1 + ux * end, y1 + uy * end);
+    pos = end + gap;
+  }
+}
 
 function drawBrandedHeader(doc: jsPDF, sectionTitle: string, clientLabel: string, docId: string) {
-  // Full-width dark header bar
-  doc.setFillColor(DARK_BG);
-  doc.rect(0, 0, PW, 56, 'F');
-
-  // Accent line under header
+  doc.setFillColor(HEADER_BG);
+  doc.rect(0, 0, PW, 48, 'F');
   doc.setFillColor(ACCENT);
-  doc.rect(0, 56, PW, 2.5, 'F');
+  doc.rect(0, 48, PW, 2, 'F');
 
-  // SITED.CO logo — top left, Poppins Bold simulation with Helvetica Bold (closest available)
   doc.setTextColor(TEXT_WHITE);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text('SITED.CO', ML, 37);
+  doc.setFontSize(16);
+  doc.text('SITED.CO', ML, 32);
 
-  // Client ID & Doc ID — top right
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(TEXT_LIGHT);
   if (clientLabel && clientLabel !== '—') {
-    doc.text(`Client: ${clientLabel}`, PW - MR, 24, { align: 'right' });
+    doc.text(`Client: ${clientLabel}`, PW - MR, 22, { align: 'right' });
   }
-  doc.text(`Doc ID: ${docId}`, PW - MR, 36, { align: 'right' });
+  doc.text(`Doc ID: ${docId}`, PW - MR, 32, { align: 'right' });
 
-  // Section title — subtle, below the accent line
   doc.setTextColor(TEXT_MID);
-  doc.setFontSize(9);
-  doc.text(sectionTitle, ML, 74);
+  doc.setFontSize(8);
+  doc.text(sectionTitle, ML, 64);
 }
 
 function drawBrandedFooter(doc: jsPDF, pageNum: number, totalPages: number, sitemapName: string) {
-  const footerY = PH - 32;
-
-  // Separator line
+  const footerY = PH - 28;
   doc.setDrawColor(FOOTER_LINE);
   doc.setLineWidth(0.5);
   doc.line(ML, footerY, PW - MR, footerY);
 
-  // Left: brand tagline
   doc.setTextColor(TEXT_MID);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('SITED.CO — Web Design & Development', ML, footerY + 14);
-
-  // Center: sitemap name
-  doc.text(sitemapName, PW / 2, footerY + 14, { align: 'center' });
-
-  // Right: page counter
-  doc.text(`${pageNum} / ${totalPages}`, PW - MR, footerY + 14, { align: 'right' });
+  doc.setFontSize(6.5);
+  doc.text('SITED.CO — Web Design & Development', ML, footerY + 12);
+  doc.text(sitemapName, PW / 2, footerY + 12, { align: 'center' });
+  doc.text(`${pageNum} / ${totalPages}`, PW - MR, footerY + 12, { align: 'right' });
 }
+
+// ─── Branded PDF Generation ───────────────────────────────────────────────────
 
 export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: string) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
@@ -159,7 +210,6 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
       .eq('id', sitemap.id);
   } catch { downloadCount = 1; }
 
-  // Build document identifier
   const shortId = sitemap.id.slice(0, 8).toUpperCase();
   const docId = `SM-${shortId}-${String(downloadCount).padStart(4, '0')}`;
   const clientDisplay = leadLabel || '—';
@@ -167,50 +217,50 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
   sections.forEach((section, sIdx) => {
     if (sIdx > 0) doc.addPage();
 
+    // White background (default)
     drawBrandedHeader(doc, section.title, clientDisplay, docId);
     drawBrandedFooter(doc, sIdx + 1, sections.length, sitemap.name);
 
     const pages = section.pages;
     if (!pages.length) {
       doc.setTextColor(TEXT_MID);
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.text('No pages in this section', PW / 2, PH / 2, { align: 'center' });
       return;
     }
 
-    const contentTop = 90;
-    const contentBottom = PH - 48;
+    const contentTop = 78;
+    const contentBottom = PH - 38;
     const contentHeight = contentBottom - contentTop;
 
-    // Column layout
-    const rootW = 130;
-    const rootH = 36;
+    // Column X positions
+    const rootW = 120;
+    const rootH = 32;
     const rootX = ML;
     const rootCY = contentTop + contentHeight / 2;
     const rootY = rootCY - rootH / 2;
 
-    const pageColX = rootX + rootW + 70;
-    const pageW = 120;
-    const pageH = 30;
+    const pageColX = rootX + rootW + 60;
+    const pageW = 110;
+    const pageH = 28;
 
-    const childColX = pageColX + pageW + 60;
-    const childW = 110;
-    const childH = 26;
+    const childColX = pageColX + pageW + 50;
+    const childW = 100;
+    const childH = 24;
 
-    const tabColX = childColX + childW + 50;
-    const tabW = 100;
-    const tabH = 22;
+    const tabColX = childColX + childW + 40;
+    const tabW = 90;
+    const tabH = 20;
 
-    // Root node — dark card
-    doc.setFillColor(NODE_BG);
-    doc.roundedRect(rootX, rootY, rootW, rootH, 6, 6, 'F');
+    // ── Root / Section node (dark card, matching builder) ──
+    drawRoundedRect(doc, rootX, rootY, rootW, rootH, 6, DARK_BG);
     doc.setTextColor(TEXT_WHITE);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3.5, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3, { align: 'center' });
 
-    // Layout pages
-    const pageGap = Math.min(10, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
+    // Layout pages vertically
+    const pageGap = Math.min(8, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
     const totalPageH = pages.length * pageH + (pages.length - 1) * pageGap;
     let pageStartY = contentTop + (contentHeight - totalPageH) / 2;
     if (pageStartY < contentTop) pageStartY = contentTop;
@@ -219,93 +269,121 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
     const rootMidY = rootY + rootH / 2;
 
     pages.forEach((page, pIdx) => {
+      const pageColor = PAGE_COLORS_PDF[pIdx % PAGE_COLORS_PDF.length];
       const pageY = pageStartY + pIdx * (pageH + pageGap);
       const pageMidY = pageY + pageH / 2;
 
-      // Elbow connector: root → page
-      doc.setDrawColor(ACCENT_LIGHT);
+      // Elbow connector: root → page (colored per page)
+      doc.setDrawColor(pageColor);
       doc.setLineWidth(1.2);
-      const eX = rootRightX + 35;
+      const eX = rootRightX + 30;
       doc.line(rootRightX, rootMidY, eX, rootMidY);
       doc.line(eX, rootMidY, eX, pageMidY);
       doc.line(eX, pageMidY, pageColX, pageMidY);
 
-      // Small dot at connection point
-      doc.setFillColor(ACCENT_LIGHT);
+      // Small colored dot
+      doc.setFillColor(pageColor);
       doc.circle(pageColX, pageMidY, 2, 'F');
 
-      // Page node
-      doc.setFillColor(NODE_PAGE);
-      doc.roundedRect(pageColX, pageY, pageW, pageH, 5, 5, 'F');
+      // ── Page node (solid colored background, matching builder) ──
+      drawRoundedRect(doc, pageColX, pageY, pageW, pageH, 5, pageColor);
       doc.setTextColor(TEXT_WHITE);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      const tName = page.name.length > 16 ? page.name.substring(0, 15) + '…' : page.name;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      const tName = page.name.length > 15 ? page.name.substring(0, 14) + '…' : page.name;
       doc.text(tName, pageColX + pageW / 2, pageY + pageH / 2 + 3, { align: 'center' });
 
       // Children
       const children = (page.children || []).map(migrateChild);
       if (children.length) {
-        const childGap = 5;
+        const childGap = 4;
         const totalChildH = children.length * childH + (children.length - 1) * childGap;
         let childStartY = pageMidY - totalChildH / 2;
         if (childStartY < contentTop) childStartY = contentTop;
 
         const pageRightX = pageColX + pageW;
-        const childElbowX = pageRightX + 18;
+        const childElbowX = pageRightX + 16;
 
         children.forEach((child, cIdx) => {
           const childY = childStartY + cIdx * (childH + childGap);
           const childMidY = childY + childH / 2;
+          const childType = child.nodeType || 'page';
+          const childColor = CHILD_NODE_COLORS_PDF[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS_PDF.length];
 
-          // Elbow connector
-          doc.setDrawColor(NODE_CHILD_BORDER);
+          // Elbow connector (use page color)
+          doc.setDrawColor(pageColor);
           doc.setLineWidth(1);
           doc.line(pageRightX, pageMidY, childElbowX, pageMidY);
           doc.line(childElbowX, pageMidY, childElbowX, childMidY);
           doc.line(childElbowX, childMidY, childColX, childMidY);
-          doc.setFillColor(NODE_CHILD_BORDER);
+
+          // Color dot at child
+          doc.setFillColor(childColor);
           doc.circle(childColX, childMidY, 1.5, 'F');
 
-          // Child node
-          doc.setFillColor(NODE_CHILD_BG);
-          doc.setDrawColor(NODE_CHILD_BORDER);
-          doc.roundedRect(childColX, childY, childW, childH, 4, 4, 'FD');
-          doc.setTextColor(TEXT_DARK);
-          doc.setFontSize(8);
-          const tChild = child.name.length > 14 ? child.name.substring(0, 13) + '…' : child.name;
-          doc.text(tChild, childColX + childW / 2, childY + childH / 2 + 3, { align: 'center' });
+          // ── Child node styled by type (matching builder) ──
+          if (childType === 'page') {
+            // Solid dark background + colored solid border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_BG, childColor, 1.5, 'solid');
+            doc.setTextColor(TEXT_WHITE);
+          } else if (childType === 'popup') {
+            // Dark grey background + colored dotted border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_GREY, childColor, 1.5, 'dotted');
+            doc.setTextColor(TEXT_LIGHT);
+          } else {
+            // Tab: dark grey, no border
+            drawRoundedRect(doc, childColX, childY, childW, childH, 4, DARK_GREY);
+            doc.setTextColor(TEXT_LIGHT);
+          }
+
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          const tChild = child.name.length > 13 ? child.name.substring(0, 12) + '…' : child.name;
+          doc.text(tChild, childColX + childW / 2, childY + childH / 2 + 2.5, { align: 'center' });
 
           // Tabs
           const tabs = child.tabs || [];
           if (tabs.length) {
-            const tabGap = 4;
+            const tabGap = 3;
             const totalTabH = tabs.length * tabH + (tabs.length - 1) * tabGap;
             let tabStartY = childMidY - totalTabH / 2;
             if (tabStartY < contentTop) tabStartY = contentTop;
 
             const childRightX = childColX + childW;
-            const tabElbowX = childRightX + 14;
+            const tabElbowX = childRightX + 12;
 
             tabs.forEach((tab, tIdx) => {
               const tabY = tabStartY + tIdx * (tabH + tabGap);
               const tabMidY = tabY + tabH / 2;
+              const tabType = tab.nodeType || 'tab';
+              const tabColor = CHILD_NODE_COLORS_PDF[(pIdx * 100 + cIdx * 10 + tIdx) % CHILD_NODE_COLORS_PDF.length];
 
-              doc.setDrawColor(TAB_BORDER);
+              // Connector
+              doc.setDrawColor(childColor);
               doc.setLineWidth(0.8);
               doc.line(childRightX, childMidY, tabElbowX, childMidY);
               doc.line(tabElbowX, childMidY, tabElbowX, tabMidY);
               doc.line(tabElbowX, tabMidY, tabColX, tabMidY);
-              doc.setFillColor(TAB_BORDER);
+
+              doc.setFillColor(tabColor);
               doc.circle(tabColX, tabMidY, 1.2, 'F');
 
-              doc.setFillColor(TAB_BG);
-              doc.setDrawColor(TAB_BORDER);
-              doc.roundedRect(tabColX, tabY, tabW, tabH, 3, 3, 'FD');
-              doc.setTextColor(TEXT_DARK);
-              doc.setFontSize(7);
-              const tTab = tab.name.length > 13 ? tab.name.substring(0, 12) + '…' : tab.name;
-              doc.text(tTab, tabColX + tabW / 2, tabY + tabH / 2 + 2.5, { align: 'center' });
+              // Tab node styled by type
+              if (tabType === 'page') {
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_BG, tabColor, 1.2, 'solid');
+                doc.setTextColor(TEXT_WHITE);
+              } else if (tabType === 'popup') {
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_GREY, tabColor, 1.2, 'dotted');
+                doc.setTextColor(TEXT_LIGHT);
+              } else {
+                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, DARK_GREY);
+                doc.setTextColor(TEXT_LIGHT);
+              }
+
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(6.5);
+              const tTab = tab.name.length > 12 ? tab.name.substring(0, 11) + '…' : tab.name;
+              doc.text(tTab, tabColX + tabW / 2, tabY + tabH / 2 + 2, { align: 'center' });
             });
           }
         });
