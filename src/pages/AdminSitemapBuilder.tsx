@@ -126,16 +126,16 @@ function getChildNodeStyles(nodeType?: NodeType, pageColor?: string): { classNam
         style: { backgroundColor: 'hsl(var(--foreground))', borderColor: pageColor || 'hsl(var(--primary))', borderWidth: '2px', borderStyle: 'solid' },
       };
     case 'popup':
-      // Pop-up: grey background, dotted border
+      // Pop-up: dark grey background, dotted border
       return {
-        className: 'text-muted-foreground',
-        style: { backgroundColor: 'hsl(var(--muted))', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
+        className: 'text-slate-300',
+        style: { backgroundColor: '#1e293b', borderColor: pageColor || 'hsl(var(--border))', borderWidth: '2px', borderStyle: 'dotted' },
       };
     case 'tab':
-      // Tab: grey background, no border
+      // Tab: dark grey background, no border
       return {
-        className: 'text-muted-foreground',
-        style: { backgroundColor: 'hsl(var(--muted))', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+        className: 'text-slate-300',
+        style: { backgroundColor: '#1e293b', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
       };
     default:
       return {
