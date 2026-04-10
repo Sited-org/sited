@@ -801,7 +801,29 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
-  // ── Pointer-based Drag & Drop (smooth "lift" feel) ──
+  /** Unlink the original parent: move child ownership to the first linkedFrom parent */
+  const moveChildToLinkedParent = (pIdx: number, cIdx: number) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = { ...children[cIdx] };
+    const linked = child.linkedFrom || [];
+    if (linked.length === 0) return; // can't remove owner if no other parents
+    const newOwnerIdx = linked[0];
+    // Remove child from current parent
+    children.splice(cIdx, 1);
+    pages[pIdx] = { ...pages[pIdx], children };
+    // Update linkedFrom: remove new owner, add old owner
+    const newLinked = linked.slice(1);
+    newLinked.push(pIdx);
+    child.linkedFrom = newLinked.length > 0 ? newLinked : undefined;
+    // Add child to new owner
+    const newOwnerChildren = [...(pages[newOwnerIdx].children || []), child];
+    pages[newOwnerIdx] = { ...pages[newOwnerIdx], children: newOwnerChildren };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
 
   const dragCloneRef = useRef<HTMLDivElement | null>(null);
   const dragSourceRef = useRef<HTMLElement | null>(null);
