@@ -149,6 +149,16 @@ function drawDottedLine(doc: jsPDF, x1: number, y1: number, x2: number, y2: numb
   }
 }
 
+function drawDashedElbow(doc: jsPDF, fromX: number, fromY: number, elbowX: number, toY: number, toX: number, color: string, lw: number) {
+  doc.setDrawColor(color);
+  doc.setLineWidth(lw);
+  const dash = 3;
+  const gap = 3;
+  drawDottedLine(doc, fromX, fromY, elbowX, fromY, dash, gap);
+  drawDottedLine(doc, elbowX, fromY, elbowX, toY, dash, gap);
+  drawDottedLine(doc, elbowX, toY, toX, toY, dash, gap);
+}
+
 function drawBrandedHeader(doc: jsPDF, sectionTitle: string, clientLabel: string, docId: string) {
   doc.setFillColor(HEADER_BG);
   doc.rect(0, 0, PW, 48, 'F');
@@ -310,16 +320,42 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
           const childType = child.nodeType || 'page';
           const childColor = CHILD_NODE_COLORS_PDF[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS_PDF.length];
 
-          // Elbow connector (use page color)
-          doc.setDrawColor(pageColor);
-          doc.setLineWidth(1);
-          doc.line(pageRightX, pageMidY, childElbowX, pageMidY);
-          doc.line(childElbowX, pageMidY, childElbowX, childMidY);
-          doc.line(childElbowX, childMidY, childColX, childMidY);
+          // Determine if this child is shared (has linkedFrom parents)
+          const isShared = child.linkedFrom && child.linkedFrom.length > 0;
 
-          // Color dot at child
-          doc.setFillColor(childColor);
-          doc.circle(childColX, childMidY, 1.5, 'F');
+          // Elbow connector from primary parent (use page color, dashed if shared)
+          if (isShared) {
+            drawDashedElbow(doc, pageRightX, pageMidY, childElbowX, childMidY, childColX, pageColor, 1);
+          } else {
+            doc.setDrawColor(pageColor);
+            doc.setLineWidth(1);
+            doc.line(pageRightX, pageMidY, childElbowX, pageMidY);
+            doc.line(childElbowX, pageMidY, childElbowX, childMidY);
+            doc.line(childElbowX, childMidY, childColX, childMidY);
+          }
+
+          // Color dot at child for primary parent
+          doc.setFillColor(pageColor);
+          doc.circle(childColX - 3, childMidY, 1.5, 'F');
+
+          // Draw connectors from linked parent pages
+          if (isShared) {
+            child.linkedFrom!.forEach(lpIdx => {
+              if (lpIdx < 0 || lpIdx >= pages.length) return;
+              const lpColor = PAGE_COLORS_PDF[lpIdx % PAGE_COLORS_PDF.length];
+              const lpY = pageStartY + lpIdx * (pageH + pageGap);
+              const lpMidY = lpY + pageH / 2;
+              const lpElbowX = pageColX + pageW + 16;
+              drawDashedElbow(doc, pageColX + pageW, lpMidY, lpElbowX, childMidY, childColX, lpColor, 1);
+              // Additional colored dot for each linked parent
+              doc.setFillColor(lpColor);
+              doc.circle(childColX - 3 - (child.linkedFrom!.indexOf(lpIdx) + 1) * 3.5, childMidY, 1.5, 'F');
+            });
+          } else {
+            // Single dot (original childColor)
+            doc.setFillColor(childColor);
+            doc.circle(childColX, childMidY, 1.5, 'F');
+          }
 
           // ── Child node styled by type (matching builder) ──
           if (childType === 'page') {
