@@ -617,6 +617,32 @@ export default function AdminSitemapBuilder() {
     setSections(next);
   };
 
+  const changeChildType = (pIdx: number, cIdx: number, nodeType: NodeType) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    children[cIdx] = { ...children[cIdx], nodeType };
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
+  const changeTabType = (pIdx: number, cIdx: number, tPath: number[], nodeType: NodeType) => {
+    const next = [...sections];
+    const pages = [...next[activeSectionIdx].pages];
+    const children = [...(pages[pIdx].children || [])];
+    const child = JSON.parse(JSON.stringify(children[cIdx])) as SitemapChild;
+    let target: SitemapTab = child.tabs![tPath[0]];
+    for (let i = 1; i < tPath.length; i++) {
+      target = target.tabs![tPath[i]];
+    }
+    target.nodeType = nodeType;
+    children[cIdx] = child;
+    pages[pIdx] = { ...pages[pIdx], children };
+    next[activeSectionIdx] = { ...next[activeSectionIdx], pages };
+    setSections(next);
+  };
+
   const updateChildName = (pIdx: number, cIdx: number, val: string) => {
     const next = [...sections];
     const pages = [...next[activeSectionIdx].pages];
