@@ -308,8 +308,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   };
 
   // Calculate available account credit that can be applied to new charges.
-  // This is NOT the same as an overall negative balance.
-  // We treat any paid credits as a pool that gets consumed by paid debits.
+  // Only explicit internal credit entries count as reusable account credit.
   const getAvailableCredit = () => {
     const eligible = transactions.filter(t =>
       !t.isFuture &&
@@ -317,12 +316,15 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       !t.notes?.includes('[VOIDED:')
     );
 
-    const creditPool = eligible.reduce((sum, t) => sum + Number(t.credit || 0), 0);
-    const paidDebits = eligible
-      .filter(t => t.invoice_status === 'paid')
+    const creditPool = eligible
+      .filter(t => t.payment_method === 'credit')
+      .reduce((sum, t) => sum + Number(t.credit || 0), 0);
+
+    const creditConsumed = eligible
+      .filter(t => t.item.startsWith('Credit Applied'))
       .reduce((sum, t) => sum + Number(t.debit || 0), 0);
 
-    return Math.max(0, creditPool - paidDebits);
+    return Math.max(0, creditPool - creditConsumed);
   };
 
   // Calculate credit to be applied and net charge amount

@@ -70,11 +70,12 @@ serve(async (req) => {
     if (leadError || !lead) throw new Error("Lead not found");
     logStep("Lead found", { customerId: lead.stripe_customer_id });
 
-    // Calculate available account credit for this lead (credit pool minus already-paid debits)
+    // Calculate available account credit for this lead.
+    // Only explicit internal credit entries (payment_method = 'credit') are reusable.
     const today = new Date().toISOString().split('T')[0];
     const { data: transactions, error: txQueryError } = await supabaseClient
       .from("transactions")
-      .select("credit, debit, transaction_date, invoice_status, item, notes")
+      .select("credit, debit, transaction_date, item, notes, payment_method")
       .eq("lead_id", lead_id);
 
     if (txQueryError) {
@@ -89,12 +90,15 @@ serve(async (req) => {
         !t.notes?.includes('[VOIDED:')
       );
 
-      const creditPool = dueTxs.reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
-      const paidDebits = dueTxs
-        .filter((t: any) => t.invoice_status === 'paid')
+      const creditPool = dueTxs
+        .filter((t: any) => t.payment_method === 'credit')
+        .reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
+
+      const creditConsumed = dueTxs
+        .filter((t: any) => t.item?.startsWith('Credit Applied'))
         .reduce((sum: number, t: any) => sum + Number(t.debit || 0), 0);
 
-      availableCredit = Math.max(0, creditPool - paidDebits);
+      availableCredit = Math.max(0, creditPool - creditConsumed);
     }
     logStep("Calculated available credit", { availableCredit, requestedAmount: amount });
 
