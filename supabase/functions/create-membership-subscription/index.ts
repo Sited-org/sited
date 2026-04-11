@@ -93,13 +93,13 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { lead_id, membership_name, membership_price, billing_interval, start_date, billing_start_month, notes } = body;
+    const { lead_id, membership_name, membership_price, billing_interval, start_date, billing_start_month, charge_current_month, notes } = body;
 
     if (!lead_id || !membership_name || !membership_price || !billing_interval) {
       throw new Error("Missing required fields: lead_id, membership_name, membership_price, billing_interval");
     }
 
-    logStep("Request", { lead_id, membership_name, membership_price, billing_interval });
+    logStep("Request", { lead_id, membership_name, membership_price, billing_interval, charge_current_month });
 
     // Get the lead
     const { data: lead, error: leadError } = await supabaseAdmin
