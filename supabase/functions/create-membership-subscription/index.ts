@@ -211,7 +211,66 @@ serve(async (req) => {
     const subscription = await stripe.subscriptions.create(subParams);
     logStep("Created subscription", { id: subscription.id, status: subscription.status });
 
-    // Record recurring transaction
+    // --- Handle immediate current-month billing ---
+    let currentMonthInvoiceId: string | null = null;
+    if (charge_current_month) {
+      logStep("Charging current month immediately");
+      const now = new Date();
+      const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+      // Create a one-time invoice item for current month (full price)
+      await stripe.invoiceItems.create({
+        customer: customerId!,
+        amount: Math.round(membership_price * 100),
+        currency: 'aud',
+        description: `${membership_name} — ${monthName} (Full Month)`,
+      });
+
+      // Create and finalize the invoice
+      const invoiceParams: any = {
+        customer: customerId!,
+        auto_advance: true,
+        metadata: { lead_id: lead.id, membership_name, type: 'current_month_charge' },
+      };
+
+      if (!hasPaymentMethod) {
+        invoiceParams.collection_method = 'send_invoice';
+        invoiceParams.days_until_due = 7;
+      }
+
+      const invoice = await stripe.invoices.create(invoiceParams);
+      const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
+      currentMonthInvoiceId = finalizedInvoice.id;
+      logStep("Current month invoice created", { invoiceId: finalizedInvoice.id, status: finalizedInvoice.status });
+
+      // If card on file, attempt to pay immediately
+      if (hasPaymentMethod) {
+        try {
+          await stripe.invoices.pay(finalizedInvoice.id);
+          logStep("Current month invoice paid immediately");
+        } catch (payError: any) {
+          logStep("Current month invoice payment failed — will retry via Stripe", { message: payError.message });
+        }
+      }
+
+      // Record the current-month charge as a separate transaction
+      await supabaseAdmin.from('transactions').insert({
+        lead_id: lead.id,
+        item: `${membership_name} — ${monthName}`,
+        credit: 0,
+        debit: membership_price,
+        notes: notes ? `${notes}\nCurrent month charge — Invoice: ${finalizedInvoice.id}` : `Current month charge — Invoice: ${finalizedInvoice.id}`,
+        transaction_date: new Date().toISOString(),
+        is_recurring: false,
+        recurring_interval: null,
+        recurring_end_date: null,
+        status: 'completed',
+        invoice_status: hasPaymentMethod ? 'processing' : 'sent',
+        stripe_invoice_id: finalizedInvoice.id,
+      });
+    }
+
+    // Record recurring transaction (the subscription schedule row)
     await supabaseAdmin.from('transactions').insert({
       lead_id: lead.id,
       item: membership_name,
