@@ -163,11 +163,12 @@ const handler = async (req: Request): Promise<Response> => {
         .eq('id', leadId);
     }
 
-    // Calculate available account credit for this lead (credit pool minus already-paid debits)
+    // Calculate available account credit for this lead.
+    // Only explicit internal credit entries (payment_method = 'credit') are reusable.
     const today = new Date().toISOString().split('T')[0];
     const { data: ledgerTxs, error: ledgerError } = await supabaseAdmin
       .from('transactions')
-      .select('credit, debit, transaction_date, item, notes, invoice_status')
+      .select('credit, debit, transaction_date, item, notes, payment_method')
       .eq('lead_id', leadId);
 
     if (ledgerError) {
@@ -182,12 +183,14 @@ const handler = async (req: Request): Promise<Response> => {
         !t.notes?.includes('[VOIDED:')
       );
 
-      const creditPool = dueTxs.reduce((sum, t) => sum + Number(t.credit || 0), 0);
-      const paidDebits = dueTxs
-        .filter(t => t.invoice_status === 'paid')
+      const creditPool = dueTxs
+        .filter(t => t.payment_method === 'credit')
+        .reduce((sum, t) => sum + Number(t.credit || 0), 0);
+      const creditConsumed = dueTxs
+        .filter(t => t.item?.startsWith('Credit Applied'))
         .reduce((sum, t) => sum + Number(t.debit || 0), 0);
 
-      availableCredit = Math.max(0, creditPool - paidDebits);
+      availableCredit = Math.max(0, creditPool - creditConsumed);
     }
 
     const invoiceSubtotal = items.reduce((sum, i) => sum + Number(i.amount || 0), 0);
