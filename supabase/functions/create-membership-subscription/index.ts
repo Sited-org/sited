@@ -152,6 +152,23 @@ serve(async (req) => {
     if (catalogEntry) {
       priceId = catalogEntry.price_id;
       logStep("Using canonical price", { priceId, productId: catalogEntry.product_id });
+
+      // Prevent duplicate active subscriptions for the same canonical price
+      const existingSubs = await stripe.subscriptions.list({
+        customer: customerId!,
+        status: 'all',
+        limit: 100,
+      });
+
+      const duplicateActiveSub = existingSubs.data.find((sub) => {
+        const isActiveLike = ['active', 'trialing', 'past_due', 'unpaid'].includes(sub.status);
+        const hasSamePrice = sub.items.data.some((item) => item.price.id === priceId);
+        return isActiveLike && hasSamePrice;
+      });
+
+      if (duplicateActiveSub) {
+        throw new Error(`An active subscription already exists for ${membership_name} (${duplicateActiveSub.id})`);
+      }
     } else {
       // Fallback: create ad-hoc product & price (rare edge case for custom memberships)
       logStep("No canonical match — creating ad-hoc product/price", { membership_name });

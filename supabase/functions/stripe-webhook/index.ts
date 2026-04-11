@@ -104,34 +104,34 @@ async function savePaymentMethodToLead(leadId: string, paymentMethodId: string, 
   console.log("[STRIPE-WEBHOOK] Saved payment method to lead:", leadId);
 }
 
-// Helper function to calculate available credit for a lead (credit pool minus already-paid debits)
+// Helper function to calculate available credit for a lead.
+// Only explicit internal credit entries (payment_method = 'credit') are reusable.
 async function getAvailableCredit(leadId: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
   
   const { data: transactions, error } = await supabaseAdmin
     .from("transactions")
-    .select("credit, debit, transaction_date, invoice_status, item, notes")
+    .select("credit, debit, transaction_date, item, notes, payment_method")
     .eq("lead_id", leadId);
 
   if (error || !transactions || transactions.length === 0) {
     return 0;
   }
 
-  // Filter to due transactions (not future) and exclude voided
   const dueTxs = transactions.filter((t: any) =>
     t.transaction_date <= today + 'T23:59:59.999Z' &&
     !t.item?.startsWith('VOID:') &&
     !t.notes?.includes('[VOIDED:')
   );
 
-  // Credit pool = all credits received
-  const creditPool = dueTxs.reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
-  // Paid debits = debits that have been settled (invoice_status = 'paid')
-  const paidDebits = dueTxs
-    .filter((t: any) => t.invoice_status === 'paid')
+  const creditPool = dueTxs
+    .filter((t: any) => t.payment_method === 'credit')
+    .reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
+  const creditConsumed = dueTxs
+    .filter((t: any) => t.item?.startsWith('Credit Applied'))
     .reduce((sum: number, t: any) => sum + Number(t.debit || 0), 0);
 
-  return Math.max(0, creditPool - paidDebits);
+  return Math.max(0, creditPool - creditConsumed);
 }
 
 serve(async (req) => {

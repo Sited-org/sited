@@ -18,7 +18,7 @@ async function getAvailableCredit(supabaseAdmin: any, leadId: string): Promise<n
   
   const { data: transactions, error } = await supabaseAdmin
     .from("transactions")
-    .select("credit, debit, transaction_date, invoice_status, item, notes")
+    .select("credit, debit, transaction_date, item, notes, payment_method")
     .eq("lead_id", leadId);
 
   if (error || !transactions || transactions.length === 0) {
@@ -31,12 +31,14 @@ async function getAvailableCredit(supabaseAdmin: any, leadId: string): Promise<n
     !t.notes?.includes('[VOIDED:')
   );
 
-  const creditPool = dueTxs.reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
-  const paidDebits = dueTxs
-    .filter((t: any) => t.invoice_status === 'paid')
+  const creditPool = dueTxs
+    .filter((t: any) => t.payment_method === 'credit')
+    .reduce((sum: number, t: any) => sum + Number(t.credit || 0), 0);
+  const creditConsumed = dueTxs
+    .filter((t: any) => t.item?.startsWith('Credit Applied'))
     .reduce((sum: number, t: any) => sum + Number(t.debit || 0), 0);
 
-  return Math.max(0, creditPool - paidDebits);
+  return Math.max(0, creditPool - creditConsumed);
 }
 
 // Ensure a Stripe customer exists for the lead, return customer ID
