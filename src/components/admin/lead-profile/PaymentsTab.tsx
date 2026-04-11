@@ -50,6 +50,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [selectedMembership, setSelectedMembership] = useState<string>('');
   const [membershipStartMonth, setMembershipStartMonth] = useState<string>('');
+  const [chargeCurrentMonth, setChargeCurrentMonth] = useState(false);
   const [transactionNotes, setTransactionNotes] = useState('');
 
   // Invoice state
@@ -133,6 +134,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
           billing_interval: membership.billing_interval,
           start_date: startDate,
           billing_start_month: membershipStartMonth || undefined,
+          charge_current_month: chargeCurrentMonth,
           notes: transactionNotes || membership.description || null,
         },
       });
@@ -148,6 +150,7 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
       
       setSelectedMembership('');
       setMembershipStartMonth('');
+      setChargeCurrentMonth(false);
       setTransactionNotes('');
       
       // Refresh transactions data
@@ -1377,6 +1380,45 @@ export function PaymentsTab({ lead, dealAmount, setDealAmount, canEdit }: Paymen
                     placeholder="Select billing start month"
                   />
                 </div>
+
+                {/* Mid-month billing option */}
+                {selectedMembership && (() => {
+                  const now = new Date();
+                  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                  const isCurrentMonth = !membershipStartMonth || membershipStartMonth === currentYM;
+                  const dayOfMonth = now.getDate();
+                  // Show toggle if we're mid-month (not the 1st) and the selected month is current
+                  if (isCurrentMonth && dayOfMonth > 1) {
+                    return (
+                      <div className="md:col-span-4 flex flex-col gap-2 p-3 rounded-lg border bg-muted/30">
+                        <Label className="text-sm font-medium">First Billing</Label>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm">
+                            <input
+                              type="radio"
+                              name="billing-timing"
+                              checked={!chargeCurrentMonth}
+                              onChange={() => setChargeCurrentMonth(false)}
+                              className="accent-primary"
+                            />
+                            Start billing next month <span className="text-muted-foreground">(default)</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm">
+                            <input
+                              type="radio"
+                              name="billing-timing"
+                              checked={chargeCurrentMonth}
+                              onChange={() => setChargeCurrentMonth(true)}
+                              className="accent-primary"
+                            />
+                            Bill for {now.toLocaleString('default', { month: 'long' })} now <span className="text-muted-foreground">(full month)</span>
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 
                 <Button 
                   onClick={handleAddMembership}
