@@ -1,25 +1,54 @@
 
 
-## Plan: Multi-Parent Connector Lines in Builder + PDF
+## Plan: Mid-Month Subscription Billing Option
 
-### Problem
-1. The PDF ignores `linkedFrom` data entirely — only the "main" parent page's connector is drawn.
-2. In the builder, the main parent's connector is solid while linked parents use dashed lines. The user wants **all** connectors to be dashed when a child has multiple parents, with no parent visually prioritised.
+### What already works
+- **Credit check**: The `stripe-webhook` intercepts every subscription `invoice.created` event while it's still a draft. It calls `getAvailableCredit()` and either voids the invoice (full credit), adds a negative line item (partial credit), or lets it charge normally. This works for both auto-charge and invoice modes. No changes needed here.
 
-### Changes
+### What needs to change
+When creating a subscription mid-month (2nd–30th), the admin currently has no choice — billing always pushes to the 1st of the next month. You want the option to bill for the current month immediately.
 
-#### 1. Builder connector logic (`AdminSitemapBuilder.tsx`)
-- In `recalcConnectors`, when drawing the primary parent→child connector, check if `child.linkedFrom?.length > 0`. If so, mark those lines as `dashed: true` (same as the secondary connectors). This ensures all connections to a multi-linked node are visually equal.
+### UI Change — Admin PaymentsTab
+Add a toggle/radio below the billing start month selector:
 
-#### 2. PDF multi-parent connectors (`AdminSitemaps.tsx`)
-- After drawing each child node, check `child.linkedFrom`. For each linked parent index, draw an additional elbow connector from that parent page's Y-position to the child node, using:
-  - The linked parent's page color
-  - A **dotted/dashed** line style (matching the builder)
-- When a child has `linkedFrom` entries, also switch the primary parent's connector to dashed, matching the builder behavior.
-- Compute each linked parent's Y-position using the same layout formula already used for pages (based on `pageStartY + lpIdx * (pageH + pageGap)`).
-- Add small colored dots at the child node for each linked parent (matching the builder's multi-dot indicator).
+```text
+┌─────────────────────────────────┐
+│ Billing Start Month: [2026-04]  │
+│                                 │
+│ ○ Bill for current month now    │
+│ ○ Start billing next month      │
+│   (default)                     │
+└─────────────────────────────────┘
+```
+
+- Only visible when the selected month is the current month (or no month selected and it's mid-month)
+- "Bill for current month now" sends `charge_current_month: true` to the edge function
+- Default remains "Start billing next month"
+
+### Backend Change — `create-membership-subscription`
+When `charge_current_month` is true:
+
+1. Set `billing_cycle_anchor` to the 1st of the **current** month (in the past) — Stripe allows past anchors
+2. Actually Stripe does NOT allow past `billing_cycle_anchor` — so instead:
+   - Set `billing_cycle_anchor` to the 1st of **next month** (normal behavior for future cycles)
+   - Add `backdate_start_date` to the 1st of current month, OR
+   - Use `add_invoice_items` to create an immediate one-time charge for the current period
+   
+   **Best approach**: Create the subscription anchored to the 1st of next month as normal, then immediately create a separate one-time invoice item for the current month's pro-rata (full month price since you want to bill the full month regardless of start date). This keeps the subscription cycle clean.
+
+3. Flow when `charge_current_month: true`:
+   - Create subscription anchored to 1st of next month (standard)
+   - Create a one-time invoice for the current month's full membership price
+   - If card on file: charge immediately via `stripe.invoices.pay()`
+   - If no card: send the invoice with 7-day due date
+   - Record the current-month charge as a separate transaction in the ledger
 
 ### Files Modified
-- `src/pages/AdminSitemapBuilder.tsx` — Make primary connector dashed when child has linkedFrom
-- `src/pages/AdminSitemaps.tsx` — Add linkedFrom connector rendering in `generateSitemapPDF`
+- `src/components/admin/lead-profile/PaymentsTab.tsx` — Add radio toggle for current month billing
+- `supabase/functions/create-membership-subscription/index.ts` — Handle `charge_current_month` flag, create immediate invoice for current period
+
+### Technical Details
+- The credit-first system will still work for the immediate charge since `invoice.created` webhook fires for one-time invoices too (when created via `stripe.invoices.create()`)
+- The subscription's recurring cycle remains cleanly anchored to the 1st of each month
+- The current-month charge is a standalone invoice, not part of the subscription billing cycle
 
