@@ -134,6 +134,87 @@ async function getAvailableCredit(leadId: string): Promise<number> {
   return Math.max(0, creditPool - creditConsumed);
 }
 
+function isActiveLedgerTransaction(t: any): boolean {
+  return !t.item?.startsWith('VOID:') && !t.notes?.includes('[VOIDED:') && t.status !== 'void' && t.status !== 'voided';
+}
+
+function isSameUtcMonth(a: string | Date, b: string | Date): boolean {
+  const dateA = new Date(a);
+  const dateB = new Date(b);
+  return dateA.getUTCFullYear() === dateB.getUTCFullYear() && dateA.getUTCMonth() === dateB.getUTCMonth();
+}
+
+async function ensureSubscriptionDebitRecorded(
+  leadId: string,
+  invoice: Stripe.Invoice,
+  itemDescription: string,
+  subscriptionId?: string,
+) {
+  const creditApplied = invoice.metadata?.credit_applied
+    ? parseFloat(invoice.metadata.credit_applied)
+    : 0;
+  const originalAmount = invoice.metadata?.invoice_subtotal
+    ? parseFloat(invoice.metadata.invoice_subtotal)
+    : ((invoice.amount_paid ?? 0) / 100) + creditApplied;
+
+  if (!originalAmount || originalAmount <= 0) return;
+
+  const invoiceDateIso = new Date((invoice.status_transitions?.paid_at ?? invoice.created) * 1000).toISOString();
+  const chargeItem = itemDescription.replace(/^Payment:\s*/, '').trim() || 'Subscription Renewal';
+  const membershipName = invoice.metadata?.membership_name?.toLowerCase?.() || '';
+
+  const { data: existingTransactions, error } = await supabaseAdmin
+    .from('transactions')
+    .select('item, notes, debit, transaction_date, is_recurring, status, stripe_invoice_id')
+    .eq('lead_id', leadId);
+
+  if (error) {
+    console.error('[STRIPE-WEBHOOK] Error checking existing subscription debits:', error.message);
+    return;
+  }
+
+  const hasExistingDebit = (existingTransactions || []).some((t: any) => {
+    if (!isActiveLedgerTransaction(t)) return false;
+    if (Number(t.debit || 0) <= 0) return false;
+    if (t.is_recurring) return false;
+    if (t.item?.startsWith('Credit Applied')) return false;
+    if (t.stripe_invoice_id === invoice.id) return true;
+    if (Math.abs(Number(t.debit || 0) - originalAmount) > 0.0001) return false;
+    if (!isSameUtcMonth(t.transaction_date, invoiceDateIso)) return false;
+
+    const existingItem = (t.item || '').toLowerCase();
+    return (
+      existingItem.includes(chargeItem.toLowerCase()) ||
+      chargeItem.toLowerCase().includes(existingItem) ||
+      (membershipName.length > 0 && existingItem.includes(membershipName))
+    );
+  });
+
+  if (hasExistingDebit) return;
+
+  const { error: insertError } = await supabaseAdmin
+    .from('transactions')
+    .insert({
+      lead_id: leadId,
+      item: chargeItem,
+      credit: 0,
+      debit: originalAmount,
+      notes: `Subscription billing cycle${subscriptionId ? `. Stripe Subscription: ${subscriptionId}` : ''}. Auto-repaired in invoice.paid for Stripe invoice ${invoice.id}.`,
+      transaction_date: invoiceDateIso,
+      is_recurring: false,
+      status: 'completed',
+      invoice_status: 'paid',
+      stripe_invoice_id: invoice.id,
+    });
+
+  if (insertError) {
+    console.error('[STRIPE-WEBHOOK] Error inserting repaired subscription debit:', insertError.message);
+    return;
+  }
+
+  console.log('[STRIPE-WEBHOOK] Repaired missing subscription debit for invoice:', invoice.id);
+}
+
 serve(async (req) => {
   console.log("[STRIPE-WEBHOOK] Received webhook");
 
@@ -294,6 +375,23 @@ serve(async (req) => {
           }
         }
 
+        // For subscription invoices, include the membership name
+        let itemDescription = `Payment for Invoice #${invoice.number || invoice.id}`;
+        if (isSubscriptionInvoice && invoice.lines?.data?.[0]?.description) {
+          itemDescription = `Payment: ${invoice.lines.data[0].description}`;
+        }
+
+        if (actualLeadId && isSubscriptionInvoice) {
+          try {
+            const subscriptionId = typeof invoice.subscription === 'string'
+              ? invoice.subscription
+              : invoice.subscription?.id;
+            await ensureSubscriptionDebitRecorded(actualLeadId, invoice, itemDescription, subscriptionId);
+          } catch (repairError: any) {
+            console.error('[STRIPE-WEBHOOK] Error ensuring subscription debit exists:', repairError.message);
+          }
+        }
+
         // Create transaction records for the payment
         // Note: Credit is already applied as a negative line item on the invoice before charging
         // So invoice.amount_paid reflects the NET amount after credit
@@ -308,21 +406,30 @@ serve(async (req) => {
             ? parseFloat(invoice.metadata.invoice_subtotal)
             : amountPaid + creditApplied;
           
-          // For subscription invoices, include the membership name
-          let itemDescription = `Payment for Invoice #${invoice.number || invoice.id}`;
-          if (isSubscriptionInvoice && invoice.lines?.data?.[0]?.description) {
-            itemDescription = `Payment: ${invoice.lines.data[0].description}`;
-          }
-          
           console.log("[STRIPE-WEBHOOK] Recording payment:", {
             amountPaid,
             creditApplied,
             originalAmount,
             isSubscription: isSubscriptionInvoice
           });
+
+          const { data: existingInvoiceRows, error: existingInvoiceRowsError } = await supabaseAdmin
+            .from('transactions')
+            .select('item, notes, credit, debit, status')
+            .eq('lead_id', actualLeadId)
+            .eq('stripe_invoice_id', invoice.id);
+
+          if (existingInvoiceRowsError) {
+            console.error('[STRIPE-WEBHOOK] Error checking existing payment rows:', existingInvoiceRowsError.message);
+          }
+
+          const hasExistingPaymentRecord = (existingInvoiceRows || []).some((t: any) => {
+            if (!isActiveLedgerTransaction(t)) return false;
+            return Number(t.debit || 0) === 0 && Math.abs(Number(t.credit || 0) - amountPaid) < 0.0001;
+          });
           
           // Record the net payment (what was actually charged)
-          if (amountPaid > 0) {
+          if (amountPaid > 0 && !hasExistingPaymentRecord) {
             await supabaseAdmin
               .from('transactions')
               .insert({
@@ -338,7 +445,9 @@ serve(async (req) => {
                 stripe_invoice_id: invoice.id,
               });
             console.log("[STRIPE-WEBHOOK] Created payment transaction:", amountPaid);
-          } else if (creditApplied > 0) {
+          } else if (amountPaid > 0) {
+            console.log('[STRIPE-WEBHOOK] Skipped duplicate payment transaction for invoice:', invoice.id);
+          } else if (creditApplied > 0 && !hasExistingPaymentRecord) {
             // If fully covered by credit, still record a $0 payment for audit trail
             await supabaseAdmin
               .from('transactions')
