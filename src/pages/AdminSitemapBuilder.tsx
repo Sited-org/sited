@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
-  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check,
+  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check, StickyNote,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import { generateSitemapPDF } from '@/lib/sitemap-pdf';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type NodeType = 'page' | 'popup' | 'tab';
+type NodeType = 'page' | 'popup' | 'tab' | 'note';
 
 interface SitemapTab {
   name: string;
@@ -49,6 +49,7 @@ const NODE_TYPE_OPTIONS: { type: NodeType; label: string; icon: typeof FileText;
   { type: 'page', label: 'Page', icon: FileText, desc: 'A standard page' },
   { type: 'popup', label: 'Pop-Up', icon: PanelTop, desc: 'A modal / overlay' },
   { type: 'tab', label: 'Tab', icon: LayoutGrid, desc: 'A tab within a page' },
+  { type: 'note', label: 'Note', icon: StickyNote, desc: 'A descriptive note' },
 ];
 
 function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => void; size?: 'sm' | 'xs' }) {
@@ -87,7 +88,7 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
 /** Clickable icon indicator for node type — click to change */
 function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; className?: string; onChangeType?: (type: NodeType) => void }) {
   const currentType = nodeType || 'page';
-  const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : FileText;
+  const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : currentType === 'note' ? StickyNote : FileText;
   
   if (!onChangeType) {
     return <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" />;
@@ -167,10 +168,16 @@ function getChildNodeStyles(nodeType?: NodeType, colorIndex?: number): { classNa
         style: { backgroundColor: '#d1d5db', borderColor: color, borderWidth: '2px', borderStyle: 'dotted' },
       };
     case 'tab':
-      // Tab: medium light grey background, no border
+      // Tab: medium light grey background, thin solid colored border
       return {
         className: 'text-slate-700',
-        style: { backgroundColor: '#d1d5db', borderColor: 'transparent', borderWidth: '2px', borderStyle: 'solid' },
+        style: { backgroundColor: '#d1d5db', borderColor: color, borderWidth: '1px', borderStyle: 'solid' },
+      };
+    case 'note':
+      // Note: no border, slightly lighter grey, italic
+      return {
+        className: 'text-slate-600 italic',
+        style: { backgroundColor: '#e5e7eb', borderColor: 'transparent', borderWidth: '0px', borderStyle: 'none' },
       };
     default:
       return {
