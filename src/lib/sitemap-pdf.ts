@@ -382,9 +382,14 @@ function renderNode(doc: jsPDF, node: LayoutNode, scale: number, offsetX: number
     drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY, node.color, Math.max(0.8, 1.5 * scale), true);
     doc.setTextColor(TEXT_DARK);
     doc.setFont('helvetica', 'normal');
+  } else if (node.nodeType === 'note') {
+    // Note: lighter grey bg, no border, italic dark text
+    drawRoundedRect(doc, x, y, w, h, r, '#e5e7eb');
+    doc.setTextColor(TEXT_DARK);
+    doc.setFont('helvetica', 'italic');
   } else {
-    // Tab: grey bg, no border, dark text
-    drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY);
+    // Tab: grey bg, thin solid colored border, dark text
+    drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY, node.color, Math.max(0.5, 0.8 * scale), false);
     doc.setTextColor(TEXT_DARK);
     doc.setFont('helvetica', 'normal');
   }
