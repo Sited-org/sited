@@ -189,7 +189,7 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
         const childSubH = childHeights[cIdx];
         const childMidY = childStartY + childSubH / 2 - NODE_H / 2;
         const childColor = CHILD_NODE_COLORS[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS.length];
-        const cw = nodeWidth(child.name);
+        const cw = nodeWidth(child.name, (child.nodeType || 'page') === 'note');
 
         const linkedColors = child.linkedFrom?.map(lpIdx => PAGE_COLORS[lpIdx % PAGE_COLORS.length]);
 
@@ -219,7 +219,7 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
             const tabSubH = tabHeights[tIdx];
             const tabMidY = tabStartY + tabSubH / 2 - NODE_H / 2;
             const tabColor = CHILD_NODE_COLORS[(colorSeed * 100 + tIdx) % CHILD_NODE_COLORS.length];
-            const tw = nodeWidth(tab.name);
+            const tw = nodeWidth(tab.name, (tab.nodeType || 'tab') === 'note');
 
             const tabNode: LayoutNode = {
               x: tabColX,
