@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type NodeType = 'page' | 'popup' | 'tab';
+type NodeType = 'page' | 'popup' | 'tab' | 'note';
 
 interface SitemapTab {
   name: string;
