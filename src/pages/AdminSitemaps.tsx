@@ -206,6 +206,72 @@ function drawBrandedFooter(doc: jsPDF, pageNum: number, totalPages: number, site
   doc.text(`${pageNum} / ${totalPages}`, PW - MR, footerY + 12, { align: 'right' });
 }
 
+// ─── Adaptive Sizing Defaults & Bounds ────────────────────────────────────────
+
+const SIZE_DEFAULTS = {
+  root:  { w: 120, h: 32, font: 9,   minW: 70,  maxW: 140, minH: 20, maxH: 36, minFont: 6, maxFont: 10 },
+  page:  { w: 110, h: 28, font: 8,   minW: 60,  maxW: 130, minH: 16, maxH: 32, minFont: 5.5, maxFont: 9 },
+  child: { w: 100, h: 24, font: 7,   minW: 50,  maxW: 120, minH: 14, maxH: 28, minFont: 5, maxFont: 8 },
+  tab:   { w: 90,  h: 20, font: 6.5, minW: 44,  maxW: 110, minH: 12, maxH: 24, minFont: 4.5, maxFont: 7.5 },
+};
+
+const MIN_GAP = 2;
+const IDEAL_GAP = 6;
+
+/** Compute scale factor (0..1) so items + gaps fit within available height */
+function computeScale(
+  count: number,
+  defaultH: number,
+  idealGap: number,
+  available: number,
+): number {
+  if (count <= 0) return 1;
+  const needed = count * defaultH + (count - 1) * idealGap;
+  if (needed <= available) return 1;
+  // shrink to fit with minimum gap
+  const minNeeded = count * defaultH + (count - 1) * MIN_GAP;
+  if (minNeeded <= available) return 1; // just reduce gap
+  // need to shrink items
+  return Math.max(0, (available - (count - 1) * MIN_GAP) / (count * defaultH));
+}
+
+function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
+
+interface ScaledSizes {
+  w: number; h: number; font: number; gap: number;
+}
+
+function scaleTier(
+  tier: keyof typeof SIZE_DEFAULTS,
+  count: number,
+  available: number,
+): ScaledSizes {
+  const d = SIZE_DEFAULTS[tier];
+  const s = computeScale(count, d.h, IDEAL_GAP, available);
+  const h = clamp(d.h * s, d.minH, d.maxH);
+  const w = clamp(d.w * s, d.minW, d.maxW);
+  const font = clamp(d.font * s, d.minFont, d.maxFont);
+  // recalculate gap after clamped height
+  const totalItemH = count * h;
+  const gap = count > 1 ? Math.max(MIN_GAP, (available - totalItemH) / (count - 1)) : IDEAL_GAP;
+  return { w, h, font, gap };
+}
+
+/** Find the max child count and max tab count across all pages in a section */
+function sectionDensity(pages: SitemapPage[]) {
+  let maxChildren = 0;
+  let maxTabs = 0;
+  pages.forEach(p => {
+    const children = (p.children || []).map(migrateChild);
+    if (children.length > maxChildren) maxChildren = children.length;
+    children.forEach(c => {
+      const tabs = c.tabs || [];
+      if (tabs.length > maxTabs) maxTabs = tabs.length;
+    });
+  });
+  return { maxChildren, maxTabs };
+}
+
 // ─── Branded PDF Generation ───────────────────────────────────────────────────
 
 export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: string) {
@@ -236,7 +302,6 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
   sections.forEach((section, sIdx) => {
     if (sIdx > 0) doc.addPage();
 
-    // White background (default)
     drawBrandedHeader(doc, section.title, clientDisplay, docId);
     drawBrandedFooter(doc, sIdx + 1, sections.length, sitemap.name);
 
@@ -252,87 +317,86 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
     const contentBottom = PH - 38;
     const contentHeight = contentBottom - contentTop;
 
-    // Column X positions
-    const rootW = 120;
-    const rootH = 32;
+    // ── Compute adaptive sizes based on density ──
+    const { maxChildren, maxTabs } = sectionDensity(pages);
+
+    // Scale each tier to fit the available vertical space
+    const ps = scaleTier('page', pages.length, contentHeight);
+    const cs = scaleTier('child', maxChildren, contentHeight);
+    const ts = scaleTier('tab', maxTabs, contentHeight);
+    const rs = scaleTier('root', 1, contentHeight);
+
+    // ── Column X positions with adaptive widths ──
+    const colGap1 = clamp(60 * (ps.h / SIZE_DEFAULTS.page.h), 30, 60);
+    const colGap2 = clamp(50 * (cs.h / SIZE_DEFAULTS.child.h), 24, 50);
+    const colGap3 = clamp(40 * (ts.h / SIZE_DEFAULTS.tab.h), 20, 40);
+
     const rootX = ML;
+    const pageColX = rootX + rs.w + colGap1;
+    const childColX = pageColX + ps.w + colGap2;
+    const tabColX = childColX + cs.w + colGap3;
+
+    // ── Root / Section node ──
     const rootCY = contentTop + contentHeight / 2;
-    const rootY = rootCY - rootH / 2;
-
-    const pageColX = rootX + rootW + 60;
-    const pageW = 110;
-    const pageH = 28;
-
-    const childColX = pageColX + pageW + 50;
-    const childW = 100;
-    const childH = 24;
-
-    const tabColX = childColX + childW + 40;
-    const tabW = 90;
-    const tabH = 20;
-
-    // ── Root / Section node (dark card, matching builder) ──
-    drawRoundedRect(doc, rootX, rootY, rootW, rootH, 6, HEADER_BG);
+    const rootY = rootCY - rs.h / 2;
+    drawRoundedRect(doc, rootX, rootY, rs.w, rs.h, 6, HEADER_BG);
     doc.setTextColor(TEXT_WHITE);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text(section.title, rootX + rootW / 2, rootY + rootH / 2 + 3, { align: 'center' });
+    doc.setFontSize(rs.font);
+    doc.text(section.title, rootX + rs.w / 2, rootY + rs.h / 2 + 3, { align: 'center' });
 
-    // Layout pages vertically
-    const pageGap = Math.min(8, (contentHeight - pages.length * pageH) / Math.max(pages.length - 1, 1));
-    const totalPageH = pages.length * pageH + (pages.length - 1) * pageGap;
+    // ── Layout pages vertically ──
+    const totalPageH = pages.length * ps.h + (pages.length - 1) * ps.gap;
     let pageStartY = contentTop + (contentHeight - totalPageH) / 2;
     if (pageStartY < contentTop) pageStartY = contentTop;
 
-    const rootRightX = rootX + rootW;
-    const rootMidY = rootY + rootH / 2;
+    const rootRightX = rootX + rs.w;
+    const rootMidY = rootY + rs.h / 2;
 
     pages.forEach((page, pIdx) => {
       const pageColor = PAGE_COLORS_PDF[pIdx % PAGE_COLORS_PDF.length];
-      const pageY = pageStartY + pIdx * (pageH + pageGap);
-      const pageMidY = pageY + pageH / 2;
+      const pageY = pageStartY + pIdx * (ps.h + ps.gap);
+      const pageMidY = pageY + ps.h / 2;
 
-      // Elbow connector: root → page (colored per page)
+      // Elbow connector: root → page
       doc.setDrawColor(pageColor);
       doc.setLineWidth(1.2);
-      const eX = rootRightX + 30;
+      const eX = rootRightX + colGap1 * 0.5;
       doc.line(rootRightX, rootMidY, eX, rootMidY);
       doc.line(eX, rootMidY, eX, pageMidY);
       doc.line(eX, pageMidY, pageColX, pageMidY);
 
-      // Small colored dot
       doc.setFillColor(pageColor);
       doc.circle(pageColX, pageMidY, 2, 'F');
 
-      // ── Page node (solid colored background, matching builder) ──
-      drawRoundedRect(doc, pageColX, pageY, pageW, pageH, 5, pageColor);
+      // ── Page node ──
+      drawRoundedRect(doc, pageColX, pageY, ps.w, ps.h, 5, pageColor);
       doc.setTextColor(TEXT_WHITE);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      const tName = page.name.length > 15 ? page.name.substring(0, 14) + '…' : page.name;
-      doc.text(tName, pageColX + pageW / 2, pageY + pageH / 2 + 3, { align: 'center' });
+      doc.setFontSize(ps.font);
+      const maxChars = Math.max(6, Math.floor(ps.w / (ps.font * 0.55)));
+      const tName = page.name.length > maxChars ? page.name.substring(0, maxChars - 1) + '…' : page.name;
+      doc.text(tName, pageColX + ps.w / 2, pageY + ps.h / 2 + ps.font * 0.35, { align: 'center' });
 
       // Children
       const children = (page.children || []).map(migrateChild);
       if (children.length) {
-        const childGap = 4;
-        const totalChildH = children.length * childH + (children.length - 1) * childGap;
+        const totalChildH = children.length * cs.h + (children.length - 1) * cs.gap;
         let childStartY = pageMidY - totalChildH / 2;
         if (childStartY < contentTop) childStartY = contentTop;
+        if (childStartY + totalChildH > contentBottom) childStartY = contentBottom - totalChildH;
 
-        const pageRightX = pageColX + pageW;
-        const childElbowX = pageRightX + 16;
+        const pageRightX = pageColX + ps.w;
+        const childElbowX = pageRightX + colGap2 * 0.35;
 
         children.forEach((child, cIdx) => {
-          const childY = childStartY + cIdx * (childH + childGap);
-          const childMidY = childY + childH / 2;
+          const childY = childStartY + cIdx * (cs.h + cs.gap);
+          const childMidY = childY + cs.h / 2;
           const childType = child.nodeType || 'page';
           const childColor = CHILD_NODE_COLORS_PDF[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS_PDF.length];
 
-          // Determine if this child is shared (has linkedFrom parents)
           const isShared = child.linkedFrom && child.linkedFrom.length > 0;
 
-          // Elbow connector from primary parent (use page color, dashed if shared)
           if (isShared) {
             drawDashedElbow(doc, pageRightX, pageMidY, childElbowX, childMidY, childColX, pageColor, 1);
           } else {
@@ -343,67 +407,60 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
             doc.line(childElbowX, childMidY, childColX, childMidY);
           }
 
-          // Color dot at child for primary parent
           doc.setFillColor(pageColor);
           doc.circle(childColX - 3, childMidY, 1.5, 'F');
 
-          // Draw connectors from linked parent pages
           if (isShared) {
             child.linkedFrom!.forEach(lpIdx => {
               if (lpIdx < 0 || lpIdx >= pages.length) return;
               const lpColor = PAGE_COLORS_PDF[lpIdx % PAGE_COLORS_PDF.length];
-              const lpY = pageStartY + lpIdx * (pageH + pageGap);
-              const lpMidY = lpY + pageH / 2;
-              const lpElbowX = pageColX + pageW + 16;
-              drawDashedElbow(doc, pageColX + pageW, lpMidY, lpElbowX, childMidY, childColX, lpColor, 1);
-              // Additional colored dot for each linked parent
+              const lpY = pageStartY + lpIdx * (ps.h + ps.gap);
+              const lpMidY = lpY + ps.h / 2;
+              const lpElbowX = pageColX + ps.w + colGap2 * 0.35;
+              drawDashedElbow(doc, pageColX + ps.w, lpMidY, lpElbowX, childMidY, childColX, lpColor, 1);
               doc.setFillColor(lpColor);
               doc.circle(childColX - 3 - (child.linkedFrom!.indexOf(lpIdx) + 1) * 3.5, childMidY, 1.5, 'F');
             });
           } else {
-            // Single dot (original childColor)
             doc.setFillColor(childColor);
             doc.circle(childColX, childMidY, 1.5, 'F');
           }
 
-          // ── Child node styled by type (matching builder) ──
+          // ── Child node styled by type ──
           if (childType === 'page') {
-            // Sub-page: full bold color background, no border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, childColor);
+            drawRoundedRect(doc, childColX, childY, cs.w, cs.h, 4, childColor);
             doc.setTextColor(TEXT_WHITE);
           } else if (childType === 'popup') {
-            // Pop-up: light grey background, colored dotted border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, LIGHT_GREY_PDF, childColor, 1.5, 'dotted');
+            drawRoundedRect(doc, childColX, childY, cs.w, cs.h, 4, LIGHT_GREY_PDF, childColor, 1.5, 'dotted');
             doc.setTextColor(TEXT_DARK_PDF);
           } else {
-            // Tab: light grey, no border
-            drawRoundedRect(doc, childColX, childY, childW, childH, 4, LIGHT_GREY_PDF);
+            drawRoundedRect(doc, childColX, childY, cs.w, cs.h, 4, LIGHT_GREY_PDF);
             doc.setTextColor(TEXT_DARK_PDF);
           }
 
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7);
-          const tChild = child.name.length > 13 ? child.name.substring(0, 12) + '…' : child.name;
-          doc.text(tChild, childColX + childW / 2, childY + childH / 2 + 2.5, { align: 'center' });
+          doc.setFontSize(cs.font);
+          const maxChildChars = Math.max(5, Math.floor(cs.w / (cs.font * 0.55)));
+          const tChild = child.name.length > maxChildChars ? child.name.substring(0, maxChildChars - 1) + '…' : child.name;
+          doc.text(tChild, childColX + cs.w / 2, childY + cs.h / 2 + cs.font * 0.35, { align: 'center' });
 
           // Tabs
           const tabs = child.tabs || [];
           if (tabs.length) {
-            const tabGap = 3;
-            const totalTabH = tabs.length * tabH + (tabs.length - 1) * tabGap;
+            const totalTabH = tabs.length * ts.h + (tabs.length - 1) * ts.gap;
             let tabStartY = childMidY - totalTabH / 2;
             if (tabStartY < contentTop) tabStartY = contentTop;
+            if (tabStartY + totalTabH > contentBottom) tabStartY = contentBottom - totalTabH;
 
-            const childRightX = childColX + childW;
-            const tabElbowX = childRightX + 12;
+            const childRightX = childColX + cs.w;
+            const tabElbowX = childRightX + colGap3 * 0.35;
 
             tabs.forEach((tab, tIdx) => {
-              const tabY = tabStartY + tIdx * (tabH + tabGap);
-              const tabMidY = tabY + tabH / 2;
+              const tabY = tabStartY + tIdx * (ts.h + ts.gap);
+              const tabMidY = tabY + ts.h / 2;
               const tabType = tab.nodeType || 'tab';
               const tabColor = CHILD_NODE_COLORS_PDF[(pIdx * 100 + cIdx * 10 + tIdx) % CHILD_NODE_COLORS_PDF.length];
 
-              // Connector
               doc.setDrawColor(childColor);
               doc.setLineWidth(0.8);
               doc.line(childRightX, childMidY, tabElbowX, childMidY);
@@ -413,25 +470,22 @@ export async function generateSitemapPDF(sitemap: ProjectSitemap, leadLabel?: st
               doc.setFillColor(tabColor);
               doc.circle(tabColX, tabMidY, 1.2, 'F');
 
-              // Tab node styled by type
               if (tabType === 'page') {
-                // Page: full color background, no border
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, tabColor);
+                drawRoundedRect(doc, tabColX, tabY, ts.w, ts.h, 3, tabColor);
                 doc.setTextColor(TEXT_WHITE);
               } else if (tabType === 'popup') {
-                // Pop-up: light grey, colored dotted border
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, LIGHT_GREY_PDF, tabColor, 1.2, 'dotted');
+                drawRoundedRect(doc, tabColX, tabY, ts.w, ts.h, 3, LIGHT_GREY_PDF, tabColor, 1.2, 'dotted');
                 doc.setTextColor(TEXT_DARK_PDF);
               } else {
-                // Tab: light grey, no border
-                drawRoundedRect(doc, tabColX, tabY, tabW, tabH, 3, LIGHT_GREY_PDF);
+                drawRoundedRect(doc, tabColX, tabY, ts.w, ts.h, 3, LIGHT_GREY_PDF);
                 doc.setTextColor(TEXT_DARK_PDF);
               }
 
               doc.setFont('helvetica', 'normal');
-              doc.setFontSize(6.5);
-              const tTab = tab.name.length > 12 ? tab.name.substring(0, 11) + '…' : tab.name;
-              doc.text(tTab, tabColX + tabW / 2, tabY + tabH / 2 + 2, { align: 'center' });
+              doc.setFontSize(ts.font);
+              const maxTabChars = Math.max(5, Math.floor(ts.w / (ts.font * 0.55)));
+              const tTab = tab.name.length > maxTabChars ? tab.name.substring(0, maxTabChars - 1) + '…' : tab.name;
+              doc.text(tTab, tabColX + ts.w / 2, tabY + ts.h / 2 + ts.font * 0.35, { align: 'center' });
             });
           }
         });
