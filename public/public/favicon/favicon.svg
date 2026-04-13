@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><style>
+    #light-icon {
+      display: inline;
+    }
+    #dark-icon {
+      display: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      #light-icon {
+        display: none;
+      }
+      #dark-icon {
+        display: inline;
+      }
+    }
+  </style><g id="light-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1817)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(1.953125,0,0,1.953125,0,0)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" x="0px" y="0px" width="512px" height="512px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve"><style type="text/css">
+	.st0{fill:none;}
+	.st1{font-family:'Poppins-SemiBold';}
+	.st2{font-size:605.875px;}
+	.st3{fill:#BAAA99;}
+</style><rect y="10.5" class="st0" width="431" height="491"></rect><text transform="matrix(1 0 0 1 8.392334e-05 458.8411)" class="st1 st2">S</text><circle class="st3" cx="393.25" cy="346.25" r="36.75"></circle><circle class="st3" cx="393.25" cy="182.75" r="36.75"></circle><circle class="st3" cx="311.25" cy="264.5" r="36.75"></circle><circle class="st3" cx="475.25" cy="264.5" r="36.75"></circle><path d="M329.59,296.34l-47.11-55.05"></path><path d="M282.48,241.29c30.49-43.53,104.95,21.47,47.11,55.05C313.93,305.44,272.09,256.12,282.48,241.29z"></path><path d="M365.48,160.52c30.49-43.53,104.95,21.47,47.11,55.05C396.93,224.67,355.09,175.36,365.48,160.52z"></path></svg></g></g><defs><clipPath id="SvgjsClipPath1817"><rect width="1000" height="1000" x="0" y="0" rx="100" ry="100"></rect></clipPath></defs></svg></g><g id="dark-icon"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" width="1000" height="1000"><g clip-path="url(#SvgjsClipPath1818)"><rect width="1000" height="1000" fill="#ffffff"></rect><g transform="matrix(1.3671875,0,0,1.3671875,150,150)"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" id="Layer_1" x="0px" y="0px" width="512px" height="512px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve"><style type="text/css">
+	.st0{fill:none;}
+	.st1{font-family:'Poppins-SemiBold';}
+	.st2{font-size:605.875px;}
+	.st3{fill:#BAAA99;}
+</style><rect y="10.5" class="st0" width="431" height="491"></rect><text transform="matrix(1 0 0 1 8.392334e-05 458.8411)" class="st1 st2">S</text><circle class="st3" cx="393.25" cy="346.25" r="36.75"></circle><circle class="st3" cx="393.25" cy="182.75" r="36.75"></circle><circle class="st3" cx="311.25" cy="264.5" r="36.75"></circle><circle class="st3" cx="475.25" cy="264.5" r="36.75"></circle><path d="M329.59,296.34l-47.11-55.05"></path><path d="M282.48,241.29c30.49-43.53,104.95,21.47,47.11,55.05C313.93,305.44,272.09,256.12,282.48,241.29z"></path><path d="M365.48,160.52c30.49-43.53,104.95,21.47,47.11,55.05C396.93,224.67,355.09,175.36,365.48,160.52z"></path></svg></g></g><defs><clipPath id="SvgjsClipPath1818"><rect width="1000" height="1000" x="0" y="0" rx="450" ry="450"></rect></clipPath></defs></svg></g></svg>
