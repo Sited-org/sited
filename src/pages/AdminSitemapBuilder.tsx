@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateSitemapPDF } from './AdminSitemaps';
+import { generateSitemapPDF } from '@/lib/sitemap-pdf';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
