@@ -129,9 +129,11 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
   // Calculate node widths based on text
   const minW = 70;
   const maxW = 160;
+  const noteMaxW = 240; // notes can hold more text
 
-  function nodeWidth(label: string): number {
-    return Math.max(minW, Math.min(maxW, estimateTextWidth(label, NODE_FONT)));
+  function nodeWidth(label: string, isNote?: boolean): number {
+    const mw = isNote ? noteMaxW : maxW;
+    return Math.max(minW, Math.min(mw, estimateTextWidth(label, NODE_FONT)));
   }
 
   // Measure each page subtree height
