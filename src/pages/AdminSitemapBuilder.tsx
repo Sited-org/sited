@@ -1229,8 +1229,8 @@ export default function AdminSitemapBuilder() {
                                     {child.name}
                                   </span>
                                 )}
-                                {/* Link to other parents */}
-                                <Popover>
+                                {/* Link to other parents (not for notes) */}
+                                {(child.nodeType || 'page') !== 'note' && <Popover>
                                   <PopoverTrigger asChild>
                                     <button
                                       className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`}
