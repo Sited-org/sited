@@ -317,7 +317,8 @@ function TabNodes({
                     onChange={e => updateTabName(pIdx, cIdx, currentPath, e.target.value)}
                     onBlur={() => setEditingNode(null)}
                     onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                    className="h-4 text-[10px] px-0.5 bg-transparent border-none w-16"
+                    maxLength={(tab.nodeType || 'tab') === 'note' ? 50 : undefined}
+                    className={`h-4 text-[10px] px-0.5 bg-transparent border-none ${(tab.nodeType || 'tab') === 'note' ? 'w-32' : 'w-16'}`}
                   />
                 ) : (
                   <span className="whitespace-nowrap" style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tPath: currentPath })}>
