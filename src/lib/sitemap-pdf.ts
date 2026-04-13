@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type NodeType = 'page' | 'popup' | 'tab';
+type NodeType = 'page' | 'popup' | 'tab' | 'note';
 
 interface SitemapTab {
   name: string;
@@ -129,9 +129,11 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
   // Calculate node widths based on text
   const minW = 70;
   const maxW = 160;
+  const noteMaxW = 240; // notes can hold more text
 
-  function nodeWidth(label: string): number {
-    return Math.max(minW, Math.min(maxW, estimateTextWidth(label, NODE_FONT)));
+  function nodeWidth(label: string, isNote?: boolean): number {
+    const mw = isNote ? noteMaxW : maxW;
+    return Math.max(minW, Math.min(mw, estimateTextWidth(label, NODE_FONT)));
   }
 
   // Measure each page subtree height
@@ -187,7 +189,7 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
         const childSubH = childHeights[cIdx];
         const childMidY = childStartY + childSubH / 2 - NODE_H / 2;
         const childColor = CHILD_NODE_COLORS[(pIdx * 10 + cIdx) % CHILD_NODE_COLORS.length];
-        const cw = nodeWidth(child.name);
+        const cw = nodeWidth(child.name, (child.nodeType || 'page') === 'note');
 
         const linkedColors = child.linkedFrom?.map(lpIdx => PAGE_COLORS[lpIdx % PAGE_COLORS.length]);
 
@@ -217,7 +219,7 @@ function layoutSection(section: SitemapSection): { root: LayoutNode; totalW: num
             const tabSubH = tabHeights[tIdx];
             const tabMidY = tabStartY + tabSubH / 2 - NODE_H / 2;
             const tabColor = CHILD_NODE_COLORS[(colorSeed * 100 + tIdx) % CHILD_NODE_COLORS.length];
-            const tw = nodeWidth(tab.name);
+            const tw = nodeWidth(tab.name, (tab.nodeType || 'tab') === 'note');
 
             const tabNode: LayoutNode = {
               x: tabColX,
@@ -382,9 +384,14 @@ function renderNode(doc: jsPDF, node: LayoutNode, scale: number, offsetX: number
     drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY, node.color, Math.max(0.8, 1.5 * scale), true);
     doc.setTextColor(TEXT_DARK);
     doc.setFont('helvetica', 'normal');
+  } else if (node.nodeType === 'note') {
+    // Note: lighter grey bg, no border, italic dark text
+    drawRoundedRect(doc, x, y, w, h, r, '#e5e7eb');
+    doc.setTextColor(TEXT_DARK);
+    doc.setFont('helvetica', 'italic');
   } else {
-    // Tab: grey bg, no border, dark text
-    drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY);
+    // Tab: grey bg, thin solid colored border, dark text
+    drawRoundedRect(doc, x, y, w, h, r, LIGHT_GREY, node.color, Math.max(0.5, 0.8 * scale), false);
     doc.setTextColor(TEXT_DARK);
     doc.setFont('helvetica', 'normal');
   }
