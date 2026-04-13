@@ -1221,10 +1221,11 @@ export default function AdminSitemapBuilder() {
                                     onChange={e => updateChildName(pIdx, cIdx, e.target.value)}
                                     onBlur={() => setEditingNode(null)}
                                     onKeyDown={e => e.key === 'Enter' && setEditingNode(null)}
-                                    className="h-5 text-[11px] px-1 bg-transparent border-none w-20"
+                                    maxLength={(child.nodeType || 'page') === 'note' ? 50 : undefined}
+                                    className={`h-5 text-[11px] px-1 bg-transparent border-none ${(child.nodeType || 'page') === 'note' ? 'w-40' : 'w-20'}`}
                                   />
                                 ) : (
-                                  <span className="whitespace-nowrap" style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
+                                  <span className={(child.nodeType || 'page') === 'note' ? 'whitespace-nowrap max-w-[200px] truncate' : 'whitespace-nowrap'} style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>
                                     {child.name}
                                   </span>
                                 )}
