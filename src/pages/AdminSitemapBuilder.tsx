@@ -1269,7 +1269,7 @@ export default function AdminSitemapBuilder() {
                                       <p className="text-[10px] text-muted-foreground py-1">Add more pages to link</p>
                                     )}
                                   </PopoverContent>
-                                </Popover>
+                                </Popover>}
                                 <span className="opacity-0 group-hover:opacity-100">
                                   <AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" />
                                 </span>
