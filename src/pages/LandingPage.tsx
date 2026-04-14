@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import SEOHead from "@/components/SEOHead";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowRight, Loader2, Shield, Clock, Users, Zap, Quote, CheckCircle2, Check, Lock, ChevronRight, CreditCard, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -377,6 +378,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overscroll-none">
+      <SEOHead title="Get Your Website | Sited — Limited Offer" description="Secure your custom website with a refundable deposit. Fast delivery, professional design, no risk." />
       {/* ── Scroll progress bar ── */}
       <motion.div className="fixed top-0 left-0 h-1 bg-sited-blue z-50" style={{ width: progressWidth }} />
 
