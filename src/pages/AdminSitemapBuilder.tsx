@@ -1074,7 +1074,6 @@ export default function AdminSitemapBuilder() {
     toast.success(`Added ${webPages.length} page(s) to section`);
   }, [activeSectionIdx, setSections]);
 
-  const [showFunctionsPanel, setShowFunctionsPanel] = useState(false);
 
   const isDropping = (type: string, index: number, parentPIdx?: number, parentCIdx?: number) =>
     dropTarget?.type === type && dropTarget.index === index &&
