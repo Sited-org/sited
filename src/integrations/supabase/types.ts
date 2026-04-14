@@ -1373,6 +1373,7 @@ export type Database = {
           created_at: string
           download_count: number
           id: string
+          is_web_builder: boolean
           lead_id: string | null
           name: string
           sections: Json
@@ -1383,6 +1384,7 @@ export type Database = {
           created_at?: string
           download_count?: number
           id?: string
+          is_web_builder?: boolean
           lead_id?: string | null
           name: string
           sections?: Json
@@ -1393,6 +1395,7 @@ export type Database = {
           created_at?: string
           download_count?: number
           id?: string
+          is_web_builder?: boolean
           lead_id?: string | null
           name?: string
           sections?: Json
