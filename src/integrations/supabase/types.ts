@@ -1613,6 +1613,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sitemap_webs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_preset: boolean
+          name: string
+          pages: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_preset?: boolean
+          name: string
+          pages?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_preset?: boolean
+          name?: string
+          pages?: Json
+        }
+        Relationships: []
+      }
       step_completions: {
         Row: {
           build_flow_id: string
