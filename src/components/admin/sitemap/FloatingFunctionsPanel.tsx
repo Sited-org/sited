@@ -32,10 +32,10 @@ export function FloatingFunctionsPanel({ onInsertWeb }: FloatingFunctionsPanelPr
     const { data } = await supabase
       .from('project_sitemaps')
       .select('sections')
-      .eq('is_web_builder' as any, true)
+      .eq('is_web_builder', true)
       .maybeSingle();
     if (data) {
-      const sections = Array.isArray(data.sections) ? data.sections : [];
+      const sections = Array.isArray(data.sections) ? (data.sections as any[]) : [];
       setWebs(sections.map((s: any) => ({
         title: s.title || 'Untitled Web',
         pages: Array.isArray(s.pages) ? s.pages : [],
