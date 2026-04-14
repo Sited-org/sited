@@ -1115,51 +1115,61 @@ export default function AdminSitemapBuilder() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
-        <Input
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Sitemap name…"
-          className="max-w-[200px] font-semibold text-sm h-8"
-        />
+        {isWebBuilder ? (
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            <span className="font-semibold text-sm">Web Builder</span>
+            <Badge variant="secondary" className="text-[10px]">System</Badge>
+          </div>
+        ) : (
+          <>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Sitemap name…"
+              className="max-w-[200px] font-semibold text-sm h-8"
+            />
 
-        <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="w-[200px] h-8 text-sm justify-between font-normal">
-              {selectedLeadId && selectedLeadId !== 'none'
-                ? (leads.find(l => l.id === selectedLeadId)?.business_name || leads.find(l => l.id === selectedLeadId)?.name || selectedLeadId.slice(0, 8))
-                : 'Link client…'}
-              <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[250px] p-0" align="start">
-            <Command>
-              <CommandInput placeholder="Search clients…" />
-              <CommandList>
-                <CommandEmpty>No client found.</CommandEmpty>
-                <CommandGroup>
-                  <CommandItem value="no-client" onSelect={() => { setSelectedLeadId(''); setClientSearchOpen(false); }}>
-                    <Check className={`mr-2 h-3.5 w-3.5 ${!selectedLeadId || selectedLeadId === 'none' ? 'opacity-100' : 'opacity-0'}`} />
-                    No client
-                  </CommandItem>
-                  {leads.map(l => {
-                    const label = l.business_name || l.name || l.id.slice(0, 8);
-                    return (
-                      <CommandItem key={l.id} value={label} onSelect={() => { setSelectedLeadId(l.id); setClientSearchOpen(false); }}>
-                        <Check className={`mr-2 h-3.5 w-3.5 ${selectedLeadId === l.id ? 'opacity-100' : 'opacity-0'}`} />
-                        {label}
+            <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="w-[200px] h-8 text-sm justify-between font-normal">
+                  {selectedLeadId && selectedLeadId !== 'none'
+                    ? (leads.find(l => l.id === selectedLeadId)?.business_name || leads.find(l => l.id === selectedLeadId)?.name || selectedLeadId.slice(0, 8))
+                    : 'Link client…'}
+                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search clients…" />
+                  <CommandList>
+                    <CommandEmpty>No client found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem value="no-client" onSelect={() => { setSelectedLeadId(''); setClientSearchOpen(false); }}>
+                        <Check className={`mr-2 h-3.5 w-3.5 ${!selectedLeadId || selectedLeadId === 'none' ? 'opacity-100' : 'opacity-0'}`} />
+                        No client
                       </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+                      {leads.map(l => {
+                        const label = l.business_name || l.name || l.id.slice(0, 8);
+                        return (
+                          <CommandItem key={l.id} value={label} onSelect={() => { setSelectedLeadId(l.id); setClientSearchOpen(false); }}>
+                            <Check className={`mr-2 h-3.5 w-3.5 ${selectedLeadId === l.id ? 'opacity-100' : 'opacity-0'}`} />
+                            {label}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
-        {selectedLeadId && selectedLeadId !== 'none' && (
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={importFromDiscovery}>
-            <Import className="h-3.5 w-3.5 mr-1" />Import
-          </Button>
+            {selectedLeadId && selectedLeadId !== 'none' && (
+              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={importFromDiscovery}>
+                <Import className="h-3.5 w-3.5 mr-1" />Import
+              </Button>
+            )}
+          </>
         )}
 
         <div className="flex items-center gap-0.5 border-l border-border pl-3 ml-1">
@@ -1173,17 +1183,21 @@ export default function AdminSitemapBuilder() {
 
         <div className="flex-1" />
 
-        <Button
-          variant={showFunctionsPanel ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 text-xs"
-          onClick={() => setShowFunctionsPanel(!showFunctionsPanel)}
-        >
-          <Package className="h-3.5 w-3.5 mr-1" />Webs
-        </Button>
-        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
-          <Download className="h-3.5 w-3.5 mr-1" />PDF
-        </Button>
+        {!isWebBuilder && (
+          <Button
+            variant={showFunctionsPanel ? 'default' : 'outline'}
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setShowFunctionsPanel(!showFunctionsPanel)}
+          >
+            <Package className="h-3.5 w-3.5 mr-1" />Webs
+          </Button>
+        )}
+        {!isWebBuilder && (
+          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
+            <Download className="h-3.5 w-3.5 mr-1" />PDF
+          </Button>
+        )}
         <Button size="sm" className="h-8 text-xs" onClick={saveSitemap} disabled={saving}>
           <Save className="h-3.5 w-3.5 mr-1" />{saving ? 'Saving…' : 'Save'}
         </Button>
