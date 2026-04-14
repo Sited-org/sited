@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, TrendingUp, Search, Clock, Sparkles } from "lucide-react";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import CalendarMockup from "@/components/services/CalendarMockup";
 import CRMMockup from "@/components/services/CRMMockup";
 import ClientProfileMockup from "@/components/services/ClientProfileMockup";
@@ -130,10 +130,7 @@ const Divider = () => (
 );
 
 const Features = () => {
-  usePageSEO({
-    title: "Features | Sited — More Leads, Dominant SEO, Less Work",
-    description: "Sited builds websites, CRMs, client portals and dashboards that generate more leads, dominate SEO, and save you time.",
-  });
+  // SEOHead rendered in JSX below
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);

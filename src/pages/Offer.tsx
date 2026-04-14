@@ -6,7 +6,7 @@ import { Check, ArrowRight, Shield, Zap, Star, Crown, ChevronRight, Flame, Trend
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { useOfferContent } from "@/hooks/useOfferContent";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePackagePrices } from "@/hooks/usePackagePrices";
 import OfferPaymentForm from "@/components/offer/OfferPaymentForm";
@@ -158,10 +158,7 @@ const Offer = () => {
     }
   }, [navigate]);
 
-  usePageSEO({
-    title: `Secure Your Website | Sited — $${depositAmount} Deposit`,
-    description: `Get a fully custom website with just a $${depositAmount} refundable deposit. Choose Blue, Gold, or Platinum.`,
-  });
+  // SEOHead rendered in JSX below
 
   if (loading) {
     return (
