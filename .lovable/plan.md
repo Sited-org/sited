@@ -1,54 +1,85 @@
 
 
-## Plan: Mid-Month Subscription Billing Option
+# Sitemap Builder Upgrade: Cross-Dimensional Drag & Drop + Functions Panel with Webs
 
-### What already works
-- **Credit check**: The `stripe-webhook` intercepts every subscription `invoice.created` event while it's still a draft. It calls `getAvailableCredit()` and either voids the invoice (full credit), adds a negative line item (partial credit), or lets it charge normally. This works for both auto-charge and invoice modes. No changes needed here.
+## Overview
 
-### What needs to change
-When creating a subscription mid-month (2nd–30th), the admin currently has no choice — billing always pushes to the 1st of the next month. You want the option to bill for the current month immediately.
+Two major features for the sitemap builder: (1) allow dragging items between different hierarchy levels (e.g. a child from one page to another, a page becoming a child, etc.), and (2) a floating "Functions" panel with pre-made "Webs" that can be dropped into the sitemap.
 
-### UI Change — Admin PaymentsTab
-Add a toggle/radio below the billing start month selector:
+---
 
-```text
-┌─────────────────────────────────┐
-│ Billing Start Month: [2026-04]  │
-│                                 │
-│ ○ Bill for current month now    │
-│ ○ Start billing next month      │
-│   (default)                     │
-└─────────────────────────────────┘
+## Feature 1: Cross-Dimensional Drag & Drop
+
+**Current limitation**: Drag-and-drop only reorders within the same type and same parent (pages reorder among pages, children reorder within the same parent page, tabs within the same child). The code explicitly checks `currentDrag.type === currentTarget.type` and same parent indices.
+
+**Changes needed**:
+
+- **Expand `DragItem` and `DropTarget`** to allow cross-type drops. Add `sIdx` to DragItem so section context travels with the drag.
+- **Update `data-drop-*` attributes** on all droppable elements to accept items from different hierarchy levels (e.g. a page node should accept a child being dropped on it to reparent).
+- **Update the `onPointerMove` hit-test** to allow cross-type matching — when dragging a child, hovering over a different page's drop zone should highlight it as a valid target.
+- **Update `onPointerUp` drop logic** to handle:
+  - Child → different parent page (move child with all its tabs/sub-tabs)
+  - Page → child of another page (demote with children intact)
+  - Child → top-level page (promote)
+  - Tab → child under a different parent (promote tab to child)
+- **All sub-labels travel with the dragged item** — already natural since children/tabs are nested objects; the move just splices the entire object.
+
+**Key constraint**: When dragging across dimensions, `linkedFrom` references may need cleanup if page indices shift.
+
+---
+
+## Feature 2: Functions Panel with Webs
+
+**UI**: A floating, draggable, minimizable panel anchored to the right side of the canvas.
+
+**Components**:
+1. **FloatingFunctionsPanel** — a `position: fixed` div with drag handle, minimize toggle, and two tabs: "Library" and "My Webs"
+2. **Library tab** — pre-built web templates (hardcoded):
+   - **Sales Funnel** — Landing Page → Lead Capture (popup) → Thank You → Follow Up (tabs: Email Sequence, Retargeting)
+   - **User Profile Area** — Profile → Settings (tabs: Account, Security, Notifications) → Activity Log
+   - **Blog Section** — Blog Index → Blog Post → Categories → Author Page
+   - **E-Commerce** — Products → Product Detail → Cart → Checkout (tabs: Shipping, Payment, Review) → Order Confirmation
+   - **Auth Flow** — Login → Register → Forgot Password → Reset Password → Email Verification
+   - **Support Center** — Help Center → FAQ → Contact → Ticket System (tabs: Open, Resolved)
+3. **My Webs tab** — user-created webs stored in a new database table `sitemap_webs`
+4. **Each web item** shows a name, page count badge, and a "Drop into sitemap" button or drag handle
+5. **Creating a Web** — a dialog where user names the web, then builds a mini-tree (reusing the same node structure: pages with children and tabs). Saved to `sitemap_webs` table.
+6. **Dropping a Web** — clicking "Add to sitemap" appends the web's pages array to the current section's pages, or the user can drag the web onto a specific page to insert its children there.
+
+**Database**: New `sitemap_webs` table:
+```sql
+create table public.sitemap_webs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  description text,
+  pages jsonb not null default '[]',
+  is_preset boolean default false,
+  created_at timestamptz default now()
+);
+alter table public.sitemap_webs enable row level security;
+create policy "Authenticated users can manage webs"
+  on public.sitemap_webs for all to authenticated using (true) with check (true);
 ```
 
-- Only visible when the selected month is the current month (or no month selected and it's mid-month)
-- "Bill for current month now" sends `charge_current_month: true` to the edge function
-- Default remains "Start billing next month"
+---
 
-### Backend Change — `create-membership-subscription`
-When `charge_current_month` is true:
+## Files to Modify/Create
 
-1. Set `billing_cycle_anchor` to the 1st of the **current** month (in the past) — Stripe allows past anchors
-2. Actually Stripe does NOT allow past `billing_cycle_anchor` — so instead:
-   - Set `billing_cycle_anchor` to the 1st of **next month** (normal behavior for future cycles)
-   - Add `backdate_start_date` to the 1st of current month, OR
-   - Use `add_invoice_items` to create an immediate one-time charge for the current period
-   
-   **Best approach**: Create the subscription anchored to the 1st of next month as normal, then immediately create a separate one-time invoice item for the current month's pro-rata (full month price since you want to bill the full month regardless of start date). This keeps the subscription cycle clean.
+| File | Action |
+|---|---|
+| `src/pages/AdminSitemapBuilder.tsx` | Expand drag/drop logic for cross-dimensional moves; add Functions panel rendering and state |
+| `src/components/admin/sitemap/FloatingFunctionsPanel.tsx` | New — floating draggable panel with Library + My Webs tabs |
+| `src/components/admin/sitemap/WebBuilderDialog.tsx` | New — dialog for creating/editing custom webs |
+| `src/components/admin/sitemap/webPresets.ts` | New — hardcoded preset web templates |
+| Migration | New table `sitemap_webs` |
 
-3. Flow when `charge_current_month: true`:
-   - Create subscription anchored to 1st of next month (standard)
-   - Create a one-time invoice for the current month's full membership price
-   - If card on file: charge immediately via `stripe.invoices.pay()`
-   - If no card: send the invoice with 7-day due date
-   - Record the current-month charge as a separate transaction in the ledger
+---
 
-### Files Modified
-- `src/components/admin/lead-profile/PaymentsTab.tsx` — Add radio toggle for current month billing
-- `supabase/functions/create-membership-subscription/index.ts` — Handle `charge_current_month` flag, create immediate invoice for current period
+## Technical Details
 
-### Technical Details
-- The credit-first system will still work for the immediate charge since `invoice.created` webhook fires for one-time invoices too (when created via `stripe.invoices.create()`)
-- The subscription's recurring cycle remains cleanly anchored to the 1st of each month
-- The current-month charge is a standalone invoice, not part of the subscription billing cycle
+**Cross-dimensional drop resolution**: The `onPointerMove` handler will be updated to find the nearest valid drop zone regardless of type. A new `data-drop-accepts` attribute will define which drag types each zone accepts (e.g. a page node accepts `child`, `tab` for promotion; a child area accepts `page` for demotion). The `onPointerUp` handler will use a switch on `${dragType}->${dropType}` to execute the correct splice/insert operation.
+
+**Floating panel drag**: Uses `onPointerDown` on a grip bar, tracking `clientX/clientY` delta to update `top/left` state on a `position: fixed` container. Minimizing collapses to just the title bar.
+
+**Web insertion**: When a preset/custom web is added, its `pages` array (which uses the same `SitemapPage[]` structure) is concatenated to `currentSection.pages`. Color indices auto-assign via the existing palette system.
 
