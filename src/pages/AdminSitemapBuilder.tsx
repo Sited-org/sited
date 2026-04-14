@@ -1449,7 +1449,7 @@ export default function AdminSitemapBuilder() {
         </div>
       </div>
 
-      {showFunctionsPanel && <FloatingFunctionsPanel onInsertWeb={insertWeb} />}
+      {!isWebBuilder && showFunctionsPanel && <FloatingFunctionsPanel onInsertWeb={insertWeb} />}
     </div>
   );
 }
