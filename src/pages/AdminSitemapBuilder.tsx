@@ -559,6 +559,7 @@ export default function AdminSitemapBuilder() {
     });
 
     setConnectorLines(lines);
+    setSvgSize({ w: canvasRef.current.scrollWidth, h: canvasRef.current.scrollHeight });
   }, [currentSection]);
 
   useEffect(() => {
