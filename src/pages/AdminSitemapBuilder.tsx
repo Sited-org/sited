@@ -1145,6 +1145,14 @@ export default function AdminSitemapBuilder() {
 
         <div className="flex-1" />
 
+        <Button
+          variant={showFunctionsPanel ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => setShowFunctionsPanel(!showFunctionsPanel)}
+        >
+          <Package className="h-3.5 w-3.5 mr-1" />Webs
+        </Button>
         <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
           <Download className="h-3.5 w-3.5 mr-1" />PDF
         </Button>
