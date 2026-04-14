@@ -1406,6 +1406,8 @@ export default function AdminSitemapBuilder() {
           </div>
         </div>
       </div>
+
+      {showFunctionsPanel && <FloatingFunctionsPanel onInsertWeb={insertWeb} />}
     </div>
   );
 }
