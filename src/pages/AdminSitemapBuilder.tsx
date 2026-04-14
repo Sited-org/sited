@@ -441,6 +441,7 @@ export default function AdminSitemapBuilder() {
   const childNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const tabNodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [connectorLines, setConnectorLines] = useState<{ x1: number; y1: number; x2: number; y2: number; color: string; dashed?: boolean }[]>([]);
+  const [svgSize, setSvgSize] = useState({ w: 0, h: 0 });
 
   // Color palette for parent-page distinction
   const PAGE_COLORS = [
@@ -558,6 +559,7 @@ export default function AdminSitemapBuilder() {
     });
 
     setConnectorLines(lines);
+    setSvgSize({ w: canvasRef.current.scrollWidth, h: canvasRef.current.scrollHeight });
   }, [currentSection]);
 
   useEffect(() => {
@@ -1307,7 +1309,7 @@ export default function AdminSitemapBuilder() {
         {/* ── Main Canvas ── */}
         <div className="flex-1 overflow-auto bg-muted/20 relative" ref={canvasRef}>
           {/* SVG Connectors */}
-          <svg className="absolute inset-0 pointer-events-none z-0" style={{ width: '100%', height: '100%', minWidth: '100%', minHeight: '100%' }}>
+          <svg className="absolute top-0 left-0 pointer-events-none z-0" style={{ width: svgSize.w || '100%', height: svgSize.h || '100%' }}>
             {connectorLines.map((l, i) => (
               <g key={i}>
                 <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.7" strokeDasharray={l.dashed ? '4 3' : undefined} />
