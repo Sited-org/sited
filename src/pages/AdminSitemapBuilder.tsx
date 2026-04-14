@@ -373,7 +373,7 @@ export default function AdminSitemapBuilder() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isNew = !id || id === 'new';
-
+  const [isWebBuilder, setIsWebBuilder] = useState(false);
   const [name, setName] = useState('');
   const [selectedLeadId, setSelectedLeadId] = useState('');
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
@@ -467,9 +467,10 @@ export default function AdminSitemapBuilder() {
     if (error || !data) { toast.error('Sitemap not found'); navigate('/admin/sitemaps'); return; }
     setName(data.name);
     setSelectedLeadId(data.lead_id || '');
+    setIsWebBuilder((data as any).is_web_builder === true);
     const s = (data.sections as any) || [];
     skipHistoryRef.current = true;
-    setSections(s.length ? migrateSections(s) : [{ title: 'Front-End', pages: [] }]);
+    setSections(s.length ? migrateSections(s) : [{ title: isNew ? 'Front-End' : 'New Web', pages: [] }]);
     setLoading(false);
   }, [id, isNew, navigate]);
 
