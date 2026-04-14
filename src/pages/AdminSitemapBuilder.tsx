@@ -901,7 +901,7 @@ export default function AdminSitemapBuilder() {
 
       if (hitEl) {
         const dropEl = hitEl.closest('[data-drop-type]') as HTMLElement | null;
-        if (dropEl && dropEl.dataset.dropType === item.type) {
+        if (dropEl) {
           const newTarget: DropTarget = {
             type: dropEl.dataset.dropType as any,
             index: parseInt(dropEl.dataset.dropIndex || '0'),
@@ -909,7 +909,7 @@ export default function AdminSitemapBuilder() {
             parentCIdx: dropEl.dataset.dropParentC ? parseInt(dropEl.dataset.dropParentC) : undefined,
           };
           setDropTarget(prev => {
-            if (prev?.index === newTarget.index && prev?.parentPIdx === newTarget.parentPIdx && prev?.parentCIdx === newTarget.parentCIdx) return prev;
+            if (prev?.type === newTarget.type && prev?.index === newTarget.index && prev?.parentPIdx === newTarget.parentPIdx && prev?.parentCIdx === newTarget.parentCIdx) return prev;
             return newTarget;
           });
         } else {
