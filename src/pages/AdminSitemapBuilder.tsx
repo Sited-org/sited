@@ -205,6 +205,7 @@ type EditingNode = {
 
 type DragItem = {
   type: 'page' | 'child' | 'tab';
+  sIdx: number;
   pIdx: number;
   cIdx?: number;
   tIdx?: number;
