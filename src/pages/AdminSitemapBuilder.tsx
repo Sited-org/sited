@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
-  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check, StickyNote,
+  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check, StickyNote, Package,
 } from 'lucide-react';
+import { FloatingFunctionsPanel } from '@/components/admin/sitemap/FloatingFunctionsPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateSitemapPDF } from '@/lib/sitemap-pdf';
@@ -204,6 +205,7 @@ type EditingNode = {
 
 type DragItem = {
   type: 'page' | 'child' | 'tab';
+  sIdx: number;
   pIdx: number;
   cIdx?: number;
   tIdx?: number;
@@ -302,7 +304,7 @@ function TabNodes({
                 data-drop-index={depth === 1 ? tIdx : undefined}
                 data-drop-parent-p={depth === 1 ? pIdx : undefined}
                 data-drop-parent-c={depth === 1 ? cIdx : undefined}
-                onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
+                onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx }, e); }) : undefined}
                 className={`group flex items-center gap-1 px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
                   depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
                 } ${getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).className}`}
@@ -430,6 +432,7 @@ export default function AdminSitemapBuilder() {
   const [editingNode, setEditingNode] = useState<EditingNode>(null);
   const [dragItem, setDragItem] = useState<DragItem>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
+  const [showFunctionsPanel, setShowFunctionsPanel] = useState(false);
 
   // Canvas refs for SVG connectors
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -899,7 +902,7 @@ export default function AdminSitemapBuilder() {
 
       if (hitEl) {
         const dropEl = hitEl.closest('[data-drop-type]') as HTMLElement | null;
-        if (dropEl && dropEl.dataset.dropType === item.type) {
+        if (dropEl) {
           const newTarget: DropTarget = {
             type: dropEl.dataset.dropType as any,
             index: parseInt(dropEl.dataset.dropIndex || '0'),
@@ -907,7 +910,7 @@ export default function AdminSitemapBuilder() {
             parentCIdx: dropEl.dataset.dropParentC ? parseInt(dropEl.dataset.dropParentC) : undefined,
           };
           setDropTarget(prev => {
-            if (prev?.index === newTarget.index && prev?.parentPIdx === newTarget.parentPIdx && prev?.parentCIdx === newTarget.parentCIdx) return prev;
+            if (prev?.type === newTarget.type && prev?.index === newTarget.index && prev?.parentPIdx === newTarget.parentPIdx && prev?.parentCIdx === newTarget.parentCIdx) return prev;
             return newTarget;
           });
         } else {
@@ -931,32 +934,99 @@ export default function AdminSitemapBuilder() {
         dragSourceRef.current = null;
       }
 
-      // Apply the drop
+      // Apply the drop (cross-dimensional)
       setDropTarget(currentTarget => {
         setDragItem(currentDrag => {
-          if (currentDrag && currentTarget && currentDrag.type === currentTarget.type) {
-            setSections(prev => {
-              const next = [...prev];
-              const pages = [...next[activeSectionIdx].pages];
+          if (currentDrag && currentTarget) {
+            const dragType = currentDrag.type;
+            const dropType = currentTarget.type;
 
-              if (currentDrag.type === 'page' && currentDrag.pIdx !== currentTarget.index) {
-                const [moved] = pages.splice(currentDrag.pIdx, 1);
-                pages.splice(currentTarget.index, 0, moved);
-              } else if (currentDrag.type === 'child' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined) {
-                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx !== currentTarget.index) {
-                  const children = [...(pages[currentDrag.pIdx].children || [])];
-                  const [moved] = children.splice(currentDrag.cIdx, 1);
-                  children.splice(currentTarget.index, 0, moved);
-                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+            setSections(prev => {
+              const next = JSON.parse(JSON.stringify(prev)) as typeof prev;
+              const pages = next[activeSectionIdx].pages;
+
+              // ── Same-type reorder ──
+              if (dragType === dropType) {
+                if (dragType === 'page' && currentDrag.pIdx !== currentTarget.index) {
+                  const [moved] = pages.splice(currentDrag.pIdx, 1);
+                  pages.splice(currentTarget.index, 0, moved);
+                } else if (dragType === 'child' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined) {
+                  if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx !== currentTarget.index) {
+                    const children = pages[currentDrag.pIdx].children || [];
+                    const [moved] = children.splice(currentDrag.cIdx, 1);
+                    children.splice(currentTarget.index, 0, moved);
+                  } else if (currentDrag.pIdx !== currentTarget.parentPIdx) {
+                    // Child → different parent page
+                    const srcChildren = pages[currentDrag.pIdx].children || [];
+                    const [moved] = srcChildren.splice(currentDrag.cIdx, 1);
+                    if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                    const dstChildren = pages[currentTarget.parentPIdx].children || [];
+                    dstChildren.splice(currentTarget.index, 0, moved);
+                    pages[currentTarget.parentPIdx].children = dstChildren;
+                  }
+                } else if (dragType === 'tab' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
+                  if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx === currentTarget.parentCIdx && currentDrag.tIdx !== currentTarget.index) {
+                    const tabs = pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs || [];
+                    const [moved] = tabs.splice(currentDrag.tIdx, 1);
+                    tabs.splice(currentTarget.index, 0, moved);
+                  }
                 }
-              } else if (currentDrag.type === 'tab' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
-                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx === currentTarget.parentCIdx && currentDrag.tIdx !== currentTarget.index) {
-                  const children = [...(pages[currentDrag.pIdx].children || [])];
-                  const tabs = [...(children[currentDrag.cIdx].tabs || [])];
-                  const [moved] = tabs.splice(currentDrag.tIdx, 1);
-                  tabs.splice(currentTarget.index, 0, moved);
-                  children[currentDrag.cIdx] = { ...children[currentDrag.cIdx], tabs };
-                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+              }
+              // ── Cross-dimensional: child → page (promote) ──
+              else if (dragType === 'child' && dropType === 'page' && currentDrag.cIdx !== undefined) {
+                const srcChildren = pages[currentDrag.pIdx].children || [];
+                const [movedChild] = srcChildren.splice(currentDrag.cIdx, 1);
+                if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                // Convert child to page (keep children as sub-labels if tabs exist)
+                const newPage: any = { name: movedChild.name, nodeType: movedChild.nodeType || 'page' };
+                if (movedChild.tabs?.length) {
+                  newPage.children = movedChild.tabs.map((t: any) => ({ name: t.name, nodeType: t.nodeType || 'tab' }));
+                }
+                pages.splice(currentTarget.index, 0, newPage);
+              }
+              // ── Cross-dimensional: page → child (demote) ──
+              else if (dragType === 'page' && dropType === 'child' && currentTarget.parentPIdx !== undefined) {
+                const [movedPage] = pages.splice(currentDrag.pIdx, 1);
+                // Adjust target parent index if needed after removal
+                let targetPIdx = currentTarget.parentPIdx;
+                if (currentDrag.pIdx < targetPIdx) targetPIdx--;
+                // Convert page to child (keep page's children as tabs)
+                const newChild: any = { name: movedPage.name, nodeType: movedPage.nodeType || 'page' };
+                if (movedPage.children?.length) {
+                  newChild.tabs = movedPage.children.map((c: any) => ({ name: c.name, nodeType: c.nodeType || 'tab' }));
+                }
+                const dstChildren = pages[targetPIdx].children || [];
+                dstChildren.splice(currentTarget.index, 0, newChild);
+                pages[targetPIdx].children = dstChildren;
+              }
+              // ── Cross-dimensional: tab → child (promote tab) ──
+              else if (dragType === 'tab' && dropType === 'child' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined) {
+                const srcTabs = pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs || [];
+                const [movedTab] = srcTabs.splice(currentDrag.tIdx, 1);
+                if (srcTabs.length === 0) pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs = undefined;
+                const newChild: any = { name: movedTab.name, nodeType: movedTab.nodeType || 'tab' };
+                if (movedTab.tabs?.length) {
+                  newChild.tabs = movedTab.tabs;
+                }
+                const dstChildren = pages[currentTarget.parentPIdx].children || [];
+                dstChildren.splice(currentTarget.index, 0, newChild);
+                pages[currentTarget.parentPIdx].children = dstChildren;
+              }
+              // ── Cross-dimensional: child → tab (demote child to tab) ──
+              else if (dragType === 'child' && dropType === 'tab' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
+                const srcChildren = pages[currentDrag.pIdx].children || [];
+                const [movedChild] = srcChildren.splice(currentDrag.cIdx, 1);
+                if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                const newTab: any = { name: movedChild.name, nodeType: movedChild.nodeType || 'tab' };
+                if (movedChild.tabs?.length) newTab.tabs = movedChild.tabs;
+                // Adjust indices if same page and child was before target
+                let tgtPIdx = currentTarget.parentPIdx;
+                let tgtCIdx = currentTarget.parentCIdx;
+                if (currentDrag.pIdx === tgtPIdx && currentDrag.cIdx < tgtCIdx) tgtCIdx--;
+                const dstTabs = pages[tgtPIdx].children?.[tgtCIdx]?.tabs || [];
+                dstTabs.splice(currentTarget.index, 0, newTab);
+                if (pages[tgtPIdx].children?.[tgtCIdx]) {
+                  pages[tgtPIdx].children![tgtCIdx].tabs = dstTabs;
                 }
               }
 
@@ -985,6 +1055,17 @@ export default function AdminSitemapBuilder() {
     }, leadLabel);
   };
 
+  const insertWeb = useCallback((webPages: any[]) => {
+    setSections(prev => {
+      const next = [...prev];
+      const section = { ...next[activeSectionIdx] };
+      section.pages = [...section.pages, ...webPages];
+      next[activeSectionIdx] = section;
+      return next;
+    });
+    toast.success(`Added ${webPages.length} page(s) to section`);
+  }, [activeSectionIdx, setSections]);
+
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
@@ -992,6 +1073,7 @@ export default function AdminSitemapBuilder() {
       </div>
     );
   }
+
 
   const isDropping = (type: string, index: number, parentPIdx?: number, parentCIdx?: number) =>
     dropTarget?.type === type && dropTarget.index === index &&
@@ -1063,6 +1145,14 @@ export default function AdminSitemapBuilder() {
 
         <div className="flex-1" />
 
+        <Button
+          variant={showFunctionsPanel ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 text-xs"
+          onClick={() => setShowFunctionsPanel(!showFunctionsPanel)}
+        >
+          <Package className="h-3.5 w-3.5 mr-1" />Webs
+        </Button>
         <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleDownload} disabled={!sections.some(s => s.pages.length)}>
           <Download className="h-3.5 w-3.5 mr-1" />PDF
         </Button>
@@ -1156,7 +1246,7 @@ export default function AdminSitemapBuilder() {
                         ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
                         data-drop-type="page"
                         data-drop-index={pIdx}
-                        onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
+                        onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', sIdx: activeSectionIdx, pIdx }, e); }}
                         className={`group flex items-center gap-1.5 text-white px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
                           dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
                         }`}
@@ -1198,7 +1288,7 @@ export default function AdminSitemapBuilder() {
                                 data-drop-type="child"
                                 data-drop-index={cIdx}
                                 data-drop-parent-p={pIdx}
-                                onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                                onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx }, e); }}
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
@@ -1316,6 +1406,8 @@ export default function AdminSitemapBuilder() {
           </div>
         </div>
       </div>
+
+      {showFunctionsPanel && <FloatingFunctionsPanel onInsertWeb={insertWeb} />}
     </div>
   );
 }
