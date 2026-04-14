@@ -304,7 +304,7 @@ function TabNodes({
                 data-drop-index={depth === 1 ? tIdx : undefined}
                 data-drop-parent-p={depth === 1 ? pIdx : undefined}
                 data-drop-parent-c={depth === 1 ? cIdx : undefined}
-                onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', pIdx, cIdx, tIdx }, e); }) : undefined}
+                onPointerDown={depth === 1 ? (e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'tab', sIdx: activeSectionIdx, pIdx, cIdx, tIdx }, e); }) : undefined}
                 className={`group flex items-center gap-1 px-2 py-1 rounded ${depthFontSize} select-none ${depth === 1 ? 'cursor-grab active:cursor-grabbing touch-none' : ''} ${
                   depth === 1 && dragItem?.type === 'tab' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx && dragItem.tIdx === tIdx ? 'opacity-25 scale-95' : ''
                 } ${getChildNodeStyles(tab.nodeType, pIdx * 100 + cIdx * 10 + tIdx).className}`}
@@ -1158,7 +1158,7 @@ export default function AdminSitemapBuilder() {
                         ref={el => { if (el) pageNodeRefs.current.set(pIdx, el); else pageNodeRefs.current.delete(pIdx); }}
                         data-drop-type="page"
                         data-drop-index={pIdx}
-                        onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', pIdx }, e); }}
+                        onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'page', sIdx: activeSectionIdx, pIdx }, e); }}
                         className={`group flex items-center gap-1.5 text-white px-3 py-2 rounded-lg shadow-md cursor-grab active:cursor-grabbing transition-all hover:shadow-lg select-none text-sm touch-none ${
                           dragItem?.type === 'page' && dragItem.pIdx === pIdx ? 'opacity-25 scale-95' : ''
                         }`}
@@ -1200,7 +1200,7 @@ export default function AdminSitemapBuilder() {
                                 data-drop-type="child"
                                 data-drop-index={cIdx}
                                 data-drop-parent-p={pIdx}
-                                onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', pIdx, cIdx }, e); }}
+                                onPointerDown={e => { if ((e.target as HTMLElement).closest('button, input')) return; startDrag({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx }, e); }}
                                 className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg shadow-sm text-xs select-none cursor-grab active:cursor-grabbing touch-none ${
                                   dragItem?.type === 'child' && dragItem.pIdx === pIdx && dragItem.cIdx === cIdx ? 'opacity-25 scale-95' : ''
                                 } ${getChildNodeStyles(child.nodeType, pIdx * 10 + cIdx).className}`}
