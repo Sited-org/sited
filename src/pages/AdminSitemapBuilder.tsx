@@ -609,40 +609,343 @@ export default function AdminSitemapBuilder() {
   };
 
   // ── Import from Discovery ──
+  // Pulls: discovery answers (portals, pages, features, CTAs, integrations, widgets, roles, etc.)
+  // AND the lead's initial form_data (required_pages, features, current_website, etc.)
+  // Generates a fully structured sitemap with sub-pages, tabs, and intelligent presets.
 
   const importFromDiscovery = async () => {
     if (!selectedLeadId || selectedLeadId === 'none') { toast.error('Select a client first'); return; }
-    const { data: bf } = await supabase.from('build_flows').select('id').eq('lead_id', selectedLeadId).limit(1).maybeSingle();
-    if (!bf) { toast.error('No build flow found'); return; }
-    const { data: answers } = await supabase.from('discovery_answers').select('question_key, answer_value').eq('build_flow_id', bf.id);
-    if (!answers?.length) { toast.error('No discovery answers'); return; }
 
-    const ansMap: Record<string, string> = {};
-    answers.forEach(a => { ansMap[a.question_key] = a.answer_value; });
-    const newSections: SitemapSection[] = [];
+    // Fetch lead form_data + discovery answers in parallel
+    const [leadRes, bfRes] = await Promise.all([
+      supabase.from('leads').select('form_data, name, business_name, project_type, industry').eq('id', selectedLeadId).single(),
+      supabase.from('build_flows').select('id').eq('lead_id', selectedLeadId).limit(1).maybeSingle(),
+    ]);
+
+    const formData: Record<string, any> = (leadRes.data?.form_data as Record<string, any>) || {};
+    const lead = leadRes.data;
+    let ansMap: Record<string, string> = {};
+
+    if (bfRes.data) {
+      const { data: answers } = await supabase.from('discovery_answers').select('question_key, answer_value').eq('build_flow_id', bfRes.data.id);
+      if (answers?.length) answers.forEach(a => { ansMap[a.question_key] = a.answer_value; });
+    }
+
     const portals: string[] = safeJsonParse(ansMap['selectedPortals'], []);
+    const newSections: SitemapSection[] = [];
 
-    if (portals.includes('front_end')) {
+    // ── FRONT-END SECTION ──
+    if (portals.includes('front_end') || !portals.length) {
       const core: string[] = safeJsonParse(ansMap['frontEnd.corePages'], []);
       const marketing: string[] = safeJsonParse(ansMap['frontEnd.marketingPages'], []);
       const custom: string[] = safeJsonParse(ansMap['frontEnd.customPages'], []);
-      newSections.push({ title: 'Front-End', pages: [...core, ...marketing, ...custom].filter(Boolean).map(p => ({ name: p })) });
-    }
-    ['admin_portal', 'client_portal', 'staff_portal'].forEach(portal => {
-      if (!portals.includes(portal)) return;
-      const label = portal.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const features: string[] = safeJsonParse(ansMap[`${portal.replace(/_([a-z])/g, (_, c) => c.toUpperCase().replace('_', ''))}.features`] || ansMap[`${portal === 'admin_portal' ? 'adminPortal' : portal === 'client_portal' ? 'clientPortal' : 'staffPortal'}.features`], []);
-      newSections.push({ title: label, pages: [{ name: 'Dashboard' }, ...features.map(f => ({ name: f }))] });
-    });
+      const ctas: string[] = safeJsonParse(ansMap['frontEnd.ctas'] || ansMap['frontEnd.customCtas'], []);
+      const integrations: string[] = safeJsonParse(ansMap['integrations.selected'], []);
 
-    if (!newSections.length) { toast.error('No portals found'); return; }
+      // Also pull from initial form_data
+      const formPages: string[] = Array.isArray(formData.required_pages) ? formData.required_pages : [];
+      const formCustomPages: string[] = Array.isArray(formData.custom_pages) ? formData.custom_pages : [];
+      const formFeatures: string[] = Array.isArray(formData.features) ? formData.features : [];
+
+      // Merge all page names, deduplicate
+      const allPageNames = [...new Set([...core, ...marketing, ...custom, ...formPages, ...formCustomPages].filter(Boolean))];
+
+      const fePages: SitemapPage[] = [];
+
+      // Generate structured pages with intelligent sub-pages
+      allPageNames.forEach(pageName => {
+        const page: SitemapPage = { name: pageName };
+        const lower = pageName.toLowerCase();
+
+        // Home page preset
+        if (lower === 'home') {
+          page.children = [
+            { name: 'Hero Section', nodeType: 'note' },
+            { name: 'Services Overview', nodeType: 'note' },
+            { name: 'Testimonials', nodeType: 'note' },
+            { name: 'CTA Banner', nodeType: 'note' },
+          ];
+          if (ctas.length) {
+            page.children.push(...ctas.map(c => ({ name: c, nodeType: 'popup' as NodeType })));
+          }
+        }
+
+        // Services page preset
+        else if (lower.includes('service')) {
+          page.children = [
+            { name: 'Service List', nodeType: 'note' },
+            { name: 'Individual Service', nodeType: 'page' as NodeType },
+            { name: 'Service Enquiry', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        // Products page preset
+        else if (lower.includes('product')) {
+          page.children = [
+            { name: 'Product Grid', nodeType: 'note' },
+            { name: 'Product Detail', nodeType: 'page' as NodeType },
+            { name: 'Cart', nodeType: 'popup' as NodeType },
+            { name: 'Checkout', nodeType: 'page' as NodeType },
+          ];
+        }
+
+        // Contact page preset
+        else if (lower === 'contact') {
+          page.children = [
+            { name: 'Contact Form', nodeType: 'note' },
+            { name: 'Map / Location', nodeType: 'note' },
+            { name: 'Form Submitted', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        // Testimonials / Portfolio / Work
+        else if (lower.includes('testimonial') || lower === 'portfolio' || lower === 'work') {
+          page.children = [
+            { name: 'Showcase Grid', nodeType: 'note' },
+            { name: 'Detail View', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        // Pricing page preset
+        else if (lower.includes('pricing')) {
+          page.children = [
+            { name: 'Pricing Tiers', nodeType: 'note' },
+            { name: 'Feature Comparison', nodeType: 'note' },
+            { name: 'Get Started', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        // About page preset
+        else if (lower === 'about') {
+          page.children = [
+            { name: 'Company Story', nodeType: 'note' },
+            { name: 'Team Members', nodeType: 'note' },
+            { name: 'Mission & Values', nodeType: 'note' },
+          ];
+        }
+
+        // Blog page preset
+        else if (lower === 'blog') {
+          page.children = [
+            { name: 'Blog List', nodeType: 'note' },
+            { name: 'Blog Post', nodeType: 'page' as NodeType },
+            { name: 'Categories', nodeType: 'tab' as NodeType },
+          ];
+        }
+
+        // Landing / Offer pages
+        else if (lower.includes('landing') || lower.includes('offer')) {
+          page.children = [
+            { name: 'Hero + Value Prop', nodeType: 'note' },
+            { name: 'Social Proof', nodeType: 'note' },
+            { name: 'CTA / Form', nodeType: 'popup' as NodeType },
+            { name: 'Thank You', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        // Book / Booking page
+        else if (lower.includes('book')) {
+          page.children = [
+            { name: 'Calendar View', nodeType: 'note' },
+            { name: 'Booking Form', nodeType: 'popup' as NodeType },
+            { name: 'Confirmation', nodeType: 'popup' as NodeType },
+          ];
+        }
+
+        fePages.push(page);
+      });
+
+      // Add integration-driven pages
+      if (integrations.includes('Blog / CMS') && !allPageNames.some(p => p.toLowerCase() === 'blog')) {
+        fePages.push({ name: 'Blog', children: [{ name: 'Blog List', nodeType: 'note' }, { name: 'Blog Post', nodeType: 'page' }, { name: 'Categories', nodeType: 'tab' }] });
+      }
+      if (integrations.includes('Calendar / Booking') && !allPageNames.some(p => p.toLowerCase().includes('book'))) {
+        fePages.push({ name: 'Book', children: [{ name: 'Calendar View', nodeType: 'note' }, { name: 'Booking Form', nodeType: 'popup' }, { name: 'Confirmation', nodeType: 'popup' }] });
+      }
+
+      // Add feature-driven notes
+      if (formFeatures.length) {
+        fePages.push({ name: 'Features & Integrations', nodeType: 'note' as NodeType, children: formFeatures.map(f => ({ name: f, nodeType: 'note' as NodeType })) });
+      }
+
+      // Always add global components
+      const globalPages: SitemapPage[] = [
+        { name: 'Navbar', nodeType: 'note' as NodeType },
+        { name: 'Footer', nodeType: 'note' as NodeType },
+        { name: 'Cookie Consent', nodeType: 'popup' as NodeType },
+        { name: 'Privacy Policy', nodeType: 'page' as NodeType },
+        { name: 'Terms & Conditions', nodeType: 'page' as NodeType },
+      ];
+
+      newSections.push({ title: 'Front-End', pages: [...fePages, ...globalPages] });
+    }
+
+    // ── ADMIN PORTAL ──
+    if (portals.includes('admin_portal')) {
+      const features: string[] = safeJsonParse(ansMap['adminPortal.features'], []);
+      const widgets: string[] = safeJsonParse(ansMap['adminPortal.dashboardWidgets'], []);
+      const roles: string[] = safeJsonParse(ansMap['adminPortal.userRoles'], []);
+      const notifications: string[] = safeJsonParse(ansMap['adminPortal.notifications'], []);
+
+      const adminPages: SitemapPage[] = [
+        {
+          name: 'Dashboard',
+          children: widgets.length
+            ? widgets.map(w => ({ name: w, nodeType: 'note' as NodeType }))
+            : [{ name: 'Overview Widgets', nodeType: 'note' }],
+        },
+      ];
+
+      features.forEach(feat => {
+        const lower = feat.toLowerCase();
+        const page: SitemapPage = { name: feat };
+
+        if (lower.includes('lead') || lower.includes('crm')) {
+          page.children = [
+            { name: 'Leads Table', nodeType: 'note' },
+            { name: 'Lead Profile', nodeType: 'page', tabs: [
+              { name: 'Profile', nodeType: 'tab' }, { name: 'Project', nodeType: 'tab' },
+              { name: 'Communications', nodeType: 'tab' }, { name: 'Billing', nodeType: 'tab' },
+            ]},
+            { name: 'Lead Filters', nodeType: 'popup' },
+          ];
+        } else if (lower.includes('user') || lower.includes('team')) {
+          page.children = [
+            { name: 'Users Table', nodeType: 'note' },
+            ...(roles.length ? roles.map(r => ({ name: `Role: ${r}`, nodeType: 'note' as NodeType })) : []),
+            { name: 'Invite User', nodeType: 'popup' },
+          ];
+        } else if (lower.includes('financial') || lower.includes('invoic')) {
+          page.children = [
+            { name: 'Transactions Table', nodeType: 'note' },
+            { name: 'Create Invoice', nodeType: 'popup' },
+            { name: 'Invoice Detail', nodeType: 'page' },
+          ];
+        } else if (lower.includes('booking')) {
+          page.children = [
+            { name: 'Calendar View', nodeType: 'note' },
+            { name: 'Booking Detail', nodeType: 'popup' },
+            { name: 'Settings', nodeType: 'tab' },
+          ];
+        } else if (lower.includes('analytics')) {
+          page.children = [
+            { name: 'Charts', nodeType: 'note' },
+            { name: 'Date Range Filter', nodeType: 'popup' },
+          ];
+        } else if (lower.includes('content')) {
+          page.children = [
+            { name: 'Pages List', nodeType: 'note' },
+            { name: 'Editor', nodeType: 'page' },
+          ];
+        }
+
+        adminPages.push(page);
+      });
+
+      if (notifications.length) {
+        adminPages.push({ name: 'Notifications', children: notifications.map(n => ({ name: n, nodeType: 'note' as NodeType })) });
+      }
+
+      adminPages.push({ name: 'Settings', children: [{ name: 'General', nodeType: 'tab' }, { name: 'Security', nodeType: 'tab' }, { name: 'Integrations', nodeType: 'tab' }] });
+      adminPages.push({ name: 'Login', nodeType: 'page' as NodeType });
+
+      newSections.push({ title: 'Admin Portal', pages: adminPages });
+    }
+
+    // ── CLIENT PORTAL ──
+    if (portals.includes('client_portal')) {
+      const features: string[] = safeJsonParse(ansMap['clientPortal.features'], []);
+      const selfService: string[] = safeJsonParse(ansMap['clientPortal.selfServiceFeatures'], []);
+      const comms: string[] = safeJsonParse(ansMap['clientPortal.communicationFeatures'], []);
+
+      const clientPages: SitemapPage[] = [
+        {
+          name: 'Dashboard',
+          children: [
+            { name: 'Project Progress', nodeType: 'note' },
+            { name: 'Recent Updates', nodeType: 'note' },
+            { name: 'Quick Actions', nodeType: 'note' },
+          ],
+        },
+      ];
+
+      features.forEach(feat => {
+        const lower = feat.toLowerCase();
+        const page: SitemapPage = { name: feat };
+        if (lower.includes('progress') || lower.includes('tracker')) {
+          page.children = [{ name: 'Phase View', nodeType: 'note' }, { name: 'Milestone Detail', nodeType: 'popup' }];
+        } else if (lower.includes('invoice') || lower.includes('payment')) {
+          page.children = [{ name: 'Invoice List', nodeType: 'note' }, { name: 'Pay Now', nodeType: 'popup' }, { name: 'Receipt', nodeType: 'popup' }];
+        } else if (lower.includes('request')) {
+          page.children = [{ name: 'Request List', nodeType: 'note' }, { name: 'New Request', nodeType: 'popup' }, { name: 'Request Detail', nodeType: 'page' }];
+        } else if (lower.includes('file') || lower.includes('upload')) {
+          page.children = [{ name: 'File Grid', nodeType: 'note' }, { name: 'Upload', nodeType: 'popup' }];
+        } else if (lower.includes('message') || lower.includes('chat')) {
+          page.children = [{ name: 'Conversation Thread', nodeType: 'note' }, { name: 'New Message', nodeType: 'popup' }];
+        }
+        clientPages.push(page);
+      });
+
+      if (selfService.length) {
+        clientPages.push({ name: 'My Account', children: selfService.map(s => ({ name: s, nodeType: 'tab' as NodeType })) });
+      }
+      clientPages.push({ name: 'Login', nodeType: 'page' as NodeType });
+
+      newSections.push({ title: 'Client Portal', pages: clientPages });
+    }
+
+    // ── STAFF PORTAL ──
+    if (portals.includes('staff_portal')) {
+      const features: string[] = safeJsonParse(ansMap['staffPortal.features'], []);
+      const roleTypes: string[] = safeJsonParse(ansMap['staffPortal.roleTypes'], []);
+      const mgmt: string[] = safeJsonParse(ansMap['staffPortal.managementFeatures'], []);
+
+      const staffPages: SitemapPage[] = [
+        { name: 'Dashboard', children: [{ name: 'My Tasks', nodeType: 'note' }, { name: 'Team Overview', nodeType: 'note' }] },
+      ];
+
+      features.forEach(feat => {
+        const lower = feat.toLowerCase();
+        const page: SitemapPage = { name: feat };
+        if (lower.includes('task')) {
+          page.children = mgmt.length
+            ? mgmt.map(m => ({ name: m, nodeType: 'tab' as NodeType }))
+            : [{ name: 'Task Board', nodeType: 'note' }];
+        } else if (lower.includes('calendar') || lower.includes('schedule')) {
+          page.children = [{ name: 'Weekly View', nodeType: 'tab' }, { name: 'Monthly View', nodeType: 'tab' }];
+        }
+        staffPages.push(page);
+      });
+
+      if (roleTypes.length) {
+        staffPages.push({ name: 'Role Access', nodeType: 'note' as NodeType, children: roleTypes.map(r => ({ name: r, nodeType: 'note' as NodeType })) });
+      }
+      staffPages.push({ name: 'Login', nodeType: 'page' as NodeType });
+
+      newSections.push({ title: 'Staff Portal', pages: staffPages });
+    }
+
+    // ── FALLBACK: no discovery but has form_data ──
+    if (!newSections.length && Object.keys(formData).length) {
+      const pages: SitemapPage[] = [];
+      const formPages: string[] = Array.isArray(formData.required_pages) ? formData.required_pages : [];
+      const formCustom: string[] = Array.isArray(formData.custom_pages) ? formData.custom_pages : [];
+      [...formPages, ...formCustom].filter(Boolean).forEach(p => pages.push({ name: p }));
+      if (!pages.length) pages.push({ name: 'Home' }, { name: 'About' }, { name: 'Services' }, { name: 'Contact' });
+      pages.push({ name: 'Privacy Policy' }, { name: 'Terms & Conditions' });
+      newSections.push({ title: 'Website', pages });
+    }
+
+    if (!newSections.length) { toast.error('No data found to import'); return; }
+
     setSections(newSections);
     setActiveSectionIdx(0);
     if (!name) {
-      const lead = leads.find(l => l.id === selectedLeadId);
       setName(`${lead?.business_name || lead?.name || 'Client'} Sitemap`);
     }
-    toast.success(`Imported ${newSections.length} section(s)`);
+
+    const totalPages = newSections.reduce((sum, s) => sum + s.pages.reduce((ps, p) => ps + 1 + (p.children?.length || 0), 0), 0);
+    toast.success(`Imported ${newSections.length} section(s) with ${totalPages} nodes`);
   };
 
   // ── Section helpers ──
