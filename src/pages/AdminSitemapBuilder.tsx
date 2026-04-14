@@ -432,6 +432,7 @@ export default function AdminSitemapBuilder() {
   const [editingNode, setEditingNode] = useState<EditingNode>(null);
   const [dragItem, setDragItem] = useState<DragItem>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
+  const [showFunctionsPanel, setShowFunctionsPanel] = useState(false);
 
   // Canvas refs for SVG connectors
   const canvasRef = useRef<HTMLDivElement>(null);
