@@ -933,32 +933,99 @@ export default function AdminSitemapBuilder() {
         dragSourceRef.current = null;
       }
 
-      // Apply the drop
+      // Apply the drop (cross-dimensional)
       setDropTarget(currentTarget => {
         setDragItem(currentDrag => {
-          if (currentDrag && currentTarget && currentDrag.type === currentTarget.type) {
-            setSections(prev => {
-              const next = [...prev];
-              const pages = [...next[activeSectionIdx].pages];
+          if (currentDrag && currentTarget) {
+            const dragType = currentDrag.type;
+            const dropType = currentTarget.type;
 
-              if (currentDrag.type === 'page' && currentDrag.pIdx !== currentTarget.index) {
-                const [moved] = pages.splice(currentDrag.pIdx, 1);
-                pages.splice(currentTarget.index, 0, moved);
-              } else if (currentDrag.type === 'child' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined) {
-                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx !== currentTarget.index) {
-                  const children = [...(pages[currentDrag.pIdx].children || [])];
-                  const [moved] = children.splice(currentDrag.cIdx, 1);
-                  children.splice(currentTarget.index, 0, moved);
-                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+            setSections(prev => {
+              const next = JSON.parse(JSON.stringify(prev)) as typeof prev;
+              const pages = next[activeSectionIdx].pages;
+
+              // ── Same-type reorder ──
+              if (dragType === dropType) {
+                if (dragType === 'page' && currentDrag.pIdx !== currentTarget.index) {
+                  const [moved] = pages.splice(currentDrag.pIdx, 1);
+                  pages.splice(currentTarget.index, 0, moved);
+                } else if (dragType === 'child' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined) {
+                  if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx !== currentTarget.index) {
+                    const children = pages[currentDrag.pIdx].children || [];
+                    const [moved] = children.splice(currentDrag.cIdx, 1);
+                    children.splice(currentTarget.index, 0, moved);
+                  } else if (currentDrag.pIdx !== currentTarget.parentPIdx) {
+                    // Child → different parent page
+                    const srcChildren = pages[currentDrag.pIdx].children || [];
+                    const [moved] = srcChildren.splice(currentDrag.cIdx, 1);
+                    if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                    const dstChildren = pages[currentTarget.parentPIdx].children || [];
+                    dstChildren.splice(currentTarget.index, 0, moved);
+                    pages[currentTarget.parentPIdx].children = dstChildren;
+                  }
+                } else if (dragType === 'tab' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
+                  if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx === currentTarget.parentCIdx && currentDrag.tIdx !== currentTarget.index) {
+                    const tabs = pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs || [];
+                    const [moved] = tabs.splice(currentDrag.tIdx, 1);
+                    tabs.splice(currentTarget.index, 0, moved);
+                  }
                 }
-              } else if (currentDrag.type === 'tab' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
-                if (currentDrag.pIdx === currentTarget.parentPIdx && currentDrag.cIdx === currentTarget.parentCIdx && currentDrag.tIdx !== currentTarget.index) {
-                  const children = [...(pages[currentDrag.pIdx].children || [])];
-                  const tabs = [...(children[currentDrag.cIdx].tabs || [])];
-                  const [moved] = tabs.splice(currentDrag.tIdx, 1);
-                  tabs.splice(currentTarget.index, 0, moved);
-                  children[currentDrag.cIdx] = { ...children[currentDrag.cIdx], tabs };
-                  pages[currentDrag.pIdx] = { ...pages[currentDrag.pIdx], children };
+              }
+              // ── Cross-dimensional: child → page (promote) ──
+              else if (dragType === 'child' && dropType === 'page' && currentDrag.cIdx !== undefined) {
+                const srcChildren = pages[currentDrag.pIdx].children || [];
+                const [movedChild] = srcChildren.splice(currentDrag.cIdx, 1);
+                if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                // Convert child to page (keep children as sub-labels if tabs exist)
+                const newPage: any = { name: movedChild.name, nodeType: movedChild.nodeType || 'page' };
+                if (movedChild.tabs?.length) {
+                  newPage.children = movedChild.tabs.map((t: any) => ({ name: t.name, nodeType: t.nodeType || 'tab' }));
+                }
+                pages.splice(currentTarget.index, 0, newPage);
+              }
+              // ── Cross-dimensional: page → child (demote) ──
+              else if (dragType === 'page' && dropType === 'child' && currentTarget.parentPIdx !== undefined) {
+                const [movedPage] = pages.splice(currentDrag.pIdx, 1);
+                // Adjust target parent index if needed after removal
+                let targetPIdx = currentTarget.parentPIdx;
+                if (currentDrag.pIdx < targetPIdx) targetPIdx--;
+                // Convert page to child (keep page's children as tabs)
+                const newChild: any = { name: movedPage.name, nodeType: movedPage.nodeType || 'page' };
+                if (movedPage.children?.length) {
+                  newChild.tabs = movedPage.children.map((c: any) => ({ name: c.name, nodeType: c.nodeType || 'tab' }));
+                }
+                const dstChildren = pages[targetPIdx].children || [];
+                dstChildren.splice(currentTarget.index, 0, newChild);
+                pages[targetPIdx].children = dstChildren;
+              }
+              // ── Cross-dimensional: tab → child (promote tab) ──
+              else if (dragType === 'tab' && dropType === 'child' && currentDrag.cIdx !== undefined && currentDrag.tIdx !== undefined && currentTarget.parentPIdx !== undefined) {
+                const srcTabs = pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs || [];
+                const [movedTab] = srcTabs.splice(currentDrag.tIdx, 1);
+                if (srcTabs.length === 0) pages[currentDrag.pIdx].children![currentDrag.cIdx].tabs = undefined;
+                const newChild: any = { name: movedTab.name, nodeType: movedTab.nodeType || 'tab' };
+                if (movedTab.tabs?.length) {
+                  newChild.tabs = movedTab.tabs;
+                }
+                const dstChildren = pages[currentTarget.parentPIdx].children || [];
+                dstChildren.splice(currentTarget.index, 0, newChild);
+                pages[currentTarget.parentPIdx].children = dstChildren;
+              }
+              // ── Cross-dimensional: child → tab (demote child to tab) ──
+              else if (dragType === 'child' && dropType === 'tab' && currentDrag.cIdx !== undefined && currentTarget.parentPIdx !== undefined && currentTarget.parentCIdx !== undefined) {
+                const srcChildren = pages[currentDrag.pIdx].children || [];
+                const [movedChild] = srcChildren.splice(currentDrag.cIdx, 1);
+                if (srcChildren.length === 0) pages[currentDrag.pIdx].children = undefined;
+                const newTab: any = { name: movedChild.name, nodeType: movedChild.nodeType || 'tab' };
+                if (movedChild.tabs?.length) newTab.tabs = movedChild.tabs;
+                // Adjust indices if same page and child was before target
+                let tgtPIdx = currentTarget.parentPIdx;
+                let tgtCIdx = currentTarget.parentCIdx;
+                if (currentDrag.pIdx === tgtPIdx && currentDrag.cIdx < tgtCIdx) tgtCIdx--;
+                const dstTabs = pages[tgtPIdx].children?.[tgtCIdx]?.tabs || [];
+                dstTabs.splice(currentTarget.index, 0, newTab);
+                if (pages[tgtPIdx].children?.[tgtCIdx]) {
+                  pages[tgtPIdx].children![tgtCIdx].tabs = dstTabs;
                 }
               }
 
