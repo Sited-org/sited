@@ -1207,7 +1207,7 @@ export default function AdminSitemapBuilder() {
         {/* ── Left Sidebar (Sections) ── */}
         <div className="w-52 shrink-0 border-r border-border bg-card overflow-y-auto p-3 space-y-1.5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Sections</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{isWebBuilder ? 'Webs' : 'Sections'}</span>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={addSection}>
               <Plus className="h-3 w-3" />
             </Button>
