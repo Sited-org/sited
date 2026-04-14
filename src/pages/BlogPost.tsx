@@ -79,6 +79,7 @@ const BlogPost = () => {
 
   return (
     <Layout>
+      <SEOHead title={post?.meta_title || post?.title || "Blog Post | Sited"} description={post?.meta_description || post?.excerpt || ""} />
       <article className="pt-32 pb-20 sm:pt-40">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           {/* Back link */}

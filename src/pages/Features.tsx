@@ -139,6 +139,7 @@ const Features = () => {
 
   return (
     <Layout>
+      <SEOHead title="Features | Sited — More Leads, Dominant SEO, Less Work" description="Sited builds websites, CRMs, client portals and dashboards that generate more leads, dominate SEO, and save you time." />
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 

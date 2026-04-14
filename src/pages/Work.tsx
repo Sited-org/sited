@@ -225,6 +225,7 @@ const Work = () => {
 
   return (
     <Layout>
+      <SEOHead title="Our Work | Sited — Real Results for Real Businesses" description="See the websites, systems, and results we've delivered. Video testimonials, live sites, and proof that Sited delivers." />
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 

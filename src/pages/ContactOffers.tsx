@@ -243,6 +243,7 @@ const ContactOffers = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead title="Tell Us About Your Business | Sited" description="Answer a few quick questions so we can match you with the right solution." />
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted">
         <motion.div

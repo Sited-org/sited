@@ -22,6 +22,7 @@ const Contact = () => {
 
   return (
     <Layout hideFooter>
+      <SEOHead title="Get in Touch | Sited — Let's Build Something Great" description="Book a free consultation or get a quote. 500+ websites delivered, 5-star Google reviews. No jargon, no pressure — just results." />
       <div ref={pageRef} className="overflow-x-hidden w-full">
       {/* HERO */}
       <section className="relative min-h-[calc(85vh-140px)] md:min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">

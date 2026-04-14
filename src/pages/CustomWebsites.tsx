@@ -153,6 +153,7 @@ const CustomWebsites = () => {
 
   return (
     <Layout>
+      <SEOHead title="Custom Websites | Sited — Built to Convert" description="Professional websites that turn clicks into clients. Choose Blue, Gold, or Platinum and get a site built around results." />
       {/* Hero Section */}
       <section className="relative overflow-hidden section-padding">
         <div className="absolute inset-0 bg-gradient-to-b from-sited-blue/5 via-transparent to-transparent pointer-events-none" />

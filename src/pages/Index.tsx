@@ -100,6 +100,7 @@ const Index = () => {
 
   return (
     <Layout>
+      <SEOHead title="Sited | Websites That Pull Their Weight" description="Sited builds and manages websites, online tools, and systems for service businesses across Australia. More traffic, more enquiries, less hassle." />
       <div ref={pageRef} className="overflow-x-hidden w-full">
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 

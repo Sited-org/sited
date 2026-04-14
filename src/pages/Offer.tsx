@@ -213,6 +213,7 @@ const Offer = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title={`Secure Your Website | Sited — $${depositAmount} Deposit`} description={`Get a fully custom website with just a $${depositAmount} refundable deposit. Choose Blue, Gold, or Platinum.`} />
       {/* Urgency Banner */}
       <div className="bg-foreground text-background text-center py-3 px-4">
         <p className="text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2">

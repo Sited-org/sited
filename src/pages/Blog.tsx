@@ -17,6 +17,7 @@ const Blog = () => {
 
   return (
     <Layout>
+      <SEOHead title="Blog | Sited — Web Design Tips, Insights & Case Studies" description="Expert insights on web design, SEO, and growing your business online. Tips, case studies, and strategies from the Sited team." />
       {/* Hero */}
       <section className="pt-8 pb-16 sm:pt-40 sm:pb-20 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">

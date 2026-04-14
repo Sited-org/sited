@@ -82,6 +82,7 @@ export default function ClientPortalLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+      <SEOHead title="Members Login | Sited" description="Secure client portal login for Sited members." />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
