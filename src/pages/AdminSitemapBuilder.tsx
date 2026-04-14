@@ -1055,14 +1055,6 @@ export default function AdminSitemapBuilder() {
     }, leadLabel);
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const insertWeb = useCallback((webPages: any[]) => {
     setSections(prev => {
       const next = [...prev];
@@ -1073,6 +1065,14 @@ export default function AdminSitemapBuilder() {
     });
     toast.success(`Added ${webPages.length} page(s) to section`);
   }, [activeSectionIdx, setSections]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
 
   const isDropping = (type: string, index: number, parentPIdx?: number, parentCIdx?: number) =>
