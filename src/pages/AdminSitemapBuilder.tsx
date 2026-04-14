@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
   ArrowLeft, Download, Save, Import, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
-  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check, StickyNote,
+  FileText, PanelTop, LayoutGrid, ChevronsUpDown, Check, StickyNote, Package,
 } from 'lucide-react';
+import { FloatingFunctionsPanel } from '@/components/admin/sitemap/FloatingFunctionsPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateSitemapPDF } from '@/lib/sitemap-pdf';
