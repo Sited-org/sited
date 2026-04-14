@@ -1062,6 +1062,19 @@ export default function AdminSitemapBuilder() {
     );
   }
 
+  const insertWeb = useCallback((webPages: any[]) => {
+    setSections(prev => {
+      const next = [...prev];
+      const section = { ...next[activeSectionIdx] };
+      section.pages = [...section.pages, ...webPages];
+      next[activeSectionIdx] = section;
+      return next;
+    });
+    toast.success(`Added ${webPages.length} page(s) to section`);
+  }, [activeSectionIdx, setSections]);
+
+  const [showFunctionsPanel, setShowFunctionsPanel] = useState(false);
+
   const isDropping = (type: string, index: number, parentPIdx?: number, parentCIdx?: number) =>
     dropTarget?.type === type && dropTarget.index === index &&
     dropTarget.parentPIdx === parentPIdx && dropTarget.parentCIdx === parentCIdx;
