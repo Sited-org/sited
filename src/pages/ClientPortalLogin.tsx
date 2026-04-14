@@ -7,13 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Lock, Mail, AlertCircle, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { EmailOTPVerify } from '@/components/auth/EmailOTPVerify';
-import { usePageSEO } from '@/hooks/usePageSEO';
+import SEOHead from '@/components/SEOHead';
 
 export default function ClientPortalLogin() {
-  usePageSEO({
-    title: "Members Login | Sited",
-    description: "Secure client portal login for Sited members.",
-  });
+  // SEOHead rendered in JSX below
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -85,6 +82,7 @@ export default function ClientPortalLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
+      <SEOHead title="Members Login | Sited" description="Secure client portal login for Sited members." />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">

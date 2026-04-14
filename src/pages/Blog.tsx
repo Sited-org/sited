@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { usePublicBlogPosts } from "@/hooks/useBlogPosts";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { motion } from "framer-motion";
 import { Calendar, Clock, User, ArrowRight, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -11,15 +11,13 @@ import { ScrollSlideIn } from "@/components/common/ScrollAnimations";
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 const Blog = () => {
-  usePageSEO({
-    title: "Blog | Sited — Web Design Tips, Insights & Case Studies",
-    description: "Expert insights on web design, SEO, and growing your business online. Tips, case studies, and strategies from the Sited team.",
-  });
+  // SEOHead rendered in JSX below
 
   const { data: posts, isLoading } = usePublicBlogPosts();
 
   return (
     <Layout>
+      <SEOHead title="Blog | Sited — Web Design Tips, Insights & Case Studies" description="Expert insights on web design, SEO, and growing your business online. Tips, case studies, and strategies from the Sited team." />
       {/* Hero */}
       <section className="pt-8 pb-16 sm:pt-40 sm:pb-20 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">

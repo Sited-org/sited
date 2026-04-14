@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useBlogPostBySlug } from "@/hooks/useBlogPosts";
 import { useParams, Link } from "react-router-dom";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { motion } from "framer-motion";
 import { Calendar, Clock, User, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
@@ -13,10 +13,7 @@ const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = useBlogPostBySlug(slug || "");
 
-  usePageSEO({
-    title: post?.meta_title || post?.title || "Blog Post | Sited",
-    description: post?.meta_description || post?.excerpt || "",
-  });
+  // SEOHead rendered in JSX below
 
   // Inject Article JSON-LD for SEO & AEO
   useEffect(() => {
@@ -82,6 +79,7 @@ const BlogPost = () => {
 
   return (
     <Layout>
+      <SEOHead title={post?.meta_title || post?.title || "Blog Post | Sited"} description={post?.meta_description || post?.excerpt || ""} />
       <article className="pt-32 pb-20 sm:pt-40">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           {/* Back link */}

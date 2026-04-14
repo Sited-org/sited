@@ -1,10 +1,12 @@
 import { Layout } from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollReveal } from "@/components/common/ScrollReveal";
+import SEOHead from "@/components/SEOHead";
 
 const Policies = () => {
   return (
     <Layout>
+      <SEOHead title="Legal & Policies | Sited" description="Privacy policy, terms of service, and refund policy for Sited web design and development services." />
       <section className="pt-32 pb-20">
         <div className="container-tight">
           <ScrollReveal>

@@ -6,7 +6,7 @@ import { usePublicTestimonials, Testimonial } from "@/hooks/useTestimonials";
 import { useScrollBorders } from "@/hooks/useScrollBorders";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import BookingDialog from "@/components/booking/BookingDialog";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { extractVimeoId, getVimeoThumbnail } from "@/lib/vimeo";
 import { WebsiteShowcaseGrid } from "@/components/work/WebsiteShowcaseGrid";
 import { ScrollTextTestimonials } from "@/components/work/ScrollTextTestimonials";
@@ -191,10 +191,7 @@ const INITIAL_COUNT = 4;
 const LOAD_MORE_COUNT = 6;
 
 const Work = () => {
-  usePageSEO({
-    title: "Our Work | Sited — Real Results for Real Businesses",
-    description: "See the websites, systems, and results we've delivered. Video testimonials, live sites, and proof that Sited delivers.",
-  });
+  // SEOHead rendered in JSX below
 
   const [ctaOpen, setCtaOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -228,6 +225,7 @@ const Work = () => {
 
   return (
     <Layout>
+      <SEOHead title="Our Work | Sited — Real Results for Real Businesses" description="See the websites, systems, and results we've delivered. Video testimonials, live sites, and proof that Sited delivers." />
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
       <BookingDialog open={bookingOpen} onOpenChange={setBookingOpen} />
 

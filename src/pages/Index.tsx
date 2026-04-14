@@ -1,7 +1,7 @@
 import { useState, useRef, ReactNode, lazy, Suspense } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useHomepageContent } from "@/hooks/useHomepageContent";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star, TrendingUp, Users, Search, Smartphone, BarChart3, Zap } from "lucide-react";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
@@ -76,10 +76,7 @@ const fadeUp = {
 };
 
 const Index = () => {
-  usePageSEO({
-    title: "Sited | Websites That Pull Their Weight",
-    description: "Sited builds and manages websites, online tools, and systems for service businesses across Australia. More traffic, more enquiries, less hassle.",
-  });
+  // SEOHead rendered in JSX below
 
   const { content, loading } = useHomepageContent();
   const [ctaOpen, setCtaOpen] = useState(false);
@@ -103,6 +100,7 @@ const Index = () => {
 
   return (
     <Layout>
+      <SEOHead title="Sited | Websites That Pull Their Weight" description="Sited builds and manages websites, online tools, and systems for service businesses across Australia. More traffic, more enquiries, less hassle." />
       <div ref={pageRef} className="overflow-x-hidden w-full">
       <LeadCaptureDialog open={ctaOpen} onOpenChange={setCtaOpen} />
 

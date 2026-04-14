@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 
 type BusinessCategory = "service" | "retail" | "professional" | null;
@@ -157,10 +157,7 @@ function getQuestionsForCategory(cat: BusinessCategory): QuestionConfig[] {
 }
 
 const ContactOffers = () => {
-  usePageSEO({
-    title: "Tell Us About Your Business | Sited",
-    description: "Answer a few quick questions so we can match you with the right solution.",
-  });
+  // SEOHead rendered in JSX below
 
   const navigate = useNavigate();
   const [category, setCategory] = useState<BusinessCategory>(null);
@@ -246,6 +243,7 @@ const ContactOffers = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEOHead title="Tell Us About Your Business | Sited" description="Answer a few quick questions so we can match you with the right solution." />
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted">
         <motion.div

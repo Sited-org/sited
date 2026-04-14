@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Calendar, Star, Phone, Mail, Shield, Users, Clock } from "lucide-react";
 import { useState, useRef } from "react";
-import { usePageSEO } from "@/hooks/usePageSEO";
+import SEOHead from "@/components/SEOHead";
 import BookingDialog from "@/components/booking/BookingDialog";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { usePublicTestimonials } from "@/hooks/useTestimonials";
@@ -12,10 +12,7 @@ import { ScrollZoomIn, ScrollStaggerItem, ScrollParallax } from "@/components/co
 import { ThemeSwitchSection } from "@/components/common/ThemeSwitchSection";
 
 const Contact = () => {
-  usePageSEO({
-    title: "Get in Touch | Sited — Let's Build Something Great",
-    description: "Book a free consultation or get a quote. 500+ websites delivered, 5-star Google reviews. No jargon, no pressure — just results.",
-  });
+  // SEOHead rendered in JSX below
 
   const [bookingOpen, setBookingOpen] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
@@ -25,6 +22,7 @@ const Contact = () => {
 
   return (
     <Layout hideFooter>
+      <SEOHead title="Get in Touch | Sited — Let's Build Something Great" description="Book a free consultation or get a quote. 500+ websites delivered, 5-star Google reviews. No jargon, no pressure — just results." />
       <div ref={pageRef} className="overflow-x-hidden w-full">
       {/* HERO */}
       <section className="relative min-h-[calc(85vh-140px)] md:min-h-[85vh] flex items-center justify-center bg-background overflow-hidden">
