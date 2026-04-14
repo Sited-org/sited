@@ -1055,16 +1055,43 @@ export default function AdminSitemapBuilder() {
     }, leadLabel);
   };
 
+  // Convert recursive web preset children into the sitemap's flat structure:
+  // Level 0 = SitemapPage, Level 1 = SitemapChild (children[]), Level 2+ = SitemapTab (tabs[])
+  const convertWebToSitemap = useCallback((webNodes: any[]): SitemapPage[] => {
+    const convertToTabs = (nodes: any[]): SitemapTab[] => {
+      return nodes.map((n: any) => ({
+        name: n.name || 'Untitled',
+        nodeType: n.nodeType || 'tab',
+        ...(n.children?.length ? { tabs: convertToTabs(n.children) } : {}),
+      }));
+    };
+
+    const convertToChildren = (nodes: any[]): SitemapChild[] => {
+      return nodes.map((n: any) => ({
+        name: n.name || 'Untitled',
+        nodeType: n.nodeType || 'page',
+        ...(n.children?.length ? { tabs: convertToTabs(n.children) } : {}),
+      }));
+    };
+
+    return webNodes.map((n: any) => ({
+      name: n.name || 'Untitled',
+      nodeType: n.nodeType || 'page',
+      ...(n.children?.length ? { children: convertToChildren(n.children) } : {}),
+    }));
+  }, []);
+
   const insertWeb = useCallback((webPages: any[]) => {
+    const converted = convertWebToSitemap(webPages);
     setSections(prev => {
       const next = [...prev];
       const section = { ...next[activeSectionIdx] };
-      section.pages = [...section.pages, ...webPages];
+      section.pages = [...section.pages, ...converted];
       next[activeSectionIdx] = section;
       return next;
     });
-    toast.success(`Added ${webPages.length} page(s) to section`);
-  }, [activeSectionIdx, setSections]);
+    toast.success(`Added ${converted.length} page(s) to section`);
+  }, [activeSectionIdx, setSections, convertWebToSitemap]);
 
   if (loading) {
     return (
