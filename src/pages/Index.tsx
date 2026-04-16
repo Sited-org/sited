@@ -4,6 +4,7 @@ import { useHomepageContent } from "@/hooks/useHomepageContent";
 import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 import { ArrowRight, MessageSquare, Heart, Wrench, Shield, Quote, Star, TrendingUp, Users, Search, Smartphone, BarChart3, Zap } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
 import { FloatingParticles } from "@/components/home/FloatingParticles";
 import { motion, useScroll, useTransform } from "framer-motion";
@@ -495,39 +496,75 @@ const Index = () => {
         </div>
       </section>
 
-      {/* SEO CONTENT BLOCK — static, crawlable text for search engines */}
+      {/* FAQ SECTION — crawlable SEO content in accordion format */}
       <section className="bg-background border-t border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
           <ScrollReveal direction="up">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-6">
-              Custom Websites Built for Small Businesses
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-8 text-center">
+              Frequently Asked Questions
             </h2>
-            <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
-              <p>
-                Sited is a professional web design and development studio that builds custom websites for small and medium businesses. Whether you run a trade service, a medical clinic, a real estate agency, a hospitality venue, or a professional consultancy, Sited delivers a website that is tailored to your brand, optimised for search engines, and built to generate real enquiries from day one.
-              </p>
-              <p>
-                Every website we build is designed from scratch — no templates, no drag-and-drop builders, no shortcuts. Our team handles everything from initial concept through to launch, including responsive design for mobile and tablet, search engine optimisation, Google Analytics integration, contact forms, image sourcing, copywriting assistance, and domain configuration. You get a fully managed website without having to learn a single piece of software.
-              </p>
-              <p>
-                The process is straightforward. You start with a $49 deposit and a short discovery call where we learn about your business, your goals, and your preferences. From there, our designers create a custom mockup for your approval. Once you're happy with the direction, we build the full site and push it live — typically within three business days. Every project includes unlimited revisions during the build phase, so nothing goes live until you're completely satisfied.
-              </p>
-              <p>
-                After launch, Sited continues to manage your website on an ongoing basis. Our care plans include hosting, security monitoring, SSL certificates, daily backups, performance optimisation, and content updates whenever you need them. You'll also have access to a dedicated client portal where you can submit change requests, view project updates, and track the status of any work in progress. It's a hands-off experience designed for business owners who want results without the hassle.
-              </p>
-              <p>
-                Search engine optimisation is built into every project. We structure your site with clean HTML, semantic heading tags, fast load times, structured data markup, mobile responsiveness, and keyword-optimised page titles and meta descriptions. Our clients consistently rank on the first page of Google for their target search terms within weeks of launch — not because of tricks, but because we follow best practices and build sites that search engines love.
-              </p>
-              <p>
-                With over 500 websites delivered across Australia and internationally, Sited has earned a five-star reputation on Google Reviews. Our clients include electricians, plumbers, dentists, lawyers, personal trainers, cafes, e-commerce brands, and SaaS startups. We work with businesses of all sizes, but our sweet spot is the owner-operator or small team that needs a professional online presence without the agency price tag.
-              </p>
-              <p>
-                What makes Sited different is the combination of speed, quality, and affordability. Traditional agencies charge thousands upfront and take weeks or months to deliver. Freelancers are unreliable. DIY builders look generic. Sited sits in the middle — premium quality at a fraction of the cost, delivered faster than anyone else in the market. We've spent seven years refining this model, and the results speak for themselves.
-              </p>
-              <p>
-                If you're looking for a custom website that actually works for your business — one that ranks on Google, looks incredible on every device, and converts visitors into paying customers — get in touch with Sited today. Start with a $49 deposit, see your site live in three days, and experience what a properly built website can do for your bottom line.
-              </p>
-            </div>
+            <Accordion type="single" collapsible className="space-y-2">
+              <AccordionItem value="q1" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What exactly does Sited build?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Sited builds fully custom, professional websites designed around your brand. Every site is built from scratch — no generic templates, no page builders. You get a fast, modern website that looks the part and works across all devices.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q2" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">How does the $49 deposit work?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">The $49 deposit secures your spot and gets the build started immediately. It comes off the total cost of your website. You only pay the remaining balance once your site is built and you're happy with it.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q3" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">How long does it actually take to go live?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Most websites are built and live within 3 days of receiving your content and deposit. We move fast — no drawn-out timelines or weeks of back and forth.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q4" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What if I don't like the finished website?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">If the finished site isn't what you had in mind, we'll make the necessary changes until it is. If we still can't get it right, we'll refund your deposit in full. No awkward conversations, no fine print.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q5" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What's included in the website?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Every Sited website includes custom design, mobile responsiveness, on-page SEO setup, fast load speeds, and hosting. We handle the technical side so you don't have to.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q6" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">Do I need to provide content?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">We'll guide you through exactly what we need — logo, photos, and a brief about your business. If you don't have professional photos, we can work with what you have or advise on alternatives.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q7" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What does SEO included actually mean?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Every site is built with on-page SEO foundations in place — proper heading structure, meta titles, meta descriptions, alt text on images, fast load speeds, and clean code. This gives your site the best possible starting point to rank on Google.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q8" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">Will my website show up on Google?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Your site will be set up correctly to be indexed by Google from day one. Ranking for competitive search terms takes time and ongoing SEO work, but your foundations will be solid from launch.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q9" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">Can I make changes to the website after it goes live?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Yes. Sited offers ongoing monthly plans that include unlimited changes, continued SEO, and hosting — all managed for you. No need to learn any systems or log into anything.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q10" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">Do you work with businesses outside South Africa?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Yes — Sited works with clients in South Africa, the UK, and internationally. Everything is handled remotely and efficiently, regardless of where you're based.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q11" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What size businesses do you typically work with?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">We work with small to medium businesses across a wide range of industries — from sole traders and startups to established companies looking for a professional online presence that matches the quality of their work.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q12" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">How is Sited different from using Wix or Squarespace?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Website builders give you a template and leave you to figure it out. Sited builds the entire website for you — custom designed, professionally coded, and optimised from day one. You get a better result without spending hours learning a platform.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q13" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">What happens after my website goes live?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">We don't disappear after launch. Sited offers ongoing support, hosting, and maintenance plans so your site stays fast, secure, and up to date. We're a long-term partner, not a one-off service.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q14" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">Is there a contract or long-term commitment?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">No lock-in contracts. Our monthly plans are flexible and you can cancel at any time. We'd rather earn your business every month than hold you to a contract.</AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="q15" className="border border-border rounded-lg px-4 bg-card">
+                <AccordionTrigger className="text-sm sm:text-base font-medium text-foreground hover:no-underline">How do I get started?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-sm leading-relaxed">Simply tap the button below, pay the $49 deposit, and we'll be in touch within hours to kick things off. From there, we handle everything — you just sit back and watch your website come to life.</AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </ScrollReveal>
         </div>
       </section>
