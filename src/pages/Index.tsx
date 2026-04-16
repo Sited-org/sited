@@ -301,7 +301,7 @@ const Index = () => {
                     <MoeIcon size={20} className="text-sited-blue" strokeWidth={2.5} />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground text-sm">{item.bold}</p>
+                    <h3 className="font-semibold text-foreground text-sm">{item.bold}</h3>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.supporting}</p>
                   </div>
                 </ScrollCard>
