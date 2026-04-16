@@ -48,7 +48,7 @@ const BlogPost = () => {
         title={post?.meta_title || post?.title || "Blog Post | Sited"}
         description={post?.meta_description || post?.excerpt || ""}
         ogImage={post?.cover_image_url || undefined}
-        canonical={`https://sited.lovable.app/blog/${post?.slug}`}
+        canonical={`https://sited.co/blog/${post?.slug}`}
         schemaJson={{
           "@context": "https://schema.org",
           "@type": "Article",
@@ -61,11 +61,11 @@ const BlogPost = () => {
           publisher: {
             "@type": "Organization",
             name: "Sited",
-            url: "https://sited.lovable.app",
+            url: "https://sited.co",
           },
           mainEntityOfPage: {
             "@type": "WebPage",
-            "@id": `https://sited.lovable.app/blog/${post.slug}`,
+            "@id": `https://sited.co/blog/${post.slug}`,
           },
         }}
       />
