@@ -73,7 +73,7 @@ const InteractiveHint = () => (
       animate={{ y: [0, -3, 0] }}
       transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 0.3 }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 19V5M5 12l7-7 7 7" />
       </svg>
     </motion.div>
