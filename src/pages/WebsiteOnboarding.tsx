@@ -1,4 +1,5 @@
 import { Layout } from "@/components/layout/Layout";
+import SEOHead from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -284,6 +285,7 @@ const WebsiteOnboarding = () => {
 
   return (
     <Layout hideFooter>
+      <SEOHead title="Website Onboarding | Sited" description="Tell us about your business and goals so we can build the perfect website for you." noIndex />
       <div className="min-h-screen bg-gradient-to-b from-surface-elevated to-background pt-24 pb-16">
         <div className="container-tight">
           {/* Header */}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import SEOHead from '@/components/SEOHead';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -155,6 +156,7 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <SEOHead title="Admin Login | Sited" description="Secure admin login for Sited team members." noIndex />
       <div className="w-full max-w-md">
         <div className="bg-card border border-border rounded-2xl p-8 shadow-lg">
           {/* Logo */}
