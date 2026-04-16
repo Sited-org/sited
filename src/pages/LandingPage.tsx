@@ -378,7 +378,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overscroll-none">
-      <SEOHead title="Get Your Website | Sited — Limited Offer" description="Secure your custom website with a refundable deposit. Fast delivery, professional design, no risk." />
+      <SEOHead title="Get Your Website | Sited — Limited Offer" description="Secure your custom website with a refundable deposit. Fast delivery, professional design, no risk." noIndex />
       {/* ── Scroll progress bar ── */}
       <motion.div className="fixed top-0 left-0 h-1 bg-sited-blue z-50" style={{ width: progressWidth }} />
 

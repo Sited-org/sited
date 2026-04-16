@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
-const SITE_URL = "https://sited.lovable.app";
+const SITE_URL = "https://sited.co";
 
 const STATIC_PAGES = [
   { loc: "/", changefreq: "weekly", priority: "1.0" },
