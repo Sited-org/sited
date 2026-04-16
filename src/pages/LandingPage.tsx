@@ -415,13 +415,13 @@ const LandingPage = () => {
         {/* Tinted website mockup background — adds visual depth */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.06]">
           <div className="absolute top-[5%] left-[-5%] w-[45%] rounded-2xl overflow-hidden rotate-[-6deg] shadow-2xl">
-            <img src={fallbackSites[0].screenshot} alt="" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[0].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
           </div>
           <div className="absolute top-[10%] right-[-8%] w-[40%] rounded-2xl overflow-hidden rotate-[4deg] shadow-2xl">
-            <img src={fallbackSites[1].screenshot} alt="" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[1].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
           </div>
           <div className="absolute bottom-[5%] left-[25%] w-[35%] rounded-2xl overflow-hidden rotate-[2deg] shadow-2xl">
-            <img src={fallbackSites[2].screenshot} alt="" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[2].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
           </div>
         </div>
 

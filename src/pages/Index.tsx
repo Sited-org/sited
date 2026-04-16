@@ -410,7 +410,7 @@ const Index = () => {
                   <div className="flex items-center gap-3 mb-4">
                     <img
                       src={stockPhotos[i]}
-                      alt="Client"
+                      alt={`${card.subtext} — Sited client testimonial`}
                       className="w-11 h-11 rounded-full object-cover border-2 border-border shadow-sm"
                       loading="lazy"
                     />

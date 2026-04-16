@@ -225,7 +225,7 @@ export default function AdminBlog() {
             <Card key={post.id}>
               <CardContent className="flex items-center gap-4 p-4">
                 {post.cover_image_url && (
-                  <img src={post.cover_image_url} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                  <img src={post.cover_image_url} alt={post.title || "Blog post cover"} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
