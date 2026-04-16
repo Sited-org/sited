@@ -73,7 +73,7 @@ const HomeMacBookCard = ({ site, index }: { site: SiteData; index: number }) => 
             >
               <img
                 src={site.screenshot}
-                alt={`${site.name} website`}
+                alt={`Screenshot of ${site.name} — custom website designed and built by Sited`}
                 className="w-full h-auto block"
                 loading="lazy"
                 onLoad={(e) => { setImageHeight(e.currentTarget.offsetHeight); setLoaded(true); }}

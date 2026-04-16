@@ -461,7 +461,7 @@ const CustomWebsites = () => {
                       <div className="aspect-[16/9] overflow-hidden">
                         <img
                           src={post.cover_image_url}
-                          alt={post.title}
+                          alt={`Cover image for ${post.title} — Sited blog`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy"
                         />
