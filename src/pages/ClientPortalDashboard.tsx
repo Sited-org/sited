@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import SEOHead from '@/components/SEOHead';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -214,6 +215,7 @@ export default function ClientPortalDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Client Portal | Sited" description="Manage your project, view updates, and communicate with the Sited team." noIndex />
       {/* Minimal Header */}
       <header className="border-b sticky top-0 z-50 bg-background">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
