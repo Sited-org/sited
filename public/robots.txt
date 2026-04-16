@@ -22,4 +22,4 @@ Disallow: /admin
 Disallow: /dev
 Disallow: /client-portal
 
-Sitemap: https://sited.co/sitemap.xml
+Sitemap: https://xwjoqaflrynemntyzwmw.supabase.co/functions/v1/generate-sitemap
