@@ -124,7 +124,7 @@ const BlogPost = () => {
             >
               <img
                 src={post.cover_image_url}
-                alt={post.title}
+                alt={`Cover image for ${post.title}`}
                 className="w-full h-auto object-cover"
               />
             </motion.div>

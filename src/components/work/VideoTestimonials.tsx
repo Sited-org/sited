@@ -23,7 +23,7 @@ const VideoCard = ({ video }: { video: { name: string; business: string; vimeoUr
           <div className="w-full h-full relative cursor-pointer group" onClick={() => setPlaying(true)}>
             <img
               src={thumbnail}
-              alt={`${video.business} testimonial`}
+              alt={`Video testimonial from ${video.name} of ${video.business} about their Sited website`}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               loading="lazy"
             />

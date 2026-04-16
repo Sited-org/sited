@@ -116,7 +116,7 @@ const ProjectCard = ({
             >
               <img
                 src={thumbnail}
-                alt={`${project.company} project`}
+                alt={`${project.company} — website project built by Sited`}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 loading="lazy"
                 decoding="async"

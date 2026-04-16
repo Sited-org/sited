@@ -99,7 +99,7 @@ const MiniMacBookCard = ({ site, index }: { site: SiteData; index: number }) => 
           >
             <img
               src={site.screenshot}
-              alt={`${site.name} website screenshot`}
+              alt={`Screenshot of ${site.name} — custom website built by Sited`}
               className="w-full h-auto block"
               loading="lazy"
               onLoad={(e) => {

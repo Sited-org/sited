@@ -118,7 +118,7 @@ const MacBookCard = ({ site, index }: { site: { name: string; url: string; scree
           animation: scrollActive && scrollDistance > 0 ? `scrollIframe 18s ease-in-out infinite` : "none",
           ["--scroll-distance" as string]: `-${scrollDistance}px`,
         }}>
-          <img src={site.screenshot} alt={`${site.name} website`} className="w-full h-auto block" loading="lazy"
+          <img src={site.screenshot} alt={`${site.name} — custom website designed and built by Sited`} className="w-full h-auto block" loading="lazy"
             onLoad={(e) => { const img = e.currentTarget; setImageHeight(img.offsetHeight); setLoaded(true); }} />
         </div>
         {!loaded && <div className="absolute inset-0 bg-muted animate-pulse" />}
@@ -415,13 +415,13 @@ const LandingPage = () => {
         {/* Tinted website mockup background — adds visual depth */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.06]">
           <div className="absolute top-[5%] left-[-5%] w-[45%] rounded-2xl overflow-hidden rotate-[-6deg] shadow-2xl">
-            <img src={fallbackSites[0].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[0].screenshot} alt={`${fallbackSites[0].name} — custom website built by Sited`} className="w-full h-auto" loading="eager" />
           </div>
           <div className="absolute top-[10%] right-[-8%] w-[40%] rounded-2xl overflow-hidden rotate-[4deg] shadow-2xl">
-            <img src={fallbackSites[1].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[1].screenshot} alt={`${fallbackSites[1].name} — custom website built by Sited`} className="w-full h-auto" loading="eager" />
           </div>
           <div className="absolute bottom-[5%] left-[25%] w-[35%] rounded-2xl overflow-hidden rotate-[2deg] shadow-2xl">
-            <img src={fallbackSites[2].screenshot} alt="Client website example" className="w-full h-auto" loading="eager" />
+            <img src={fallbackSites[2].screenshot} alt={`${fallbackSites[2].name} — custom website built by Sited`} className="w-full h-auto" loading="eager" />
           </div>
         </div>
 
@@ -721,7 +721,7 @@ const VideoTestimonialCard = ({ testimonial }: { testimonial: { video_url: strin
           <div className="w-full h-full relative cursor-pointer group" onClick={() => setPlaying(true)}>
             <img
               src={thumbnail}
-              alt={`${testimonial.author} testimonial`}
+              alt={`Video testimonial from ${testimonial.author} about their experience with Sited`}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               loading="lazy"
             />
