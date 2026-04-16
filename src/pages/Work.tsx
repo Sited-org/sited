@@ -351,9 +351,9 @@ const Work = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <p className="text-lg sm:text-xl font-bold text-foreground mb-2">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2">
                 Like what you see?
-              </p>
+              </h2>
               <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                 Every project starts with a free 20-minute consultation. No pressure, just honest advice.
               </p>

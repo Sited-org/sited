@@ -578,7 +578,7 @@ const LandingPage = () => {
                   <step.icon size={22} className="text-sited-blue" />
                 </div>
                 <p className="text-[10px] uppercase tracking-widest text-sited-blue font-bold mb-1">Step {step.step}</p>
-                <p className="text-sm font-black text-foreground tracking-tight">{step.title}</p>
+                <h3 className="text-sm font-black text-foreground tracking-tight">{step.title}</h3>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{step.desc}</p>
               </motion.div>
             ))}
