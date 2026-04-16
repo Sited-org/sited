@@ -10,7 +10,7 @@ const STATIC_PAGES = [
   { loc: "/contact", changefreq: "monthly", priority: "0.7" },
   { loc: "/contact/offers", changefreq: "monthly", priority: "0.6" },
   { loc: "/offer", changefreq: "monthly", priority: "0.9" },
-  { loc: "/go", changefreq: "monthly", priority: "0.7" },
+  
   { loc: "/blog", changefreq: "weekly", priority: "0.8" },
   { loc: "/policies", changefreq: "yearly", priority: "0.3" },
 ];
