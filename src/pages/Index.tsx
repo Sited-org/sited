@@ -410,7 +410,7 @@ const Index = () => {
                   <div className="flex items-center gap-3 mb-4">
                     <img
                       src={stockPhotos[i]}
-                      alt="Client"
+                      alt={`${card.subtext} — Sited client testimonial`}
                       className="w-11 h-11 rounded-full object-cover border-2 border-border shadow-sm"
                       loading="lazy"
                     />
@@ -491,6 +491,43 @@ const Index = () => {
             <p className="mt-3 text-sm text-white/40">
               {final_cta.reassurance}
             </p>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* SEO CONTENT BLOCK — static, crawlable text for search engines */}
+      <section className="bg-background border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <ScrollReveal direction="up">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-6">
+              Custom Websites Built for Small Businesses
+            </h2>
+            <div className="prose prose-sm prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
+              <p>
+                Sited is a professional web design and development studio that builds custom websites for small and medium businesses. Whether you run a trade service, a medical clinic, a real estate agency, a hospitality venue, or a professional consultancy, Sited delivers a website that is tailored to your brand, optimised for search engines, and built to generate real enquiries from day one.
+              </p>
+              <p>
+                Every website we build is designed from scratch — no templates, no drag-and-drop builders, no shortcuts. Our team handles everything from initial concept through to launch, including responsive design for mobile and tablet, search engine optimisation, Google Analytics integration, contact forms, image sourcing, copywriting assistance, and domain configuration. You get a fully managed website without having to learn a single piece of software.
+              </p>
+              <p>
+                The process is straightforward. You start with a $49 deposit and a short discovery call where we learn about your business, your goals, and your preferences. From there, our designers create a custom mockup for your approval. Once you're happy with the direction, we build the full site and push it live — typically within three business days. Every project includes unlimited revisions during the build phase, so nothing goes live until you're completely satisfied.
+              </p>
+              <p>
+                After launch, Sited continues to manage your website on an ongoing basis. Our care plans include hosting, security monitoring, SSL certificates, daily backups, performance optimisation, and content updates whenever you need them. You'll also have access to a dedicated client portal where you can submit change requests, view project updates, and track the status of any work in progress. It's a hands-off experience designed for business owners who want results without the hassle.
+              </p>
+              <p>
+                Search engine optimisation is built into every project. We structure your site with clean HTML, semantic heading tags, fast load times, structured data markup, mobile responsiveness, and keyword-optimised page titles and meta descriptions. Our clients consistently rank on the first page of Google for their target search terms within weeks of launch — not because of tricks, but because we follow best practices and build sites that search engines love.
+              </p>
+              <p>
+                With over 500 websites delivered across Australia and internationally, Sited has earned a five-star reputation on Google Reviews. Our clients include electricians, plumbers, dentists, lawyers, personal trainers, cafes, e-commerce brands, and SaaS startups. We work with businesses of all sizes, but our sweet spot is the owner-operator or small team that needs a professional online presence without the agency price tag.
+              </p>
+              <p>
+                What makes Sited different is the combination of speed, quality, and affordability. Traditional agencies charge thousands upfront and take weeks or months to deliver. Freelancers are unreliable. DIY builders look generic. Sited sits in the middle — premium quality at a fraction of the cost, delivered faster than anyone else in the market. We've spent seven years refining this model, and the results speak for themselves.
+              </p>
+              <p>
+                If you're looking for a custom website that actually works for your business — one that ranks on Google, looks incredible on every device, and converts visitors into paying customers — get in touch with Sited today. Start with a $49 deposit, see your site live in three days, and experience what a properly built website can do for your bottom line.
+              </p>
+            </div>
           </ScrollReveal>
         </div>
       </section>
