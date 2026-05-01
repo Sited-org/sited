@@ -59,6 +59,8 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLLIElement>(null);
   const location = useLocation();
 
   useEffect(() => {
