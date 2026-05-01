@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
+// Using native checkbox to avoid radix-ui dep issues
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,7 +15,7 @@ import { Layout } from '@/components/layout/Layout';
 import SEOHead from '@/components/SEOHead';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateSitemapPDF } from '@/lib/sitemap-pdf';
+// generateSitemapPDF is dynamically imported at download time to avoid heavy jspdf bundle
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -547,7 +547,8 @@ export default function PublicSitemapBuilder() {
         body: { name: fullName, email: email.trim(), project_type: 'website', form_data: { source: 'sitemap_builder_tool', sitemap_name: name } },
       });
 
-      // Generate PDF
+      // Dynamic import to avoid loading jspdf until needed
+      const { generateSitemapPDF } = await import('@/lib/sitemap-pdf');
       generateSitemapPDF({
         id: '', lead_id: null, build_flow_id: null,
         name: name || 'Sitemap', sections, created_at: '', updated_at: '',
@@ -696,7 +697,7 @@ export default function PublicSitemapBuilder() {
                                           const hasOtherLinks = isOriginalParent ? (child.linkedFrom?.length || 0) > 0 : true;
                                           return (
                                             <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
-                                              <Checkbox checked={isLinked} disabled={isLinked && !hasOtherLinks} onCheckedChange={() => { if (isOriginalParent) moveChildToLinkedParent(pIdx, cIdx); else toggleLinkedParent(pIdx, cIdx, otherPIdx); }} />
+                                              <input type="checkbox" checked={isLinked} disabled={isLinked && !hasOtherLinks} onChange={() => { if (isOriginalParent) moveChildToLinkedParent(pIdx, cIdx); else toggleLinkedParent(pIdx, cIdx, otherPIdx); }} className="h-3.5 w-3.5 rounded border-border accent-primary" />
                                               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
                                               <span className="truncate">{otherPage.name}</span>
                                             </label>
