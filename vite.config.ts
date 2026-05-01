@@ -9,6 +9,15 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  optimizeDeps: {
+    include: [
+      "@radix-ui/react-popover",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-tooltip",
+      "@radix-ui/react-label",
+      "jspdf",
+    ],
+  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
