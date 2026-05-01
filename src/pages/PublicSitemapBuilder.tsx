@@ -714,13 +714,7 @@ export default function PublicSitemapBuilder() {
                                     <span className={(child.nodeType || 'page') === 'note' ? 'whitespace-nowrap max-w-[200px] truncate' : 'whitespace-nowrap'} style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>{child.name}</span>
                                   )}
                                   {(child.nodeType || 'page') !== 'note' && (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <button className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`} title="Link to other pages">
-                                          <Link2 className="h-2.5 w-2.5" />
-                                        </button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-48 p-2" side="right" align="start">
+                                    <MiniMenu trigger={<span className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`} title="Link to other pages"><Link2 className="h-2.5 w-2.5" /></span>} className="w-48">
                                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Linked pages</p>
                                         {currentSection.pages.map((otherPage, otherPIdx) => {
                                           const isOriginalParent = otherPIdx === pIdx;
@@ -735,8 +729,7 @@ export default function PublicSitemapBuilder() {
                                           );
                                         })}
                                         {currentSection.pages.length <= 1 && <p className="text-[10px] text-muted-foreground py-1">Add more pages to link</p>}
-                                      </PopoverContent>
-                                    </Popover>
+                                    </MiniMenu>
                                   )}
                                   <span className="opacity-0 group-hover:opacity-100"><AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" /></span>
                                   <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}><X className="h-2.5 w-2.5 text-destructive" /></button>
