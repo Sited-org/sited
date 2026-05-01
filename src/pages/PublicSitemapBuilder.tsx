@@ -696,7 +696,7 @@ export default function PublicSitemapBuilder() {
                                           const hasOtherLinks = isOriginalParent ? (child.linkedFrom?.length || 0) > 0 : true;
                                           return (
                                             <label key={otherPIdx} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-muted cursor-pointer text-xs">
-                                              <Checkbox checked={isLinked} disabled={isLinked && !hasOtherLinks} onCheckedChange={() => { if (isOriginalParent) moveChildToLinkedParent(pIdx, cIdx); else toggleLinkedParent(pIdx, cIdx, otherPIdx); }} />
+                                              <input type="checkbox" checked={isLinked} disabled={isLinked && !hasOtherLinks} onChange={() => { if (isOriginalParent) moveChildToLinkedParent(pIdx, cIdx); else toggleLinkedParent(pIdx, cIdx, otherPIdx); }} className="h-3.5 w-3.5 rounded border-border accent-primary" />
                                               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PAGE_COLORS[otherPIdx % PAGE_COLORS.length] }} />
                                               <span className="truncate">{otherPage.name}</span>
                                             </label>
