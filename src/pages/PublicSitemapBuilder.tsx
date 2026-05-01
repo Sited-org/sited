@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 // Using native checkbox to avoid radix-ui dep issues
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import {
   Download, Plus, Trash2, X, GripVertical, Layers, Undo2, Redo2, Link2,
   FileText, PanelTop, LayoutGrid, StickyNote, Loader2, Sparkles,
@@ -54,20 +51,62 @@ const NODE_TYPE_OPTIONS: { type: NodeType; label: string; icon: typeof FileText;
   { type: 'note', label: 'Note', icon: StickyNote, desc: 'A descriptive note' },
 ];
 
-function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => void; size?: 'sm' | 'xs' }) {
+function MiniMenu({
+  trigger,
+  children,
+  className = 'w-44',
+}: {
+  trigger: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative inline-flex">
+      <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(value => !value); }} className="inline-flex">
+        {trigger}
+      </button>
+      {open && (
+        <div className={`absolute left-0 top-full z-50 mt-1 rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-lg ${className}`} onClick={() => setOpen(false)}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SimpleModal({ open, onClose, children, className = 'sm:max-w-md' }: { open: boolean; onClose: () => void; children: React.ReactNode; className?: string }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" onPointerDown={onClose}>
+      <div className={`relative w-full rounded-lg border border-border bg-card p-6 shadow-lg ${className}`} onPointerDown={(event) => event.stopPropagation()}>
+        <button type="button" onClick={onClose} className="absolute right-4 top-4 rounded-sm text-muted-foreground transition-colors hover:text-foreground" aria-label="Close dialog">
+          <X className="h-4 w-4" />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => void; size?: 'sm' | 'xs' }) {
   const iconSize = size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3';
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className={`${size === 'xs' ? 'opacity-0 group-hover:opacity-100' : ''} hover:bg-accent rounded p-0.5 transition-opacity`} title="Add node">
-          <Plus className={iconSize} />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-44 p-1.5" side="right" align="start">
+    <MiniMenu trigger={<span className={`${size === 'xs' ? 'opacity-0 group-hover:opacity-100' : ''} hover:bg-accent rounded p-0.5 transition-opacity`} title="Add node"><Plus className={iconSize} /></span>}>
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 px-1.5">Add</p>
         {NODE_TYPE_OPTIONS.map(opt => (
-          <button key={opt.type} className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors" onClick={() => { onAdd(opt.type); setOpen(false); }}>
+          <button key={opt.type} type="button" className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors" onClick={() => onAdd(opt.type)}>
             <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <div>
               <span className="font-medium">{opt.label}</span>
@@ -75,8 +114,7 @@ function AddNodePopover({ onAdd, size = 'sm' }: { onAdd: (type: NodeType) => voi
             </div>
           </button>
         ))}
-      </PopoverContent>
-    </Popover>
+    </MiniMenu>
   );
 }
 
@@ -85,21 +123,14 @@ function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; onChang
   const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : currentType === 'note' ? StickyNote : FileText;
   if (!onChangeType) return <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" />;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20" title="Change node type">
-          <Icon className="h-3.5 w-3.5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
+    <MiniMenu trigger={<span className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-background/20" title="Change node type"><Icon className="h-3.5 w-3.5" /></span>} className="w-36">
         {NODE_TYPE_OPTIONS.map(opt => (
-          <button key={opt.type} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`} onClick={() => onChangeType(opt.type)}>
+          <button key={opt.type} type="button" className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`} onClick={() => onChangeType(opt.type)}>
             <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             {opt.label}
           </button>
         ))}
-      </PopoverContent>
-    </Popover>
+    </MiniMenu>
   );
 }
 
@@ -573,7 +604,7 @@ export default function PublicSitemapBuilder() {
     <Layout hideFooter>
       <SEOHead title="Free Sitemap Builder — Sited" description="Plan your website structure visually with our free drag-and-drop sitemap builder. Download as PDF." />
 
-      <div className="flex flex-col bg-background" style={{ minHeight: 'calc(100vh - 140px)' }}>
+      <div className="flex flex-col bg-background pt-24 md:pt-28" style={{ minHeight: '100vh' }}>
         {/* Top Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card shrink-0">
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="Sitemap name…" className="max-w-[200px] font-semibold text-sm h-8" />
@@ -683,13 +714,7 @@ export default function PublicSitemapBuilder() {
                                     <span className={(child.nodeType || 'page') === 'note' ? 'whitespace-nowrap max-w-[200px] truncate' : 'whitespace-nowrap'} style={{ color: 'inherit' }} onDoubleClick={() => setEditingNode({ type: 'child', sIdx: activeSectionIdx, pIdx, cIdx })}>{child.name}</span>
                                   )}
                                   {(child.nodeType || 'page') !== 'note' && (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <button className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`} title="Link to other pages">
-                                          <Link2 className="h-2.5 w-2.5" />
-                                        </button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-48 p-2" side="right" align="start">
+                                    <MiniMenu trigger={<span className={`${child.linkedFrom?.length ? 'opacity-70' : 'opacity-0 group-hover:opacity-100'} hover:bg-accent rounded p-0.5 transition-opacity`} title="Link to other pages"><Link2 className="h-2.5 w-2.5" /></span>} className="w-48">
                                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Linked pages</p>
                                         {currentSection.pages.map((otherPage, otherPIdx) => {
                                           const isOriginalParent = otherPIdx === pIdx;
@@ -704,8 +729,7 @@ export default function PublicSitemapBuilder() {
                                           );
                                         })}
                                         {currentSection.pages.length <= 1 && <p className="text-[10px] text-muted-foreground py-1">Add more pages to link</p>}
-                                      </PopoverContent>
-                                    </Popover>
+                                    </MiniMenu>
                                   )}
                                   <span className="opacity-0 group-hover:opacity-100"><AddNodePopover onAdd={(type) => addTab(pIdx, cIdx, undefined, type)} size="xs" /></span>
                                   <button className="opacity-0 group-hover:opacity-100 hover:bg-destructive/20 rounded p-0.5" onClick={() => removeChild(pIdx, cIdx)}><X className="h-2.5 w-2.5 text-destructive" /></button>
@@ -733,39 +757,36 @@ export default function PublicSitemapBuilder() {
       </div>
 
       {/* Lead Capture Dialog */}
-      <Dialog open={showLeadCapture} onOpenChange={setShowLeadCapture}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg">Download Your Sitemap</DialogTitle>
+      <SimpleModal open={showLeadCapture} onClose={() => setShowLeadCapture(false)} className="sm:max-w-md">
+          <div className="mb-4 space-y-1.5">
+            <h2 className="text-lg font-semibold">Download Your Sitemap</h2>
             <p className="text-sm text-muted-foreground">Enter your details to download your sitemap as a PDF.</p>
-          </DialogHeader>
+          </div>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName" className="text-xs">First Name</Label>
+                <label htmlFor="firstName" className="text-xs font-medium">First Name</label>
                 <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName" className="text-xs">Last Name</Label>
+                <label htmlFor="lastName" className="text-xs font-medium">Last Name</label>
                 <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs">Email</Label>
+              <label htmlFor="email" className="text-xs font-medium">Email</label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" />
             </div>
           </div>
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
             <Button onClick={handleLeadSubmitAndDownload} disabled={submitting} className="w-full">
               {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing…</> : <><Download className="h-4 w-4 mr-2" />Download PDF</>}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+      </SimpleModal>
 
       {/* Upsell Dialog */}
-      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
-        <DialogContent className="sm:max-w-lg text-center">
+      <SimpleModal open={showUpsell} onClose={() => setShowUpsell(false)} className="sm:max-w-lg text-center">
           <div className="py-4 space-y-4">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
               <Sparkles className="h-7 w-7 text-[hsl(var(--gold))]" />
@@ -783,8 +804,7 @@ export default function PublicSitemapBuilder() {
               </button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+      </SimpleModal>
     </Layout>
   );
 }
