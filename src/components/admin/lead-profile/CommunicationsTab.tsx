@@ -281,6 +281,56 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
         </Card>
       )}
 
+      {/* Invoices */}
+      {invoices.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Invoices
+              <Badge variant="secondary" className="ml-auto">{invoices.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {invoices.map((inv) => {
+                const statusColor = inv.invoice_status === 'paid'
+                  ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                  : inv.invoice_status === 'void'
+                    ? 'bg-red-500/10 text-red-600 border-red-500/20'
+                    : inv.invoice_status === 'sent' || inv.invoice_status === 'processing'
+                      ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                      : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+
+                return (
+                  <div key={`${inv.stripe_invoice_id}-${inv.id}`} className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                    <div className="mt-0.5">
+                      <Receipt className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">{inv.item}</p>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
+                          {inv.invoice_status || 'unknown'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <span>${Number(inv.debit || 0).toFixed(2)}</span>
+                        <span>•</span>
+                        <span>{inv.stripe_invoice_id}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(inv.transaction_date), 'PPp')}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
