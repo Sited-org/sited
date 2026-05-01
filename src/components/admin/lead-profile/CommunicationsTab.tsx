@@ -41,6 +41,16 @@ interface RequestAttachment {
   uploaded_by: string;
 }
 
+interface InvoiceRecord {
+  id: string;
+  item: string;
+  debit: number;
+  transaction_date: string;
+  invoice_status: string | null;
+  stripe_invoice_id: string;
+  notes: string | null;
+}
+
 interface CommunicationsTabProps {
   leadId: string;
   leadEmail: string;
