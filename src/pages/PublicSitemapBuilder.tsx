@@ -604,7 +604,7 @@ export default function PublicSitemapBuilder() {
     <Layout hideFooter>
       <SEOHead title="Free Sitemap Builder — Sited" description="Plan your website structure visually with our free drag-and-drop sitemap builder. Download as PDF." />
 
-      <div className="flex flex-col bg-background" style={{ minHeight: 'calc(100vh - 140px)' }}>
+      <div className="flex flex-col bg-background pt-24 md:pt-28" style={{ minHeight: '100vh' }}>
         {/* Top Toolbar */}
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card shrink-0">
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="Sitemap name…" className="max-w-[200px] font-semibold text-sm h-8" />
