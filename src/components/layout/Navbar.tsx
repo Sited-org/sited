@@ -127,6 +127,63 @@ export const Navbar = () => {
                 </Link>
               </li>
             ))}
+
+            {/* Tools dropdown */}
+            <li ref={toolsRef} className="relative">
+              <button
+                onClick={() => setToolsOpen(!toolsOpen)}
+                className={cn(
+                  "text-sm font-medium transition-colors duration-300 relative flex items-center gap-1",
+                  location.pathname.startsWith('/tools')
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Tools
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", toolsOpen && "rotate-180")} />
+                {location.pathname.startsWith('/tools') && (
+                  <motion.div layoutId="activeNav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+              <AnimatePresence>
+                {toolsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-xl py-1.5 z-50"
+                  >
+                    {toolsLinks.map(tool => (
+                      <Link
+                        key={tool.href}
+                        to={tool.href}
+                        className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        {tool.name}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+
+            <li>
+              <Link
+                to="/contact"
+                className={cn(
+                  "text-sm font-medium transition-colors duration-300 relative",
+                  location.pathname === "/contact"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Contact
+                {location.pathname === "/contact" && (
+                  <motion.div layoutId="activeNav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                )}
+              </Link>
+            </li>
           </ul>
 
           {/* Desktop CTA buttons */}
