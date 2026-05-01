@@ -79,6 +79,7 @@ const statusColors: Record<string, string> = {
 
 export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTabProps) {
   const [emails, setEmails] = useState<EmailLog[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [requestAttachments, setRequestAttachments] = useState<Record<string, RequestAttachment[]>>({});
   const [loading, setLoading] = useState(true);
