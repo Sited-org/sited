@@ -24,6 +24,7 @@ const Offer = lazy(() => import("./pages/Offer"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Policies = lazy(() => import("./pages/Policies"));
+const PublicSitemapBuilder = lazy(() => import("./pages/PublicSitemapBuilder"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
@@ -88,6 +89,7 @@ const App = () => (
             {/* Pricing route removed */}
             {/* /onboarding/website removed — popup CTA replaces it */}
             <Route path="/policies" element={<Policies />} />
+            <Route path="/tools/sitemap-builder" element={<PublicSitemapBuilder />} />
             
             <Route path="/go" element={<LandingPage />} />
             <Route path="/blog" element={<Blog />} />

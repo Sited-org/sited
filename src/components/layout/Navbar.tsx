@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, CalendarCheck } from "lucide-react";
+import { Menu, X, CalendarCheck, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
@@ -13,7 +13,10 @@ const navLinks = [
   { name: "Custom Websites", href: "/custom-websites" },
   { name: "Portfolio", href: "/portfolio" },
   { name: "Blog", href: "/blog" },
-  { name: "Contact", href: "/contact" },
+];
+
+const toolsLinks = [
+  { name: "Sitemap Builder", href: "/tools/sitemap-builder" },
 ];
 
 const domains = ["au", "co"];
@@ -56,6 +59,8 @@ export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [ctaOpen, setCtaOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLLIElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -68,7 +73,18 @@ export const Navbar = () => {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setToolsOpen(false);
   }, [location]);
+
+  // Close tools dropdown on outside click
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setToolsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [toolsOpen]);
 
   return (
     <>
@@ -111,6 +127,63 @@ export const Navbar = () => {
                 </Link>
               </li>
             ))}
+
+            {/* Tools dropdown */}
+            <li ref={toolsRef} className="relative">
+              <button
+                onClick={() => setToolsOpen(!toolsOpen)}
+                className={cn(
+                  "text-sm font-medium transition-colors duration-300 relative flex items-center gap-1",
+                  location.pathname.startsWith('/tools')
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Tools
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", toolsOpen && "rotate-180")} />
+                {location.pathname.startsWith('/tools') && (
+                  <motion.div layoutId="activeNav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+              <AnimatePresence>
+                {toolsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 mt-2 w-48 rounded-lg border border-border bg-card shadow-xl py-1.5 z-50"
+                  >
+                    {toolsLinks.map(tool => (
+                      <Link
+                        key={tool.href}
+                        to={tool.href}
+                        className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      >
+                        {tool.name}
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </li>
+
+            <li>
+              <Link
+                to="/contact"
+                className={cn(
+                  "text-sm font-medium transition-colors duration-300 relative",
+                  location.pathname === "/contact"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Contact
+                {location.pathname === "/contact" && (
+                  <motion.div layoutId="activeNav" className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                )}
+              </Link>
+            </li>
           </ul>
 
           {/* Desktop CTA buttons */}
@@ -190,6 +263,18 @@ export const Navbar = () => {
                   </Link>
                 </motion.div>
               ))}
+              {/* Tools section in mobile menu */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + navLinks.length * 0.05 }} className="flex flex-col items-center gap-2">
+                <span className="text-3xl font-medium text-muted-foreground">Tools</span>
+                {toolsLinks.map(tool => (
+                  <Link key={tool.href} to={tool.href} className={cn("text-xl font-medium transition-colors", location.pathname === tool.href ? "text-foreground" : "text-muted-foreground/70")}>
+                    {tool.name}
+                  </Link>
+                ))}
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + (navLinks.length + 1) * 0.05 }}>
+                <Link to="/contact" className={cn("text-3xl font-medium transition-colors", location.pathname === "/contact" ? "text-foreground" : "text-muted-foreground")}>Contact</Link>
+              </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
