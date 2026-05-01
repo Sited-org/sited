@@ -1,0 +1,1 @@
+ALTER TABLE public.blog_posts ADD COLUMN body_font text DEFAULT 'default';
