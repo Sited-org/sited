@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, CalendarCheck } from "lucide-react";
+import { Menu, X, CalendarCheck, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LeadCaptureDialog } from "@/components/LeadCaptureDialog";
@@ -13,7 +13,10 @@ const navLinks = [
   { name: "Custom Websites", href: "/custom-websites" },
   { name: "Portfolio", href: "/portfolio" },
   { name: "Blog", href: "/blog" },
-  { name: "Contact", href: "/contact" },
+];
+
+const toolsLinks = [
+  { name: "Sitemap Builder", href: "/tools/sitemap-builder" },
 ];
 
 const domains = ["au", "co"];
