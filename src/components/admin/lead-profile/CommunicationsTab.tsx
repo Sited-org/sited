@@ -86,7 +86,7 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
 
   useEffect(() => {
     async function fetchData() {
-      const [emailsRes, requestsRes] = await Promise.all([
+      const [emailsRes, requestsRes, invoicesRes] = await Promise.all([
         supabase
           .from('email_logs')
           .select('*')
@@ -98,9 +98,26 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
           .eq('lead_id', leadId)
           .eq('request_source', 'admin')
           .order('created_at', { ascending: false }),
+        supabase
+          .from('transactions')
+          .select('id, item, debit, transaction_date, invoice_status, stripe_invoice_id, notes')
+          .eq('lead_id', leadId)
+          .not('stripe_invoice_id', 'is', null)
+          .not('item', 'ilike', 'Credit Applied%')
+          .not('item', 'ilike', 'VOID:%')
+          .order('transaction_date', { ascending: false }),
       ]);
 
       setEmails((emailsRes.data || []) as EmailLog[]);
+      
+      // Deduplicate invoices by stripe_invoice_id (keep first/most recent)
+      const seenInvoiceIds = new Set<string>();
+      const uniqueInvoices = ((invoicesRes.data || []) as InvoiceRecord[]).filter(inv => {
+        if (seenInvoiceIds.has(inv.stripe_invoice_id)) return false;
+        seenInvoiceIds.add(inv.stripe_invoice_id);
+        return true;
+      });
+      setInvoices(uniqueInvoices);
       const reqs = (requestsRes.data || []) as TeamRequest[];
       setTeamRequests(reqs);
 
