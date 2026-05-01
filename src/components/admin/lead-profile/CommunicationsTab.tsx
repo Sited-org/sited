@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Mail, CheckCircle2, XCircle, Clock, Send, MessageSquare, Download, FileText, Image, Paperclip } from 'lucide-react';
+import { Mail, CheckCircle2, XCircle, Clock, Send, MessageSquare, Download, FileText, Image, Paperclip, Receipt, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { UpcomingCallsSection } from './UpcomingCallsSection';
@@ -41,6 +41,16 @@ interface RequestAttachment {
   uploaded_by: string;
 }
 
+interface InvoiceRecord {
+  id: string;
+  item: string;
+  debit: number;
+  transaction_date: string;
+  invoice_status: string | null;
+  stripe_invoice_id: string;
+  notes: string | null;
+}
+
 interface CommunicationsTabProps {
   leadId: string;
   leadEmail: string;
@@ -69,13 +79,14 @@ const statusColors: Record<string, string> = {
 
 export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTabProps) {
   const [emails, setEmails] = useState<EmailLog[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
   const [teamRequests, setTeamRequests] = useState<TeamRequest[]>([]);
   const [requestAttachments, setRequestAttachments] = useState<Record<string, RequestAttachment[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
-      const [emailsRes, requestsRes] = await Promise.all([
+      const [emailsRes, requestsRes, invoicesRes] = await Promise.all([
         supabase
           .from('email_logs')
           .select('*')
@@ -87,9 +98,26 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
           .eq('lead_id', leadId)
           .eq('request_source', 'admin')
           .order('created_at', { ascending: false }),
+        supabase
+          .from('transactions')
+          .select('id, item, debit, transaction_date, invoice_status, stripe_invoice_id, notes')
+          .eq('lead_id', leadId)
+          .not('stripe_invoice_id', 'is', null)
+          .not('item', 'ilike', 'Credit Applied%')
+          .not('item', 'ilike', 'VOID:%')
+          .order('transaction_date', { ascending: false }),
       ]);
 
       setEmails((emailsRes.data || []) as EmailLog[]);
+      
+      // Deduplicate invoices by stripe_invoice_id (keep first/most recent)
+      const seenInvoiceIds = new Set<string>();
+      const uniqueInvoices = ((invoicesRes.data || []) as InvoiceRecord[]).filter(inv => {
+        if (seenInvoiceIds.has(inv.stripe_invoice_id)) return false;
+        seenInvoiceIds.add(inv.stripe_invoice_id);
+        return true;
+      });
+      setInvoices(uniqueInvoices);
       const reqs = (requestsRes.data || []) as TeamRequest[];
       setTeamRequests(reqs);
 
@@ -245,6 +273,56 @@ export function CommunicationsTab({ leadId, leadEmail, lead }: CommunicationsTab
                         </div>
                       </div>
                     )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Invoices */}
+      {invoices.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Invoices
+              <Badge variant="secondary" className="ml-auto">{invoices.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {invoices.map((inv) => {
+                const statusColor = inv.invoice_status === 'paid'
+                  ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                  : inv.invoice_status === 'void'
+                    ? 'bg-red-500/10 text-red-600 border-red-500/20'
+                    : inv.invoice_status === 'sent' || inv.invoice_status === 'processing'
+                      ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+                      : 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+
+                return (
+                  <div key={`${inv.stripe_invoice_id}-${inv.id}`} className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors">
+                    <div className="mt-0.5">
+                      <Receipt className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">{inv.item}</p>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusColor}`}>
+                          {inv.invoice_status || 'unknown'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <span>${Number(inv.debit || 0).toFixed(2)}</span>
+                        <span>•</span>
+                        <span>{inv.stripe_invoice_id}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {format(new Date(inv.transaction_date), 'PPp')}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
