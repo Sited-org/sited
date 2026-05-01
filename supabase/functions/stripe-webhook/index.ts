@@ -483,7 +483,11 @@ serve(async (req) => {
       case "invoice.created": {
         // Handle subscription invoice creation - apply credit BEFORE finalization/charging
         const invoice = event.data.object as Stripe.Invoice;
-        console.log("[STRIPE-WEBHOOK] Invoice created:", invoice.id, "Status:", invoice.status, "Billing reason:", invoice.billing_reason);
+        console.log("========================================");
+        console.log("[STRIPE-WEBHOOK] >>> INVOICE.CREATED EVENT RECEIVED <<<");
+        console.log("[STRIPE-WEBHOOK] Invoice:", invoice.id, "Status:", invoice.status, "Billing reason:", invoice.billing_reason);
+        console.log("[STRIPE-WEBHOOK] Customer:", invoice.customer, "Subscription:", invoice.subscription, "Amount due:", invoice.amount_due);
+        console.log("========================================");
         
         const isSubscriptionInvoice = !!invoice.subscription && 
           (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create');
