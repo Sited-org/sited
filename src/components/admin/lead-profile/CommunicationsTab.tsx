@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Mail, CheckCircle2, XCircle, Clock, Send, MessageSquare, Download, FileText, Image, Paperclip } from 'lucide-react';
+import { Mail, CheckCircle2, XCircle, Clock, Send, MessageSquare, Download, FileText, Image, Paperclip, Receipt, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { UpcomingCallsSection } from './UpcomingCallsSection';
