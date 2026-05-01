@@ -131,6 +131,7 @@ export type Database = {
         Row: {
           author_id: string
           author_name: string
+          body_font: string | null
           content: string
           cover_image_url: string | null
           created_at: string
@@ -150,6 +151,7 @@ export type Database = {
         Insert: {
           author_id: string
           author_name: string
+          body_font?: string | null
           content?: string
           cover_image_url?: string | null
           created_at?: string
@@ -169,6 +171,7 @@ export type Database = {
         Update: {
           author_id?: string
           author_name?: string
+          body_font?: string | null
           content?: string
           cover_image_url?: string | null
           created_at?: string

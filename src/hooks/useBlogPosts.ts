@@ -18,6 +18,7 @@ export interface BlogPost {
   meta_title: string | null;
   meta_description: string | null;
   reading_time_minutes: number;
+  body_font: string | null;
   created_at: string;
   updated_at: string;
 }

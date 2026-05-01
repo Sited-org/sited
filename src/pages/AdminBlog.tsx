@@ -10,11 +10,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Eye, Calendar, Clock, ExternalLink, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, Clock, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+const AUTOSAVE_KEY = "sited_blog_draft";
+
+const FONT_OPTIONS = [
+  { value: "default", label: "Default (System)" },
+  { value: "inter", label: "Inter" },
+  { value: "georgia", label: "Georgia" },
+  { value: "merriweather", label: "Merriweather" },
+  { value: "lora", label: "Lora" },
+  { value: "playfair", label: "Playfair Display" },
+  { value: "source-serif", label: "Source Serif Pro" },
+  { value: "dm-sans", label: "DM Sans" },
+];
 
 const generateSlug = (title: string) =>
   title
@@ -37,6 +49,7 @@ const emptyForm: BlogPostInsert = {
   meta_title: "",
   meta_description: "",
   reading_time_minutes: 1,
+  body_font: "default",
 };
 
 export default function AdminBlog() {
@@ -54,8 +67,43 @@ export default function AdminBlog() {
   const [uploading, setUploading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync editor content when dialog opens or form.content changes externally (e.g. image insert)
+  // --- Auto-save to localStorage (debounced) ---
+  const saveToLocal = useCallback((data: BlogPostInsert, editId: string | null) => {
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ form: data, editingId: editId, savedAt: Date.now() }));
+    } catch {}
+  }, []);
+
+  // Debounced autosave on form changes
+  useEffect(() => {
+    if (!dialogOpen) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => saveToLocal(form, editingId), 800);
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
+  }, [form, editingId, dialogOpen, saveToLocal]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (!raw) return;
+      const { form: saved, editingId: savedId, savedAt } = JSON.parse(raw);
+      // Only restore if less than 7 days old
+      if (Date.now() - savedAt > 7 * 86400000) { localStorage.removeItem(AUTOSAVE_KEY); return; }
+      if (saved?.title || saved?.content) {
+        toast({ title: "Draft restored", description: "Your unsaved blog post was recovered." });
+        setForm(saved);
+        setEditingId(savedId);
+        setDialogOpen(true);
+      }
+    } catch { localStorage.removeItem(AUTOSAVE_KEY); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearAutosave = () => { try { localStorage.removeItem(AUTOSAVE_KEY); } catch {} };
+
+  // Sync editor content
   const lastSyncedContent = useRef<string>("");
   const syncEditorContent = useCallback((content: string) => {
     if (editorRef.current && editorRef.current.innerHTML !== content) {
@@ -64,10 +112,8 @@ export default function AdminBlog() {
     }
   }, []);
 
-  // When dialog opens with content (edit mode), populate the editor
   useEffect(() => {
     if (dialogOpen) {
-      // Small delay to ensure the DOM element is mounted
       setTimeout(() => syncEditorContent(form.content), 50);
     }
   }, [dialogOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,6 +154,7 @@ export default function AdminBlog() {
       meta_title: post.meta_title || "",
       meta_description: post.meta_description || "",
       reading_time_minutes: post.reading_time_minutes,
+      body_font: (post as any).body_font || "default",
     });
     setTagInput("");
     setDialogOpen(true);
@@ -173,7 +220,7 @@ export default function AdminBlog() {
     e.preventDefault();
     const payload = { ...form };
 
-    // Auto-set published_at when publishing
+    // Auto-set published_at when publishing (timestamp auto-tagged)
     if (payload.status === "published" && !payload.published_at) {
       payload.published_at = new Date().toISOString();
     }
@@ -187,6 +234,7 @@ export default function AdminBlog() {
     } else {
       await createPost.mutateAsync(payload);
     }
+    clearAutosave();
     setDialogOpen(false);
   };
 
@@ -207,7 +255,7 @@ export default function AdminBlog() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
+          <h2 className="text-2xl font-bold tracking-tight">Blog</h2>
           <p className="text-muted-foreground">Create and manage blog posts</p>
         </div>
         <Button onClick={openCreate}>
@@ -239,6 +287,12 @@ export default function AdminBlog() {
                     <span>{post.author_name}</span>
                     <span>·</span>
                     <span>{format(new Date(post.created_at), "dd MMM yyyy")}</span>
+                    {post.published_at && (
+                      <>
+                        <span>·</span>
+                        <span>Published {format(new Date(post.published_at), "dd MMM yyyy 'at' h:mm a")}</span>
+                      </>
+                    )}
                     {post.status === "scheduled" && post.scheduled_at && (
                       <>
                         <span>·</span>
@@ -295,7 +349,13 @@ export default function AdminBlog() {
       )}
 
       {/* Editor Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Save before closing so it persists if user navigates away
+          saveToLocal(form, editingId);
+        }
+        setDialogOpen(open);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Post" : "New Blog Post"}</DialogTitle>
@@ -303,23 +363,23 @@ export default function AdminBlog() {
           <form onSubmit={handleSubmit} className="space-y-5 mt-4">
             {/* Title */}
             <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input value={form.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Your blog post title" required />
+              <Label htmlFor="blog-title">Title *</Label>
+              <Input id="blog-title" value={form.title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Your blog post title" required />
             </div>
 
             {/* Slug */}
             <div className="space-y-2">
-              <Label>URL Slug *</Label>
+              <Label htmlFor="blog-slug">URL Slug *</Label>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">/blog/</span>
-                <Input value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))} placeholder="your-post-slug" required />
+                <Input id="blog-slug" value={form.slug} onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))} placeholder="your-post-slug" required />
               </div>
             </div>
 
             {/* Excerpt */}
             <div className="space-y-2">
-              <Label>Excerpt</Label>
-              <Textarea value={form.excerpt || ""} onChange={(e) => setForm((p) => ({ ...p, excerpt: e.target.value }))} rows={2} placeholder="Brief summary for the feed..." />
+              <Label htmlFor="blog-excerpt">Excerpt</Label>
+              <Textarea id="blog-excerpt" value={form.excerpt || ""} onChange={(e) => setForm((p) => ({ ...p, excerpt: e.target.value }))} rows={2} placeholder="Brief summary for the feed..." />
             </div>
 
             {/* Cover Image */}
@@ -336,9 +396,22 @@ export default function AdminBlog() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploading} />
                 </label>
                 {form.cover_image_url && (
-                  <img src={form.cover_image_url} alt="Cover" className="h-12 w-20 object-cover rounded-lg" />
+                  <img src={form.cover_image_url} alt="Cover preview" className="h-12 w-20 object-cover rounded-lg" />
                 )}
               </div>
+            </div>
+
+            {/* Font Picker */}
+            <div className="space-y-2">
+              <Label htmlFor="blog-font">Body Font</Label>
+              <Select value={form.body_font || "default"} onValueChange={(v) => setForm((p) => ({ ...p, body_font: v }))}>
+                <SelectTrigger id="blog-font"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Content Editor */}
@@ -358,6 +431,9 @@ export default function AdminBlog() {
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h1")} className="h-8 px-2 text-xs font-bold">H1</Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h2")} className="h-8 px-2 text-xs font-bold">H2</Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h3")} className="h-8 px-2 text-xs font-bold">H3</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h4")} className="h-8 px-2 text-xs font-bold">H4</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h5")} className="h-8 px-2 text-xs font-bold">H5</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "h6")} className="h-8 px-2 text-xs font-bold">H6</Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("formatBlock", "p")} className="h-8 px-2 text-xs">P</Button>
                 <div className="w-px bg-border mx-1" />
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("insertUnorderedList")} className="h-8 px-2 text-xs">• List</Button>
@@ -378,13 +454,13 @@ export default function AdminBlog() {
                 </label>
                 <div className="w-px bg-border mx-1" />
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyLeft")} className="h-8 px-2 text-xs" title="Align Left">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyCenter")} className="h-8 px-2 text-xs" title="Align Center">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("justifyRight")} className="h-8 px-2 text-xs" title="Align Right">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>
                 </Button>
                 <div className="w-px bg-border mx-1" />
                 <Button type="button" variant="ghost" size="sm" onClick={() => execCommand("removeFormat")} className="h-8 px-2 text-xs">Clear</Button>
@@ -399,6 +475,9 @@ export default function AdminBlog() {
                   [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:my-3
                   [&_h2]:text-xl [&_h2]:font-bold [&_h2]:my-2
                   [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:my-2
+                  [&_h4]:text-base [&_h4]:font-semibold [&_h4]:my-2
+                  [&_h5]:text-sm [&_h5]:font-semibold [&_h5]:my-1
+                  [&_h6]:text-xs [&_h6]:font-semibold [&_h6]:my-1
                   [&_ul]:list-disc [&_ul]:ml-5 [&_ul]:my-2
                   [&_ol]:list-decimal [&_ol]:ml-5 [&_ol]:my-2
                   [&_blockquote]:border-l-4 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3
@@ -438,9 +517,9 @@ export default function AdminBlog() {
             {/* Status & Scheduling */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label htmlFor="blog-status">Status</Label>
                 <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="blog-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="published">Publish Now</SelectItem>
@@ -450,8 +529,9 @@ export default function AdminBlog() {
               </div>
               {form.status === "scheduled" && (
                 <div className="space-y-2">
-                  <Label>Schedule Date & Time</Label>
+                  <Label htmlFor="blog-schedule">Schedule Date & Time</Label>
                   <Input
+                    id="blog-schedule"
                     type="datetime-local"
                     value={form.scheduled_at ? format(new Date(form.scheduled_at), "yyyy-MM-dd'T'HH:mm") : ""}
                     onChange={(e) => setForm((p) => ({ ...p, scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null }))}
@@ -465,24 +545,27 @@ export default function AdminBlog() {
               <summary className="font-semibold cursor-pointer text-sm">SEO Settings</summary>
               <div className="space-y-3 mt-4">
                 <div className="space-y-2">
-                  <Label>Meta Title</Label>
-                  <Input value={form.meta_title || ""} onChange={(e) => setForm((p) => ({ ...p, meta_title: e.target.value }))} placeholder="Override page title for SEO" />
+                  <Label htmlFor="blog-meta-title">Meta Title</Label>
+                  <Input id="blog-meta-title" value={form.meta_title || ""} onChange={(e) => setForm((p) => ({ ...p, meta_title: e.target.value }))} placeholder="Override page title for SEO" />
+                  <p className="text-xs text-muted-foreground">{(form.meta_title || form.title || "").length}/60 characters</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Meta Description</Label>
-                  <Textarea value={form.meta_description || ""} onChange={(e) => setForm((p) => ({ ...p, meta_description: e.target.value }))} rows={2} placeholder="Override page description for SEO" />
+                  <Label htmlFor="blog-meta-desc">Meta Description</Label>
+                  <Textarea id="blog-meta-desc" value={form.meta_description || ""} onChange={(e) => setForm((p) => ({ ...p, meta_description: e.target.value }))} rows={2} placeholder="Override page description for SEO" />
+                  <p className="text-xs text-muted-foreground">{(form.meta_description || form.excerpt || "").length}/160 characters</p>
                 </div>
               </div>
             </details>
 
             {/* Author */}
             <div className="space-y-2">
-              <Label>Author Name</Label>
-              <Input value={form.author_name} onChange={(e) => setForm((p) => ({ ...p, author_name: e.target.value }))} />
+              <Label htmlFor="blog-author">Author Name</Label>
+              <Input id="blog-author" value={form.author_name} onChange={(e) => setForm((p) => ({ ...p, author_name: e.target.value }))} />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { saveToLocal(form, editingId); setDialogOpen(false); }}>Save & Close</Button>
+              <Button type="button" variant="ghost" onClick={() => { clearAutosave(); setDialogOpen(false); }}>Discard Draft</Button>
               <Button type="submit" disabled={createPost.isPending || updatePost.isPending}>
                 {editingId ? "Update Post" : form.status === "published" ? "Publish" : "Save"}
               </Button>

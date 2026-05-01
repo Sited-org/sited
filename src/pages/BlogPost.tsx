@@ -8,6 +8,24 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const FONT_MAP: Record<string, string> = {
+  default: "inherit",
+  inter: "'Inter', sans-serif",
+  georgia: "Georgia, serif",
+  merriweather: "'Merriweather', serif",
+  lora: "'Lora', serif",
+  playfair: "'Playfair Display', serif",
+  "source-serif": "'Source Serif Pro', serif",
+  "dm-sans": "'DM Sans', sans-serif",
+};
+
+const GOOGLE_FONT_URLS: Record<string, string> = {
+  merriweather: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap",
+  lora: "https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&display=swap",
+  playfair: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap",
+  "source-serif": "https://fonts.googleapis.com/css2?family=Source+Serif+Pro:wght@400;600;700&display=swap",
+};
+
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = useBlogPostBySlug(slug || "");
@@ -42,6 +60,10 @@ const BlogPost = () => {
     );
   }
 
+  const bodyFont = (post as any).body_font || "default";
+  const fontFamily = FONT_MAP[bodyFont] || "inherit";
+  const googleFontUrl = GOOGLE_FONT_URLS[bodyFont];
+
   return (
     <Layout>
       <SEOHead
@@ -69,6 +91,12 @@ const BlogPost = () => {
           },
         }}
       />
+
+      {/* Load Google Font if needed */}
+      {googleFontUrl && (
+        <link rel="stylesheet" href={googleFontUrl} />
+      )}
+
       <article className="pt-32 pb-20 sm:pt-40">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           {/* Back link */}
@@ -79,7 +107,7 @@ const BlogPost = () => {
             <ArrowLeft size={16} /> Back to Blog
           </Link>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
@@ -95,28 +123,28 @@ const BlogPost = () => {
               {post.title}
             </h1>
 
-            {/* Meta */}
+            {/* Meta — date, time, author, reading time */}
             <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <User size={16} />
+                <User size={16} aria-hidden="true" />
                 {post.author_name}
               </span>
               {post.published_at && (
-                <span className="flex items-center gap-1.5">
-                  <Calendar size={16} />
-                  {format(new Date(post.published_at), "dd MMMM yyyy")}
-                </span>
+                <time dateTime={post.published_at} className="flex items-center gap-1.5">
+                  <Calendar size={16} aria-hidden="true" />
+                  {format(new Date(post.published_at), "dd MMMM yyyy 'at' h:mm a")}
+                </time>
               )}
               <span className="flex items-center gap-1.5">
-                <Clock size={16} />
+                <Clock size={16} aria-hidden="true" />
                 {post.reading_time_minutes} min read
               </span>
             </div>
-          </motion.div>
+          </motion.header>
 
           {/* Cover image */}
           {post.cover_image_url && (
-            <motion.div
+            <motion.figure
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -127,7 +155,7 @@ const BlogPost = () => {
                 alt={`Cover image for ${post.title}`}
                 className="w-full h-auto object-cover"
               />
-            </motion.div>
+            </motion.figure>
           )}
 
           {/* Content */}
@@ -137,6 +165,11 @@ const BlogPost = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="mt-10 prose prose-lg max-w-none
               prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-foreground
+              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
+              prose-h4:text-lg prose-h4:mt-6 prose-h4:mb-2
+              prose-h5:text-base prose-h5:mt-4 prose-h5:mb-2
+              prose-h6:text-sm prose-h6:mt-4 prose-h6:mb-1
               prose-p:text-muted-foreground prose-p:leading-relaxed
               prose-a:text-sited-blue prose-a:no-underline hover:prose-a:underline
               prose-strong:text-foreground
@@ -146,6 +179,7 @@ const BlogPost = () => {
               prose-li:marker:text-sited-blue
               [&_mark]:bg-accent/60 [&_mark]:px-1 [&_mark]:rounded
             "
+            style={{ fontFamily }}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </div>
