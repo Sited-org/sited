@@ -73,7 +73,18 @@ export const Navbar = () => {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setToolsOpen(false);
   }, [location]);
+
+  // Close tools dropdown on outside click
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) setToolsOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [toolsOpen]);
 
   return (
     <>
