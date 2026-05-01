@@ -547,7 +547,8 @@ export default function PublicSitemapBuilder() {
         body: { name: fullName, email: email.trim(), project_type: 'website', form_data: { source: 'sitemap_builder_tool', sitemap_name: name } },
       });
 
-      // Generate PDF
+      // Dynamic import to avoid loading jspdf until needed
+      const { generateSitemapPDF } = await import('@/lib/sitemap-pdf');
       generateSitemapPDF({
         id: '', lead_id: null, build_flow_id: null,
         name: name || 'Sitemap', sections, created_at: '', updated_at: '',
