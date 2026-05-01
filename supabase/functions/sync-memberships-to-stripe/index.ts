@@ -180,10 +180,17 @@ serve(async (req) => {
           });
         }
 
+        // Set billing anchor to 1st of next month
+        const now = new Date();
+        const anchorDate = new Date(Date.UTC(now.getFullYear(), now.getMonth() + 1, 1));
+        logStep("Billing anchor", { anchorDate: anchorDate.toISOString() });
+
         // Create subscription
         const subParams: any = {
           customer: customerId,
           items: [{ price: priceId }],
+          billing_cycle_anchor: Math.floor(anchorDate.getTime() / 1000),
+          proration_behavior: 'none',
           metadata: { lead_id: lead.id, membership_name: tx.item },
         };
 
