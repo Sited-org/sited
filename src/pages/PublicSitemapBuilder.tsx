@@ -757,39 +757,36 @@ export default function PublicSitemapBuilder() {
       </div>
 
       {/* Lead Capture Dialog */}
-      <Dialog open={showLeadCapture} onOpenChange={setShowLeadCapture}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg">Download Your Sitemap</DialogTitle>
+      <SimpleModal open={showLeadCapture} onClose={() => setShowLeadCapture(false)} className="sm:max-w-md">
+          <div className="mb-4 space-y-1.5">
+            <h2 className="text-lg font-semibold">Download Your Sitemap</h2>
             <p className="text-sm text-muted-foreground">Enter your details to download your sitemap as a PDF.</p>
-          </DialogHeader>
+          </div>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="firstName" className="text-xs">First Name</Label>
+                <label htmlFor="firstName" className="text-xs font-medium">First Name</label>
                 <Input id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="John" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lastName" className="text-xs">Last Name</Label>
+                <label htmlFor="lastName" className="text-xs font-medium">Last Name</label>
                 <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs">Email</Label>
+              <label htmlFor="email" className="text-xs font-medium">Email</label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="john@example.com" />
             </div>
           </div>
-          <DialogFooter>
+          <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
             <Button onClick={handleLeadSubmitAndDownload} disabled={submitting} className="w-full">
               {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing…</> : <><Download className="h-4 w-4 mr-2" />Download PDF</>}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+      </SimpleModal>
 
       {/* Upsell Dialog */}
-      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
-        <DialogContent className="sm:max-w-lg text-center">
+      <SimpleModal open={showUpsell} onClose={() => setShowUpsell(false)} className="sm:max-w-lg text-center">
           <div className="py-4 space-y-4">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-[hsl(var(--gold))]/10 flex items-center justify-center">
               <Sparkles className="h-7 w-7 text-[hsl(var(--gold))]" />
@@ -807,8 +804,7 @@ export default function PublicSitemapBuilder() {
               </button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+      </SimpleModal>
     </Layout>
   );
 }
