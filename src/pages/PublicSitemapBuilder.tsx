@@ -123,21 +123,14 @@ function NodeTypeIcon({ nodeType, onChangeType }: { nodeType?: NodeType; onChang
   const Icon = currentType === 'popup' ? PanelTop : currentType === 'tab' ? LayoutGrid : currentType === 'note' ? StickyNote : FileText;
   if (!onChangeType) return <Icon className="h-3.5 w-3.5 shrink-0 opacity-60" />;
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-white/20" title="Change node type">
-          <Icon className="h-3.5 w-3.5" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-36 p-1.5" side="bottom" align="start">
+    <MiniMenu trigger={<span className="shrink-0 opacity-60 hover:opacity-100 transition-opacity rounded p-0.5 hover:bg-background/20" title="Change node type"><Icon className="h-3.5 w-3.5" /></span>} className="w-36">
         {NODE_TYPE_OPTIONS.map(opt => (
-          <button key={opt.type} className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`} onClick={() => onChangeType(opt.type)}>
+          <button key={opt.type} type="button" className={`flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted text-xs text-left transition-colors ${currentType === opt.type ? 'bg-muted font-medium' : ''}`} onClick={() => onChangeType(opt.type)}>
             <opt.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             {opt.label}
           </button>
         ))}
-      </PopoverContent>
-    </Popover>
+    </MiniMenu>
   );
 }
 
