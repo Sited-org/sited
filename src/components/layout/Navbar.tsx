@@ -263,6 +263,18 @@ export const Navbar = () => {
                   </Link>
                 </motion.div>
               ))}
+              {/* Tools section in mobile menu */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + navLinks.length * 0.05 }} className="flex flex-col items-center gap-2">
+                <span className="text-3xl font-medium text-muted-foreground">Tools</span>
+                {toolsLinks.map(tool => (
+                  <Link key={tool.href} to={tool.href} className={cn("text-xl font-medium transition-colors", location.pathname === tool.href ? "text-foreground" : "text-muted-foreground/70")}>
+                    {tool.name}
+                  </Link>
+                ))}
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + (navLinks.length + 1) * 0.05 }}>
+                <Link to="/contact" className={cn("text-3xl font-medium transition-colors", location.pathname === "/contact" ? "text-foreground" : "text-muted-foreground")}>Contact</Link>
+              </motion.div>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
